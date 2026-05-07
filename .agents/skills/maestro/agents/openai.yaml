@@ -1,0 +1,7 @@
+interface:
+  display_name: "Maestro"
+  short_description: "Maestro flows, selectors, and CLI"
+  default_prompt: "Use $maestro to write or debug Maestro Flows for mobile and web UI automation."
+
+policy:
+  allow_implicit_invocation: true

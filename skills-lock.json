@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "javascript-typescript-jest": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/javascript-typescript-jest/SKILL.md",
+      "computedHash": "0073d19ab0275eb6a8200aced6789a53744667bd717b5d1f44ce708a1740e5d4"
+    },
+    "react-native-testing": {
+      "source": "callstack/react-native-testing-library",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-testing/SKILL.md",
+      "computedHash": "ef0b758c3df5e9fcb7bb31a26d99e0cff6e559c92ae394d59b6db66e1450e552"
+    }
+  }
+}
