@@ -37,3 +37,24 @@ Pull requests should include a short summary, affected screens or modules, local
 ## Security & Configuration Tips
 
 Do not commit secrets, Supabase service keys, or local environment files. Keep public Expo configuration in `app.json`; put sensitive runtime configuration in ignored environment files or deployment secrets.
+
+## Available Skills
+
+Invoke these skills when a task matches the trigger described below.
+
+| Skill                        | Invoke when                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `building-native-ui`         | Building polished Expo Router native UI, navigation, styling, or app screens.       |
+| `javascript-typescript-jest` | Writing or fixing JavaScript/TypeScript Jest tests and mocks.                       |
+| `maestro`                    | Writing, debugging, or running Maestro UI automation flows.                         |
+| `native-data-fetching`       | Implementing or debugging fetches, API calls, caching, or offline data behavior.    |
+| `react-hook-form-zod`        | Building or reviewing React Hook Form flows with Zod validation.                    |
+| `react-native-testing`       | Writing or fixing React Native Testing Library component tests.                     |
+| `tdd`                        | Using a red-green-refactor loop for features, fixes, or integration tests.          |
+| `vercel-react-native-skills` | Improving React Native or Expo performance, components, animations, or native APIs. |
+
+## Rules
+
+- NEVER search or grep inside the `node_modules` directory.
+- If you need to check a dependency, look at `package.json` or `package-lock.json` instead.
+- Do not attempt to edit any files within `node_modules`.
