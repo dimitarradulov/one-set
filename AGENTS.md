@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-For project information refer to the `docs/SPEC.md` file. ALWAYS check the `docs/CONTEXT.md` for domain language.
+For project information refer to the `docs/SPEC.md` file.
 
 ## Project Structure & Module Organization
 
