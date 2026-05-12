@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 
 import ActiveExerciseScreen from '../exercise/[exerciseId]';
 import WorkoutOverviewScreen from '../index';
@@ -11,7 +12,7 @@ jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native');
 
   return {
-    Link: ({ href, children }: { href: string; children: unknown }) => (
+    Link: ({ href, children }: { href: string; children: ReactNode }) => (
       <Text accessibilityRole="link" href={href}>
         {children}
       </Text>
