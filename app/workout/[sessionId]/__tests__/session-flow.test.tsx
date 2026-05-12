@@ -28,7 +28,9 @@ describe('workout session placeholder flow routes', () => {
     render(<WorkoutOverviewScreen />);
 
     expect(screen.getByText('Workout Overview')).toBeTruthy();
-    expect(screen.getByText('Session context: session-a')).toBeTruthy();
+    expect(
+      screen.getByText(/Session context: session-a — placeholder pre-workout overview content\./)
+    ).toBeTruthy();
     expect(screen.getByText('Start Exercise 1').props.href).toBe('/workout/session-a/exercise/1');
   });
 
@@ -38,7 +40,11 @@ describe('workout session placeholder flow routes', () => {
     render(<ActiveExerciseScreen />);
 
     expect(screen.getByText('Active Exercise')).toBeTruthy();
-    expect(screen.getByText('Session: session-a • Exercise: 1')).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Session: session-a • Exercise: 1 — placeholder one-exercise-at-a-time logging\./
+      )
+    ).toBeTruthy();
     expect(screen.getByText('Complete Set and Start Rest').props.href).toBe(
       '/workout/session-a/rest/1'
     );
@@ -50,7 +56,9 @@ describe('workout session placeholder flow routes', () => {
     render(<RestTimerScreen />);
 
     expect(screen.getByText('Rest Timer')).toBeTruthy();
-    expect(screen.getByText('Session: session-a • Rest after exercise: 1')).toBeTruthy();
+    expect(
+      screen.getByText(/Session: session-a • Rest after exercise: 1 — placeholder rest step\./)
+    ).toBeTruthy();
     expect(screen.getByText('Continue to Exercise 2').props.href).toBe(
       '/workout/session-a/exercise/2'
     );
@@ -63,7 +71,9 @@ describe('workout session placeholder flow routes', () => {
     render(<WorkoutSummaryScreen />);
 
     expect(screen.getByText('Workout Summary')).toBeTruthy();
-    expect(screen.getByText('Session context: session-a')).toBeTruthy();
+    expect(
+      screen.getByText(/Session context: session-a — placeholder post-workout summary\./)
+    ).toBeTruthy();
     expect(screen.getByText('Back to Home').props.href).toBe('/(tabs)');
     expect(screen.getByText('Back to Logbook').props.href).toBe('/(tabs)/logbook');
   });

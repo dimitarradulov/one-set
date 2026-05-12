@@ -1,15 +1,11 @@
-import { Link } from 'expo-router';
-import { Text, View } from 'react-native';
+import { PlaceholderLink, PlaceholderScreen } from '@/components/route-shell';
 
-export default function HomeScreen() {
+export default function HomePlaceholderScreen() {
   return (
-    <View className="flex-1 items-center justify-center gap-4 bg-dark-background px-5">
-      <Text className="font-display text-h1 text-dark-text-primary">Home</Text>
-      <Link
-        className="rounded-2xl bg-brand-primary px-5 py-3 font-body-semibold text-body text-white"
-        href="/program-intro">
-        Open Workout Preview
-      </Link>
-    </View>
+    <PlaceholderScreen
+      title="Home Placeholder"
+      description="MVP home shell for the HIT training command center.">
+      <PlaceholderLink href="/program-intro">Open Program Preview</PlaceholderLink>
+    </PlaceholderScreen>
   );
 }

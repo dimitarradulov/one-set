@@ -12,10 +12,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../global.css';
 
-export const unstable_settings = {
-  initialRouteName: '(onboarding)',
-};
-
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
@@ -34,14 +30,16 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack
         screenOptions={{
+          headerShown: false,
           contentStyle: {
             backgroundColor: '#090A12',
           },
         }}>
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-        <Stack.Screen name="program-intro" options={{ title: 'Program Intro' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="program-intro" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="workout/[sessionId]" />
       </Stack>
     </SafeAreaProvider>
   );
