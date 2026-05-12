@@ -41,8 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="program-intro" options={{ title: 'Program Intro' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]" options={{ title: 'Workout' }} />
-        <Stack.Screen name="summary/[sessionId]" options={{ title: 'Summary' }} />
+        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
       </Stack>
     </SafeAreaProvider>
   );
