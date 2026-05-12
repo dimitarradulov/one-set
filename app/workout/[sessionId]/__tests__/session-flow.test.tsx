@@ -1,0 +1,69 @@
+import { render, screen } from '@testing-library/react-native';
+
+import ActiveExerciseScreen from '../exercise/[exerciseId]';
+import WorkoutOverviewScreen from '../index';
+import RestTimerScreen from '../rest/[exerciseId]';
+import WorkoutSummaryScreen from '../summary';
+
+const mockUseLocalSearchParams = jest.fn();
+
+jest.mock('expo-router', () => {
+  const { Text } = jest.requireActual('react-native');
+
+  return {
+    Link: ({ href, children }: { href: string; children: unknown }) => (
+      <Text accessibilityRole="link" href={href}>
+        {children}
+      </Text>
+    ),
+    useLocalSearchParams: () => mockUseLocalSearchParams(),
+  };
+});
+
+describe('workout session placeholder flow routes', () => {
+  test('overview shows placeholder copy and links to first active exercise', () => {
+    mockUseLocalSearchParams.mockReturnValue({ sessionId: 'session-a' });
+
+    render(<WorkoutOverviewScreen />);
+
+    expect(screen.getByText('Workout Overview')).toBeTruthy();
+    expect(screen.getByText('Session context: session-a')).toBeTruthy();
+    expect(screen.getByText('Start Exercise 1').props.href).toBe('/workout/session-a/exercise/1');
+  });
+
+  test('active exercise shows placeholder copy and links to rest timer', () => {
+    mockUseLocalSearchParams.mockReturnValue({ sessionId: 'session-a', exerciseId: '1' });
+
+    render(<ActiveExerciseScreen />);
+
+    expect(screen.getByText('Active Exercise')).toBeTruthy();
+    expect(screen.getByText('Session: session-a • Exercise: 1')).toBeTruthy();
+    expect(screen.getByText('Complete Set and Start Rest').props.href).toBe(
+      '/workout/session-a/rest/1'
+    );
+  });
+
+  test('rest timer shows placeholder copy and links to next exercise or summary', () => {
+    mockUseLocalSearchParams.mockReturnValue({ sessionId: 'session-a', exerciseId: '1' });
+
+    render(<RestTimerScreen />);
+
+    expect(screen.getByText('Rest Timer')).toBeTruthy();
+    expect(screen.getByText('Session: session-a • Rest after exercise: 1')).toBeTruthy();
+    expect(screen.getByText('Continue to Exercise 2').props.href).toBe(
+      '/workout/session-a/exercise/2'
+    );
+    expect(screen.getByText('Finish Workout').props.href).toBe('/workout/session-a/summary');
+  });
+
+  test('summary shows placeholder copy and links back to home and logbook', () => {
+    mockUseLocalSearchParams.mockReturnValue({ sessionId: 'session-a' });
+
+    render(<WorkoutSummaryScreen />);
+
+    expect(screen.getByText('Workout Summary')).toBeTruthy();
+    expect(screen.getByText('Session context: session-a')).toBeTruthy();
+    expect(screen.getByText('Back to Home').props.href).toBe('/(tabs)');
+    expect(screen.getByText('Back to Logbook').props.href).toBe('/(tabs)/logbook');
+  });
+});
