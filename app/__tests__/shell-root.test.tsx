@@ -15,15 +15,17 @@ jest.mock('expo-router', () => {
         {children}
       </Text>
     ),
+    Redirect: ({ href }: { href: string }) => (
+      <Text accessibilityRole="link" href={href} testID="root-redirect" />
+    ),
   };
 });
 
 describe('onboarding route placeholders', () => {
-  test('root entry links into onboarding welcome', () => {
+  test('root entry redirects into onboarding welcome', () => {
     render(<RootPlaceholderScreen />);
 
-    expect(screen.getByText('OneSet Route Skeleton')).toBeTruthy();
-    expect(screen.getByText('Begin Assessment').props.href).toBe('/(onboarding)');
+    expect(screen.getByTestId('root-redirect').props.href).toBe('/(onboarding)');
   });
 
   test('welcome step shows placeholder purpose and links to main goal', () => {
