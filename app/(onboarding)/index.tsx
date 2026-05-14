@@ -3,7 +3,7 @@ import { Link } from 'expo-router';
 import { Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { welcomeBenefits, type WelcomeBenefit } from './welcome-benefits';
+import { welcomeContent, type WelcomeBenefit } from './welcome-content';
 
 function WelcomeBenefitRow({ description, icon, title }: WelcomeBenefit) {
   return (
@@ -38,16 +38,15 @@ export default function OnboardingWelcomeScreen() {
                 />
               </View>
               <Text className="max-w-[320px] text-center font-display text-display text-dark-text-primary">
-                Build muscle with fewer, harder, smarter workouts.
+                {welcomeContent.headline}
               </Text>
               <Text className="mt-4 max-w-[330px] text-center font-body text-body-lg text-dark-text-secondary">
-                OneSet creates HIT-based training programs built around your experience, recovery,
-                schedule, and equipment.
+                {welcomeContent.subtext}
               </Text>
             </View>
 
             <View className="gap-3">
-              {welcomeBenefits.map((benefit) => (
+              {welcomeContent.benefits.map((benefit) => (
                 <WelcomeBenefitRow key={benefit.title} {...benefit} />
               ))}
             </View>
@@ -56,17 +55,19 @@ export default function OnboardingWelcomeScreen() {
           <View className="gap-3 pb-2">
             <Link
               className="min-h-[56px] items-center justify-center rounded-2xl bg-brand-primary px-5 py-4 text-center font-body-semibold text-body text-white"
-              href="/main-goal">
-              Start Assessment
+              href={welcomeContent.cta.href}>
+              {welcomeContent.cta.label}
             </Link>
             <Text className="text-center font-body text-body-sm text-dark-text-secondary">
-              Takes less than 2 minutes
+              {welcomeContent.helperText}
             </Text>
             <Link
               className="self-center px-4 py-4 text-center font-body text-body-sm text-dark-text-secondary"
-              href="/auth-prompt">
-              Already have an account?{' '}
-              <Text className="font-body-semibold text-brand-primary">Sign in</Text>
+              href={welcomeContent.footer.href}>
+              {welcomeContent.footer.prompt}{' '}
+              <Text className="font-body-semibold text-brand-primary">
+                {welcomeContent.footer.actionLabel}
+              </Text>
             </Link>
           </View>
         </View>
