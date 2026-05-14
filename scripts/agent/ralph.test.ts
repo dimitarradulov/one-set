@@ -131,6 +131,24 @@ None - can start immediately
     ]);
   });
 
+  test('allows issues whose blockers are marked agent done', async () => {
+    await expect(
+      getIssueReadiness(
+        issue(`
+## Blocked by
+
+- #12
+`),
+        async () => ({
+          state: 'OPEN',
+          labels: [{ name: 'agent:done' }],
+        })
+      )
+    ).resolves.toEqual({
+      ready: true,
+    });
+  });
+
   test('skips malformed blocker sections instead of implementing them', async () => {
     await expect(
       getIssueReadiness(

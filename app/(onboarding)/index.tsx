@@ -1,11 +1,12 @@
-import { PlaceholderLink, PlaceholderScreen } from '@/components/route-shell';
+import { OnboardingStepScreen } from './OnboardingStepScreen';
 
-export default function OnboardingPlaceholderScreen() {
+export default function OnboardingWelcomeScreen() {
   return (
-    <PlaceholderScreen
-      title="Onboarding Placeholder"
-      description="Coach-style assessment placeholder before the program preview.">
-      <PlaceholderLink href="/program-intro">Continue to Program Preview</PlaceholderLink>
-    </PlaceholderScreen>
+    <OnboardingStepScreen
+      title="Welcome"
+      description="Dummy welcome content introducing the coach-style onboarding assessment."
+      nextHref="/main-goal"
+      nextLabel="Start Assessment"
+    />
   );
 }

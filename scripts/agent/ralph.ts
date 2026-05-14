@@ -45,6 +45,7 @@ type BlockedByParseResult =
 type BlockerLookupResult = {
   state: string;
   title?: string;
+  labels?: { name: string }[];
 };
 
 export type IssueReadiness =
@@ -227,7 +228,7 @@ export function parseBlockedBy(issue: Issue): BlockedByParseResult {
 }
 
 async function resolveBlockerIssue(blocker: BlockerReference): Promise<BlockerLookupResult | null> {
-  const args = ['issue', 'view', String(blocker.number), '--json', 'state,title,number'];
+  const args = ['issue', 'view', String(blocker.number), '--json', 'state,title,number,labels'];
 
   if (blocker.repo) {
     args.push('--repo', blocker.repo);
@@ -240,6 +241,10 @@ async function resolveBlockerIssue(blocker: BlockerReference): Promise<BlockerLo
   }
 
   return JSON.parse(result.output || '{}');
+}
+
+function hasAgentDoneLabel(issue: BlockerLookupResult) {
+  return issue.labels?.some((label) => label.name === 'agent:done') ?? false;
 }
 
 export async function getIssueReadiness(
@@ -279,6 +284,10 @@ export async function getIssueReadiness(
         ready: false,
         reason: `could not resolve blocker ${label}`,
       };
+    }
+
+    if (hasAgentDoneLabel(blockerIssue)) {
+      continue;
     }
 
     if (blockerIssue.state.toUpperCase() !== 'CLOSED') {

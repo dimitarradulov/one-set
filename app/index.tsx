@@ -5,7 +5,7 @@ export default function Index() {
     <PlaceholderScreen
       title="OneSet Route Skeleton"
       description="Foundation shell for onboarding, preview, workout flow, and MVP tabs.">
-      <PlaceholderLink href="/(onboarding)">Begin Onboarding Placeholder</PlaceholderLink>
+      <PlaceholderLink href="/(onboarding)">Begin Assessment</PlaceholderLink>
       <PlaceholderLink href="/(tabs)" variant="secondary">
         Open Home Placeholder
       </PlaceholderLink>
