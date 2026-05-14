@@ -37,6 +37,12 @@ export default function OnboardingWelcomeScreen() {
             <Text className="text-center font-body text-body-sm text-dark-text-secondary">
               Takes less than 2 minutes
             </Text>
+            <Link
+              className="self-center px-4 py-4 text-center font-body text-body-sm text-dark-text-secondary"
+              href="/auth-prompt">
+              Already have an account?{' '}
+              <Text className="font-body-semibold text-brand-primary">Sign in</Text>
+            </Link>
           </View>
         </View>
       </ScrollView>

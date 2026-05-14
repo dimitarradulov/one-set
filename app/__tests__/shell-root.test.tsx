@@ -42,6 +42,13 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByText('Takes less than 2 minutes')).toBeTruthy();
   });
 
+  test('welcome screen shows the returning-user footer and routes sign in to auth prompt', () => {
+    render(<OnboardingWelcomeScreen />);
+
+    expect(screen.getByText('Already have an account? Sign in')).toBeTruthy();
+    expect(screen.getByText('Already have an account? Sign in').props.href).toBe('/auth-prompt');
+  });
+
   test('middle step shows placeholder purpose and links to the next step', () => {
     render(<RecoveryProfileScreen />);
 
