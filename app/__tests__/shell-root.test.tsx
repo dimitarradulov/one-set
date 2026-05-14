@@ -28,14 +28,18 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByTestId('root-redirect').props.href).toBe('/(onboarding)');
   });
 
-  test('welcome step shows placeholder purpose and links to main goal', () => {
+  test('welcome screen shows the hero copy and routes start assessment to main goal', () => {
     render(<OnboardingWelcomeScreen />);
 
-    expect(screen.getByText('Welcome')).toBeTruthy();
+    expect(screen.getByLabelText('OneSet logo')).toBeTruthy();
+    expect(screen.getByText('Build muscle with fewer, harder, smarter workouts.')).toBeTruthy();
     expect(
-      screen.getByText(/Dummy welcome content introducing the coach-style onboarding assessment\./)
+      screen.getByText(
+        'OneSet creates HIT-based training programs built around your experience, recovery, schedule, and equipment.'
+      )
     ).toBeTruthy();
     expect(screen.getByText('Start Assessment').props.href).toBe('/main-goal');
+    expect(screen.getByText('Takes less than 2 minutes')).toBeTruthy();
   });
 
   test('middle step shows placeholder purpose and links to the next step', () => {
