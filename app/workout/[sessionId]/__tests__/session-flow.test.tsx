@@ -5,11 +5,18 @@ import ActiveExerciseScreen from '../exercise/[exerciseId]';
 import WorkoutOverviewScreen from '../index';
 import RestTimerScreen from '../rest/[exerciseId]';
 import WorkoutSummaryScreen from '../summary';
+import WorkoutSessionLayout from '../_layout';
 
 const mockUseLocalSearchParams = jest.fn();
+let lastStackScreenOptions: { headerShown?: boolean } | undefined;
 
 jest.mock('expo-router', () => {
-  const { Text } = jest.requireActual('react-native');
+  const { Text, View } = jest.requireActual('react-native');
+
+  const Stack = ({ screenOptions }: { screenOptions?: { headerShown?: boolean } }) => {
+    lastStackScreenOptions = screenOptions;
+    return <View testID="stack-layout" />;
+  };
 
   return {
     Link: ({ href, children }: { href: string; children: ReactNode }) => (
@@ -17,11 +24,20 @@ jest.mock('expo-router', () => {
         {children}
       </Text>
     ),
+    Stack,
     useLocalSearchParams: () => mockUseLocalSearchParams(),
   };
 });
 
 describe('workout session placeholder flow routes', () => {
+  test('shared workout detail layout keeps native headers hidden', () => {
+    render(<WorkoutSessionLayout />);
+
+    expect(lastStackScreenOptions).toMatchObject({
+      headerShown: false,
+    });
+  });
+
   test('overview shows placeholder copy and links to first active exercise', () => {
     mockUseLocalSearchParams.mockReturnValue({ sessionId: 'session-a' });
 
@@ -32,6 +48,7 @@ describe('workout session placeholder flow routes', () => {
       screen.getByText(/Session context: session-a — placeholder pre-workout overview content\./)
     ).toBeTruthy();
     expect(screen.getByText('Start Exercise 1').props.href).toBe('/workout/session-a/exercise/1');
+    expect(screen.getByText('Route Test: Back to Program').props.href).toBe('/(tabs)/program');
   });
 
   test('active exercise shows placeholder copy and links to rest timer', () => {
@@ -47,6 +64,9 @@ describe('workout session placeholder flow routes', () => {
     ).toBeTruthy();
     expect(screen.getByText('Complete Set and Start Rest').props.href).toBe(
       '/workout/session-a/rest/1'
+    );
+    expect(screen.getByText('Route Test: Back to Workout Overview').props.href).toBe(
+      '/workout/session-a'
     );
   });
 

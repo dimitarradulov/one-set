@@ -42,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="trial-paywall" />
         <Stack.Screen name="fitness-disclaimer" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="logbook" />
         <Stack.Screen name="workout/[sessionId]" />
       </Stack>
     </SafeAreaProvider>

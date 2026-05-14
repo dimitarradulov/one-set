@@ -10,6 +10,9 @@ export default function WorkoutOverviewScreen() {
       title="Workout Overview"
       description={`Session context: ${sessionId} — placeholder pre-workout overview content.`}>
       <PlaceholderLink href={`/workout/${sessionId}/exercise/1`}>Start Exercise 1</PlaceholderLink>
+      <PlaceholderLink href="/(tabs)/program" variant="secondary">
+        Route Test: Back to Program
+      </PlaceholderLink>
     </PlaceholderScreen>
   );
 }

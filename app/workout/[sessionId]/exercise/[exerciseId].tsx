@@ -15,6 +15,9 @@ export default function ActiveExerciseScreen() {
       <PlaceholderLink href={`/workout/${sessionId}/rest/${exerciseId}`}>
         Complete Set and Start Rest
       </PlaceholderLink>
+      <PlaceholderLink href={`/workout/${sessionId}`} variant="secondary">
+        Route Test: Back to Workout Overview
+      </PlaceholderLink>
     </PlaceholderScreen>
   );
 }
