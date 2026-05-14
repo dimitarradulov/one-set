@@ -21,6 +21,16 @@ jest.mock('expo-router', () => {
   };
 });
 
+jest.mock('@expo/vector-icons', () => {
+  const { Text } = jest.requireActual('react-native');
+
+  return {
+    MaterialCommunityIcons: ({ name }: { name: string }) => (
+      <Text accessibilityLabel={`icon-${name}`} />
+    ),
+  };
+});
+
 describe('onboarding route placeholders', () => {
   test('root entry redirects into onboarding welcome', () => {
     render(<RootPlaceholderScreen />);
@@ -40,6 +50,19 @@ describe('onboarding route placeholders', () => {
     ).toBeTruthy();
     expect(screen.getByText('Start Assessment').props.href).toBe('/main-goal');
     expect(screen.getByText('Takes less than 2 minutes')).toBeTruthy();
+  });
+
+  test('welcome screen renders the four benefit rows', () => {
+    render(<OnboardingWelcomeScreen />);
+
+    expect(screen.getByText('HIT-Only Programs')).toBeTruthy();
+    expect(screen.getByText('Low volume. High effort. Maximum results.')).toBeTruthy();
+    expect(screen.getByText('Track What Matters')).toBeTruthy();
+    expect(screen.getByText('Your logbook drives your progress.')).toBeTruthy();
+    expect(screen.getByText('Progress Over Time')).toBeTruthy();
+    expect(screen.getByText('Intelligent rules guide your next steps.')).toBeTruthy();
+    expect(screen.getByText('Recover to Grow')).toBeTruthy();
+    expect(screen.getByText('Training hard means recovering smart.')).toBeTruthy();
   });
 
   test('welcome screen shows the returning-user footer and routes sign in to auth prompt', () => {
