@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import OnboardingPlaceholderScreen from '../(onboarding)/index';
+import OnboardingWelcomeScreen from '../(onboarding)/index';
+import RecoveryProfileScreen from '../(onboarding)/recovery-profile';
+import FirstWorkoutPreviewScreen from '../(onboarding)/first-workout-preview';
 import RootPlaceholderScreen from '../index';
 
 jest.mock('expo-router', () => {
@@ -16,18 +18,45 @@ jest.mock('expo-router', () => {
   };
 });
 
-describe('route shell placeholders', () => {
-  test('root entry route is nonblank and links to onboarding placeholder', () => {
+describe('onboarding route placeholders', () => {
+  test('root entry links into onboarding welcome', () => {
     render(<RootPlaceholderScreen />);
 
     expect(screen.getByText('OneSet Route Skeleton')).toBeTruthy();
-    expect(screen.getByText('Begin Onboarding Placeholder').props.href).toBe('/(onboarding)');
+    expect(screen.getByText('Begin Assessment').props.href).toBe('/(onboarding)');
   });
 
-  test('onboarding placeholder links to program preview placeholder', () => {
-    render(<OnboardingPlaceholderScreen />);
+  test('welcome step shows placeholder purpose and links to main goal', () => {
+    render(<OnboardingWelcomeScreen />);
 
-    expect(screen.getByText('Onboarding Placeholder')).toBeTruthy();
-    expect(screen.getByText('Continue to Program Preview').props.href).toBe('/program-intro');
+    expect(screen.getByText('Welcome')).toBeTruthy();
+    expect(
+      screen.getByText(/Dummy welcome content introducing the coach-style onboarding assessment\./)
+    ).toBeTruthy();
+    expect(screen.getByText('Start Assessment').props.href).toBe('/main-goal');
+  });
+
+  test('middle step shows placeholder purpose and links to the next step', () => {
+    render(<RecoveryProfileScreen />);
+
+    expect(screen.getByText('Recovery Profile')).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Dummy assessment content for how quickly the user recovers from hard training\./
+      )
+    ).toBeTruthy();
+    expect(screen.getByText('Next: Lifestyle Stress').props.href).toBe('/lifestyle-stress');
+  });
+
+  test('final step shows placeholder purpose and links to program intro', () => {
+    render(<FirstWorkoutPreviewScreen />);
+
+    expect(screen.getByText('First Workout Preview')).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Dummy onboarding wrap-up content previewing the first focused training session\./
+      )
+    ).toBeTruthy();
+    expect(screen.getByText('Continue to Program Intro').props.href).toBe('/program-intro');
   });
 });
