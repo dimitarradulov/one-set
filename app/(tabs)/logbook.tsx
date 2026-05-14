@@ -1,9 +1,10 @@
-import { Text, View } from 'react-native';
+import { PlaceholderScreen } from '@/components/route-shell';
 
-export default function LogbookScreen() {
+export default function LogbookPlaceholderScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-dark-background px-5">
-      <Text className="font-display text-h1 text-dark-text-primary">Logbook</Text>
-    </View>
+    <PlaceholderScreen
+      title="Logbook Placeholder"
+      description="MVP logbook shell for workout and exercise history."
+    />
   );
 }
