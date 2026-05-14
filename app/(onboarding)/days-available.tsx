@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function DaysAvailableScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Days Available"
       description="Dummy assessment content for realistic weekly training availability."
       nextHref="/session-length"

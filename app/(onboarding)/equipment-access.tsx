@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function EquipmentAccessScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Equipment Access"
       description="Dummy assessment content for available training equipment environment."
       nextHref="/recovery-profile"

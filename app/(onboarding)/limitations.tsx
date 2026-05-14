@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function LimitationsScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Limitations"
       description="Dummy assessment content for injury-sensitive or caution areas in training."
       nextHref="/training-direction"

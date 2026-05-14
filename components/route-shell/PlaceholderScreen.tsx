@@ -7,7 +7,11 @@ type PlaceholderScreenProps = {
   children?: ReactNode;
 };
 
-export function PlaceholderScreen({ title, description, children }: PlaceholderScreenProps) {
+export default function PlaceholderScreen({
+  title,
+  description,
+  children,
+}: PlaceholderScreenProps) {
   return (
     <View className="flex-1 items-center justify-center gap-4 bg-dark-background px-5">
       <Text className="text-center font-display text-h1 text-dark-text-primary">{title}</Text>

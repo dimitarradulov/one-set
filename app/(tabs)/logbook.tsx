@@ -1,4 +1,4 @@
-import { PlaceholderScreen } from '@/components/route-shell';
+import PlaceholderScreen from '@/components/route-shell/PlaceholderScreen';
 
 export default function LogbookPlaceholderScreen() {
   return (

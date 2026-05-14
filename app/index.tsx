@@ -1,4 +1,5 @@
-import { PlaceholderLink, PlaceholderScreen } from '@/components/route-shell';
+import PlaceholderLink from '@/components/route-shell/PlaceholderLink';
+import PlaceholderScreen from '@/components/route-shell/PlaceholderScreen';
 
 export default function Index() {
   return (

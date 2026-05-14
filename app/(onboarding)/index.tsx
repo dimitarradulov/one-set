@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function OnboardingWelcomeScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Welcome"
       description="Dummy welcome content introducing the coach-style onboarding assessment."
       nextHref="/main-goal"

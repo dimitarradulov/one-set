@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function ResultCalculationScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Result Calculation"
       description="Dummy assessment content for short analysis and starter program matching."
       nextHref="/recommended-program"

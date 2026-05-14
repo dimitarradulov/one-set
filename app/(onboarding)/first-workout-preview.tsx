@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function FirstWorkoutPreviewScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="First Workout Preview"
       description="Dummy onboarding wrap-up content previewing the first focused training session."
       nextHref="/program-intro"

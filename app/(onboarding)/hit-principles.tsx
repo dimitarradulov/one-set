@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function HitPrinciplesScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="HIT Principles"
       description="Dummy educational content for the core high-intensity training principles."
       nextHref="/first-workout-preview"

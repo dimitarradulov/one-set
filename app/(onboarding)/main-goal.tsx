@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function MainGoalScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Main Goal"
       description="Dummy assessment content for selecting the user's primary training outcome."
       nextHref="/training-experience"

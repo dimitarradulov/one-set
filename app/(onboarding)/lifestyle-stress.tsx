@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function LifestyleStressScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Lifestyle Stress"
       description="Dummy assessment content for stress, sleep, and daily demand context."
       nextHref="/limitations"

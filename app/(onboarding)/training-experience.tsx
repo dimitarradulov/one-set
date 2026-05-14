@@ -1,8 +1,8 @@
-import { OnboardingStepScreen } from './OnboardingStepScreen';
+import OnboardingStep from '@/components/OnboardingStep';
 
 export default function TrainingExperienceScreen() {
   return (
-    <OnboardingStepScreen
+    <OnboardingStep
       title="Training Experience"
       description="Dummy assessment content for current lifting consistency and experience level."
       nextHref="/hit-experience"
