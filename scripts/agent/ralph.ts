@@ -71,7 +71,6 @@ async function run(
   return new Promise<RunResult>((resolve) => {
     const child = spawn(command, args, {
       cwd,
-      shell: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -394,14 +393,7 @@ Final response format:
 async function runCodex(prompt: string) {
   return run(
     'codex',
-    [
-      'exec',
-      '--profile',
-      'implementor',
-      '--output-last-message',
-      '.agent-result.md',
-      JSON.stringify(prompt),
-    ],
+    ['exec', '--profile', 'implementor', '--output-last-message', '.agent-result.md', prompt],
     process.cwd()
   );
 }
@@ -484,6 +476,12 @@ export function markAcceptanceCriteriaDoneInBody(body: string) {
     body: updatedLines.join('\n'),
     changed,
   };
+}
+
+export function buildIssueChangeTitle(issue: Pick<Issue, 'number' | 'title'>) {
+  const title = issue.title.replace(/\s+/g, ' ').trim() || 'Untitled issue';
+
+  return `Implement #${issue.number}: ${title}`;
 }
 
 async function runPrettierOnFiles(files: string[], cwd: string) {
@@ -642,12 +640,9 @@ async function verify() {
 
 async function commitAndCreatePr(issue: Issue, branchName: string) {
   await run('git', ['add', '.'], process.cwd());
+  const changeTitle = buildIssueChangeTitle(issue);
 
-  const commitResult = await run(
-    'git',
-    ['commit', '-m', `Issue #${issue.number}: ${issue.title}`],
-    process.cwd()
-  );
+  const commitResult = await run('git', ['commit', '-m', changeTitle], process.cwd());
 
   if (commitResult.exitCode !== 0) {
     throw new Error(commitResult.output);
@@ -657,14 +652,7 @@ async function commitAndCreatePr(issue: Issue, branchName: string) {
 
   await run(
     'gh',
-    [
-      'pr',
-      'create',
-      '--title',
-      `Issue #${issue.number}: ${issue.title}`,
-      '--body',
-      `Closes #${issue.number}`,
-    ],
+    ['pr', 'create', '--title', changeTitle, '--body', `Closes #${issue.number}`],
     process.cwd()
   );
 }

@@ -1,4 +1,5 @@
 import {
+  buildIssueChangeTitle,
   getIssueReadiness,
   isPrdIssue,
   markAcceptanceCriteriaDoneInBody,
@@ -159,6 +160,15 @@ describe('ralph verification helpers', () => {
 });
 
 describe('ralph issue updates', () => {
+  test('builds a descriptive commit and PR title from the issue', () => {
+    expect(
+      buildIssueChangeTitle({
+        number: 42,
+        title: '  Add   rest timer notifications  ',
+      })
+    ).toBe('Implement #42: Add rest timer notifications');
+  });
+
   test('marks unchecked acceptance criteria complete', () => {
     expect(
       markAcceptanceCriteriaDoneInBody(`
