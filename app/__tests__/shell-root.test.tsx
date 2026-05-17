@@ -38,38 +38,32 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByTestId('root-redirect').props.href).toBe('/(onboarding)');
   });
 
-  test('welcome screen shows the hero copy and routes start assessment to main goal', () => {
+  test('welcome screen shows simplified hero copy and routes begin assessment to main goal', () => {
     render(<OnboardingWelcomeScreen />);
 
     expect(screen.getByLabelText('OneSet logo')).toBeTruthy();
-    expect(screen.getByText('Build muscle with fewer, harder, smarter workouts.')).toBeTruthy();
+    expect(screen.getByText('Build more muscle by training less')).toBeTruthy();
+    expect(screen.getByText('Begin Assessment').props.href).toBe('/main-goal');
+    expect(screen.getByText('Sign in').props.href).toBe('/auth-prompt');
+  });
+
+  test('welcome screen removes prior subtext, helper text, and benefit rows', () => {
+    render(<OnboardingWelcomeScreen />);
+
     expect(
-      screen.getByText(
+      screen.queryByText(
         'OneSet creates HIT-based training programs built around your experience, recovery, schedule, and equipment.'
       )
-    ).toBeTruthy();
-    expect(screen.getByText('Start Assessment').props.href).toBe('/main-goal');
-    expect(screen.getByText('Takes less than 2 minutes')).toBeTruthy();
-  });
-
-  test('welcome screen renders the four benefit rows', () => {
-    render(<OnboardingWelcomeScreen />);
-
-    expect(screen.getByText('HIT-Only Programs')).toBeTruthy();
-    expect(screen.getByText('Low volume. High effort. Maximum results.')).toBeTruthy();
-    expect(screen.getByText('Track What Matters')).toBeTruthy();
-    expect(screen.getByText('Your logbook drives your progress.')).toBeTruthy();
-    expect(screen.getByText('Progress Over Time')).toBeTruthy();
-    expect(screen.getByText('Intelligent rules guide your next steps.')).toBeTruthy();
-    expect(screen.getByText('Recover to Grow')).toBeTruthy();
-    expect(screen.getByText('Training hard means recovering smart.')).toBeTruthy();
-  });
-
-  test('welcome screen shows the returning-user footer and routes sign in to auth prompt', () => {
-    render(<OnboardingWelcomeScreen />);
-
-    expect(screen.getByText('Already have an account? Sign in')).toBeTruthy();
-    expect(screen.getByText('Already have an account? Sign in').props.href).toBe('/auth-prompt');
+    ).toBeNull();
+    expect(screen.queryByText('Takes less than 2 minutes')).toBeNull();
+    expect(screen.queryByText('HIT-Only Programs')).toBeNull();
+    expect(screen.queryByText('Low volume. High effort. Maximum results.')).toBeNull();
+    expect(screen.queryByText('Track What Matters')).toBeNull();
+    expect(screen.queryByText('Your logbook drives your progress.')).toBeNull();
+    expect(screen.queryByText('Progress Over Time')).toBeNull();
+    expect(screen.queryByText('Intelligent rules guide your next steps.')).toBeNull();
+    expect(screen.queryByText('Recover to Grow')).toBeNull();
+    expect(screen.queryByText('Training hard means recovering smart.')).toBeNull();
   });
 
   test('middle step shows placeholder purpose and links to the next step', () => {
