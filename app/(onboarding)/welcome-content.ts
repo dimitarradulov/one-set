@@ -24,7 +24,7 @@ export const welcomeContent = {
   benefits: [
     {
       title: 'HIT-Only Programs',
-      description: 'Low volume. High effort. Maximum results.',
+      description: 'Less volume. More effort. Better results.',
       icon: 'dumbbell',
     },
     {

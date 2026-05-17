@@ -1,23 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { welcomeContent, type WelcomeBenefit } from './welcome-content';
+import { WelcomeBenefitRow } from '@/components/WelcomeBenefitRow';
 
-function WelcomeBenefitRow({ description, icon, title }: WelcomeBenefit) {
-  return (
-    <View className="flex-row items-start gap-3 rounded-2xl border border-dark-border bg-dark-surface px-4 py-4">
-      <View className="h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary-soft">
-        <MaterialCommunityIcons color="#A78BFA" name={icon} size={22} />
-      </View>
-      <View className="flex-1 gap-1">
-        <Text className="font-body-semibold text-body text-dark-text-primary">{title}</Text>
-        <Text className="font-body text-body-sm text-dark-text-secondary">{description}</Text>
-      </View>
-    </View>
-  );
-}
+import { welcomeContent } from './welcome-content';
 
 export default function OnboardingWelcomeScreen() {
   return (
@@ -27,12 +14,12 @@ export default function OnboardingWelcomeScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}>
         <View className="flex-1 justify-between px-6 py-5">
-          <View className="gap-8 pt-4">
+          <View className="mb-8 gap-8 pt-4">
             <View className="items-center">
               <View className="mb-8 rounded-3xl border border-dark-border bg-dark-surface p-5">
                 <Image
                   accessibilityLabel="OneSet logo"
-                  className="h-16 w-16"
+                  className="h-20 w-20"
                   resizeMode="contain"
                   source={require('../../assets/splash-icon-light.png')}
                 />
@@ -40,7 +27,7 @@ export default function OnboardingWelcomeScreen() {
               <Text className="max-w-[320px] text-center font-display text-display text-dark-text-primary">
                 {welcomeContent.headline}
               </Text>
-              <Text className="mt-4 max-w-[330px] text-center font-body text-body-lg text-dark-text-secondary">
+              <Text className="mt-4 max-w-[330px] text-center font-body text-body-sm text-dark-text-secondary">
                 {welcomeContent.subtext}
               </Text>
             </View>

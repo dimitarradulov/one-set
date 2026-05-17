@@ -10,7 +10,8 @@
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
     "web": "expo start --web",
-    "agent:ralph": "tsx scripts/agent/ralph.ts"
+    "agent:ralph": "tsx scripts/agent/ralph.ts",
+    "sandcastle": "npx tsx .sandcastle/main.mts"
   },
   "dependencies": {
     "@expo-google-fonts/bebas-neue": "^0.4.0",
@@ -45,6 +46,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.5.10",
     "@babel/core": "^7.20.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
