@@ -38,9 +38,10 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByTestId('root-redirect').props.href).toBe('/(onboarding)');
   });
 
-  test('welcome screen shows simplified hero copy and routes begin assessment to main goal', () => {
+  test('welcome screen shows hero image, simplified copy, and routes begin assessment to main goal', () => {
     render(<OnboardingWelcomeScreen />);
 
+    expect(screen.getByLabelText('Onboarding hero image')).toBeTruthy();
     expect(screen.getByLabelText('OneSet logo')).toBeTruthy();
     expect(screen.getByText('Build more muscle by training less')).toBeTruthy();
     expect(screen.getByText('Begin Assessment').props.href).toBe('/main-goal');
