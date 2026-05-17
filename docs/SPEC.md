@@ -210,21 +210,22 @@ The user should feel:
 
 Headline:
 
-> Build muscle with fewer, harder, smarter workouts.
-
-Subtext:
-
-> OneSet creates HIT-based training programs built around your experience, recovery, schedule, and equipment.
+> Build more muscle by training less.
 
 CTA:
 
-> Start Assessment
+> Begin Assessment
 
-Optional small text:
+Secondary action:
 
-> Takes less than 2 minutes.
+> Sign in
 
-> Already have and account? Sign in.
+Behavior:
+
+- This screen is the pre-**Assessment** entry point and is not counted as an assessment step.
+- The welcome layout is visual-first, using the onboarding hero image to dominate the upper area with a soft fade into the bottom content.
+- The content area should include only the headline, primary CTA, and secondary sign-in action.
+- Supporting subtext, helper text, and benefit rows are intentionally removed.
 
 ### 6.4 Main Goal
 
