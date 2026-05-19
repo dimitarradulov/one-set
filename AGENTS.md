@@ -4,7 +4,7 @@ For project information refer to the `docs/SPEC.md` file.
 
 ## Project Structure & Module Organization
 
-This is an Expo Router React Native app. Route files live in `app/`; grouped tab routes are under `app/(tabs)/`, shared layout is in `app/_layout.tsx`, and modal/not-found routes are top-level files. Reusable UI components live in `components/`, and any component that is not a screen should live outside of `app/` in `components/`. Zustand state is in `store/store.ts`. Supabase and integration helpers belong in `utils/`. Static icons and splash assets are in `assets/`. Styling uses `global.css`, `tailwind.config.js`, NativeWind, and component `className` strings.
+This is an Expo Router React Native app. Route files live in `app/`; grouped tab routes are under `app/(tabs)/`, shared layout is in `app/_layout.tsx`, and modal/not-found routes are top-level files. Reusable UI components live in `components/`, and any component that is not a screen should live outside of `app/` in `components/`. Zustand state modules live in `store/`. Supabase and integration helpers belong in `utils/`. Static icons and splash assets are in `assets/`. Styling uses `global.css`, `tailwind.config.js`, NativeWind, and component `className` strings.
 
 ## Build, Test, and Development Commands
 
@@ -15,6 +15,7 @@ This is an Expo Router React Native app. Route files live in `app/`; grouped tab
 - `npm run prebuild`: generate native `ios/` and `android/` projects when needed.
 - `npm run lint`: run ESLint and check Prettier formatting.
 - `npm run format`: apply ESLint fixes and Prettier formatting.
+- `npm test`: run the Jest test suite.
 
 Use `npm install` to restore dependencies from `package-lock.json`.
 
@@ -26,7 +27,7 @@ Prettier controls formatting: 2-space indentation, single quotes, ES5 trailing c
 
 ## Testing Guidelines
 
-Jest, `react-test-renderer`, and `@testing-library/react-native` are installed, but no test script or test files are currently defined. When adding tests, colocate them near the code under test with names like `Button.test.tsx` or `store.test.ts`. Prefer React Native Testing Library for user-facing behavior. Add an `npm test` script before relying on automated tests in CI or pull requests.
+Jest, `react-test-renderer`, and `@testing-library/react-native` are installed. When implementing or changing a screen, feature, or store behavior, add or update tests in the same change. Colocate tests near the code in a folder named `__tests__` with names like `Button.test.tsx` or `assessment-store.test.ts`. Prefer React Native Testing Library for user-facing behavior. Use `npm test` as the standard local test command.
 
 ## Commit & Pull Request Guidelines
 

@@ -49,9 +49,9 @@ Purple should be the brand accent. Dark navy/black should be the main app enviro
 
 ## 3. Color Palette
 
-## 3.1 Dark Theme — Primary Experience
+## 3.1 Dark Theme — Only Experience
 
-Dark mode should be treated as the main brand experience.
+Dark mode is the only supported OneSet theme. Do not design or implement light theme variants.
 
 | Token             |       Hex | Usage                                           |
 | ----------------- | --------: | ----------------------------------------------- |
@@ -85,6 +85,7 @@ Dark mode should be treated as the main brand experience.
 - Inputs should use `surfaceMuted` with `border`.
 - Primary buttons should use `primary`.
 - Avoid large full-screen purple backgrounds. Purple is strongest when used selectively.
+- Avoid adding light-mode tokens, light-only components, or alternate light-screen variants.
 
 ## 5. Typography
 
@@ -190,18 +191,6 @@ Example:
 ```tsx
 <View className="border-dark-border bg-dark-surface rounded-2xl border p-4" />
 ```
-
-### Light mode
-
-Use soft shadows on important cards only.
-
-Example:
-
-```tsx
-<View className="border-light-border rounded-2xl border bg-white p-4 shadow-sm" />
-```
-
----
 
 ## 10. Buttons
 
@@ -430,8 +419,7 @@ Onboarding should feel like a serious coach assessment.
 
 ### Visual direction
 
-- Can use light or dark theme.
-- Recommended: light onboarding with purple accents, transitioning into dark main app.
+- Use the dark theme.
 - Use generous spacing.
 - One question per screen.
 - Large headline, short explanation, clear options.
@@ -439,13 +427,13 @@ Onboarding should feel like a serious coach assessment.
 ### Option card
 
 ```tsx
-className = 'rounded-2xl border border-light-border bg-white p-4';
+className = 'rounded-2xl border border-dark-border bg-dark-surface p-4';
 ```
 
 Selected option:
 
 ```tsx
-className = 'rounded-2xl border border-brand-primary bg-light-elevated p-4';
+className = 'rounded-2xl border border-brand-primary bg-brand-primary-soft p-4';
 ```
 
 ### Onboarding layout
@@ -462,7 +450,7 @@ Bottom: primary CTA / next action
 Use a subtle progress bar, not a gamified stepper.
 
 ```tsx
-className = 'h-1 rounded-full bg-light-muted';
+className = 'h-1 rounded-full bg-dark-surface-muted';
 ```
 
 Filled:
@@ -774,19 +762,19 @@ Do not communicate status by color alone. Pair status colors with text labels:
 
 ---
 
-## 21. Theme Recommendation by App Area
+## 21. Theme Policy by App Area
 
 | Area                | Recommended theme                      |
 | ------------------- | -------------------------------------- |
-| Splash / welcome    | Light or dark with strong purple CTA   |
-| Onboarding          | Light preferred, purple accent         |
-| Recommended program | Light or dark, depending on transition |
-| Main app            | Dark preferred                         |
-| Workout session     | Dark strongly preferred                |
-| Rest timer          | Dark strongly preferred                |
-| Logbook             | Dark preferred                         |
-| Profile/settings    | Dark preferred, light supported        |
-| Paywall             | Dark premium or light clean; test both |
+| Splash / welcome    | Dark                                   |
+| Onboarding          | Dark                                   |
+| Recommended program | Dark                                   |
+| Main app            | Dark                                   |
+| Workout session     | Dark                                   |
+| Rest timer          | Dark                                   |
+| Logbook             | Dark                                   |
+| Profile/settings    | Dark                                   |
+| Paywall             | Dark                                   |
 
 ---
 

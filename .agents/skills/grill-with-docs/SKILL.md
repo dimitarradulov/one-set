@@ -11,6 +11,8 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
+When you have gather all of the necessary information, respond to the user with "I have everything I need. Ready to implement?". DO NOT START IMPLEMENTATION UNPROMPTED!
+
 </what-to-do>
 
 <supporting-info>
