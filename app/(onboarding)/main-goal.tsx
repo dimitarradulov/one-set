@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import AssessmentQuestion from '@/components/AssessmentQuestion';
 import { useAssessmentDraftStore, type MainGoalId } from '@/store/assessment-draft-store';
@@ -19,12 +19,23 @@ export default function MainGoalScreen() {
   const router = useRouter();
   const commitMainGoal = useAssessmentDraftStore((state) => state.commitMainGoal);
   const committedMainGoal = useAssessmentDraftStore((state) => state.mainGoal);
+  const isHydrated = useAssessmentDraftStore((state) => state.isHydrated);
   const [selectedMainGoal, setSelectedMainGoal] = useState<MainGoalId | null>(committedMainGoal);
 
-  const isContinueDisabled = selectedMainGoal === null;
+  useEffect(() => {
+    if (isHydrated) {
+      setSelectedMainGoal(committedMainGoal);
+    }
+  }, [committedMainGoal, isHydrated]);
+
+  const isContinueDisabled = !isHydrated || selectedMainGoal === null;
+
+  const handleBack = () => {
+    router.replace('/(onboarding)');
+  };
 
   const handleContinue = () => {
-    if (!selectedMainGoal) {
+    if (!isHydrated || !selectedMainGoal) {
       return;
     }
 
@@ -34,14 +45,17 @@ export default function MainGoalScreen() {
 
   return (
     <AssessmentQuestion
+      backLabel="Back"
       continueDisabled={isContinueDisabled}
       continueLabel="Continue"
+      disabled={!isHydrated}
       helperText="Pick the result you care about most right now."
       options={MAIN_GOAL_OPTIONS}
       progressStep={PROGRESS_STEP}
       selectedValue={selectedMainGoal}
       totalSteps={TOTAL_STEPS}
       question="What is your main goal right now?"
+      onBack={handleBack}
       onContinue={handleContinue}
       onSelectOption={setSelectedMainGoal}
     />
