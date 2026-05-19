@@ -1,7 +1,3 @@
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
@@ -10,6 +6,10 @@ import {
   createAssessmentDraftStore,
   type MainGoalId,
 } from './assessment-draft-store';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 const seedPersistedMainGoal = async (mainGoal: MainGoalId) => {
   await AsyncStorage.setItem(
