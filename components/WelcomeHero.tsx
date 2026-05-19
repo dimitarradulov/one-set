@@ -10,6 +10,7 @@ type WelcomeHeroAction = {
 
 type WelcomeHeroProps = {
   headline: string;
+  subheadline: string;
   cta: WelcomeHeroAction;
   signIn: WelcomeHeroAction;
 };
@@ -18,7 +19,7 @@ const HERO_HEIGHT_RATIO = 0.68;
 const HERO_MIN_HEIGHT = 360;
 const HERO_MAX_HEIGHT = 620;
 
-export default function WelcomeHero({ cta, headline, signIn }: WelcomeHeroProps) {
+export default function WelcomeHero({ cta, headline, subheadline, signIn }: WelcomeHeroProps) {
   const { height } = useWindowDimensions();
   const heroHeight = Math.max(
     HERO_MIN_HEIGHT,
@@ -34,7 +35,7 @@ export default function WelcomeHero({ cta, headline, signIn }: WelcomeHeroProps)
             className="h-full w-full"
             resizeMode="cover"
             source={require('../assets/onboarding.png')}
-            style={{ transform: [{ scale: 1.12 }, { translateY: -28 }] }}
+            style={{ transform: [{ scale: 1.12 }, { translateY: 110 }] }}
           />
           <View className="absolute inset-0 bg-black/25" />
           <View className="absolute inset-x-0 bottom-0 h-36 bg-dark-background/55" />
@@ -54,30 +55,37 @@ export default function WelcomeHero({ cta, headline, signIn }: WelcomeHeroProps)
           showsVerticalScrollIndicator={false}>
           <View className="flex-1 justify-between">
             <View className="items-center">
-              <View className="rounded-full border border-white/20 bg-black/35 p-2">
+              <View>
                 <Image
                   accessibilityLabel="OneSet logo"
-                  className="h-9 w-9"
+                  className="h-16 w-16"
                   resizeMode="contain"
-                  source={require('../assets/splash-icon-light.png')}
+                  source={require('../assets/logo.png')}
                 />
               </View>
             </View>
 
-            <View className="gap-4 pb-2">
-              <Text className="max-w-[320px] font-display text-display text-dark-text-primary">
-                {headline}
-              </Text>
-              <Link
-                className="min-h-[56px] items-center justify-center rounded-2xl bg-brand-primary px-5 py-4 text-center font-body-semibold text-body text-white"
-                href={cta.href}>
-                {cta.label}
-              </Link>
-              <Link
-                className="self-center px-4 py-2 text-center font-body text-body-sm text-dark-text-secondary"
-                href={signIn.href}>
-                {signIn.label}
-              </Link>
+            <View className="gap-8 pb-2">
+              <View>
+                <Text className="max-w-[320px] font-display text-5xl text-dark-text-primary">
+                  {headline}
+                </Text>
+                <Text className="mb-2 font-body text-body-sm text-dark-text-secondary">
+                  {subheadline}
+                </Text>
+              </View>
+              <View>
+                <Link
+                  className="mb-4 min-h-[56px] items-center justify-center rounded-2xl bg-brand-primary px-5 py-4 text-center font-body-semibold text-body text-white"
+                  href={cta.href}>
+                  {cta.label}
+                </Link>
+                <Link
+                  className="self-center px-4 py-2 text-center font-body text-body-sm text-dark-text-secondary"
+                  href={signIn.href}>
+                  {signIn.label}
+                </Link>
+              </View>
             </View>
           </View>
         </ScrollView>
