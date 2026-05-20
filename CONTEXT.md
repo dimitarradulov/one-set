@@ -20,6 +20,14 @@ _Avoid_: Onboarding state, temporary answers
 The 11 answer-collection steps of the **Assessment** before result calculation, program recommendation, education, or workout preview.
 _Avoid_: Onboarding flow, full onboarding
 
+**Program Library**:
+The documented set of HIT programs that OneSet can recommend or assign.
+_Avoid_: Program list, workout templates
+
+**Program Recommendation**:
+A pure rules-based selection of one **Program Library** entry from a complete **Assessment Draft**.
+_Avoid_: AI recommendation, persisted program assignment
+
 ## Relationships
 
 - The welcome screen introduces the **Assessment** but is not counted as an assessment step.
@@ -36,6 +44,9 @@ _Avoid_: Onboarding flow, full onboarding
 - Assessment questions cannot be skipped in the MVP.
 - An **Assessment Draft** is synced to the user's account only after authentication.
 - Result calculation, recommended program, HIT principles education, and first workout preview happen after the **Assessment Intake**.
+- A **Program Recommendation** requires a complete **Assessment Draft**.
+- A **Program Recommendation** reads candidate programs from the **Program Library**.
+- A **Program Recommendation** does not create or persist the user's active program.
 
 ## Example dialogue
 
@@ -51,7 +62,11 @@ _Avoid_: Onboarding flow, full onboarding
 > **Dev:** "Is the recommended program screen part of the **Assessment Intake**?"
 > **Domain expert:** "No. The **Assessment Intake** stops after the 11 answer-collection questions."
 
+> **Dev:** "Should **Program Recommendation** save the user's selected program?"
+> **Domain expert:** "No. It is a pure recommendation; assignment happens later after authentication and access decisions."
+
 ## Flagged ambiguities
 
 - "onboarding" can mean the full first-run journey or the **Assessment** specifically; resolved: use **Assessment** for the coach-style intake that begins after the welcome screen.
 - "assessment flow" can mean the 11 question intake or the later calculation/recommendation/education screens; resolved: use **Assessment Intake** only for the 11 answer-collection questions.
+- "recommended program" can mean a pure **Program Recommendation** result or a persisted active program; resolved: use **Program Recommendation** for the pure result only.
