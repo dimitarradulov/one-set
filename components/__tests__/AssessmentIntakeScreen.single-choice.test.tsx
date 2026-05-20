@@ -74,8 +74,12 @@ describe('AssessmentIntakeScreen single-choice path', () => {
 
     render(<AssessmentIntakeScreen questionId="main-goal" />);
 
+    fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+
+    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Build muscle' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   test('restores a previously committed answer after hydration', () => {

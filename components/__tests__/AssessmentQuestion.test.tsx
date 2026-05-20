@@ -90,12 +90,14 @@ describe('AssessmentQuestion', () => {
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
-  test('disables option and Continue interactions when requested', () => {
+  test('disables Back, option, and Continue interactions when requested', () => {
+    const onBack = jest.fn();
     const onContinue = jest.fn();
     const onSelectOption = jest.fn();
 
     render(
       <AssessmentQuestion
+        backLabel="Back"
         disabled
         continueDisabled={false}
         continueLabel="Continue"
@@ -105,16 +107,20 @@ describe('AssessmentQuestion', () => {
         selectedValues={[]}
         totalSteps={11}
         question="Question?"
+        onBack={onBack}
         onContinue={onContinue}
         onSelectOption={onSelectOption}
       />
     );
 
+    fireEvent.press(screen.getByRole('button', { name: 'Back' }));
     fireEvent.press(screen.getByRole('button', { name: 'Build muscle' }));
     fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
+    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Build muscle' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(onBack).not.toHaveBeenCalled();
     expect(onSelectOption).not.toHaveBeenCalled();
     expect(onContinue).not.toHaveBeenCalled();
   });

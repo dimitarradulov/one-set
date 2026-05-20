@@ -47,7 +47,9 @@ export default function AssessmentQuestion<Value extends string = string>({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={backLabel}
+              accessibilityState={{ disabled }}
               className="min-h-[44px] justify-center rounded-xl border border-dark-border bg-dark-surface px-4"
+              disabled={disabled}
               onPress={onBack}>
               <Text className="font-body-semibold text-body text-dark-text-primary">
                 {backLabel}
