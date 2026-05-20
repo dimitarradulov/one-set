@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { MainGoalId } from '@/types/assessment';
+import type { AssessmentDraftPersistedState } from '@/types/assessment-draft-store';
 
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,
@@ -17,6 +18,16 @@ const seedPersistedMainGoal = async (mainGoal: MainGoalId) => {
     ASSESSMENT_DRAFT_STORAGE_KEY,
     JSON.stringify({
       state: { mainGoal },
+      version: ASSESSMENT_DRAFT_STORAGE_VERSION,
+    })
+  );
+};
+
+const seedPersistedDraftState = async (state: AssessmentDraftPersistedState) => {
+  await AsyncStorage.setItem(
+    ASSESSMENT_DRAFT_STORAGE_KEY,
+    JSON.stringify({
+      state,
       version: ASSESSMENT_DRAFT_STORAGE_VERSION,
     })
   );
@@ -52,6 +63,17 @@ describe('createAssessmentDraftStore', () => {
     expect(store.getState().failureComfort).toBe('comfortable_to_failure');
   });
 
+  test('replaces a committed answer when committing the same key again', async () => {
+    const store = createAssessmentDraftStore();
+    await store.persist.rehydrate();
+
+    store.getState().commitAnswer('trainingExperience', 'less_than_1_year');
+    expect(store.getState().trainingExperience).toBe('less_than_1_year');
+
+    store.getState().commitAnswer('trainingExperience', '3_to_5_years');
+    expect(store.getState().trainingExperience).toBe('3_to_5_years');
+  });
+
   test('exposes hydration state for interaction gating', async () => {
     const store = createAssessmentDraftStore();
 
@@ -70,6 +92,40 @@ describe('createAssessmentDraftStore', () => {
 
     expect(store.getState().mainGoal).toBe('return_after_break');
     expect(store.getState().isHydrated).toBe(true);
+  });
+
+  test('rehydrates persisted Assessment Draft answers across question keys', async () => {
+    await seedPersistedDraftState({
+      mainGoal: 'get_stronger',
+      trainingExperience: '1_to_3_years',
+      hitExperience: 'tried_before',
+      daysAvailablePerWeek: '3',
+      preferredSessionLength: '45',
+      equipmentAccess: 'basic_gym',
+      recoveryProfile: 'average',
+      lifestyleStress: 'moderate',
+      limitations: ['wrists'],
+      trainingDirection: 'classic_balanced',
+      failureComfort: 'push_hard_not_every_set',
+    });
+
+    const store = createAssessmentDraftStore();
+    await store.persist.rehydrate();
+
+    expect(store.getState()).toMatchObject({
+      mainGoal: 'get_stronger',
+      trainingExperience: '1_to_3_years',
+      hitExperience: 'tried_before',
+      daysAvailablePerWeek: '3',
+      preferredSessionLength: '45',
+      equipmentAccess: 'basic_gym',
+      recoveryProfile: 'average',
+      lifestyleStress: 'moderate',
+      limitations: ['wrists'],
+      trainingDirection: 'classic_balanced',
+      failureComfort: 'push_hard_not_every_set',
+      isHydrated: true,
+    });
   });
 
   test('persists the committed value under the stable key and version', async () => {

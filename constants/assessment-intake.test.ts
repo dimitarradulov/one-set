@@ -29,14 +29,68 @@ describe('Assessment Intake questions', () => {
   });
 
   test('defines route transitions for the Assessment Intake only', () => {
-    expect(getAssessmentIntakeQuestion('main-goal')).toMatchObject({
-      previousRoute: '/(onboarding)',
-      nextRoute: '/training-experience',
-    });
-    expect(getAssessmentIntakeQuestion('failure-comfort')).toMatchObject({
-      previousRoute: '/training-direction',
-      nextRoute: '/result-calculation',
-    });
+    expect(ASSESSMENT_INTAKE_QUESTIONS.map((question) => question.route)).toEqual([
+      '/main-goal',
+      '/training-experience',
+      '/hit-experience',
+      '/days-available',
+      '/session-length',
+      '/equipment-access',
+      '/recovery-profile',
+      '/lifestyle-stress',
+      '/limitations',
+      '/training-direction',
+      '/failure-comfort',
+    ]);
+    expect(ASSESSMENT_INTAKE_QUESTIONS.map((question) => question.previousRoute)).toEqual([
+      '/(onboarding)',
+      '/main-goal',
+      '/training-experience',
+      '/hit-experience',
+      '/days-available',
+      '/session-length',
+      '/equipment-access',
+      '/recovery-profile',
+      '/lifestyle-stress',
+      '/limitations',
+      '/training-direction',
+    ]);
+    expect(ASSESSMENT_INTAKE_QUESTIONS.map((question) => question.nextRoute)).toEqual([
+      '/training-experience',
+      '/hit-experience',
+      '/days-available',
+      '/session-length',
+      '/equipment-access',
+      '/recovery-profile',
+      '/lifestyle-stress',
+      '/limitations',
+      '/training-direction',
+      '/failure-comfort',
+      '/result-calculation',
+    ]);
+  });
+
+  test('keeps Assessment Intake scoped to answer collection before result calculation', () => {
+    const routeLinks = ASSESSMENT_INTAKE_QUESTIONS.flatMap((question) => [
+      question.route,
+      question.previousRoute,
+      question.nextRoute,
+    ]);
+
+    expect(
+      ASSESSMENT_INTAKE_QUESTIONS.filter(
+        (question) => question.nextRoute === '/result-calculation'
+      ).map((question) => question.id)
+    ).toEqual(['failure-comfort']);
+    expect(routeLinks).not.toEqual(
+      expect.arrayContaining([
+        '/recommended-program',
+        '/hit-principles',
+        '/first-workout-preview',
+        '/auth-prompt',
+        '/trial-paywall',
+      ])
+    );
   });
 
   test('marks Limitations as the multi-select question', () => {

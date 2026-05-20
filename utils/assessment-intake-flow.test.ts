@@ -23,6 +23,38 @@ describe('Assessment Intake flow', () => {
     ).toEqual(['get_stronger']);
   });
 
+  test('toggles multi-select choices on and off', () => {
+    expect(
+      toggleAssessmentIntakeSelection(
+        {
+          selectionMode: 'multiple',
+        },
+        [],
+        'shoulders'
+      )
+    ).toEqual(['shoulders']);
+
+    expect(
+      toggleAssessmentIntakeSelection(
+        {
+          selectionMode: 'multiple',
+        },
+        ['shoulders'],
+        'wrists'
+      )
+    ).toEqual(['shoulders', 'wrists']);
+
+    expect(
+      toggleAssessmentIntakeSelection(
+        {
+          selectionMode: 'multiple',
+        },
+        ['shoulders', 'wrists'],
+        'shoulders'
+      )
+    ).toEqual(['wrists']);
+  });
+
   test('keeps no limitations mutually exclusive in multi-select choices', () => {
     expect(
       toggleAssessmentIntakeSelection(
@@ -54,6 +86,14 @@ describe('Assessment Intake flow', () => {
         ['recomp']
       )
     ).toBe('recomp');
+    expect(
+      committedAnswerFromSelection(
+        {
+          selectionMode: 'single',
+        },
+        []
+      )
+    ).toBeNull();
 
     expect(
       committedAnswerFromSelection(
