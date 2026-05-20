@@ -1,4 +1,4 @@
-import { getStartTrainingHref, getTrainingAccessStep } from './training-access';
+import { getStartTrainingHref, getTrainingAccessStep } from '../training-access';
 
 describe('training access decisions', () => {
   test('routes preview users through authentication first', () => {

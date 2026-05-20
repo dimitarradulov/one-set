@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import type { AssessmentDraftAnswers } from '@/types/assessment';
 
-import { parseProgramLibraryMarkdown } from './program-library-parser';
+import { parseProgramLibraryMarkdown } from '../program-library-parser';
 import {
   buildPostAssessmentPreviewState,
   getMissingAssessmentDraftAnswerKeys,
   getPostAssessmentPreviewStep,
-} from './post-assessment-preview';
+} from '../post-assessment-preview';
 
 const library = parseProgramLibraryMarkdown(
   readFileSync('docs/hit-workout-program-library.md', 'utf8')

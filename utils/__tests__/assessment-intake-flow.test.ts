@@ -2,7 +2,7 @@ import {
   committedAnswerFromSelection,
   selectedValuesFromAnswer,
   toggleAssessmentIntakeSelection,
-} from './assessment-intake-flow';
+} from '../assessment-intake-flow';
 
 describe('Assessment Intake flow', () => {
   test('adapts committed Assessment Draft answers to selected values', () => {

@@ -5,7 +5,7 @@ import {
   getRestTimerLinks,
   getWorkoutOverviewLinks,
   getWorkoutSummaryLinks,
-} from './workout-session-flow';
+} from '../workout-session-flow';
 
 describe('Workout Session flow', () => {
   test('builds preview entry links from one place', () => {

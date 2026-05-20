@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import type { AssessmentDraftAnswers } from '@/types/assessment';
 
-import { parseProgramLibraryMarkdown } from './program-library-parser';
-import { recommendProgram } from './program-recommendation';
+import { parseProgramLibraryMarkdown } from '../program-library-parser';
+import { recommendProgram } from '../program-recommendation';
 
 const library = parseProgramLibraryMarkdown(
   readFileSync('docs/hit-workout-program-library.md', 'utf8')

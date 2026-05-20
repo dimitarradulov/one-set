@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { parseProgramLibraryMarkdown } from './program-library-parser';
+import { parseProgramLibraryMarkdown } from '../program-library-parser';
 
 const programLibraryMarkdown = readFileSync('docs/hit-workout-program-library.md', 'utf8');
 
