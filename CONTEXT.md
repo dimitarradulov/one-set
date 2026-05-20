@@ -68,5 +68,6 @@ _Avoid_: AI recommendation, persisted program assignment
 ## Flagged ambiguities
 
 - "onboarding" can mean the full first-run journey or the **Assessment** specifically; resolved: use **Assessment** for the coach-style intake that begins after the welcome screen.
+- "all onboarding screens" can sound like the full first-run journey; resolved: for the current implementation slice it means the 11 **Assessment Intake** question screens only.
 - "assessment flow" can mean the 11 question intake or the later calculation/recommendation/education screens; resolved: use **Assessment Intake** only for the 11 answer-collection questions.
 - "recommended program" can mean a pure **Program Recommendation** result or a persisted active program; resolved: use **Program Recommendation** for the pure result only.
