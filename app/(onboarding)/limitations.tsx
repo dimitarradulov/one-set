@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function LimitationsScreen() {
-  return (
-    <OnboardingStep
-      title="Limitations"
-      description="Dummy assessment content for injury-sensitive or caution areas in training."
-      nextHref="/training-direction"
-      nextLabel="Next: Training Direction"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="limitations" />;
 }

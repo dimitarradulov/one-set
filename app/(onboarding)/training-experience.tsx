@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function TrainingExperienceScreen() {
-  return (
-    <OnboardingStep
-      title="Training Experience"
-      description="Dummy assessment content for current lifting consistency and experience level."
-      nextHref="/hit-experience"
-      nextLabel="Next: HIT Experience"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="training-experience" />;
 }

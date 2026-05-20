@@ -17,7 +17,7 @@ describe('AssessmentQuestion', () => {
         helperText="Pick the result you care about most right now."
         options={options}
         progressStep={1}
-        selectedValue={null}
+        selectedValues={[]}
         totalSteps={11}
         question="What is your main goal right now?"
         onContinue={jest.fn()}
@@ -46,7 +46,7 @@ describe('AssessmentQuestion', () => {
         helperText="Pick one."
         options={options}
         progressStep={1}
-        selectedValue="get_stronger"
+        selectedValues={['get_stronger']}
         totalSteps={11}
         question="Question?"
         onContinue={jest.fn()}
@@ -71,7 +71,7 @@ describe('AssessmentQuestion', () => {
         helperText="Pick one."
         options={options}
         progressStep={1}
-        selectedValue={null}
+        selectedValues={[]}
         totalSteps={11}
         question="Question?"
         onBack={onBack}
@@ -102,7 +102,7 @@ describe('AssessmentQuestion', () => {
         helperText="Pick one."
         options={options}
         progressStep={1}
-        selectedValue={null}
+        selectedValues={[]}
         totalSteps={11}
         question="Question?"
         onContinue={onContinue}
@@ -117,5 +117,27 @@ describe('AssessmentQuestion', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     expect(onSelectOption).not.toHaveBeenCalled();
     expect(onContinue).not.toHaveBeenCalled();
+  });
+
+  test('exposes multi-select options as checkboxes', () => {
+    render(
+      <AssessmentQuestion
+        continueDisabled={false}
+        continueLabel="Continue"
+        helperText="Select all that apply."
+        options={options}
+        progressStep={9}
+        selectedValues={['build_muscle', 'recomp']}
+        selectionMode="multiple"
+        totalSteps={11}
+        question="Question?"
+        onContinue={jest.fn()}
+        onSelectOption={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'Build muscle' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Get stronger' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Recomp my body' })).toBeChecked();
   });
 });

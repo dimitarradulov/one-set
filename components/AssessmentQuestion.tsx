@@ -12,7 +12,8 @@ type AssessmentQuestionProps<Value extends string = string> = {
   question: string;
   helperText: string;
   options: readonly AssessmentQuestionOption<Value>[];
-  selectedValue: Value | null;
+  selectedValues: readonly Value[];
+  selectionMode?: 'single' | 'multiple';
   continueLabel: string;
   continueDisabled: boolean;
   disabled?: boolean;
@@ -28,7 +29,8 @@ export default function AssessmentQuestion<Value extends string = string>({
   question,
   helperText,
   options,
-  selectedValue,
+  selectedValues,
+  selectionMode = 'single',
   continueLabel,
   continueDisabled,
   disabled = false,
@@ -89,14 +91,18 @@ export default function AssessmentQuestion<Value extends string = string>({
 
         <View className="flex-1 gap-3">
           {options.map((option) => {
-            const isSelected = selectedValue === option.value;
+            const isSelected = selectedValues.includes(option.value);
 
             return (
               <Pressable
                 key={option.value}
-                accessibilityRole="button"
+                accessibilityRole={selectionMode === 'multiple' ? 'checkbox' : 'button'}
                 accessibilityLabel={option.label}
-                accessibilityState={{ disabled, selected: isSelected }}
+                accessibilityState={{
+                  disabled,
+                  selected: selectionMode === 'single' ? isSelected : undefined,
+                  checked: selectionMode === 'multiple' ? isSelected : undefined,
+                }}
                 className={`min-h-[56px] flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
                   isSelected
                     ? 'border-brand-primary bg-brand-primary-soft'

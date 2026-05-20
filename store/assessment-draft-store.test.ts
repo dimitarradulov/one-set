@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { MainGoalId } from '@/constants/assessment-intake';
+
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,
   ASSESSMENT_DRAFT_STORAGE_VERSION,
   createAssessmentDraftStore,
-  type MainGoalId,
 } from './assessment-draft-store';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -38,6 +39,19 @@ describe('createAssessmentDraftStore', () => {
     expect(store.getState().mainGoal).toBe('get_stronger');
   });
 
+  test('commits explicit Assessment Draft fields through typed answer keys', async () => {
+    const store = createAssessmentDraftStore();
+    await store.persist.rehydrate();
+
+    store.getState().commitAnswer('trainingExperience', '1_to_3_years');
+    store.getState().commitAnswer('limitations', ['shoulders', 'wrists']);
+    store.getState().commitAnswer('failureComfort', 'comfortable_to_failure');
+
+    expect(store.getState().trainingExperience).toBe('1_to_3_years');
+    expect(store.getState().limitations).toEqual(['shoulders', 'wrists']);
+    expect(store.getState().failureComfort).toBe('comfortable_to_failure');
+  });
+
   test('exposes hydration state for interaction gating', async () => {
     const store = createAssessmentDraftStore();
 
@@ -68,11 +82,15 @@ describe('createAssessmentDraftStore', () => {
     expect(serializedState).toBeTruthy();
 
     const persisted = JSON.parse(serializedState as string) as {
-      state: { mainGoal: MainGoalId };
+      state: {
+        mainGoal: MainGoalId;
+        limitations: string[];
+      };
       version: number;
     };
 
     expect(persisted.state.mainGoal).toBe('recomp');
+    expect(persisted.state.limitations).toEqual([]);
     expect(persisted.version).toBe(ASSESSMENT_DRAFT_STORAGE_VERSION);
   });
 });
