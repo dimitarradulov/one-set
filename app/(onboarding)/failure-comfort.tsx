@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function FailureComfortScreen() {
-  return (
-    <OnboardingStep
-      title="Failure Comfort"
-      description="Dummy assessment content for comfort with pushing sets close to failure."
-      nextHref="/result-calculation"
-      nextLabel="Next: Result Calculation"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="failure-comfort" />;
 }

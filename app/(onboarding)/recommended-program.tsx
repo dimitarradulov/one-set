@@ -1,12 +1,15 @@
 import OnboardingStep from '@/components/OnboardingStep';
+import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 
 export default function RecommendedProgramScreen() {
+  const step = getPostAssessmentPreviewStep('recommended-program');
+
   return (
     <OnboardingStep
-      title="Recommended Program"
-      description="Dummy assessment content previewing the suggested starter program."
-      nextHref="/hit-principles"
-      nextLabel="Next: HIT Principles"
+      title={step.title}
+      description={step.description}
+      nextHref={step.nextHref}
+      nextLabel={step.nextLabel}
     />
   );
 }

@@ -1,16 +1,15 @@
 import PlaceholderLink from '@/components/route-shell/PlaceholderLink';
 import PlaceholderScreen from '@/components/route-shell/PlaceholderScreen';
+import { getTrainingAccessStep } from '@/utils/training-access';
 
 export default function TrialPaywallPlaceholderScreen() {
+  const step = getTrainingAccessStep('trial-paywall');
+
   return (
-    <PlaceholderScreen
-      title="Trial Paywall Placeholder"
-      description="14-day free trial plus subscription gate. Dummy access gate content only.">
-      <PlaceholderLink href="/fitness-disclaimer">
-        Route Test: Continue to Fitness Disclaimer
-      </PlaceholderLink>
-      <PlaceholderLink href="/auth-prompt" variant="secondary">
-        Route Test: Back to Auth Prompt
+    <PlaceholderScreen title={step.title} description={step.description}>
+      <PlaceholderLink href={step.primaryHref}>{step.primaryLabel}</PlaceholderLink>
+      <PlaceholderLink href={step.secondaryHref ?? '/auth-prompt'} variant="secondary">
+        {step.secondaryLabel}
       </PlaceholderLink>
     </PlaceholderScreen>
   );

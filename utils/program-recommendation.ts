@@ -3,18 +3,35 @@ import type {
   CompleteAssessmentDraft,
   HitReadiness,
   InternalTrainingLevel,
+  ProgramId,
   ProgramLibrary,
   ProgramLibraryEntry,
   ProgramRecommendation,
   RecoveryCapacity,
 } from '@/types/program';
 
-const ADVANCED_PROGRAM_NAMES = new Set([
-  'Minimalist Recovery HIT',
-  'Negative-Control HIT',
-  'Rest-Pause Density HIT',
-  'Weak-Point Rotation HIT',
-  'Athletic Power HIT',
+const PROGRAM_IDS = {
+  athleticPower: 'athletic-power-hit',
+  beginnerBridge: 'beginner-strength-to-hit-bridge',
+  classicSymmetry: 'classic-symmetry-full-body-hit',
+  foundationFullBody: 'foundation-full-body-hit',
+  fourDayMassSplit: 'four-day-mass-split-hit',
+  homeMinimalEquipment: 'home-minimal-equipment-hit',
+  machineCircuit: 'machine-circuit-hit',
+  minimalistRecovery: 'minimalist-recovery-hit',
+  negativeControl: 'negative-control-hit',
+  preExhaustSpecialist: 'pre-exhaust-specialist-hit',
+  restPauseDensity: 'rest-pause-density-hit',
+  threeWayPrecision: 'three-way-precision-hit',
+  weakPointRotation: 'weak-point-rotation-hit',
+} as const satisfies Record<string, ProgramId>;
+
+const ADVANCED_PROGRAM_IDS = new Set<ProgramId>([
+  PROGRAM_IDS.minimalistRecovery,
+  PROGRAM_IDS.negativeControl,
+  PROGRAM_IDS.restPauseDensity,
+  PROGRAM_IDS.weakPointRotation,
+  PROGRAM_IDS.athleticPower,
 ]);
 
 const MAJOR_LIMITATIONS = new Set<LimitationId>(['shoulders', 'lower_back', 'knees']);
@@ -108,25 +125,25 @@ const getStartingEffort = (
   return '10 selectively';
 };
 
-const getRecoveryDemand = (programName: string): ProgramRecommendation['recoveryDemand'] => {
+const getRecoveryDemand = (programId: ProgramId): ProgramRecommendation['recoveryDemand'] => {
   if (
-    programName === 'Athletic Power HIT' ||
-    programName === 'Four-Day Mass Split HIT' ||
-    programName === 'Rest-Pause Density HIT'
+    programId === PROGRAM_IDS.athleticPower ||
+    programId === PROGRAM_IDS.fourDayMassSplit ||
+    programId === PROGRAM_IDS.restPauseDensity
   ) {
     return 'very_high';
   }
 
   if (
-    programName === 'Three-Way Precision HIT' ||
-    programName === 'Pre-Exhaust Specialist HIT' ||
-    programName === 'Negative-Control HIT' ||
-    programName === 'Weak-Point Rotation HIT'
+    programId === PROGRAM_IDS.threeWayPrecision ||
+    programId === PROGRAM_IDS.preExhaustSpecialist ||
+    programId === PROGRAM_IDS.negativeControl ||
+    programId === PROGRAM_IDS.weakPointRotation
   ) {
     return 'high';
   }
 
-  if (programName === 'Minimalist Recovery HIT') {
+  if (programId === PROGRAM_IDS.minimalistRecovery) {
     return 'low';
   }
 
@@ -144,7 +161,7 @@ const isExcluded = (
   const lowFailureComfort = draft.failureComfort === 'reps_in_reserve';
 
   if (
-    ADVANCED_PROGRAM_NAMES.has(program.name) &&
+    ADVANCED_PROGRAM_IDS.has(program.id) &&
     (trainingLevel === 'beginner' ||
       hitReadiness === 'new_to_hit' ||
       lowFailureComfort ||
@@ -155,7 +172,7 @@ const isExcluded = (
   }
 
   if (
-    program.name === 'Athletic Power HIT' &&
+    program.id === PROGRAM_IDS.athleticPower &&
     (draft.equipmentAccess !== 'full_gym' ||
       majorLimitations ||
       draft.trainingDirection !== 'powerhouse' ||
@@ -164,11 +181,11 @@ const isExcluded = (
     return true;
   }
 
-  if (program.name === 'Weak-Point Rotation HIT') {
+  if (program.id === PROGRAM_IDS.weakPointRotation) {
     return true;
   }
 
-  if (program.name === 'Home Minimal Equipment HIT' && draft.equipmentAccess === 'full_gym') {
+  if (program.id === PROGRAM_IDS.homeMinimalEquipment && draft.equipmentAccess === 'full_gym') {
     return true;
   }
 
@@ -177,11 +194,11 @@ const isExcluded = (
 
 const getSelectionRankScore = (
   program: ProgramLibraryEntry,
-  selectionGroups: ProgramLibrary['selectionGroups'],
+  selectionGroupIds: ProgramLibrary['selectionGroupIds'],
   trainingLevel: InternalTrainingLevel
 ) => {
-  const group = selectionGroups[trainingLevel];
-  const rank = group.indexOf(program.name);
+  const group = selectionGroupIds[trainingLevel];
+  const rank = group.indexOf(program.id);
 
   if (rank === -1) {
     return 0;
@@ -198,35 +215,35 @@ const scoreProgram = (
   hitReadiness: HitReadiness,
   recoveryCapacity: RecoveryCapacity
 ) => {
-  let score = getSelectionRankScore(program, library.selectionGroups, trainingLevel);
+  let score = getSelectionRankScore(program, library.selectionGroupIds, trainingLevel);
 
   if (
     draft.equipmentAccess === 'home_gym' ||
     draft.equipmentAccess === 'dumbbells_only' ||
     draft.equipmentAccess === 'bodyweight_only'
   ) {
-    score += program.name === 'Home Minimal Equipment HIT' ? 70 : -30;
+    score += program.id === PROGRAM_IDS.homeMinimalEquipment ? 70 : -30;
   }
 
   if (draft.equipmentAccess === 'machines_mostly') {
-    score += program.name === 'Machine Circuit HIT' ? 45 : 0;
+    score += program.id === PROGRAM_IDS.machineCircuit ? 45 : 0;
   }
 
   if (draft.trainingExperience === 'new') {
-    score += program.name === 'Beginner Strength-to-HIT Bridge' ? 45 : 0;
+    score += program.id === PROGRAM_IDS.beginnerBridge ? 45 : 0;
   }
 
   if (draft.mainGoal === 'return_after_break') {
-    score += program.name === 'Foundation Full-Body HIT' ? 35 : 0;
+    score += program.id === PROGRAM_IDS.foundationFullBody ? 35 : 0;
   }
 
   if (draft.trainingDirection === 'classic_balanced') {
-    score += program.name === 'Classic Symmetry Full-Body HIT' ? 35 : 0;
+    score += program.id === PROGRAM_IDS.classicSymmetry ? 35 : 0;
   }
 
   if (draft.trainingDirection === 'minimalist_muscle' || recoveryCapacity === 'limited') {
-    score += program.name === 'Minimalist Recovery HIT' ? 35 : 0;
-    score += program.name === 'Foundation Full-Body HIT' ? 15 : 0;
+    score += program.id === PROGRAM_IDS.minimalistRecovery ? 35 : 0;
+    score += program.id === PROGRAM_IDS.foundationFullBody ? 15 : 0;
   }
 
   if (
@@ -234,7 +251,7 @@ const scoreProgram = (
     trainingLevel === 'advanced' &&
     hitReadiness === 'experienced_hit'
   ) {
-    score += program.name === 'Athletic Power HIT' ? 80 : 0;
+    score += program.id === PROGRAM_IDS.athleticPower ? 80 : 0;
   }
 
   if (Number(draft.daysAvailablePerWeek) === program.recommendedDaysPerWeekMin) {
@@ -264,11 +281,11 @@ const buildWhyItFits = (
     );
   }
 
-  if (draft.equipmentAccess === 'machines_mostly' && program.name === 'Machine Circuit HIT') {
+  if (draft.equipmentAccess === 'machines_mostly' && program.id === PROGRAM_IDS.machineCircuit) {
     reasons.push('Uses machine-focused training for safer hard effort.');
   }
 
-  if (program.name === 'Home Minimal Equipment HIT') {
+  if (program.id === PROGRAM_IDS.homeMinimalEquipment) {
     reasons.push('Matches your limited-equipment training setup.');
   }
 
@@ -311,7 +328,7 @@ export const recommendProgram = (
       recoveryCapacity,
     },
     startingEffort: getStartingEffort(trainingLevel, hitReadiness),
-    recoveryDemand: getRecoveryDemand(recommendedProgram.name),
+    recoveryDemand: getRecoveryDemand(recommendedProgram.id),
     whyItFits: buildWhyItFits(
       recommendedProgram,
       draft,

@@ -1,10 +1,32 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
+import type { AssessmentDraftState } from '@/types/assessment-draft-store';
+
 import OnboardingWelcomeScreen from '../(onboarding)/index';
 import RecoveryProfileScreen from '../(onboarding)/recovery-profile';
 import FirstWorkoutPreviewScreen from '../(onboarding)/first-workout-preview';
 import RootPlaceholderScreen from '../index';
+
+const mockAssessmentDraftState: AssessmentDraftState = {
+  isHydrated: true,
+  mainGoal: null,
+  trainingExperience: null,
+  hitExperience: null,
+  daysAvailablePerWeek: null,
+  preferredSessionLength: null,
+  equipmentAccess: null,
+  recoveryProfile: null,
+  lifestyleStress: null,
+  limitations: [],
+  trainingDirection: null,
+  failureComfort: null,
+  setHydrated: jest.fn(),
+  commitMainGoal: jest.fn(),
+  commitLimitations: jest.fn(),
+  commitFailureComfort: jest.fn(),
+  commitAnswer: jest.fn(),
+};
 
 jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native');
@@ -18,8 +40,17 @@ jest.mock('expo-router', () => {
     Redirect: ({ href }: { href: string }) => (
       <Text accessibilityRole="link" href={href} testID="root-redirect" />
     ),
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+    }),
   };
 });
+
+jest.mock('@/store/assessment-draft-store', () => ({
+  useAssessmentDraftStore: (selector: (state: AssessmentDraftState) => unknown) =>
+    selector(mockAssessmentDraftState),
+}));
 
 jest.mock('@expo/vector-icons', () => {
   const { Text } = jest.requireActual('react-native');
@@ -67,16 +98,12 @@ describe('onboarding route placeholders', () => {
     expect(screen.queryByText('Training hard means recovering smart.')).toBeNull();
   });
 
-  test('middle step shows placeholder purpose and links to the next step', () => {
+  test('middle Assessment Intake step uses the shared question adapter', () => {
     render(<RecoveryProfileScreen />);
 
-    expect(screen.getByText('Recovery Profile')).toBeTruthy();
-    expect(
-      screen.getByText(
-        /Dummy assessment content for how quickly the user recovers from hard training\./
-      )
-    ).toBeTruthy();
-    expect(screen.getByText('Next: Lifestyle Stress').props.href).toBe('/lifestyle-stress');
+    expect(screen.getByText('Question 7 of 11')).toBeTruthy();
+    expect(screen.getByText('How well do you usually recover from hard training?')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
   test('final step shows placeholder purpose and links to program intro', () => {
@@ -85,7 +112,7 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByText('First Workout Preview')).toBeTruthy();
     expect(
       screen.getByText(
-        /Dummy onboarding wrap-up content previewing the first focused training session\./
+        /focused preview of the first training session before account and access gates\./
       )
     ).toBeTruthy();
     expect(screen.getByText('Continue to Program Intro').props.href).toBe('/program-intro');

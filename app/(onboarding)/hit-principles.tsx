@@ -1,12 +1,15 @@
 import OnboardingStep from '@/components/OnboardingStep';
+import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 
 export default function HitPrinciplesScreen() {
+  const step = getPostAssessmentPreviewStep('hit-principles');
+
   return (
     <OnboardingStep
-      title="HIT Principles"
-      description="Dummy educational content for the core high-intensity training principles."
-      nextHref="/first-workout-preview"
-      nextLabel="Next: First Workout Preview"
+      title={step.title}
+      description={step.description}
+      nextHref={step.nextHref}
+      nextLabel={step.nextLabel}
     />
   );
 }

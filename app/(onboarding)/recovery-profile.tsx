@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function RecoveryProfileScreen() {
-  return (
-    <OnboardingStep
-      title="Recovery Profile"
-      description="Dummy assessment content for how quickly the user recovers from hard training."
-      nextHref="/lifestyle-stress"
-      nextLabel="Next: Lifestyle Stress"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="recovery-profile" />;
 }

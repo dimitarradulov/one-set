@@ -1,4 +1,4 @@
-import type { ProgramLibrary, ProgramSelectionLevel } from '@/types/program';
+import type { ProgramId, ProgramLibrary, ProgramSelectionLevel } from '@/types/program';
 
 const PROGRAM_HEADING_PATTERN = /^# Program (?<number>\d+) [—-] (?<name>.+)$/gm;
 
@@ -111,6 +111,35 @@ const parseSelectionGroups = (markdown: string): Record<ProgramSelectionLevel, s
   return groups;
 };
 
+const buildSelectionGroupIds = (
+  selectionGroups: Record<ProgramSelectionLevel, string[]>,
+  programIdsByName: Map<string, ProgramId>
+) => {
+  const idsByLevel: Record<ProgramSelectionLevel, ProgramId[]> = {
+    beginner: [],
+    late_beginner: [],
+    intermediate: [],
+    advanced: [],
+  };
+
+  for (const [level, names] of Object.entries(selectionGroups) as [
+    ProgramSelectionLevel,
+    string[],
+  ][]) {
+    idsByLevel[level] = names.map((name) => {
+      const id = programIdsByName.get(name);
+
+      if (!id) {
+        throw new Error(`Program library selection logic references unknown program: ${name}`);
+      }
+
+      return id;
+    });
+  }
+
+  return idsByLevel;
+};
+
 export const parseProgramLibraryMarkdown = (markdown: string): ProgramLibrary => {
   const programSections = getProgramSections(markdown);
 
@@ -130,10 +159,13 @@ export const parseProgramLibraryMarkdown = (markdown: string): ProgramLibrary =>
       throw new Error(`Program ${number} is missing a Weekly Schedule section`);
     }
 
+    const slug = slugifyProgramName(name);
+
     return {
+      id: slug,
       number,
       name,
-      slug: slugifyProgramName(name),
+      slug,
       bestFor,
       weeklySchedule,
       ...parseRecommendedDays(weeklySchedule),
@@ -141,8 +173,12 @@ export const parseProgramLibraryMarkdown = (markdown: string): ProgramLibrary =>
     };
   });
 
+  const selectionGroups = parseSelectionGroups(markdown);
+  const programIdsByName = new Map(programs.map((program) => [program.name, program.id]));
+
   return {
     programs,
-    selectionGroups: parseSelectionGroups(markdown),
+    selectionGroups,
+    selectionGroupIds: buildSelectionGroupIds(selectionGroups, programIdsByName),
   };
 };

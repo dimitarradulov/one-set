@@ -6,37 +6,16 @@ import {
   ASSESSMENT_INTAKE_TOTAL_STEPS,
   getAssessmentIntakeQuestion,
 } from '@/constants/assessment-intake';
-import type {
-  AssessmentDraftAnswerKey,
-  AssessmentDraftAnswers,
-  AssessmentIntakeQuestionId,
-} from '@/types/assessment';
 import { useAssessmentDraftStore } from '@/store/assessment-draft-store';
+import type { AssessmentIntakeQuestionId } from '@/types/assessment';
+import {
+  committedAnswerFromSelection,
+  selectedValuesFromAnswer,
+  toggleAssessmentIntakeSelection,
+} from '@/utils/assessment-intake-flow';
 
 type AssessmentIntakeScreenProps = {
   questionId: AssessmentIntakeQuestionId;
-};
-
-const selectedValuesFromAnswer = (answer: AssessmentDraftAnswers[AssessmentDraftAnswerKey]) => {
-  if (Array.isArray(answer)) {
-    return answer;
-  }
-
-  return answer ? [answer] : [];
-};
-
-const toggleMultipleValue = (selectedValues: string[], value: string) => {
-  if (value === 'no_limitations') {
-    return selectedValues.includes(value) ? [] : [value];
-  }
-
-  const withoutNoLimitations = selectedValues.filter((selected) => selected !== 'no_limitations');
-
-  if (withoutNoLimitations.includes(value)) {
-    return withoutNoLimitations.filter((selected) => selected !== value);
-  }
-
-  return [...withoutNoLimitations, value];
 };
 
 export default function AssessmentIntakeScreen({ questionId }: AssessmentIntakeScreenProps) {
@@ -58,13 +37,9 @@ export default function AssessmentIntakeScreen({ questionId }: AssessmentIntakeS
   const isContinueDisabled = !isHydrated || selectedValues.length === 0;
 
   const handleSelectOption = (value: string) => {
-    setSelectedValues((currentValues) => {
-      if (question.selectionMode === 'multiple') {
-        return toggleMultipleValue(currentValues, value);
-      }
-
-      return [value];
-    });
+    setSelectedValues((currentValues) =>
+      toggleAssessmentIntakeSelection(question, currentValues, value)
+    );
   };
 
   const handleContinue = () => {
@@ -72,10 +47,9 @@ export default function AssessmentIntakeScreen({ questionId }: AssessmentIntakeS
       return;
     }
 
-    const answer =
-      question.selectionMode === 'multiple' ? selectedValues : (selectedValues[0] ?? null);
+    const answer = committedAnswerFromSelection(question, selectedValues);
 
-    commitAnswer(question.answerKey, answer as AssessmentDraftAnswers[typeof question.answerKey]);
+    commitAnswer(question.answerKey, answer);
     router.push(question.nextRoute);
   };
 

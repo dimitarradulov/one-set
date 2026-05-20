@@ -10,6 +10,7 @@ describe('parseProgramLibraryMarkdown', () => {
 
     expect(library.programs).toHaveLength(15);
     expect(library.programs[0]).toMatchObject({
+      id: 'foundation-full-body-hit',
       number: 1,
       name: 'Foundation Full-Body HIT',
       slug: 'foundation-full-body-hit',
@@ -33,6 +34,11 @@ describe('parseProgramLibraryMarkdown', () => {
       'Beginner Strength-to-HIT Bridge',
       'Foundation Full-Body HIT',
       'Machine Circuit HIT',
+    ]);
+    expect(library.selectionGroupIds.beginner).toEqual([
+      'beginner-strength-to-hit-bridge',
+      'foundation-full-body-hit',
+      'machine-circuit-hit',
     ]);
     expect(library.selectionGroups.advanced).toContain('Athletic Power HIT');
   });

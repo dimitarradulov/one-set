@@ -1,12 +1,15 @@
 import OnboardingStep from '@/components/OnboardingStep';
+import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 
 export default function FirstWorkoutPreviewScreen() {
+  const step = getPostAssessmentPreviewStep('first-workout-preview');
+
   return (
     <OnboardingStep
-      title="First Workout Preview"
-      description="Dummy onboarding wrap-up content previewing the first focused training session."
-      nextHref="/program-intro"
-      nextLabel="Continue to Program Intro"
+      title={step.title}
+      description={step.description}
+      nextHref={step.nextHref}
+      nextLabel={step.nextLabel}
     />
   );
 }

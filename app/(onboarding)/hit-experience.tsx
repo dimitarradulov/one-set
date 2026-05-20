@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function HitExperienceScreen() {
-  return (
-    <OnboardingStep
-      title="HIT Experience"
-      description="Dummy assessment content for familiarity with high-intensity training methods."
-      nextHref="/days-available"
-      nextLabel="Next: Days Available"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="hit-experience" />;
 }

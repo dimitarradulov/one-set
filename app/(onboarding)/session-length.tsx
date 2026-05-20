@@ -1,12 +1,5 @@
-import OnboardingStep from '@/components/OnboardingStep';
+import AssessmentIntakeScreen from '@/components/AssessmentIntakeScreen';
 
 export default function SessionLengthScreen() {
-  return (
-    <OnboardingStep
-      title="Session Length"
-      description="Dummy assessment content for preferred workout duration per session."
-      nextHref="/equipment-access"
-      nextLabel="Next: Equipment Access"
-    />
-  );
+  return <AssessmentIntakeScreen questionId="session-length" />;
 }

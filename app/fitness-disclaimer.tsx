@@ -1,18 +1,15 @@
 import PlaceholderLink from '@/components/route-shell/PlaceholderLink';
 import PlaceholderScreen from '@/components/route-shell/PlaceholderScreen';
-
-const PREVIEW_SESSION_ID = 'session-a';
+import { getTrainingAccessStep } from '@/utils/training-access';
 
 export default function FitnessDisclaimerPlaceholderScreen() {
+  const step = getTrainingAccessStep('disclaimer');
+
   return (
-    <PlaceholderScreen
-      title="Fitness Disclaimer Placeholder"
-      description="One-time legal and safety acknowledgment before real training starts. Dummy legal gate content only.">
-      <PlaceholderLink href={`/workout/${PREVIEW_SESSION_ID}`}>
-        Route Test: Continue to Workout Overview
-      </PlaceholderLink>
-      <PlaceholderLink href="/trial-paywall" variant="secondary">
-        Route Test: Back to Trial Paywall
+    <PlaceholderScreen title={step.title} description={step.description}>
+      <PlaceholderLink href={step.primaryHref}>{step.primaryLabel}</PlaceholderLink>
+      <PlaceholderLink href={step.secondaryHref ?? '/trial-paywall'} variant="secondary">
+        {step.secondaryLabel}
       </PlaceholderLink>
     </PlaceholderScreen>
   );

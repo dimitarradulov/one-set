@@ -28,45 +28,31 @@ describe('access and legal gate placeholders', () => {
   test('auth prompt shows placeholder copy and links into trial paywall', () => {
     render(<AuthPromptPlaceholderScreen />);
 
-    expect(screen.getByText('Auth Prompt Placeholder')).toBeTruthy();
-    expect(
-      screen.getByText(/Create an account to save your progress\. Dummy access gate content only\./)
-    ).toBeTruthy();
-    expect(screen.getByText('Route Test: Continue to Trial Paywall').props.href).toBe(
-      '/trial-paywall'
-    );
-    expect(screen.getByText('Route Test: Back to Program Preview').props.href).toBe(
-      '/program-intro'
-    );
+    expect(screen.getByText('Auth Prompt')).toBeTruthy();
+    expect(screen.getByText(/Create an account to save your progress\./)).toBeTruthy();
+    expect(screen.getByText('Continue to Trial Paywall').props.href).toBe('/trial-paywall');
+    expect(screen.getByText('Back to Program Preview').props.href).toBe('/program-intro');
   });
 
   test('trial paywall shows placeholder copy and links into fitness disclaimer', () => {
     render(<TrialPaywallPlaceholderScreen />);
 
-    expect(screen.getByText('Trial Paywall Placeholder')).toBeTruthy();
-    expect(
-      screen.getByText(
-        /14-day free trial plus subscription gate\. Dummy access gate content only\./
-      )
-    ).toBeTruthy();
-    expect(screen.getByText('Route Test: Continue to Fitness Disclaimer').props.href).toBe(
+    expect(screen.getByText('Trial Paywall')).toBeTruthy();
+    expect(screen.getByText(/14-day free trial plus subscription gate\./)).toBeTruthy();
+    expect(screen.getByText('Continue to Fitness Disclaimer').props.href).toBe(
       '/fitness-disclaimer'
     );
-    expect(screen.getByText('Route Test: Back to Auth Prompt').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Back to Auth Prompt').props.href).toBe('/auth-prompt');
   });
 
   test('fitness disclaimer shows placeholder copy and links into workout overview', () => {
     render(<FitnessDisclaimerPlaceholderScreen />);
 
-    expect(screen.getByText('Fitness Disclaimer Placeholder')).toBeTruthy();
+    expect(screen.getByText('Fitness Disclaimer')).toBeTruthy();
     expect(
-      screen.getByText(
-        /One-time legal and safety acknowledgment before real training starts\. Dummy legal gate content only\./
-      )
+      screen.getByText(/One-time legal and safety acknowledgment before real training starts\./)
     ).toBeTruthy();
-    expect(screen.getByText('Route Test: Continue to Workout Overview').props.href).toBe(
-      '/workout/session-a'
-    );
-    expect(screen.getByText('Route Test: Back to Trial Paywall').props.href).toBe('/trial-paywall');
+    expect(screen.getByText('Continue to Workout Overview').props.href).toBe('/workout/session-a');
+    expect(screen.getByText('Back to Trial Paywall').props.href).toBe('/trial-paywall');
   });
 });

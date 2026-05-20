@@ -48,7 +48,7 @@ describe('workout session placeholder flow routes', () => {
       screen.getByText(/Session context: session-a — placeholder pre-workout overview content\./)
     ).toBeTruthy();
     expect(screen.getByText('Start Exercise 1').props.href).toBe('/workout/session-a/exercise/1');
-    expect(screen.getByText('Route Test: Back to Program').props.href).toBe('/(tabs)/program');
+    expect(screen.getByText('Back to Program').props.href).toBe('/(tabs)/program');
   });
 
   test('active exercise shows placeholder copy and links to rest timer', () => {
@@ -65,9 +65,7 @@ describe('workout session placeholder flow routes', () => {
     expect(screen.getByText('Complete Set and Start Rest').props.href).toBe(
       '/workout/session-a/rest/1'
     );
-    expect(screen.getByText('Route Test: Back to Workout Overview').props.href).toBe(
-      '/workout/session-a'
-    );
+    expect(screen.getByText('Back to Workout Overview').props.href).toBe('/workout/session-a');
   });
 
   test('rest timer shows placeholder copy and links to next exercise or summary', () => {

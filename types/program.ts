@@ -1,6 +1,9 @@
 import type { AssessmentDraftAnswers } from '@/types/assessment';
 
+export type ProgramId = string;
+
 export type ProgramLibraryEntry = {
+  id: ProgramId;
   number: number;
   name: string;
   slug: string;
@@ -16,6 +19,7 @@ export type ProgramSelectionLevel = 'beginner' | 'late_beginner' | 'intermediate
 export type ProgramLibrary = {
   programs: ProgramLibraryEntry[];
   selectionGroups: Record<ProgramSelectionLevel, string[]>;
+  selectionGroupIds: Record<ProgramSelectionLevel, ProgramId[]>;
 };
 
 export type CompleteAssessmentDraft = {
