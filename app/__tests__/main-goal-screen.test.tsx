@@ -1,10 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import type {
-  AssessmentDraftAnswerKey,
-  AssessmentDraftAnswers,
-} from '@/constants/assessment-intake';
+import type { AssessmentDraftState } from '@/types/assessment-draft-store';
 
 import LimitationsScreen from '../(onboarding)/limitations';
 import MainGoalScreen from '../(onboarding)/main-goal';
@@ -14,15 +11,7 @@ const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockCommitAnswer = jest.fn();
 
-type MockAssessmentDraftState = AssessmentDraftAnswers & {
-  isHydrated: boolean;
-  commitAnswer: <Key extends AssessmentDraftAnswerKey>(
-    answerKey: Key,
-    answer: AssessmentDraftAnswers[Key]
-  ) => void;
-};
-
-const mockAssessmentDraftState: MockAssessmentDraftState = {
+const mockAssessmentDraftState: AssessmentDraftState = {
   isHydrated: true,
   mainGoal: null,
   trainingExperience: null,
@@ -35,6 +24,10 @@ const mockAssessmentDraftState: MockAssessmentDraftState = {
   limitations: [],
   trainingDirection: null,
   failureComfort: null,
+  setHydrated: jest.fn(),
+  commitMainGoal: jest.fn(),
+  commitLimitations: jest.fn(),
+  commitFailureComfort: jest.fn(),
   commitAnswer: mockCommitAnswer,
 };
 
@@ -55,7 +48,7 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@/store/assessment-draft-store', () => ({
-  useAssessmentDraftStore: (selector: (state: MockAssessmentDraftState) => unknown) =>
+  useAssessmentDraftStore: (selector: (state: AssessmentDraftState) => unknown) =>
     selector(mockAssessmentDraftState),
 }));
 

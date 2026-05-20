@@ -5,10 +5,12 @@ import AssessmentQuestion from '@/components/AssessmentQuestion';
 import {
   ASSESSMENT_INTAKE_TOTAL_STEPS,
   getAssessmentIntakeQuestion,
-  type AssessmentDraftAnswerKey,
-  type AssessmentDraftAnswers,
-  type AssessmentIntakeQuestionId,
 } from '@/constants/assessment-intake';
+import type {
+  AssessmentDraftAnswerKey,
+  AssessmentDraftAnswers,
+  AssessmentIntakeQuestionId,
+} from '@/types/assessment';
 import { useAssessmentDraftStore } from '@/store/assessment-draft-store';
 
 type AssessmentIntakeScreenProps = {

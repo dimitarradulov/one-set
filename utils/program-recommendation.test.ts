@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import type { AssessmentDraftAnswers } from '@/constants/assessment-intake';
+import type { AssessmentDraftAnswers } from '@/types/assessment';
 
 import { parseProgramLibraryMarkdown } from './program-library-parser';
 import { recommendProgram } from './program-recommendation';

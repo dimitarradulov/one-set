@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { MainGoalId } from '@/constants/assessment-intake';
+import type { MainGoalId } from '@/types/assessment';
 
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,

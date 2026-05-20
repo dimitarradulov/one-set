@@ -1,20 +1,4 @@
-export type ProgramLibraryEntry = {
-  number: number;
-  name: string;
-  slug: string;
-  bestFor: string;
-  weeklySchedule: string;
-  recommendedDaysPerWeekMin: number | null;
-  recommendedDaysPerWeekMax: number | null;
-  workoutCount: number;
-};
-
-export type ProgramSelectionLevel = 'beginner' | 'late_beginner' | 'intermediate' | 'advanced';
-
-export type ProgramLibrary = {
-  programs: ProgramLibraryEntry[];
-  selectionGroups: Record<ProgramSelectionLevel, string[]>;
-};
+import type { ProgramLibrary, ProgramSelectionLevel } from '@/types/program';
 
 const PROGRAM_HEADING_PATTERN = /^# Program (?<number>\d+) [—-] (?<name>.+)$/gm;
 

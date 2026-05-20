@@ -1,30 +1,13 @@
-import type { AssessmentDraftAnswers, LimitationId } from '@/constants/assessment-intake';
+import type { AssessmentDraftAnswers, LimitationId } from '@/types/assessment';
 import type {
+  CompleteAssessmentDraft,
+  HitReadiness,
+  InternalTrainingLevel,
   ProgramLibrary,
   ProgramLibraryEntry,
-  ProgramSelectionLevel,
-} from '@/utils/program-library-parser';
-
-type CompleteAssessmentDraft = {
-  [Key in keyof AssessmentDraftAnswers]-?: NonNullable<AssessmentDraftAnswers[Key]>;
-};
-
-type InternalTrainingLevel = ProgramSelectionLevel;
-type HitReadiness = 'new_to_hit' | 'learning_hit' | 'ready_for_hit' | 'experienced_hit';
-type RecoveryCapacity = 'good' | 'average' | 'limited';
-
-export type ProgramRecommendation = {
-  program: ProgramLibraryEntry;
-  internalAssessment: {
-    trainingLevel: InternalTrainingLevel;
-    hitReadiness: HitReadiness;
-    recoveryCapacity: RecoveryCapacity;
-  };
-  startingEffort: '8-9' | '9' | '9-10' | '10 selectively';
-  recoveryDemand: 'low' | 'moderate' | 'high' | 'very_high';
-  whyItFits: string[];
-  afterCycle: string;
-};
+  ProgramRecommendation,
+  RecoveryCapacity,
+} from '@/types/program';
 
 const ADVANCED_PROGRAM_NAMES = new Set([
   'Minimalist Recovery HIT',

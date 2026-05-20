@@ -1,10 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export type AssessmentQuestionOption<Value extends string = string> = {
-  label: string;
-  value: Value;
-};
+import type { AssessmentQuestionOption } from '@/types/assessment-question';
 
 type AssessmentQuestionProps<Value extends string = string> = {
   progressStep: number;

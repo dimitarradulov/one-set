@@ -3,29 +3,12 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type {
-  AssessmentDraftAnswerKey,
-  AssessmentDraftAnswers,
-  FailureComfortId,
-  LimitationId,
-  MainGoalId,
-} from '@/constants/assessment-intake';
+  AssessmentDraftPersistedState,
+  AssessmentDraftState,
+} from '@/types/assessment-draft-store';
 
 export const ASSESSMENT_DRAFT_STORAGE_KEY = 'one_set_assessment_draft';
 export const ASSESSMENT_DRAFT_STORAGE_VERSION = 2;
-
-type AssessmentDraftPersistedState = AssessmentDraftAnswers;
-
-export interface AssessmentDraftState extends AssessmentDraftPersistedState {
-  isHydrated: boolean;
-  setHydrated: (isHydrated: boolean) => void;
-  commitMainGoal: (mainGoal: MainGoalId) => void;
-  commitLimitations: (limitations: LimitationId[]) => void;
-  commitFailureComfort: (failureComfort: FailureComfortId) => void;
-  commitAnswer: <Key extends AssessmentDraftAnswerKey>(
-    answerKey: Key,
-    answer: AssessmentDraftAnswers[Key]
-  ) => void;
-}
 
 const INITIAL_PERSISTED_STATE: AssessmentDraftPersistedState = {
   mainGoal: null,
