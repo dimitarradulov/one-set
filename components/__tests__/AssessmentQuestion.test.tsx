@@ -38,6 +38,26 @@ describe('AssessmentQuestion', () => {
     expect(screen.getByRole('button', { name: 'Recomp my body' })).toBeOnTheScreen();
   });
 
+  test('renders the question body inside a scroll container while keeping Continue visible', () => {
+    render(
+      <AssessmentQuestion
+        continueDisabled={false}
+        continueLabel="Continue"
+        helperText="Pick one."
+        options={options}
+        progressStep={1}
+        selectedValues={[]}
+        totalSteps={11}
+        question="Question?"
+        onContinue={jest.fn()}
+        onSelectOption={jest.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('assessment-question-scroll')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeOnTheScreen();
+  });
+
   test('exposes selected option state and a visible checkmark', () => {
     render(
       <AssessmentQuestion
