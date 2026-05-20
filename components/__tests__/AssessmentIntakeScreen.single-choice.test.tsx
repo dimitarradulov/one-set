@@ -127,3 +127,71 @@ describe('AssessmentIntakeScreen single-choice path', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)');
   });
 });
+
+describe('AssessmentIntakeScreen limitations multi-select path', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    mockReplace.mockClear();
+    mockCommitAnswer.mockClear();
+
+    mockAssessmentDraftState.isHydrated = true;
+    mockAssessmentDraftState.limitations = [];
+  });
+
+  test('renders the limitations question copy, progress, and checkbox options', () => {
+    render(<AssessmentIntakeScreen questionId="limitations" />);
+
+    expect(screen.getByText('Question 9 of 11')).toBeOnTheScreen();
+    expect(screen.getByText('Any areas we should be careful with?')).toBeOnTheScreen();
+    expect(screen.getByText('Select all that apply.')).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'Shoulders' })).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'No limitations' })).toBeOnTheScreen();
+  });
+
+  test('keeps Continue disabled until at least one limitation is selected', () => {
+    render(<AssessmentIntakeScreen questionId="limitations" />);
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Knees' }));
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+
+  test('allows selecting multiple limitations and commits them as an array on Continue', () => {
+    render(<AssessmentIntakeScreen questionId="limitations" />);
+
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Shoulders' }));
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Wrists' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Shoulders' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Wrists' })).toBeChecked();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(mockCommitAnswer).toHaveBeenCalledTimes(1);
+    expect(mockCommitAnswer).toHaveBeenCalledWith('limitations', ['shoulders', 'wrists']);
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/training-direction');
+  });
+
+  test('choosing No limitations clears specific limitations', () => {
+    render(<AssessmentIntakeScreen questionId="limitations" />);
+
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Shoulders' }));
+    fireEvent.press(screen.getByRole('checkbox', { name: 'No limitations' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Shoulders' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'No limitations' })).toBeChecked();
+  });
+
+  test('choosing a specific limitation after No limitations clears No limitations', () => {
+    render(<AssessmentIntakeScreen questionId="limitations" />);
+
+    fireEvent.press(screen.getByRole('checkbox', { name: 'No limitations' }));
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Lower back' }));
+
+    expect(screen.getByRole('checkbox', { name: 'No limitations' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Lower back' })).toBeChecked();
+  });
+});
