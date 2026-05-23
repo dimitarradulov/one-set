@@ -28,6 +28,10 @@ _Avoid_: Program list, workout templates
 A pure rules-based selection of one **Program Library** entry from a complete **Assessment Draft**.
 _Avoid_: AI recommendation, persisted program assignment
 
+**Starting Effort**:
+The initial HIT effort target shown with a **Program Recommendation**.
+_Avoid_: Intensity level
+
 **Result Calculation**:
 A short post-**Assessment Intake** transition where OneSet visibly analyzes the completed **Assessment Draft** before showing the **Program Recommendation**.
 _Avoid_: Manual review step, questionnaire screen
@@ -52,8 +56,14 @@ _Avoid_: Manual review step, questionnaire screen
 - **Result Calculation** auto-advances into the **Program Recommendation** without user input.
 - **Result Calculation** runs the rules-based recommendation logic against the completed **Assessment Draft** before the **Program Recommendation** screen is shown.
 - A **Program Recommendation** requires a complete **Assessment Draft**.
+- A **Program Recommendation** preview consumes the prepared recommendation from **Result Calculation** instead of recalculating it.
 - A **Program Recommendation** reads candidate programs from the **Program Library**.
+- A **Program Recommendation** preview explains the choice with user-facing fit reasons, not internal assessment labels.
 - A **Program Recommendation** does not create or persist the user's active program.
+- A **Program Recommendation** preview is read-only; it does not support choosing another program from the **Program Library**.
+- A **Program Recommendation** preview uses the **Assessment Draft** preferred session length as its estimated workout length.
+- A **Program Recommendation** preview expresses intensity as **Starting Effort**.
+- The **Program Recommendation** preview continues into the authentication prompt before any workout can be started or progress can be saved.
 
 ## Example dialogue
 
@@ -78,3 +88,5 @@ _Avoid_: Manual review step, questionnaire screen
 - "all onboarding screens" can sound like the full first-run journey; resolved: for the current implementation slice it means the 11 **Assessment Intake** question screens only.
 - "assessment flow" can mean the 11 question intake or the later calculation/recommendation/education screens; resolved: use **Assessment Intake** only for the 11 answer-collection questions.
 - "recommended program" can mean a pure **Program Recommendation** result or a persisted active program; resolved: use **Program Recommendation** for the pure result only.
+- "intensity level" can imply a separate intensity scale; resolved: the **Program Recommendation** preview uses **Starting Effort**.
+- "continue from the recommended program" can mean either continuing the preview/education sequence or moving to account creation; resolved: the **Program Recommendation** preview continues to the authentication prompt.
