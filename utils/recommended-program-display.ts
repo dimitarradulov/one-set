@@ -8,6 +8,12 @@ const RECOVERY_DEMAND_LABELS: Record<ProgramRecommendation['recoveryDemand'], st
   very_high: 'Very high',
 };
 
+const INTERNAL_ASSESSMENT_TERMS =
+  /(internal training level|hit readiness|recovery capacity|trainingLevel|hitReadiness|recoveryCapacity)/i;
+
+const DEFAULT_FIT_REASON =
+  'Built around your assessment answers, schedule, and available equipment.';
+
 export type RecommendedProgramDisplayFacts = {
   programName: string;
   daysPerWeek: string;
@@ -46,6 +52,15 @@ export const formatProgramRecoveryDemand = (
   recoveryDemand: ProgramRecommendation['recoveryDemand']
 ): string => RECOVERY_DEMAND_LABELS[recoveryDemand];
 
+export const sanitizeProgramFitReasons = (reasons: string[]): string[] => {
+  const sanitizedReasons = reasons
+    .map((reason) => reason.trim())
+    .filter((reason) => reason.length > 0)
+    .filter((reason) => !INTERNAL_ASSESSMENT_TERMS.test(reason));
+
+  return sanitizedReasons.length > 0 ? sanitizedReasons : [DEFAULT_FIT_REASON];
+};
+
 export const buildRecommendedProgramDisplayFacts = (
   recommendation: ProgramRecommendation,
   preferredSessionLength: SessionLengthId | null
@@ -55,6 +70,6 @@ export const buildRecommendedProgramDisplayFacts = (
   estimatedWorkoutLength: formatProgramWorkoutLength(preferredSessionLength),
   startingEffort: recommendation.startingEffort,
   recoveryDemand: formatProgramRecoveryDemand(recommendation.recoveryDemand),
-  whyItFits: recommendation.whyItFits,
+  whyItFits: sanitizeProgramFitReasons(recommendation.whyItFits),
   afterCycle: recommendation.afterCycle,
 });

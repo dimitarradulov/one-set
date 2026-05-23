@@ -100,6 +100,43 @@ describe('Recommended Program screen', () => {
     expect(screen.getByText('Free to start. No payment required.')).toBeOnTheScreen();
   });
 
+  test('keeps the preview read-only and hides program-switching or persistence actions', () => {
+    render(<RecommendedProgramScreen />);
+
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByText('Continue').props.href).toBe('/auth-prompt');
+    expect(screen.queryByText(/change program/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/review program options/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/browse (the )?program library/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/switch program/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/assign program/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/save program/i)).not.toBeOnTheScreen();
+  });
+
+  test('does not surface internal assessment labels in recommendation reasons', () => {
+    usePostAssessmentPreviewStore.setState({
+      preparedState: {
+        status: 'ready',
+        recommendation: {
+          ...mockRecommendation,
+          whyItFits: [
+            'Internal training level: late_beginner',
+            'HIT readiness: ready_for_hit',
+            'Recovery capacity: average',
+            'Matches your 3-day schedule.',
+          ],
+        },
+      },
+    });
+
+    render(<RecommendedProgramScreen />);
+
+    expect(screen.queryByText(/Internal training level:/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/HIT readiness:/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/Recovery capacity:/i)).not.toBeOnTheScreen();
+    expect(screen.getByText(/Matches your 3-day schedule\./i)).toBeOnTheScreen();
+  });
+
   test('shows missing-state recovery and routes back to Result Calculation', () => {
     usePostAssessmentPreviewStore.setState({ preparedState: null });
 

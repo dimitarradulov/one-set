@@ -6,6 +6,7 @@ import {
   formatProgramDaysPerWeek,
   formatProgramRecoveryDemand,
   formatProgramWorkoutLength,
+  sanitizeProgramFitReasons,
 } from '../recommended-program-display';
 
 const classicSymmetryProgram = PROGRAM_LIBRARY.programs.find(
@@ -44,6 +45,27 @@ describe('recommended program display formatter', () => {
 
   test('formats recovery demand using user-facing labels', () => {
     expect(formatProgramRecoveryDemand('very_high')).toBe('Very high');
+  });
+
+  test('removes internal assessment labels from fit reasons', () => {
+    expect(
+      sanitizeProgramFitReasons([
+        'Internal training level: late_beginner',
+        'HIT readiness: ready_for_hit',
+        'Recovery capacity: average',
+        'Matches your 3-day schedule.',
+      ])
+    ).toEqual(['Matches your 3-day schedule.']);
+  });
+
+  test('falls back to a user-facing reason when all fit reasons are internal', () => {
+    expect(
+      sanitizeProgramFitReasons([
+        'trainingLevel: late_beginner',
+        'hitReadiness: new_to_hit',
+        'recoveryCapacity: limited',
+      ])
+    ).toEqual(['Built around your assessment answers, schedule, and available equipment.']);
   });
 
   test('builds stable screen facts from recommendation and preferred session length', () => {
