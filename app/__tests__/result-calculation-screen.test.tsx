@@ -1,10 +1,17 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
+import { act, render, screen } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 
 import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
 import type { AssessmentDraftState } from '@/types/assessment-draft-store';
+import {
+  RESULT_CALCULATION_MESSAGE_DURATION_MS,
+  RESULT_CALCULATION_MESSAGES,
+  RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS,
+} from '@/utils/result-calculation-transition';
 
 import ResultCalculationScreen from '../(onboarding)/result-calculation';
+
+const mockReplace = jest.fn();
 
 const mockAssessmentDraftState: AssessmentDraftState = {
   isHydrated: true,
@@ -30,11 +37,14 @@ jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native');
 
   return {
-    Link: ({ href, children }: { href: string; children: ReactNode }) => (
-      <Text accessibilityRole="link" href={href}>
-        {children}
-      </Text>
-    ),
+    useRouter: () => ({
+      replace: mockReplace,
+    }),
+    Stack: {
+      Screen: ({ options }: { options: Record<string, unknown> }) => (
+        <Text testID="result-calculation-stack-options">{JSON.stringify(options)}</Text>
+      ),
+    },
   };
 });
 
@@ -45,6 +55,9 @@ jest.mock('@/store/assessment-draft-store', () => ({
 
 describe('Result Calculation screen', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+
     usePostAssessmentPreviewStore.setState({ preparedState: null });
 
     mockAssessmentDraftState.isHydrated = true;
@@ -61,37 +74,69 @@ describe('Result Calculation screen', () => {
     mockAssessmentDraftState.failureComfort = 'comfortable_to_failure';
   });
 
-  test('prepares preview recommendation state when reached with a complete Assessment Draft', async () => {
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
+  test('runs fixed staged messages, locks navigation controls, and auto-advances after the minimum duration', () => {
+    const backHandlerSpy = jest
+      .spyOn(BackHandler, 'addEventListener')
+      .mockReturnValue({ remove: jest.fn() } as never);
+
     render(<ResultCalculationScreen />);
 
     expect(screen.getByText('Result Calculation')).toBeOnTheScreen();
+    expect(screen.getByText(RESULT_CALCULATION_MESSAGES[0])).toBeOnTheScreen();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+    expect(screen.getByTestId('result-calculation-stack-options').props.children).toContain(
+      '"gestureEnabled":false'
+    );
+    expect(backHandlerSpy).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function));
+    expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('ready');
+    expect(mockReplace).not.toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('ready');
+    act(() => {
+      jest.advanceTimersByTime(RESULT_CALCULATION_MESSAGE_DURATION_MS);
+    });
+    expect(screen.getByText(RESULT_CALCULATION_MESSAGES[1])).toBeOnTheScreen();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(RESULT_CALCULATION_MESSAGE_DURATION_MS);
+    });
+    expect(screen.getByText(RESULT_CALCULATION_MESSAGES[2])).toBeOnTheScreen();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(RESULT_CALCULATION_MESSAGE_DURATION_MS);
+    });
+    expect(screen.getByText(RESULT_CALCULATION_MESSAGES[3])).toBeOnTheScreen();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(RESULT_CALCULATION_MESSAGE_DURATION_MS);
     });
 
-    const preparedState = usePostAssessmentPreviewStore.getState().preparedState;
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith('/recommended-program');
 
-    expect(
-      preparedState?.status === 'ready' ? preparedState.recommendation.program.name : null
-    ).toBe('Classic Symmetry Full-Body HIT');
+    backHandlerSpy.mockRestore();
   });
 
-  test('stores incomplete preview state when required Assessment Draft answers are missing', async () => {
+  test('does not auto-advance when recommendation preparation is incomplete', () => {
     mockAssessmentDraftState.hitExperience = null;
     mockAssessmentDraftState.limitations = [];
 
     render(<ResultCalculationScreen />);
 
-    await waitFor(() => {
-      expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('incomplete');
+    act(() => {
+      jest.advanceTimersByTime(RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS + 100);
     });
 
-    const preparedState = usePostAssessmentPreviewStore.getState().preparedState;
-
-    expect(preparedState?.status === 'incomplete' ? preparedState.missingAnswerKeys : []).toEqual([
-      'hitExperience',
-      'limitations',
-    ]);
+    expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('incomplete');
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
