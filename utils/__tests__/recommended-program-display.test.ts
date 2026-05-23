@@ -12,9 +12,23 @@ import {
 const classicSymmetryProgram = PROGRAM_LIBRARY.programs.find(
   (program) => program.id === 'classic-symmetry-full-body-hit'
 );
+const upperLowerProgram = PROGRAM_LIBRARY.programs.find(
+  (program) => program.id === 'upper-lower-logbook-hit'
+);
+const rotatingCycleProgram = PROGRAM_LIBRARY.programs.find(
+  (program) => program.id === 'four-day-mass-split-hit'
+);
 
 if (!classicSymmetryProgram) {
   throw new Error('Expected Classic Symmetry Full-Body HIT in program library');
+}
+
+if (!upperLowerProgram) {
+  throw new Error('Expected Upper/Lower Logbook HIT in program library');
+}
+
+if (!rotatingCycleProgram) {
+  throw new Error('Expected Four-Day Mass Split HIT in program library');
 }
 
 const baseRecommendation: ProgramRecommendation = {
@@ -39,8 +53,20 @@ describe('recommended program display formatter', () => {
     expect(formatProgramDaysPerWeek(classicSymmetryProgram)).toBe('3 days/week');
   });
 
+  test('formats day ranges when min and max days differ', () => {
+    expect(formatProgramDaysPerWeek(upperLowerProgram)).toBe('2-4 days/week');
+  });
+
+  test('falls back when day-range metadata is unavailable', () => {
+    expect(formatProgramDaysPerWeek(rotatingCycleProgram)).toBe('Varies by program cycle');
+  });
+
   test('formats estimated workout length from Assessment Draft preferred session length', () => {
     expect(formatProgramWorkoutLength('45')).toBe('45 minutes');
+  });
+
+  test('falls back when preferred session length is missing', () => {
+    expect(formatProgramWorkoutLength(null)).toBe('Use your selected session length');
   });
 
   test('formats recovery demand using user-facing labels', () => {

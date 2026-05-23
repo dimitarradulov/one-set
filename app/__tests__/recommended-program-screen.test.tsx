@@ -147,4 +147,20 @@ describe('Recommended Program screen', () => {
     ).toBeOnTheScreen();
     expect(screen.getByText('Return to Result Calculation').props.href).toBe('/result-calculation');
   });
+
+  test('shows the same recovery path when prepared recommendation is incomplete', () => {
+    usePostAssessmentPreviewStore.setState({
+      preparedState: {
+        status: 'incomplete',
+        missingAnswerKeys: ['hitExperience'],
+      },
+    });
+
+    render(<RecommendedProgramScreen />);
+
+    expect(
+      screen.getByText(/OneSet needs to recalculate your starter program/i)
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Return to Result Calculation').props.href).toBe('/result-calculation');
+  });
 });
