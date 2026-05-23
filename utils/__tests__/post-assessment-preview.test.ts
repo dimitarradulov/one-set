@@ -55,7 +55,8 @@ describe('Post-Assessment preview', () => {
 
     expect(getPostAssessmentPreviewStep('recommended-program')).toMatchObject({
       title: 'Program Recommendation',
-      nextHref: '/hit-principles',
+      nextHref: '/auth-prompt',
+      nextLabel: 'Continue',
     });
   });
 });
