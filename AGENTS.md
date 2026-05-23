@@ -6,11 +6,13 @@ For project information refer to the `docs/SPEC.md` file.
 
 This is an Expo Router React Native app. Route files live in `app/`; grouped tab routes are under `app/(tabs)/`, shared layout is in `app/_layout.tsx`, and modal/not-found routes are top-level files. Reusable UI components live in `components/`, and any component that is not a screen should live outside of `app/` in `components/`. Zustand state modules live in `store/`. Supabase and integration helpers belong in `utils/`. Static icons and splash assets are in `assets/`. Styling uses `global.css`, `tailwind.config.js`, NativeWind, and component `className` strings.
 
+Android is currently out of scope. Do not add or preserve Android-specific code paths, device behaviors, or testing unless the user explicitly asks for Android support.
+
 ## Build, Test, and Development Commands
 
 - `npm start`: start the Expo development server.
 - `npm run ios`: start Expo and open the iOS simulator.
-- `npm run android`: start Expo and open an Android target.
+- `npm run android`: start Expo and open an Android target. This target is currently unsupported unless the user explicitly asks for Android work.
 - `npm run web`: run the app with Expo for web.
 - `npm run prebuild`: generate native `ios/` and `android/` projects when needed.
 - `npm run lint`: run ESLint and check Prettier formatting.
@@ -43,16 +45,24 @@ Do not commit secrets, Supabase service keys, or local environment files. Keep p
 
 Invoke these skills when a task matches the trigger described below.
 
-| Skill                        | Invoke when                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------- |
-| `building-native-ui`         | Building polished Expo Router native UI, navigation, styling, or app screens.       |
-| `javascript-typescript-jest` | Writing or fixing JavaScript/TypeScript Jest tests and mocks.                       |
-| `maestro`                    | Writing, debugging, or running Maestro UI automation flows.                         |
-| `native-data-fetching`       | Implementing or debugging fetches, API calls, caching, or offline data behavior.    |
-| `react-hook-form-zod`        | Building or reviewing React Hook Form flows with Zod validation.                    |
-| `react-native-testing`       | Writing or fixing React Native Testing Library component tests.                     |
-| `tdd`                        | Using a red-green-refactor loop for features, fixes, or integration tests.          |
-| `vercel-react-native-skills` | Improving React Native or Expo performance, components, animations, or native APIs. |
+| Skill                           | Invoke when                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `building-native-ui`            | Building polished Expo Router native UI, navigation, styling, or app screens.        |
+| `clerk`                         | Routing Clerk auth, organizations, billing, pricing, entitlements, or testing tasks. |
+| `clerk-backend-api`             | Listing users, managing organizations, or calling Clerk Backend API endpoints.       |
+| `clerk-custom-ui`               | Building custom sign-in/sign-up flows or customizing Clerk appearance and branding.  |
+| `clerk-expo`                    | Implementing Clerk authentication for Expo or React Native apps.                     |
+| `clerk-setup`                   | Adding Clerk authentication to a project using the official quickstart flow.         |
+| `grill-with-docs`               | Stress-testing a plan against domain language and documenting resolved decisions.    |
+| `improve-codebase-architecture` | Finding architecture, refactoring, testability, or AI-navigability opportunities.    |
+| `javascript-typescript-jest`    | Writing or fixing JavaScript/TypeScript Jest tests and mocks.                        |
+| `maestro`                       | Writing, debugging, or running Maestro UI automation flows.                          |
+| `native-data-fetching`          | Implementing or debugging fetches, API calls, caching, or offline data behavior.     |
+| `react-hook-form-zod`           | Building or reviewing React Hook Form flows with Zod validation.                     |
+| `react-native-testing`          | Writing or fixing React Native Testing Library component tests.                      |
+| `to-issues`                     | Breaking a plan, spec, or PRD into tracer-bullet issues on the issue tracker.        |
+| `to-prd`                        | Turning conversation context into a PRD and publishing it to the issue tracker.      |
+| `vercel-react-native-skills`    | Improving React Native or Expo performance, components, animations, or native APIs.  |
 
 ## Rules
 

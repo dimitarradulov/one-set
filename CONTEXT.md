@@ -28,6 +28,10 @@ _Avoid_: Program list, workout templates
 A pure rules-based selection of one **Program Library** entry from a complete **Assessment Draft**.
 _Avoid_: AI recommendation, persisted program assignment
 
+**Result Calculation**:
+A short post-**Assessment Intake** transition where OneSet visibly analyzes the completed **Assessment Draft** before showing the **Program Recommendation**.
+_Avoid_: Manual review step, questionnaire screen
+
 ## Relationships
 
 - The welcome screen introduces the **Assessment** but is not counted as an assessment step.
@@ -44,6 +48,9 @@ _Avoid_: AI recommendation, persisted program assignment
 - Assessment questions cannot be skipped in the MVP.
 - An **Assessment Draft** is synced to the user's account only after authentication.
 - Result calculation, recommended program, HIT principles education, and first workout preview happen after the **Assessment Intake**.
+- **Result Calculation** is a transient screen, not an answer-collection step.
+- **Result Calculation** auto-advances into the **Program Recommendation** without user input.
+- **Result Calculation** runs the rules-based recommendation logic against the completed **Assessment Draft** before the **Program Recommendation** screen is shown.
 - A **Program Recommendation** requires a complete **Assessment Draft**.
 - A **Program Recommendation** reads candidate programs from the **Program Library**.
 - A **Program Recommendation** does not create or persist the user's active program.

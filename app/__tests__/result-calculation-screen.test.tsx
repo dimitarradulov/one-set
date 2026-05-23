@@ -1,5 +1,4 @@
-import { act, render, screen } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
 import type { AssessmentDraftState } from '@/types/assessment-draft-store';
@@ -49,8 +48,12 @@ jest.mock('expo-router', () => {
 });
 
 jest.mock('@/store/assessment-draft-store', () => ({
-  useAssessmentDraftStore: (selector: (state: AssessmentDraftState) => unknown) =>
-    selector(mockAssessmentDraftState),
+  useAssessmentDraftStore: Object.assign(
+    (selector: (state: AssessmentDraftState) => unknown) => selector(mockAssessmentDraftState),
+    {
+      getState: () => mockAssessmentDraftState,
+    }
+  ),
 }));
 
 describe('Result Calculation screen', () => {
@@ -80,10 +83,6 @@ describe('Result Calculation screen', () => {
   });
 
   test('runs fixed staged messages, locks navigation controls, and auto-advances after the minimum duration', () => {
-    const backHandlerSpy = jest
-      .spyOn(BackHandler, 'addEventListener')
-      .mockReturnValue({ remove: jest.fn() } as never);
-
     render(<ResultCalculationScreen />);
 
     expect(screen.getByText('Result Calculation')).toBeOnTheScreen();
@@ -94,7 +93,6 @@ describe('Result Calculation screen', () => {
     expect(screen.getByTestId('result-calculation-stack-options').props.children).toContain(
       '"gestureEnabled":false'
     );
-    expect(backHandlerSpy).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function));
     expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('ready');
     expect(mockReplace).not.toHaveBeenCalled();
 
@@ -122,11 +120,9 @@ describe('Result Calculation screen', () => {
 
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith('/recommended-program');
-
-    backHandlerSpy.mockRestore();
   });
 
-  test('does not auto-advance when recommendation preparation is incomplete', () => {
+  test('shows a recovery path when recommendation preparation is incomplete', () => {
     mockAssessmentDraftState.hitExperience = null;
     mockAssessmentDraftState.limitations = [];
 
@@ -138,5 +134,14 @@ describe('Result Calculation screen', () => {
 
     expect(usePostAssessmentPreviewStore.getState().preparedState?.status).toBe('incomplete');
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(screen.getByText('Assessment incomplete.')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'OneSet needs every assessment answer before it can build your starter program.'
+      )
+    ).toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Return to assessment' }));
+
+    expect(mockReplace).toHaveBeenCalledWith('/hit-experience');
   });
 });
