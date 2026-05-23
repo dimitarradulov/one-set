@@ -99,4 +99,15 @@ describe('Recommended Program screen', () => {
     expect(screen.getByText('Continue').props.href).toBe('/auth-prompt');
     expect(screen.getByText('Free to start. No payment required.')).toBeOnTheScreen();
   });
+
+  test('shows missing-state recovery and routes back to Result Calculation', () => {
+    usePostAssessmentPreviewStore.setState({ preparedState: null });
+
+    render(<RecommendedProgramScreen />);
+
+    expect(
+      screen.getByText(/OneSet needs to recalculate your starter program/i)
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Return to Result Calculation').props.href).toBe('/result-calculation');
+  });
 });

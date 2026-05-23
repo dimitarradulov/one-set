@@ -6,6 +6,11 @@ import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 import { buildRecommendedProgramDisplayFacts } from '@/utils/recommended-program-display';
 import { Text, View } from 'react-native';
 
+const MISSING_RECOMMENDATION_RECOVERY_DESCRIPTION =
+  'OneSet needs to recalculate your starter program before this preview is ready.';
+const MISSING_RECOMMENDATION_RECOVERY_HREF = '/result-calculation';
+const MISSING_RECOMMENDATION_RECOVERY_LABEL = 'Return to Result Calculation';
+
 export default function RecommendedProgramScreen() {
   const step = getPostAssessmentPreviewStep('recommended-program');
   const preparedState = usePostAssessmentPreviewStore((state) => state.preparedState);
@@ -15,9 +20,9 @@ export default function RecommendedProgramScreen() {
     return (
       <OnboardingStep
         title={step.title}
-        description={step.description}
-        nextHref={step.nextHref}
-        nextLabel={step.nextLabel}
+        description={MISSING_RECOMMENDATION_RECOVERY_DESCRIPTION}
+        nextHref={MISSING_RECOMMENDATION_RECOVERY_HREF}
+        nextLabel={MISSING_RECOMMENDATION_RECOVERY_LABEL}
       />
     );
   }
