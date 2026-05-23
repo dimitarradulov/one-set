@@ -32,10 +32,10 @@ const POST_ASSESSMENT_STEPS = {
     title: 'Result Calculation',
     description: 'OneSet checks your complete Assessment Draft before matching a starter program.',
     nextHref: '/recommended-program',
-    nextLabel: 'Next: Recommended Program',
+    nextLabel: 'Next: Program Recommendation',
   },
   'recommended-program': {
-    title: 'Recommended Program',
+    title: 'Program Recommendation',
     description:
       'Your Program Recommendation is pure preview state until training access is granted.',
     nextHref: '/hit-principles',

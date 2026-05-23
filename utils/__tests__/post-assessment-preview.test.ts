@@ -48,8 +48,13 @@ describe('Post-Assessment preview', () => {
   });
 
   test('provides route copy for post-Assessment preview steps', () => {
+    expect(getPostAssessmentPreviewStep('result-calculation')).toMatchObject({
+      title: 'Result Calculation',
+      nextLabel: 'Next: Program Recommendation',
+    });
+
     expect(getPostAssessmentPreviewStep('recommended-program')).toMatchObject({
-      title: 'Recommended Program',
+      title: 'Program Recommendation',
       nextHref: '/hit-principles',
     });
   });
