@@ -41,7 +41,7 @@ export default function RecommendedProgramScreen() {
         <Text className="text-center font-body text-body text-dark-text-secondary">
           {step.description}
         </Text>
-        <View className="gap-4 rounded-3xl border border-dark-border bg-dark-surface p-5">
+        <View className="gap-6 rounded-3xl border border-dark-border bg-dark-surface p-5">
           <View className="gap-1">
             <Text className="font-body-semibold text-caption uppercase tracking-[0.6px] text-dark-text-secondary">
               Program
