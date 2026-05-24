@@ -15,6 +15,12 @@ jest.mock('expo-router', () => {
         {children}
       </Text>
     ),
+    useRouter: () => ({
+      canGoBack: () => false,
+      back: jest.fn(),
+      replace: jest.fn(),
+      push: jest.fn(),
+    }),
   };
 });
 

@@ -1,9 +1,11 @@
+import { useRouter } from 'expo-router';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 import {
   CREATE_ACCOUNT_UNAVAILABLE_ALERTS,
   type CreateAccountActionId,
 } from '@/utils/create-account-actions';
+import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
 
 const showUnavailableAlert = (actionId: CreateAccountActionId) => {
   const alertCopy = CREATE_ACCOUNT_UNAVAILABLE_ALERTS[actionId];
@@ -11,9 +13,21 @@ const showUnavailableAlert = (actionId: CreateAccountActionId) => {
 };
 
 export default function CreateAccountScreen() {
+  const router = useRouter();
+
   return (
     <View className="flex-1 items-center justify-center bg-dark-background px-5 py-6">
       <View className="w-full max-w-md gap-4">
+        <View className="items-end">
+          <Pressable
+            accessibilityLabel="Close account creation prompt"
+            accessibilityRole="button"
+            className="rounded-full border border-dark-border bg-dark-surface px-3 py-1.5"
+            onPress={() => dismissCreateAccountPrompt(router)}>
+            <Text className="font-body-semibold text-body-sm text-dark-text-secondary">Close</Text>
+          </Pressable>
+        </View>
+
         <Text className="text-center font-display text-h1 text-dark-text-primary">
           Create an account to save your progress
         </Text>

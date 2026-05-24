@@ -6,9 +6,11 @@ import CreateAccountScreen from '../create-account';
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
+const mockCanGoBack = jest.fn(() => false);
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
+    canGoBack: mockCanGoBack,
     push: mockPush,
     replace: mockReplace,
     back: mockBack,
@@ -28,6 +30,7 @@ describe('Create Account screen', () => {
   test('shows the sign-up-first UI hierarchy', () => {
     render(<CreateAccountScreen />);
 
+    expect(screen.getByRole('button', { name: 'Close account creation prompt' })).toBeOnTheScreen();
     expect(screen.getByText('Create an account to save your progress')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Continue with Apple' })).toBeOnTheScreen();
     expect(screen.getByRole('image', { name: 'Apple logo' })).toBeOnTheScreen();
@@ -65,5 +68,17 @@ describe('Create Account screen', () => {
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  test('dismisses to Program Recommendation when there is no navigation history', () => {
+    mockCanGoBack.mockReturnValue(false);
+    render(<CreateAccountScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Close account creation prompt' }));
+
+    expect(mockCanGoBack).toHaveBeenCalledTimes(1);
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/recommended-program');
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });
