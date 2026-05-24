@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   CREATE_ACCOUNT_UNAVAILABLE_ALERTS,
@@ -14,37 +15,39 @@ const showUnavailableAlert = (actionId: CreateAccountActionId) => {
 
 export default function CreateAccountScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View className="flex-1 items-center justify-center bg-dark-background px-5 py-6">
-      <View className="w-full max-w-md gap-4">
-        <View className="items-end">
+      <Pressable
+        accessibilityLabel="Close account creation prompt"
+        accessibilityRole="button"
+        className="absolute left-5 z-10 h-11 w-11 items-center justify-center"
+        onPress={() => dismissCreateAccountPrompt(router)}
+        style={{ top: insets.top + 12 }}>
+        <Text className="font-body text-h3 text-white">X</Text>
+      </Pressable>
+
+      <View className="w-full max-w-md gap-6">
+        <View className="gap-6">
+          <Text className="text-center font-display text-h1 text-dark-text-primary">
+            Create an account to save your progress
+          </Text>
+
           <Pressable
-            accessibilityLabel="Close account creation prompt"
             accessibilityRole="button"
-            className="rounded-full border border-dark-border bg-dark-surface px-3 py-1.5"
-            onPress={() => dismissCreateAccountPrompt(router)}>
-            <Text className="font-body-semibold text-body-sm text-dark-text-secondary">Close</Text>
+            className="flex-row items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4"
+            onPress={() => showUnavailableAlert('apple')}>
+            <View
+              accessibilityLabel="Apple logo"
+              accessibilityRole="image"
+              accessible
+              testID="create-account-apple-logo">
+              <Text className="font-body-semibold text-body text-white"></Text>
+            </View>
+            <Text className="font-body-semibold text-body text-white">Continue with Apple</Text>
           </Pressable>
         </View>
-
-        <Text className="text-center font-display text-h1 text-dark-text-primary">
-          Create an account to save your progress
-        </Text>
-
-        <Pressable
-          accessibilityRole="button"
-          className="flex-row items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4"
-          onPress={() => showUnavailableAlert('apple')}>
-          <View
-            accessibilityLabel="Apple logo"
-            accessibilityRole="image"
-            accessible
-            testID="create-account-apple-logo">
-            <Text className="font-body-semibold text-body text-white"></Text>
-          </View>
-          <Text className="font-body-semibold text-body text-white">Continue with Apple</Text>
-        </Pressable>
 
         <View className="flex-row items-center gap-3">
           <View className="h-px flex-1 bg-dark-border" />
@@ -54,23 +57,26 @@ export default function CreateAccountScreen() {
           <View className="h-px flex-1 bg-dark-border" />
         </View>
 
-        <View className="gap-3 rounded-3xl border border-dark-border bg-dark-surface p-5">
-          <TextInput
-            accessibilityLabel="Email address"
-            autoCapitalize="none"
-            className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
-            keyboardType="email-address"
-            placeholder="Email address"
-            placeholderTextColor="#8A90A2"
-          />
-          <TextInput
-            accessibilityLabel="Password"
-            autoCapitalize="none"
-            className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
-            placeholder="Password"
-            placeholderTextColor="#8A90A2"
-            secureTextEntry
-          />
+        <View className="gap-6 rounded-3xl border border-dark-border bg-dark-surface p-5">
+          <View className="gap-3">
+            <TextInput
+              accessibilityLabel="Email address"
+              autoCapitalize="none"
+              className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
+              keyboardType="email-address"
+              placeholder="Email address"
+              placeholderTextColor="#8A90A2"
+            />
+            <TextInput
+              accessibilityLabel="Password"
+              autoCapitalize="none"
+              className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
+              placeholder="Password"
+              placeholderTextColor="#8A90A2"
+              secureTextEntry
+            />
+          </View>
+
           <Pressable
             accessibilityRole="button"
             className="items-center rounded-2xl bg-brand-primary px-5 py-3"

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import CreateAccountScreen from '../create-account';
 
@@ -17,6 +18,17 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
+const renderCreateAccountScreen = () =>
+  render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 47, right: 0, bottom: 34, left: 0 },
+      }}>
+      <CreateAccountScreen />
+    </SafeAreaProvider>
+  );
+
 describe('Create Account screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,9 +40,11 @@ describe('Create Account screen', () => {
   });
 
   test('shows the sign-up-first UI hierarchy', () => {
-    render(<CreateAccountScreen />);
+    renderCreateAccountScreen();
 
     expect(screen.getByRole('button', { name: 'Close account creation prompt' })).toBeOnTheScreen();
+    expect(screen.getByText('X')).toBeOnTheScreen();
+    expect(screen.queryByText('Close')).not.toBeOnTheScreen();
     expect(screen.getByText('Create an account to save your progress')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Continue with Apple' })).toBeOnTheScreen();
     expect(screen.getByRole('image', { name: 'Apple logo' })).toBeOnTheScreen();
@@ -45,7 +59,7 @@ describe('Create Account screen', () => {
   test('keeps account actions gated behind unavailable alerts and does not navigate', () => {
     const alertSpy = jest.spyOn(Alert, 'alert');
 
-    render(<CreateAccountScreen />);
+    renderCreateAccountScreen();
 
     fireEvent.press(screen.getByRole('button', { name: 'Continue with Apple' }));
     expect(alertSpy).toHaveBeenCalledWith(
@@ -72,7 +86,7 @@ describe('Create Account screen', () => {
 
   test('dismisses to Program Recommendation when there is no navigation history', () => {
     mockCanGoBack.mockReturnValue(false);
-    render(<CreateAccountScreen />);
+    renderCreateAccountScreen();
 
     fireEvent.press(screen.getByRole('button', { name: 'Close account creation prompt' }));
 

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import CreateAccountScreen from '../create-account';
 import TrialPaywallPlaceholderScreen from '../trial-paywall';
@@ -32,7 +33,15 @@ describe('access and legal gate placeholders', () => {
   });
 
   test('create-account shows account creation prompt copy', () => {
-    render(<CreateAccountScreen />);
+    render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, right: 0, bottom: 34, left: 0 },
+        }}>
+        <CreateAccountScreen />
+      </SafeAreaProvider>
+    );
 
     expect(screen.getByText('Create an account to save your progress')).toBeTruthy();
     expect(screen.queryByText('Continue to Trial Paywall')).toBeNull();

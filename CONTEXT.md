@@ -32,6 +32,14 @@ _Avoid_: AI recommendation, persisted program assignment
 The initial HIT effort target shown with a **Program Recommendation**.
 _Avoid_: Intensity level
 
+**Account Creation Prompt**:
+The post-**Program Recommendation** account gate that asks a preview user to create an account before progress can be saved or training can begin.
+_Avoid_: Auth prompt, login screen, auth wall
+
+**Preview Mode**:
+The restricted state for a user who has completed the **Assessment** and can inspect their **Program Recommendation** without an account, trial, or subscription.
+_Avoid_: Guest plan, free tier
+
 **Result Calculation**:
 A short post-**Assessment Intake** transition where OneSet visibly analyzes the completed **Assessment Draft** before showing the **Program Recommendation**.
 _Avoid_: Manual review step, questionnaire screen
@@ -63,7 +71,18 @@ _Avoid_: Manual review step, questionnaire screen
 - A **Program Recommendation** preview is read-only; it does not support choosing another program from the **Program Library**.
 - A **Program Recommendation** preview uses the **Assessment Draft** preferred session length as its estimated workout length.
 - A **Program Recommendation** preview expresses intensity as **Starting Effort**.
-- The **Program Recommendation** preview continues into the authentication prompt before any workout can be started or progress can be saved.
+- The **Program Recommendation** preview continues into the **Account Creation Prompt** before any workout can be started or progress can be saved.
+- The **Account Creation Prompt** is addressed in the app route model as `/create-account`.
+- The **Account Creation Prompt** supports Apple sign-in and email/password account creation for the MVP.
+- Apple sign-in is the primary **Account Creation Prompt** action in the MVP.
+- The **Account Creation Prompt** does not include Google sign-in in the MVP.
+- The first **Account Creation Prompt** implementation is UI-only; live Clerk account creation is a separate implementation story.
+- During the UI-only implementation, **Account Creation Prompt** account actions do not advance to the trial paywall.
+- The **Account Creation Prompt** is sign-up-first; returning-user sign-in is secondary because the welcome screen already provides the main sign-in entry point.
+- During the UI-only implementation, the returning-user sign-in action on the **Account Creation Prompt** does not navigate to another auth flow.
+- The **Account Creation Prompt** shows the email/password account creation form by default below the Apple sign-in action, separated by an "OR" divider.
+- A user who dismisses the **Account Creation Prompt** remains in **Preview Mode** and returns to the prior preview surface when possible.
+- If the **Account Creation Prompt** has no usable navigation history, dismissal returns to the **Program Recommendation** preview.
 
 ## Example dialogue
 
