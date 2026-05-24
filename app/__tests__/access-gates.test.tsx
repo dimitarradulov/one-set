@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import CreateAccountPlaceholderScreen from '../create-account';
+import CreateAccountScreen from '../create-account';
 import TrialPaywallPlaceholderScreen from '../trial-paywall';
 import FitnessDisclaimerPlaceholderScreen from '../fitness-disclaimer';
 import ProgramIntroPlaceholderScreen from '../program-intro';
@@ -25,13 +25,11 @@ describe('access and legal gate placeholders', () => {
     expect(screen.getByText('Start Focused Session Preview').props.href).toBe('/create-account');
   });
 
-  test('create-account shows placeholder copy and links into trial paywall', () => {
-    render(<CreateAccountPlaceholderScreen />);
+  test('create-account shows account creation prompt copy', () => {
+    render(<CreateAccountScreen />);
 
-    expect(screen.getByText('Account Creation Prompt')).toBeTruthy();
-    expect(screen.getByText(/Create an account to save your progress\./)).toBeTruthy();
-    expect(screen.getByText('Continue to Trial Paywall').props.href).toBe('/trial-paywall');
-    expect(screen.getByText('Back to Program Preview').props.href).toBe('/program-intro');
+    expect(screen.getByText('Create an account to save your progress')).toBeTruthy();
+    expect(screen.queryByText('Continue to Trial Paywall')).toBeNull();
   });
 
   test('trial paywall shows placeholder copy and links into fitness disclaimer', () => {
