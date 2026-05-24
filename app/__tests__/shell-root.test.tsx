@@ -76,7 +76,7 @@ describe('onboarding route placeholders', () => {
     expect(screen.getByLabelText('OneSet logo')).toBeTruthy();
     expect(screen.getByText('Build more muscle by training less')).toBeTruthy();
     expect(screen.getByText('Begin Assessment').props.href).toBe('/main-goal');
-    expect(screen.getByText('Sign in').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Sign in').props.href).toBe('/create-account');
   });
 
   test('welcome screen removes prior subtext, helper text, and benefit rows', () => {

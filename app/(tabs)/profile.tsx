@@ -6,7 +6,7 @@ export default function ProfilePlaceholderScreen() {
     <PlaceholderScreen
       title="Profile"
       description="Dummy Profile content for quiet account, subscription, assessment, preferences, and legal settings.">
-      <PlaceholderLink href="/auth-prompt">Route Test: Account Access</PlaceholderLink>
+      <PlaceholderLink href="/create-account">Route Test: Account Access</PlaceholderLink>
       <PlaceholderLink href="/fitness-disclaimer" variant="secondary">
         Route Test: Legal Screen
       </PlaceholderLink>

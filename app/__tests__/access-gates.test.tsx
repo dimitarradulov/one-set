@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import AuthPromptPlaceholderScreen from '../auth-prompt';
+import CreateAccountPlaceholderScreen from '../create-account';
 import TrialPaywallPlaceholderScreen from '../trial-paywall';
 import FitnessDisclaimerPlaceholderScreen from '../fitness-disclaimer';
 import ProgramIntroPlaceholderScreen from '../program-intro';
@@ -19,16 +19,16 @@ jest.mock('expo-router', () => {
 });
 
 describe('access and legal gate placeholders', () => {
-  test('program intro start links to auth prompt gate', () => {
+  test('program intro start links to create-account gate', () => {
     render(<ProgramIntroPlaceholderScreen />);
 
-    expect(screen.getByText('Start Focused Session Preview').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Start Focused Session Preview').props.href).toBe('/create-account');
   });
 
-  test('auth prompt shows placeholder copy and links into trial paywall', () => {
-    render(<AuthPromptPlaceholderScreen />);
+  test('create-account shows placeholder copy and links into trial paywall', () => {
+    render(<CreateAccountPlaceholderScreen />);
 
-    expect(screen.getByText('Auth Prompt')).toBeTruthy();
+    expect(screen.getByText('Account Creation Prompt')).toBeTruthy();
     expect(screen.getByText(/Create an account to save your progress\./)).toBeTruthy();
     expect(screen.getByText('Continue to Trial Paywall').props.href).toBe('/trial-paywall');
     expect(screen.getByText('Back to Program Preview').props.href).toBe('/program-intro');
@@ -42,7 +42,7 @@ describe('access and legal gate placeholders', () => {
     expect(screen.getByText('Continue to Fitness Disclaimer').props.href).toBe(
       '/fitness-disclaimer'
     );
-    expect(screen.getByText('Back to Auth Prompt').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Back to Create Account').props.href).toBe('/create-account');
   });
 
   test('fitness disclaimer shows placeholder copy and links into workout overview', () => {

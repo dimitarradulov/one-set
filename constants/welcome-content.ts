@@ -8,6 +8,6 @@ export const welcomeContent = {
   },
   signIn: {
     label: 'Sign in',
-    href: '/auth-prompt' as const,
+    href: '/create-account' as const,
   },
 } as const;

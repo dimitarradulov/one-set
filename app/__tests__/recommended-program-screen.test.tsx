@@ -81,7 +81,7 @@ describe('Recommended Program screen', () => {
     });
   });
 
-  test('shows ready-state recommendation facts and routes Continue to auth prompt', () => {
+  test('shows ready-state recommendation facts and routes Continue to create-account', () => {
     render(<RecommendedProgramScreen />);
 
     expect(screen.getByText('Program Recommendation')).toBeOnTheScreen();
@@ -96,7 +96,7 @@ describe('Recommended Program screen', () => {
         'After 12 completed workouts, OneSet reviews your logbook, recovery, and stalls before changing the plan.'
       )
     ).toBeOnTheScreen();
-    expect(screen.getByText('Continue').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Continue').props.href).toBe('/create-account');
     expect(screen.getByText('Free to start. No payment required.')).toBeOnTheScreen();
   });
 
@@ -104,7 +104,7 @@ describe('Recommended Program screen', () => {
     render(<RecommendedProgramScreen />);
 
     expect(screen.getAllByRole('link')).toHaveLength(1);
-    expect(screen.getByText('Continue').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Continue').props.href).toBe('/create-account');
     expect(screen.queryByText(/change program/i)).not.toBeOnTheScreen();
     expect(screen.queryByText(/review program options/i)).not.toBeOnTheScreen();
     expect(screen.queryByText(/browse (the )?program library/i)).not.toBeOnTheScreen();

@@ -97,7 +97,7 @@ describe('mvp tab skeleton routes', () => {
         'Dummy Profile content for quiet account, subscription, assessment, preferences, and legal settings.'
       )
     ).toBeTruthy();
-    expect(screen.getByText('Route Test: Account Access').props.href).toBe('/auth-prompt');
+    expect(screen.getByText('Route Test: Account Access').props.href).toBe('/create-account');
     expect(screen.getByText('Route Test: Legal Screen').props.href).toBe('/fitness-disclaimer');
     expect(screen.getByText('Route Test: Assessment Target').props.href).toBe(
       '/recommended-program'

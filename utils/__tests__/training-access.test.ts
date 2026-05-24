@@ -1,14 +1,14 @@
 import { getStartTrainingHref, getTrainingAccessStep } from '../training-access';
 
 describe('training access decisions', () => {
-  test('routes preview users through authentication first', () => {
+  test('routes preview users through the create-account gate first', () => {
     expect(
       getStartTrainingHref({
         isAuthenticated: false,
         hasTrainingAccess: false,
         hasAcceptedFitnessDisclaimer: false,
       })
-    ).toBe('/auth-prompt');
+    ).toBe('/create-account');
   });
 
   test('routes authenticated users without access through the trial paywall', () => {
@@ -31,9 +31,9 @@ describe('training access decisions', () => {
     ).toBe('/fitness-disclaimer');
   });
 
-  test('returns stable route content for the auth prompt step', () => {
-    expect(getTrainingAccessStep('auth-prompt')).toMatchObject({
-      title: 'Auth Prompt',
+  test('returns stable route content for the create-account step', () => {
+    expect(getTrainingAccessStep('create-account')).toMatchObject({
+      title: 'Account Creation Prompt',
       primaryHref: '/trial-paywall',
       secondaryHref: '/program-intro',
     });

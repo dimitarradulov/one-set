@@ -87,7 +87,7 @@ describe('Assessment Intake questions', () => {
         '/recommended-program',
         '/hit-principles',
         '/first-workout-preview',
-        '/auth-prompt',
+        '/create-account',
         '/trial-paywall',
       ])
     );

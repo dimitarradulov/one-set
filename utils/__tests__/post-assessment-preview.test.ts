@@ -55,7 +55,7 @@ describe('Post-Assessment preview', () => {
 
     expect(getPostAssessmentPreviewStep('recommended-program')).toMatchObject({
       title: 'Program Recommendation',
-      nextHref: '/auth-prompt',
+      nextHref: '/create-account',
       nextLabel: 'Continue',
     });
   });

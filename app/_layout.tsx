@@ -38,7 +38,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="program-intro" />
-        <Stack.Screen name="auth-prompt" />
+        <Stack.Screen name="create-account" />
         <Stack.Screen name="trial-paywall" />
         <Stack.Screen name="fitness-disclaimer" />
         <Stack.Screen name="(tabs)" />

@@ -38,7 +38,7 @@ const POST_ASSESSMENT_STEPS = {
     title: 'Program Recommendation',
     description:
       'Your Program Recommendation is pure preview state until training access is granted.',
-    nextHref: '/auth-prompt',
+    nextHref: '/create-account',
     nextLabel: 'Continue',
   },
   'hit-principles': {

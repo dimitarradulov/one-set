@@ -8,7 +8,7 @@ export default function TrialPaywallPlaceholderScreen() {
   return (
     <PlaceholderScreen title={step.title} description={step.description}>
       <PlaceholderLink href={step.primaryHref}>{step.primaryLabel}</PlaceholderLink>
-      <PlaceholderLink href={step.secondaryHref ?? '/auth-prompt'} variant="secondary">
+      <PlaceholderLink href={step.secondaryHref ?? '/create-account'} variant="secondary">
         {step.secondaryLabel}
       </PlaceholderLink>
     </PlaceholderScreen>

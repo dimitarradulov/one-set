@@ -8,7 +8,7 @@ export type TrainingAccessState = {
 
 export type TrainingAccessStepId =
   | 'program-preview'
-  | 'auth-prompt'
+  | 'create-account'
   | 'trial-paywall'
   | 'disclaimer';
 
@@ -31,11 +31,11 @@ export const TRAINING_ACCESS_STEPS = {
   'program-preview': {
     title: 'Program Preview',
     description: 'Preview route before entering the focused workout flow.',
-    primaryHref: '/auth-prompt',
+    primaryHref: '/create-account',
     primaryLabel: 'Start Focused Session Preview',
   },
-  'auth-prompt': {
-    title: 'Auth Prompt',
+  'create-account': {
+    title: 'Account Creation Prompt',
     description: 'Create an account to save your progress.',
     primaryHref: '/trial-paywall',
     primaryLabel: 'Continue to Trial Paywall',
@@ -47,8 +47,8 @@ export const TRAINING_ACCESS_STEPS = {
     description: '14-day free trial plus subscription gate.',
     primaryHref: '/fitness-disclaimer',
     primaryLabel: 'Continue to Fitness Disclaimer',
-    secondaryHref: '/auth-prompt',
-    secondaryLabel: 'Back to Auth Prompt',
+    secondaryHref: '/create-account',
+    secondaryLabel: 'Back to Create Account',
   },
   disclaimer: {
     title: 'Fitness Disclaimer',
@@ -65,7 +65,7 @@ export const getTrainingAccessStep = (stepId: TrainingAccessStepId): TrainingAcc
 
 export const getStartTrainingHref = (state: TrainingAccessState): Href => {
   if (!state.isAuthenticated) {
-    return '/auth-prompt';
+    return '/create-account';
   }
 
   if (!state.hasTrainingAccess) {
