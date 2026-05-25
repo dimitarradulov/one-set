@@ -235,13 +235,13 @@ export const ASSESSMENT_INTAKE_QUESTIONS = [
     question: 'Any areas we should be careful with?',
     helperText: 'Select all that apply.',
     options: [
+      { label: 'No limitations', value: 'no_limitations' },
       { label: 'Shoulders', value: 'shoulders' },
       { label: 'Lower back', value: 'lower_back' },
       { label: 'Knees', value: 'knees' },
       { label: 'Elbows', value: 'elbows' },
       { label: 'Wrists', value: 'wrists' },
       { label: 'Neck', value: 'neck' },
-      { label: 'No limitations', value: 'no_limitations' },
     ],
   },
   {
