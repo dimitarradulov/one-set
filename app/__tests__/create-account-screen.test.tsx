@@ -52,7 +52,9 @@ describe('Create Account screen', () => {
     expect(screen.getByPlaceholderText('Email address')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Create account' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Already have an account? Sign in.' })
+    ).toBeOnTheScreen();
     expect(screen.getByText('Free to start. No payment required.')).toBeOnTheScreen();
   });
 
@@ -73,7 +75,7 @@ describe('Create Account screen', () => {
       'Email account creation is not connected in this build yet.'
     );
 
-    fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Already have an account? Sign in.' }));
     expect(alertSpy).toHaveBeenCalledWith(
       'Sign in unavailable',
       'Returning-user sign in is not connected in this build yet.'
