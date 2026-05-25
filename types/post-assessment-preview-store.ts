@@ -1,5 +1,5 @@
 import type { AssessmentDraftAnswers } from '@/types/assessment';
-import type { PostAssessmentPreviewState } from '@/utils/post-assessment-preview';
+import type { PostAssessmentPreviewState } from '@/types/post-assessment-preview';
 
 export interface PostAssessmentPreviewStoreState {
   preparedState: PostAssessmentPreviewState | null;

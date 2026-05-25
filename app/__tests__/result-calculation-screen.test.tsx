@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
-import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
-import type { AssessmentDraftState } from '@/types/assessment-draft-store';
 import {
   RESULT_CALCULATION_MESSAGE_DURATION_MS,
   RESULT_CALCULATION_MESSAGES,
   RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS,
-} from '@/utils/result-calculation-transition';
+} from '@/constants/result-calculation-transition';
+import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
+import type { AssessmentDraftState } from '@/types/assessment-draft-store';
 
 import ResultCalculationScreen from '../(onboarding)/result-calculation';
 

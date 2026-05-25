@@ -3,6 +3,8 @@ import { Link } from 'expo-router';
 import { Image, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HERO_HEIGHT_RATIO, HERO_MAX_HEIGHT, HERO_MIN_HEIGHT } from '@/constants/welcome-hero';
+
 type WelcomeHeroAction = {
   label: string;
   href: Href;
@@ -14,10 +16,6 @@ type WelcomeHeroProps = {
   cta: WelcomeHeroAction;
   signIn: WelcomeHeroAction;
 };
-
-const HERO_HEIGHT_RATIO = 0.68;
-const HERO_MIN_HEIGHT = 360;
-const HERO_MAX_HEIGHT = 620;
 
 export default function WelcomeHero({ cta, headline, subheadline, signIn }: WelcomeHeroProps) {
   const { height } = useWindowDimensions();

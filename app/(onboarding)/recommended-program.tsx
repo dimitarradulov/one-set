@@ -1,15 +1,15 @@
 import OnboardingStep from '@/components/OnboardingStep';
 import PlaceholderLink from '@/components/route-shell/PlaceholderLink';
+import {
+  MISSING_RECOMMENDATION_RECOVERY_DESCRIPTION,
+  MISSING_RECOMMENDATION_RECOVERY_HREF,
+  MISSING_RECOMMENDATION_RECOVERY_LABEL,
+} from '@/constants/recommended-program-screen';
 import { useAssessmentDraftStore } from '@/store/assessment-draft-store';
 import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
 import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 import { buildRecommendedProgramDisplayFacts } from '@/utils/recommended-program-display';
 import { Text, View } from 'react-native';
-
-const MISSING_RECOMMENDATION_RECOVERY_DESCRIPTION =
-  'OneSet needs to recalculate your starter program before this preview is ready.';
-const MISSING_RECOMMENDATION_RECOVERY_HREF = '/result-calculation';
-const MISSING_RECOMMENDATION_RECOVERY_LABEL = 'Return to Result Calculation';
 
 export default function RecommendedProgramScreen() {
   const step = getPostAssessmentPreviewStep('recommended-program');

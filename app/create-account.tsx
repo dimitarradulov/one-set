@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  CREATE_ACCOUNT_UNAVAILABLE_ALERTS,
-  type CreateAccountActionId,
-} from '@/utils/create-account-actions';
+import { CREATE_ACCOUNT_UNAVAILABLE_ALERTS } from '@/constants/create-account-actions';
+import type { CreateAccountActionId } from '@/types/create-account-actions';
 import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
 
 const showUnavailableAlert = (actionId: CreateAccountActionId) => {

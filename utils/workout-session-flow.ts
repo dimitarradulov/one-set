@@ -1,20 +1,7 @@
 import type { Href } from 'expo-router';
 
-export const PREVIEW_SESSION_ID = 'session-a';
-export const PREVIEW_FIRST_EXERCISE_ID = '1';
-
-export type WorkoutSessionParams = {
-  sessionId: string;
-};
-
-export type WorkoutExerciseParams = WorkoutSessionParams & {
-  exerciseId: string;
-};
-
-export type WorkoutSessionLink = {
-  href: Href;
-  label: string;
-};
+import { PREVIEW_FIRST_EXERCISE_ID, PREVIEW_SESSION_ID } from '@/constants/workout-session-flow';
+import type { WorkoutExerciseParams, WorkoutSessionParams } from '@/types/workout-session-flow';
 
 export const getWorkoutOverviewLinks = ({ sessionId }: WorkoutSessionParams) => ({
   primary: {

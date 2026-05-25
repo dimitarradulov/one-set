@@ -6,6 +6,8 @@ For project information refer to the `docs/SPEC.md` file.
 
 This is an Expo Router React Native app. Route files live in `app/`; grouped tab routes are under `app/(tabs)/`, shared layout is in `app/_layout.tsx`, and modal/not-found routes are top-level files. Reusable UI components live in `components/`, and any component that is not a screen should live outside of `app/` in `components/`. Zustand state modules live in `store/`. Supabase and integration helpers belong in `utils/`. Static icons and splash assets are in `assets/`. Styling uses `global.css`, `tailwind.config.js`, NativeWind, and component `className` strings.
 
+Shared and module-level TypeScript types belong in `types/`, and shared or module-level constants belong in `constants/`. Do not mix type aliases, interfaces, enums, static copy, route constants, storage keys, lookup tables, regexes, or other top-level constant data into `app/`, `components/`, `store/`, or `utils/`. Component prop types are the only exception and should stay colocated with their component.
+
 Android is currently out of scope. Do not add or preserve Android-specific code paths, device behaviors, or testing unless the user explicitly asks for Android support.
 
 ## Build, Test, and Development Commands

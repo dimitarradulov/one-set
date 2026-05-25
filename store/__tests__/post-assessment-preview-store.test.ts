@@ -46,18 +46,20 @@ describe('createPostAssessmentPreviewStore', () => {
       ...completeDraft,
       trainingDirection: 'minimalist_muscle',
     };
+    const unchangedPreparedState = store.getState().preparedState;
 
     expect(
-      store.getState().preparedState?.status === 'ready'
-        ? store.getState().preparedState.recommendation.program.name
+      unchangedPreparedState?.status === 'ready'
+        ? unchangedPreparedState.recommendation.program.name
         : null
     ).toBe('Classic Symmetry Full-Body HIT');
 
     store.getState().prepareRecommendation(editedDraft);
+    const recalculatedPreparedState = store.getState().preparedState;
 
     expect(
-      store.getState().preparedState?.status === 'ready'
-        ? store.getState().preparedState.recommendation.program.name
+      recalculatedPreparedState?.status === 'ready'
+        ? recalculatedPreparedState.recommendation.program.name
         : null
     ).toBe('Two-Way Split HIT');
   });

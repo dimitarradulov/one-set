@@ -3,32 +3,21 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ASSESSMENT_INTAKE_QUESTIONS } from '@/constants/assessment-intake';
+import {
+  INITIAL_MESSAGE_SEQUENCE_STATE,
+  RESULT_CALCULATION_SCREEN_OPTIONS,
+} from '@/constants/result-calculation-screen';
+import {
+  RESULT_CALCULATION_MESSAGES,
+  RESULT_CALCULATION_MESSAGE_DURATION_MS,
+  RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS,
+} from '@/constants/result-calculation-transition';
 import { useAssessmentDraftStore } from '@/store/assessment-draft-store';
 import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
 import type { AssessmentDraftAnswers } from '@/types/assessment';
-import {
-  getPostAssessmentPreviewStep,
-  type PostAssessmentPreviewState,
-} from '@/utils/post-assessment-preview';
-import {
-  RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS,
-  RESULT_CALCULATION_MESSAGES,
-  RESULT_CALCULATION_MESSAGE_DURATION_MS,
-} from '@/utils/result-calculation-transition';
-
-type MessageSequenceState = {
-  activeMessageIndex: number;
-  hasCompleted: boolean;
-};
-
-const RESULT_CALCULATION_SCREEN_OPTIONS = { gestureEnabled: false };
-
-const INITIAL_MESSAGE_SEQUENCE_STATE: MessageSequenceState = {
-  activeMessageIndex: 0,
-  hasCompleted: false,
-};
-
-const step = getPostAssessmentPreviewStep('result-calculation');
+import type { PostAssessmentPreviewState } from '@/types/post-assessment-preview';
+import type { MessageSequenceState } from '@/types/result-calculation-screen';
+import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 
 const getAssessmentDraftAnswers = (): AssessmentDraftAnswers => {
   const state = useAssessmentDraftStore.getState();
@@ -62,6 +51,7 @@ const getIncompleteAssessmentRoute = (preparedState: PostAssessmentPreviewState)
 };
 
 export default function ResultCalculationScreen() {
+  const step = getPostAssessmentPreviewStep('result-calculation');
   const { replace } = useRouter();
 
   const isHydrated = useAssessmentDraftStore((state) => state.isHydrated);

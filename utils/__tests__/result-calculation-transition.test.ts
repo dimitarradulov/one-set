@@ -1,9 +1,12 @@
 import {
-  getResultCalculationMessageIndex,
-  getResultCalculationTransitionState,
   RESULT_CALCULATION_MESSAGE_DURATION_MS,
   RESULT_CALCULATION_MESSAGES,
   RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS,
+} from '@/constants/result-calculation-transition';
+
+import {
+  getResultCalculationMessageIndex,
+  getResultCalculationTransitionState,
 } from '../result-calculation-transition';
 
 describe('Result Calculation transition', () => {
@@ -21,9 +24,9 @@ describe('Result Calculation transition', () => {
     expect(getResultCalculationMessageIndex(RESULT_CALCULATION_MESSAGE_DURATION_MS - 1)).toBe(0);
     expect(getResultCalculationMessageIndex(RESULT_CALCULATION_MESSAGE_DURATION_MS)).toBe(1);
     expect(getResultCalculationMessageIndex(RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS)).toBe(3);
-    expect(getResultCalculationMessageIndex(RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS + 10_000)).toBe(
-      3
-    );
+    expect(
+      getResultCalculationMessageIndex(RESULT_CALCULATION_MIN_VISIBLE_DURATION_MS + 10_000)
+    ).toBe(3);
   });
 
   test('allows auto-advance only when minimum duration and ready recommendation are both complete', () => {

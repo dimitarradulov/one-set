@@ -1,12 +1,5 @@
-import type { Href } from 'expo-router';
-
-const PROGRAM_RECOMMENDATION_PREVIEW_HREF: Href = '/recommended-program';
-
-export type CreateAccountDismissalNavigation = {
-  canGoBack: () => boolean;
-  back: () => void;
-  replace: (href: Href) => void;
-};
+import { PROGRAM_RECOMMENDATION_PREVIEW_HREF } from '@/constants/create-account-dismissal';
+import type { CreateAccountDismissalNavigation } from '@/types/create-account-dismissal';
 
 export const dismissCreateAccountPrompt = (navigation: CreateAccountDismissalNavigation): void => {
   if (navigation.canGoBack()) {

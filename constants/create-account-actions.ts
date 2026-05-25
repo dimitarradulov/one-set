@@ -1,9 +1,7 @@
-export type CreateAccountActionId = 'apple' | 'create-account' | 'sign-in';
-
-type CreateAccountUnavailableAlert = {
-  title: string;
-  message: string;
-};
+import type {
+  CreateAccountActionId,
+  CreateAccountUnavailableAlert,
+} from '@/types/create-account-actions';
 
 export const CREATE_ACCOUNT_UNAVAILABLE_ALERTS: Record<
   CreateAccountActionId,

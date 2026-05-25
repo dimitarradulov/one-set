@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
-const initialRoute = '/(onboarding)' as const;
+import { INITIAL_ROUTE } from '@/constants/routes';
 
 export default function Index() {
-  return <Redirect href={initialRoute} />;
+  return <Redirect href={INITIAL_ROUTE} />;
 }

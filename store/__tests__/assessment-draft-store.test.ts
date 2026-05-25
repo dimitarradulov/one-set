@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { MainGoalId } from '@/types/assessment';
-import type { AssessmentDraftPersistedState } from '@/types/assessment-draft-store';
-
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,
   ASSESSMENT_DRAFT_STORAGE_VERSION,
-  createAssessmentDraftStore,
-} from './assessment-draft-store';
+} from '@/constants/assessment-draft-store';
+import type { MainGoalId } from '@/types/assessment';
+import type { AssessmentDraftPersistedState } from '@/types/assessment-draft-store';
+
+import { createAssessmentDraftStore } from '../assessment-draft-store';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock')

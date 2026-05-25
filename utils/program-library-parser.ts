@@ -1,13 +1,8 @@
+import {
+  PROGRAM_HEADING_PATTERN,
+  SELECTION_LEVEL_HEADINGS,
+} from '@/constants/program-library-parser';
 import type { ProgramId, ProgramLibrary, ProgramSelectionLevel } from '@/types/program';
-
-const PROGRAM_HEADING_PATTERN = /^# Program (?<number>\d+) [—-] (?<name>.+)$/gm;
-
-const SELECTION_LEVEL_HEADINGS: Record<string, ProgramSelectionLevel> = {
-  Beginner: 'beginner',
-  'Late Beginner': 'late_beginner',
-  Intermediate: 'intermediate',
-  Advanced: 'advanced',
-};
 
 const slugifyProgramName = (name: string) =>
   name

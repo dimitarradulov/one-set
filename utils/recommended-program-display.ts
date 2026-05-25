@@ -1,28 +1,11 @@
+import {
+  DEFAULT_FIT_REASON,
+  INTERNAL_ASSESSMENT_TERMS,
+  RECOVERY_DEMAND_LABELS,
+} from '@/constants/recommended-program-display';
 import type { SessionLengthId } from '@/types/assessment';
 import type { ProgramLibraryEntry, ProgramRecommendation } from '@/types/program';
-
-const RECOVERY_DEMAND_LABELS: Record<ProgramRecommendation['recoveryDemand'], string> = {
-  low: 'Low',
-  moderate: 'Moderate',
-  high: 'High',
-  very_high: 'Very high',
-};
-
-const INTERNAL_ASSESSMENT_TERMS =
-  /(internal training level|hit readiness|recovery capacity|trainingLevel|hitReadiness|recoveryCapacity)/i;
-
-const DEFAULT_FIT_REASON =
-  'Built around your assessment answers, schedule, and available equipment.';
-
-export type RecommendedProgramDisplayFacts = {
-  programName: string;
-  daysPerWeek: string;
-  estimatedWorkoutLength: string;
-  startingEffort: ProgramRecommendation['startingEffort'];
-  recoveryDemand: string;
-  whyItFits: string[];
-  afterCycle: string;
-};
+import type { RecommendedProgramDisplayFacts } from '@/types/recommended-program-display';
 
 export const formatProgramDaysPerWeek = (program: ProgramLibraryEntry): string => {
   const { recommendedDaysPerWeekMin, recommendedDaysPerWeekMax } = program;
