@@ -9,7 +9,7 @@ import { useAssessmentDraftStore } from '@/store/assessment-draft-store';
 import { usePostAssessmentPreviewStore } from '@/store/post-assessment-preview-store';
 import { getPostAssessmentPreviewStep } from '@/utils/post-assessment-preview';
 import { buildRecommendedProgramDisplayFacts } from '@/utils/recommended-program-display';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 export default function RecommendedProgramScreen() {
   const step = getPostAssessmentPreviewStep('recommended-program');
@@ -33,7 +33,17 @@ export default function RecommendedProgramScreen() {
   );
 
   return (
-    <View className="flex-1 items-center justify-center bg-dark-background px-5 py-6">
+    <ScrollView
+      className="flex-1 bg-dark-background"
+      contentContainerStyle={{
+        alignItems: 'center',
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 24,
+      }}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}>
       <View className="w-full max-w-md gap-4">
         <Text className="text-center font-display text-h1 text-dark-text-primary">
           {step.title}
@@ -106,6 +116,6 @@ export default function RecommendedProgramScreen() {
           Free to start. No payment required.
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
