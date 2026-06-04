@@ -9,13 +9,18 @@ import {
   APP_USER_SETUP_FINISH_LABEL,
   APP_USER_SETUP_FINISH_LOADING_LABEL,
 } from '@/constants/app-user-setup';
+import {
+  VERIFY_EMAIL_CODE_LENGTH,
+  VERIFY_EMAIL_RESEND_ACTION_LABEL,
+  VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS,
+  VERIFY_EMAIL_RESEND_FAILURE_MESSAGE,
+  VERIFY_EMAIL_RESEND_LOADING_LABEL,
+} from '@/constants/verify-email';
 import { linkAppUser } from '@/utils/app-user-linking';
 import { clearPendingAuthFlow, getPendingAuthFlow } from '@/utils/pending-auth-flow';
 
-const VERIFICATION_CODE_LENGTH = 6;
-
 const normalizeVerificationCode = (value: string): string =>
-  value.replace(/\D/g, '').slice(0, VERIFICATION_CODE_LENGTH);
+  value.replace(/\D/g, '').slice(0, VERIFY_EMAIL_CODE_LENGTH);
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -27,6 +32,8 @@ export default function VerifyEmailScreen() {
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
   const [setupClerkUserId, setSetupClerkUserId] = useState<string | null>(null);
   const [setupEmailAddress, setSetupEmailAddress] = useState<string | null>(null);
   const isSetupRecovery = Boolean(setupClerkUserId && setupEmailAddress);
@@ -68,6 +75,18 @@ export default function VerifyEmailScreen() {
   };
 
   useEffect(() => {
+    if (resendCooldownSeconds === 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setResendCooldownSeconds((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [resendCooldownSeconds]);
+
+  useEffect(() => {
     if (!isSignUpLoaded) {
       return;
     }
@@ -83,7 +102,7 @@ export default function VerifyEmailScreen() {
   }
 
   const handleVerifyEmail = async () => {
-    if (isVerifying || code.length !== VERIFICATION_CODE_LENGTH) {
+    if (isVerifying || isResending || code.length !== VERIFY_EMAIL_CODE_LENGTH) {
       return;
     }
 
@@ -161,6 +180,39 @@ export default function VerifyEmailScreen() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (isVerifying || isResending || !clerk || !signUp) {
+      setErrorMessage('Authentication is still loading. Please try again.');
+      return;
+    }
+
+    setIsResending(true);
+    setErrorMessage(null);
+
+    try {
+      await signUp.prepareEmailAddressVerification({
+        strategy: 'email_code',
+      });
+      setResendCooldownSeconds(VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS);
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        const firstError = error.errors[0];
+        setErrorMessage(
+          firstError?.longMessage ?? firstError?.message ?? VERIFY_EMAIL_RESEND_FAILURE_MESSAGE
+        );
+        return;
+      }
+
+      if (__DEV__) {
+        console.error(error);
+      }
+
+      setErrorMessage(VERIFY_EMAIL_RESEND_FAILURE_MESSAGE);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handlePrimaryAction = isSetupRecovery ? handleFinishSetup : handleVerifyEmail;
   const primaryActionLabel = isVerifying
     ? isSetupRecovery
@@ -171,8 +223,16 @@ export default function VerifyEmailScreen() {
       : 'Verify email';
   const isPrimaryActionDisabled =
     isVerifying ||
-    (!isSetupRecovery && code.length !== VERIFICATION_CODE_LENGTH) ||
+    isResending ||
+    (!isSetupRecovery && code.length !== VERIFY_EMAIL_CODE_LENGTH) ||
     (!clerk && isSetupRecovery);
+  const resendActionLabel = isResending
+    ? VERIFY_EMAIL_RESEND_LOADING_LABEL
+    : resendCooldownSeconds > 0
+      ? `Resend in ${resendCooldownSeconds}s`
+      : VERIFY_EMAIL_RESEND_ACTION_LABEL;
+  const isResendActionDisabled =
+    isSetupRecovery || isVerifying || isResending || resendCooldownSeconds > 0;
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -213,7 +273,7 @@ export default function VerifyEmailScreen() {
           <View className="gap-6 rounded-3xl border border-dark-border bg-dark-surface p-5">
             <View className="gap-4">
               <View className="flex-row justify-between gap-2">
-                {Array.from({ length: VERIFICATION_CODE_LENGTH }).map((_, index) => {
+                {Array.from({ length: VERIFY_EMAIL_CODE_LENGTH }).map((_, index) => {
                   const digit = code[index] ?? '';
 
                   return (
@@ -233,6 +293,7 @@ export default function VerifyEmailScreen() {
                 autoComplete="one-time-code"
                 autoCorrect={false}
                 className="absolute h-px w-px opacity-0"
+                editable={!isVerifying && !isResending}
                 keyboardType="number-pad"
                 onChangeText={(text) => {
                   setCode(normalizeVerificationCode(text));
@@ -255,6 +316,19 @@ export default function VerifyEmailScreen() {
                 opacity: isPrimaryActionDisabled ? 0.65 : pressed ? 0.92 : 1,
               })}>
               <Text className="font-body-semibold text-body text-white">{primaryActionLabel}</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              className="items-center px-5 py-2"
+              disabled={isResendActionDisabled}
+              onPress={handleResendCode}
+              style={({ pressed }) => ({
+                opacity: isResendActionDisabled ? 0.65 : pressed ? 0.8 : 1,
+              })}>
+              <Text className="font-body-semibold text-body-sm text-dark-text-secondary">
+                {resendActionLabel}
+              </Text>
             </Pressable>
 
             {errorMessage ? (
