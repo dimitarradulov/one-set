@@ -143,6 +143,45 @@ describe('Verify Email screen', () => {
     });
   });
 
+  test('shows the verifying loading state and disables resend while the code is in flight', async () => {
+    let resolveAttempt:
+      | ((value: { createdSessionId: string; createdUserId: string; status: string }) => void)
+      | undefined;
+
+    mockAttemptEmailAddressVerification.mockReturnValue(
+      new Promise<{ createdSessionId: string; createdUserId: string; status: string }>(
+        (resolve) => {
+          resolveAttempt = resolve;
+        }
+      )
+    );
+
+    renderVerifyEmailScreen();
+
+    fireEvent.changeText(screen.getByLabelText('Verification code'), '123456');
+    fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
+
+    expect(screen.getByRole('button', { name: 'Verifying...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: "Didn't get it? Resend code" })).toBeDisabled();
+
+    resolveAttempt?.({
+      createdSessionId: 'session_123',
+      createdUserId: 'user_123',
+      status: 'complete',
+    });
+
+    await waitFor(() => {
+      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
+      expect(mockLinkAppUser).toHaveBeenCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
   test('counts down the resend cooldown and restores the resend action after 30 seconds', async () => {
     jest.useFakeTimers();
     mockPrepareEmailVerification.mockResolvedValue(undefined);
@@ -258,7 +297,9 @@ describe('Verify Email screen', () => {
     });
 
     expect(screen.getByLabelText('Verification code')).toHaveDisplayValue('');
-    expect(screen.getByText('Enter the 6-digit code we sent to user@example.com.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Enter the 6-digit code we sent to user@example.com.')
+    ).toBeOnTheScreen();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalledWith('/trial-paywall');
   });
