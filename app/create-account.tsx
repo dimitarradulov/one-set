@@ -1,4 +1,6 @@
+import { isClerkAPIResponseError, useAuth, useClerk, useSignUp } from '@clerk/expo';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,7 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CREATE_ACCOUNT_UNAVAILABLE_ALERTS } from '@/constants/create-account-actions';
 import type { CreateAccountActionId } from '@/types/create-account-actions';
+import { linkAppUser } from '@/utils/app-user-linking';
 import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
+import {
+  normalizeCreateAccountEmail,
+  validateCreateAccountInput,
+} from '@/utils/create-account-validation';
 
 const showUnavailableAlert = (actionId: CreateAccountActionId) => {
   const alertCopy = CREATE_ACCOUNT_UNAVAILABLE_ALERTS[actionId];
@@ -22,6 +29,100 @@ const showUnavailableAlert = (actionId: CreateAccountActionId) => {
 export default function CreateAccountScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const clerk = useClerk();
+  const { getToken } = useAuth();
+  const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canCreateAccount = isSignUpLoaded && Boolean(signUp) && Boolean(clerk);
+
+  const handleCreateAccount = async () => {
+    if (!canCreateAccount || isSubmitting || !signUp || !clerk) {
+      setFormError('Authentication is still loading. Please try again.');
+      return;
+    }
+
+    const normalizedEmail = normalizeCreateAccountEmail(email);
+    const validationErrors = validateCreateAccountInput({
+      email: normalizedEmail,
+      password,
+    });
+
+    setEmailError(validationErrors.email ?? null);
+    setPasswordError(validationErrors.password ?? null);
+    setFormError(validationErrors.form ?? null);
+
+    if (validationErrors.email || validationErrors.password) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    try {
+      const createdAccount = (await signUp.create({
+        emailAddress: normalizedEmail,
+        password,
+      })) as {
+        createdSessionId?: string | null;
+        createdUserId?: string | null;
+      };
+
+      const createdSessionId = createdAccount.createdSessionId ?? null;
+
+      if (!createdSessionId) {
+        setFormError('We could not finish creating your account. Please try again.');
+        return;
+      }
+
+      await clerk.setActive({ session: createdSessionId });
+
+      const createdUserId =
+        createdAccount.createdUserId ?? (clerk.user?.id as string | undefined) ?? null;
+
+      if (!createdUserId) {
+        setFormError('We could not finish creating your account. Please try again.');
+        return;
+      }
+
+      await linkAppUser({
+        clerkUserId: createdUserId,
+        email: normalizedEmail,
+        displayName: null,
+        getToken,
+      });
+
+      router.replace('/trial-paywall');
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        const firstError = error.errors[0];
+        const message =
+          firstError?.longMessage ?? firstError?.message ?? 'We could not create your account.';
+        const code = firstError?.code ?? '';
+
+        if (code.includes('identifier') || code.includes('email')) {
+          setEmailError(message);
+        } else {
+          setFormError(message);
+        }
+
+        return;
+      }
+
+      if (__DEV__) {
+        console.error(error);
+      }
+
+      setFormError('We could not create your account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -36,6 +137,7 @@ export default function CreateAccountScreen() {
 
       <ScrollView
         className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'center',
@@ -76,30 +178,78 @@ export default function CreateAccountScreen() {
 
           <View className="gap-6 rounded-3xl border border-dark-border bg-dark-surface p-5">
             <View className="gap-3">
-              <TextInput
-                accessibilityLabel="Email address"
-                autoCapitalize="none"
-                className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
-                keyboardType="email-address"
-                placeholder="Email address"
-                placeholderTextColor="#8A90A2"
-              />
-              <TextInput
-                accessibilityLabel="Password"
-                autoCapitalize="none"
-                className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
-                placeholder="Password"
-                placeholderTextColor="#8A90A2"
-                secureTextEntry
-              />
+              <View className="gap-2">
+                <Text className="font-body-semibold text-caption uppercase tracking-[0.6px] text-dark-text-secondary">
+                  Email address
+                </Text>
+                <TextInput
+                  accessibilityLabel="Email address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
+                  keyboardType="email-address"
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setEmailError(null);
+                    setFormError(null);
+                  }}
+                  placeholder="Email address"
+                  placeholderTextColor="#8A90A2"
+                  textContentType="emailAddress"
+                  value={email}
+                />
+                {emailError ? (
+                  <Text selectable className="text-brand-error font-body text-body-sm">
+                    {emailError}
+                  </Text>
+                ) : null}
+              </View>
+              <View className="gap-2">
+                <Text className="font-body-semibold text-caption uppercase tracking-[0.6px] text-dark-text-secondary">
+                  Password
+                </Text>
+                <TextInput
+                  accessibilityLabel="Password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  className="rounded-2xl border border-dark-border bg-dark-background px-4 py-3 font-body text-body text-dark-text-primary"
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setPasswordError(null);
+                    setFormError(null);
+                  }}
+                  placeholder="Password"
+                  placeholderTextColor="#8A90A2"
+                  secureTextEntry
+                  textContentType="newPassword"
+                  value={password}
+                />
+                {passwordError ? (
+                  <Text selectable className="text-brand-error font-body text-body-sm">
+                    {passwordError}
+                  </Text>
+                ) : null}
+              </View>
             </View>
 
             <Pressable
               accessibilityRole="button"
               className="items-center rounded-2xl bg-brand-primary px-5 py-3"
-              onPress={() => showUnavailableAlert('create-account')}>
-              <Text className="font-body-semibold text-body text-white">Create account</Text>
+              disabled={isSubmitting || !canCreateAccount}
+              onPress={handleCreateAccount}
+              style={({ pressed }) => ({
+                opacity: isSubmitting || !canCreateAccount ? 0.65 : pressed ? 0.92 : 1,
+              })}>
+              <Text className="font-body-semibold text-body text-white">
+                {isSubmitting ? 'Creating account...' : 'Create account'}
+              </Text>
             </Pressable>
+
+            {formError ? (
+              <Text selectable className="text-brand-error font-body text-body-sm">
+                {formError}
+              </Text>
+            ) : null}
           </View>
 
           <Pressable

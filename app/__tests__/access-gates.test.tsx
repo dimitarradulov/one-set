@@ -7,6 +7,13 @@ import TrialPaywallPlaceholderScreen from '../trial-paywall';
 import FitnessDisclaimerPlaceholderScreen from '../fitness-disclaimer';
 import ProgramIntroPlaceholderScreen from '../program-intro';
 
+const mockCreate = jest.fn();
+const mockSetActive = jest.fn();
+const mockGetToken = jest.fn();
+const mockUseSignUp = jest.fn();
+const mockUseClerk = jest.fn();
+const mockUseAuth = jest.fn();
+
 jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native');
 
@@ -25,7 +32,37 @@ jest.mock('expo-router', () => {
   };
 });
 
+jest.mock('@clerk/expo', () => ({
+  useSignUp: () => mockUseSignUp(),
+  useClerk: () => mockUseClerk(),
+  useAuth: () => mockUseAuth(),
+  isClerkAPIResponseError: () => false,
+}));
+
+jest.mock('@/utils/app-user-linking', () => ({
+  linkAppUser: jest.fn(),
+}));
+
 describe('access and legal gate placeholders', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseSignUp.mockReturnValue({
+      isLoaded: true,
+      signUp: {
+        create: mockCreate,
+      },
+    });
+    mockUseClerk.mockReturnValue({
+      setActive: mockSetActive,
+      user: {
+        id: 'user_123',
+      },
+    });
+    mockUseAuth.mockReturnValue({
+      getToken: mockGetToken,
+    });
+  });
+
   test('program intro start links to create-account gate', () => {
     render(<ProgramIntroPlaceholderScreen />);
 

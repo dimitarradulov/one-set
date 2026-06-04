@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -8,6 +8,14 @@ const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
+const mockCreate = jest.fn();
+const mockSetActive = jest.fn();
+const mockGetToken = jest.fn();
+const mockLinkAppUser = jest.fn();
+const mockUseSignUp = jest.fn();
+const mockUseClerk = jest.fn();
+const mockUseAuth = jest.fn();
+const mockIsClerkAPIResponseError = jest.fn(() => false);
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
@@ -16,6 +24,17 @@ jest.mock('expo-router', () => ({
     replace: mockReplace,
     back: mockBack,
   }),
+}));
+
+jest.mock('@clerk/expo', () => ({
+  useSignUp: () => mockUseSignUp(),
+  useClerk: () => mockUseClerk(),
+  useAuth: () => mockUseAuth(),
+  isClerkAPIResponseError: (error: unknown) => mockIsClerkAPIResponseError(error),
+}));
+
+jest.mock('@/utils/app-user-linking', () => ({
+  linkAppUser: (...args: unknown[]) => mockLinkAppUser(...args),
 }));
 
 const renderCreateAccountScreen = () =>
@@ -33,6 +52,32 @@ describe('Create Account screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+
+    mockUseSignUp.mockReturnValue({
+      isLoaded: true,
+      signUp: {
+        create: mockCreate,
+      },
+    });
+    mockUseClerk.mockReturnValue({
+      setActive: mockSetActive,
+      user: {
+        id: 'user_123',
+      },
+    });
+    mockUseAuth.mockReturnValue({
+      getToken: mockGetToken,
+    });
+    mockGetToken.mockResolvedValue('clerk-session-token');
+    mockLinkAppUser.mockResolvedValue({
+      id: 'app_user_123',
+      clerk_user_id: 'user_123',
+      email: 'user@example.com',
+      display_name: null,
+      created_at: '2026-06-04T00:00:00Z',
+      updated_at: '2026-06-04T00:00:00Z',
+    });
+    mockIsClerkAPIResponseError.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -49,7 +94,9 @@ describe('Create Account screen', () => {
     expect(screen.getByRole('button', { name: 'Continue with Apple' })).toBeOnTheScreen();
     expect(screen.getByRole('image', { name: 'Apple logo' })).toBeOnTheScreen();
     expect(screen.getByText('OR')).toBeOnTheScreen();
+    expect(screen.getByText('Email address')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('Email address')).toBeOnTheScreen();
+    expect(screen.getByText('Password')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Create account' })).toBeOnTheScreen();
     expect(
@@ -58,43 +105,134 @@ describe('Create Account screen', () => {
     expect(screen.getByText('Free to start. No payment required.')).toBeOnTheScreen();
   });
 
-  test('keeps account actions gated behind unavailable alerts and does not navigate', () => {
-    const alertSpy = jest.spyOn(Alert, 'alert');
-
+  test('keeps account placeholders unavailable and does not navigate', () => {
     renderCreateAccountScreen();
 
     fireEvent.press(screen.getByRole('button', { name: 'Continue with Apple' }));
-    expect(alertSpy).toHaveBeenCalledWith(
+    expect(Alert.alert).toHaveBeenCalledWith(
       'Apple sign in unavailable',
       'Sign in with Apple is not configured in this build yet.'
     );
 
-    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Account creation unavailable',
-      'Email account creation is not connected in this build yet.'
-    );
-
     fireEvent.press(screen.getByRole('button', { name: 'Already have an account? Sign in.' }));
-    expect(alertSpy).toHaveBeenCalledWith(
+    expect(Alert.alert).toHaveBeenCalledWith(
       'Sign in unavailable',
       'Returning-user sign in is not connected in this build yet.'
     );
 
-    expect(mockPush).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  test('dismisses to Program Recommendation when there is no navigation history', () => {
-    mockCanGoBack.mockReturnValue(false);
+  test('shows inline validation errors and does not call Clerk for invalid credentials', () => {
     renderCreateAccountScreen();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Close account creation prompt' }));
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'invalid-email');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), '12345');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(mockCanGoBack).toHaveBeenCalledTimes(1);
-    expect(mockBack).not.toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith('/recommended-program');
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter a valid email address.')).toBeOnTheScreen();
+    expect(screen.getByText('Password must be at least 6 characters.')).toBeOnTheScreen();
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      'Account creation unavailable',
+      expect.any(String)
+    );
+  });
+
+  test('disables the create action while the account request is in flight', async () => {
+    let resolveCreate:
+      | ((value: { createdSessionId: string; createdUserId: string }) => void)
+      | undefined;
+
+    mockCreate.mockReturnValue(
+      new Promise<{ createdSessionId: string; createdUserId: string }>((resolve) => {
+        resolveCreate = resolve;
+      })
+    );
+
+    renderCreateAccountScreen();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), '  USER@Example.COM ');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(screen.getByRole('button', { name: 'Creating account...' })).toBeDisabled();
+
+    resolveCreate?.({
+      createdSessionId: 'session_123',
+      createdUserId: 'user_123',
+    });
+
+    await waitFor(() => {
+      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
+      expect(mockLinkAppUser).toHaveBeenCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
+  test('activates the session, links the app user, and advances on success', async () => {
+    mockCreate.mockResolvedValue({
+      createdSessionId: 'session_123',
+      createdUserId: 'user_123',
+    });
+
+    renderCreateAccountScreen();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), '  USER@Example.COM ');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({
+        emailAddress: 'user@example.com',
+        password: 'secret1',
+      });
+      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
+      expect(mockLinkAppUser).toHaveBeenCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
+  test('shows Clerk auth errors inline instead of using alerts', async () => {
+    const clerkError = {
+      errors: [
+        {
+          code: 'form_identifier_exists',
+          longMessage: 'Email address already exists',
+          message: 'Identifier exists',
+        },
+      ],
+    };
+
+    mockIsClerkAPIResponseError.mockReturnValue(true);
+    mockCreate.mockRejectedValue(clerkError);
+
+    renderCreateAccountScreen();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Email address already exists')).toBeOnTheScreen();
+    });
+
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      'Account creation unavailable',
+      expect.any(String)
+    );
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/expo';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -12,6 +13,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../global.css';
 
+import { clerkTokenCache } from '@/utils/clerk-token-cache';
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
@@ -25,26 +28,34 @@ export default function RootLayout() {
     return null;
   }
 
+  const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  if (!clerkPublishableKey) {
+    throw new Error('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not defined.');
+  }
+
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: '#090A12',
-          },
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="program-intro" />
-        <Stack.Screen name="create-account" />
-        <Stack.Screen name="trial-paywall" />
-        <Stack.Screen name="fitness-disclaimer" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="logbook" />
-        <Stack.Screen name="workout/[sessionId]" />
-      </Stack>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache}>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: '#090A12',
+            },
+          }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="program-intro" />
+          <Stack.Screen name="create-account" />
+          <Stack.Screen name="trial-paywall" />
+          <Stack.Screen name="fitness-disclaimer" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="logbook" />
+          <Stack.Screen name="workout/[sessionId]" />
+        </Stack>
+      </SafeAreaProvider>
+    </ClerkProvider>
   );
 }
