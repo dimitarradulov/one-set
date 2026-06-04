@@ -127,6 +127,7 @@ export default function VerifyEmailScreen() {
         null;
 
       if (verificationStatus !== 'complete' || !createdSessionId) {
+        setCode('');
         setErrorMessage('We could not verify your email. Please try again.');
         return;
       }
@@ -158,6 +159,7 @@ export default function VerifyEmailScreen() {
     } catch (error) {
       if (isClerkAPIResponseError(error)) {
         const firstError = error.errors[0];
+        setCode('');
         setErrorMessage(
           firstError?.longMessage ??
             firstError?.message ??

@@ -3,7 +3,11 @@ import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import VerifyEmailScreen from '../verify-email';
-import { clearPendingAuthFlow, setPendingAuthFlow } from '@/utils/pending-auth-flow';
+import {
+  clearPendingAuthFlow,
+  getPendingAuthFlow,
+  setPendingAuthFlow,
+} from '@/utils/pending-auth-flow';
 
 const mockReplace = jest.fn();
 const mockAttemptEmailAddressVerification = jest.fn();
@@ -253,6 +257,8 @@ describe('Verify Email screen', () => {
       expect(screen.getByText('That code is not valid.')).toBeOnTheScreen();
     });
 
+    expect(screen.getByLabelText('Verification code')).toHaveDisplayValue('');
+    expect(screen.getByText('Enter the 6-digit code we sent to user@example.com.')).toBeOnTheScreen();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalledWith('/trial-paywall');
   });
@@ -292,5 +298,22 @@ describe('Verify Email screen', () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/create-account');
     });
+
+    expect(getPendingAuthFlow()).toBeNull();
+  });
+
+  test('replaces the route when Clerk sign-up state is missing', async () => {
+    mockUseSignUp.mockReturnValue({
+      isLoaded: true,
+      signUp: null,
+    });
+
+    renderVerifyEmailScreen();
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/create-account');
+    });
+
+    expect(getPendingAuthFlow()).toBeNull();
   });
 });
