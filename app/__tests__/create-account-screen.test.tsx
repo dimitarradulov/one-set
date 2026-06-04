@@ -3,12 +3,14 @@ import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import CreateAccountScreen from '../create-account';
+import { clearPendingAuthFlow, getPendingAuthFlow } from '@/utils/pending-auth-flow';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
 const mockCreate = jest.fn();
+const mockPrepareEmailVerification = jest.fn();
 const mockSetActive = jest.fn();
 const mockGetToken = jest.fn();
 const mockLinkAppUser = jest.fn();
@@ -57,6 +59,10 @@ describe('Create Account screen', () => {
       isLoaded: true,
       signUp: {
         create: mockCreate,
+        prepareEmailAddressVerification: mockPrepareEmailVerification,
+        status: 'complete',
+        unverifiedFields: [],
+        missingFields: [],
       },
     });
     mockUseClerk.mockReturnValue({
@@ -78,10 +84,12 @@ describe('Create Account screen', () => {
       updated_at: '2026-06-04T00:00:00Z',
     });
     mockIsClerkAPIResponseError.mockReturnValue(false);
+    clearPendingAuthFlow();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    clearPendingAuthFlow();
   });
 
   test('shows the sign-up-first UI hierarchy', () => {
@@ -202,6 +210,50 @@ describe('Create Account screen', () => {
         getToken: mockGetToken,
       });
       expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
+  test('routes to email verification and stores pending context when Clerk requires it', async () => {
+    mockUseSignUp.mockReturnValue({
+      isLoaded: true,
+      signUp: {
+        create: mockCreate,
+        prepareEmailAddressVerification: mockPrepareEmailVerification,
+        status: 'missing_requirements',
+        unverifiedFields: ['email_address'],
+        missingFields: [],
+      },
+    });
+
+    mockCreate.mockResolvedValue({
+      createdSessionId: null,
+      createdUserId: 'user_123',
+      status: 'missing_requirements',
+      unverifiedFields: ['email_address'],
+      missingFields: [],
+    });
+    mockPrepareEmailVerification.mockResolvedValue(undefined);
+
+    renderCreateAccountScreen();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), '  USER@Example.COM ');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({
+        emailAddress: 'user@example.com',
+        password: 'secret1',
+      });
+      expect(mockPrepareEmailVerification).toHaveBeenCalledWith({
+        strategy: 'email_code',
+      });
+      expect(getPendingAuthFlow()).toEqual({
+        emailAddress: 'user@example.com',
+      });
+      expect(mockSetActive).not.toHaveBeenCalled();
+      expect(mockLinkAppUser).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/verify-email');
     });
   });
 

@@ -16,6 +16,7 @@ import { CREATE_ACCOUNT_UNAVAILABLE_ALERTS } from '@/constants/create-account-ac
 import type { CreateAccountActionId } from '@/types/create-account-actions';
 import { linkAppUser } from '@/utils/app-user-linking';
 import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
+import { clearPendingAuthFlow, setPendingAuthFlow } from '@/utils/pending-auth-flow';
 import {
   normalizeCreateAccountEmail,
   validateCreateAccountInput,
@@ -63,6 +64,7 @@ export default function CreateAccountScreen() {
 
     setIsSubmitting(true);
     setFormError(null);
+    clearPendingAuthFlow();
 
     try {
       const createdAccount = (await signUp.create({
@@ -71,15 +73,46 @@ export default function CreateAccountScreen() {
       })) as {
         createdSessionId?: string | null;
         createdUserId?: string | null;
+        missingFields?: string[];
+        status?: string | null;
+        unverifiedFields?: string[];
       };
 
       const createdSessionId = createdAccount.createdSessionId ?? null;
 
       if (!createdSessionId) {
-        setFormError('We could not finish creating your account. Please try again.');
+        const signUpStatus =
+          createdAccount.status ?? (signUp as { status?: string | null }).status ?? null;
+        const unverifiedFields =
+          createdAccount.unverifiedFields ??
+          (signUp as { unverifiedFields?: string[] }).unverifiedFields ??
+          [];
+        const missingFields =
+          createdAccount.missingFields ??
+          (signUp as { missingFields?: string[] }).missingFields ??
+          [];
+
+        const requiresEmailVerification =
+          signUpStatus === 'missing_requirements' &&
+          unverifiedFields.includes('email_address') &&
+          missingFields.length === 0;
+
+        if (!requiresEmailVerification) {
+          setFormError('We could not finish creating your account. Please try again.');
+          return;
+        }
+
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+
+        setPendingAuthFlow({
+          emailAddress: normalizedEmail,
+        });
+        router.replace('/verify-email');
+
         return;
       }
 
+      clearPendingAuthFlow();
       await clerk.setActive({ session: createdSessionId });
 
       const createdUserId =

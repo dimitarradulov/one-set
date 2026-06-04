@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react-native';
+import { readFileSync } from 'node:fs';
 import type { ReactNode } from 'react';
 import RootLayout from '../_layout';
 
@@ -58,6 +59,9 @@ describe('root layout', () => {
         getToken: expect.any(Function),
         saveToken: expect.any(Function),
       })
+    );
+    expect(readFileSync('app/_layout.tsx', 'utf8')).toContain(
+      '<Stack.Screen name="verify-email" />'
     );
   });
 });
