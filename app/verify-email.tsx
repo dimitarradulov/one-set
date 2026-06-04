@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  APP_USER_SETUP_FAILURE_MESSAGE,
+  APP_USER_SETUP_FINISH_LABEL,
+  APP_USER_SETUP_FINISH_LOADING_LABEL,
+} from '@/constants/app-user-setup';
 import { linkAppUser } from '@/utils/app-user-linking';
 import { clearPendingAuthFlow, getPendingAuthFlow } from '@/utils/pending-auth-flow';
 
@@ -22,6 +27,45 @@ export default function VerifyEmailScreen() {
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [setupClerkUserId, setSetupClerkUserId] = useState<string | null>(null);
+  const [setupEmailAddress, setSetupEmailAddress] = useState<string | null>(null);
+  const isSetupRecovery = Boolean(setupClerkUserId && setupEmailAddress);
+
+  const clearSetupRecovery = () => {
+    setSetupClerkUserId(null);
+    setSetupEmailAddress(null);
+  };
+
+  const handleFinishSetup = async () => {
+    if (isVerifying || !clerk || !setupClerkUserId || !setupEmailAddress) {
+      setErrorMessage('Authentication is still loading. Please try again.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setErrorMessage(null);
+
+    try {
+      await linkAppUser({
+        clerkUserId: setupClerkUserId,
+        email: setupEmailAddress,
+        displayName: null,
+        getToken,
+      });
+
+      clearSetupRecovery();
+      clearPendingAuthFlow();
+      router.replace('/trial-paywall');
+    } catch (error) {
+      if (__DEV__) {
+        console.error(error);
+      }
+
+      setErrorMessage(APP_USER_SETUP_FAILURE_MESSAGE);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (!isSignUpLoaded) {
@@ -45,6 +89,7 @@ export default function VerifyEmailScreen() {
 
     setIsVerifying(true);
     setErrorMessage(null);
+    let shouldShowSetupFailure = false;
 
     try {
       const verificationAttempt = (await signUp.attemptEmailAddressVerification({
@@ -77,6 +122,10 @@ export default function VerifyEmailScreen() {
         return;
       }
 
+      setSetupClerkUserId(verifiedUserId);
+      setSetupEmailAddress(pendingAuthFlow.emailAddress);
+      shouldShowSetupFailure = true;
+
       await linkAppUser({
         clerkUserId: verifiedUserId,
         email: pendingAuthFlow.emailAddress,
@@ -84,6 +133,7 @@ export default function VerifyEmailScreen() {
         getToken,
       });
 
+      clearSetupRecovery();
       clearPendingAuthFlow();
       router.replace('/trial-paywall');
     } catch (error) {
@@ -101,11 +151,28 @@ export default function VerifyEmailScreen() {
         console.error(error);
       }
 
-      setErrorMessage('We could not verify your email. Please try again.');
+      setErrorMessage(
+        shouldShowSetupFailure
+          ? APP_USER_SETUP_FAILURE_MESSAGE
+          : 'We could not verify your email. Please try again.'
+      );
     } finally {
       setIsVerifying(false);
     }
   };
+
+  const handlePrimaryAction = isSetupRecovery ? handleFinishSetup : handleVerifyEmail;
+  const primaryActionLabel = isVerifying
+    ? isSetupRecovery
+      ? APP_USER_SETUP_FINISH_LOADING_LABEL
+      : 'Verifying...'
+    : isSetupRecovery
+      ? APP_USER_SETUP_FINISH_LABEL
+      : 'Verify email';
+  const isPrimaryActionDisabled =
+    isVerifying ||
+    (!isSetupRecovery && code.length !== VERIFICATION_CODE_LENGTH) ||
+    (!clerk && isSetupRecovery);
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -182,19 +249,12 @@ export default function VerifyEmailScreen() {
             <Pressable
               accessibilityRole="button"
               className="items-center rounded-2xl bg-brand-primary px-5 py-3"
-              disabled={isVerifying || code.length !== VERIFICATION_CODE_LENGTH}
-              onPress={handleVerifyEmail}
+              disabled={isPrimaryActionDisabled}
+              onPress={handlePrimaryAction}
               style={({ pressed }) => ({
-                opacity:
-                  isVerifying || code.length !== VERIFICATION_CODE_LENGTH
-                    ? 0.65
-                    : pressed
-                      ? 0.92
-                      : 1,
+                opacity: isPrimaryActionDisabled ? 0.65 : pressed ? 0.92 : 1,
               })}>
-              <Text className="font-body-semibold text-body text-white">
-                {isVerifying ? 'Verifying...' : 'Verify email'}
-              </Text>
+              <Text className="font-body-semibold text-body text-white">{primaryActionLabel}</Text>
             </Pressable>
 
             {errorMessage ? (

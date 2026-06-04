@@ -46,6 +46,7 @@ const supabaseMock = jest.requireMock('@supabase/supabase-js') as {
 describe('app user linking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    supabaseMock.__mockSupabase.mockSingle.mockReset();
   });
 
   test('creates a Clerk-aware Supabase client with the active token source', () => {
@@ -97,5 +98,62 @@ describe('app user linking', () => {
         onConflict: 'clerk_user_id',
       }
     );
+  });
+
+  test('retries transient Supabase failures twice before succeeding', async () => {
+    const getToken = jest.fn();
+    const appUser = {
+      id: 'app_user_123',
+      clerk_user_id: 'user_123',
+      email: 'user@example.com',
+      display_name: null,
+      created_at: '2026-06-04T00:00:00Z',
+      updated_at: '2026-06-04T00:00:00Z',
+    };
+
+    supabaseMock.__mockSupabase.mockSingle
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('temporary failure'),
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('still failing'),
+      })
+      .mockResolvedValueOnce({
+        data: appUser,
+        error: null,
+      });
+
+    await expect(
+      linkAppUser({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken,
+      })
+    ).resolves.toEqual(appUser);
+
+    expect(supabaseMock.__mockSupabase.mockUpsert).toHaveBeenCalledTimes(3);
+  });
+
+  test('throws after exhausting the internal Supabase retries', async () => {
+    const getToken = jest.fn();
+
+    supabaseMock.__mockSupabase.mockSingle.mockResolvedValue({
+      data: null,
+      error: new Error('permanent failure'),
+    });
+
+    await expect(
+      linkAppUser({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken,
+      })
+    ).rejects.toThrow('permanent failure');
+
+    expect(supabaseMock.__mockSupabase.mockUpsert).toHaveBeenCalledTimes(3);
   });
 });

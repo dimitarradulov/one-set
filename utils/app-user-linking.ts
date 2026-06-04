@@ -16,28 +16,39 @@ export const linkAppUser = async ({
   getToken,
 }: LinkAppUserInput): Promise<AppUserRow> => {
   const supabase = createClerkSupabaseClient(getToken);
-  const { data, error } = await supabase
-    .from('app_users')
-    .upsert(
-      {
-        clerk_user_id: clerkUserId,
-        email,
-        display_name: displayName,
-      },
-      {
-        onConflict: 'clerk_user_id',
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .upsert(
+          {
+            clerk_user_id: clerkUserId,
+            email,
+            display_name: displayName,
+          },
+          {
+            onConflict: 'clerk_user_id',
+          }
+        )
+        .select('id, clerk_user_id, email, display_name, created_at, updated_at')
+        .single();
+
+      if (error) {
+        lastError = error;
+        continue;
       }
-    )
-    .select('id, clerk_user_id, email, display_name, created_at, updated_at')
-    .single();
 
-  if (error) {
-    throw error;
+      if (data) {
+        return data;
+      }
+
+      lastError = new Error('Supabase did not return an app user record.');
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  if (!data) {
-    throw new Error('Supabase did not return an app user record.');
-  }
-
-  return data;
+  throw lastError ?? new Error('Supabase did not return an app user record.');
 };

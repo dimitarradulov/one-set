@@ -13,6 +13,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CREATE_ACCOUNT_UNAVAILABLE_ALERTS } from '@/constants/create-account-actions';
+import {
+  APP_USER_SETUP_FAILURE_MESSAGE,
+  APP_USER_SETUP_FINISH_LABEL,
+  APP_USER_SETUP_FINISH_LOADING_LABEL,
+} from '@/constants/app-user-setup';
 import type { CreateAccountActionId } from '@/types/create-account-actions';
 import { linkAppUser } from '@/utils/app-user-linking';
 import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
@@ -39,8 +44,47 @@ export default function CreateAccountScreen() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [setupClerkUserId, setSetupClerkUserId] = useState<string | null>(null);
+  const [setupEmailAddress, setSetupEmailAddress] = useState<string | null>(null);
 
   const canCreateAccount = isSignUpLoaded && Boolean(signUp) && Boolean(clerk);
+  const isSetupRecovery = Boolean(setupClerkUserId && setupEmailAddress);
+
+  const clearSetupRecovery = () => {
+    setSetupClerkUserId(null);
+    setSetupEmailAddress(null);
+  };
+
+  const handleFinishSetup = async () => {
+    if (isSubmitting || !clerk || !setupClerkUserId || !setupEmailAddress) {
+      setFormError('Authentication is still loading. Please try again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    try {
+      await linkAppUser({
+        clerkUserId: setupClerkUserId,
+        email: setupEmailAddress,
+        displayName: null,
+        getToken,
+      });
+
+      clearSetupRecovery();
+      clearPendingAuthFlow();
+      router.replace('/trial-paywall');
+    } catch (error) {
+      if (__DEV__) {
+        console.error(error);
+      }
+
+      setFormError(APP_USER_SETUP_FAILURE_MESSAGE);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCreateAccount = async () => {
     if (!canCreateAccount || isSubmitting || !signUp || !clerk) {
@@ -65,6 +109,7 @@ export default function CreateAccountScreen() {
     setIsSubmitting(true);
     setFormError(null);
     clearPendingAuthFlow();
+    let shouldShowSetupFailure = false;
 
     try {
       const createdAccount = (await signUp.create({
@@ -123,6 +168,11 @@ export default function CreateAccountScreen() {
         return;
       }
 
+      setSetupClerkUserId(createdUserId);
+      setSetupEmailAddress(normalizedEmail);
+      setPassword('');
+      shouldShowSetupFailure = true;
+
       await linkAppUser({
         clerkUserId: createdUserId,
         email: normalizedEmail,
@@ -130,6 +180,7 @@ export default function CreateAccountScreen() {
         getToken,
       });
 
+      clearSetupRecovery();
       router.replace('/trial-paywall');
     } catch (error) {
       if (isClerkAPIResponseError(error)) {
@@ -151,11 +202,26 @@ export default function CreateAccountScreen() {
         console.error(error);
       }
 
-      setFormError('We could not create your account. Please try again.');
+      setFormError(
+        shouldShowSetupFailure
+          ? APP_USER_SETUP_FAILURE_MESSAGE
+          : 'We could not create your account. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handlePrimaryAction = isSetupRecovery ? handleFinishSetup : handleCreateAccount;
+  const primaryActionLabel = isSubmitting
+    ? isSetupRecovery
+      ? APP_USER_SETUP_FINISH_LOADING_LABEL
+      : 'Creating account...'
+    : isSetupRecovery
+      ? APP_USER_SETUP_FINISH_LABEL
+      : 'Create account';
+  const isPrimaryActionDisabled =
+    isSubmitting || (!isSetupRecovery && !canCreateAccount) || (isSetupRecovery && !clerk);
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -268,14 +334,12 @@ export default function CreateAccountScreen() {
             <Pressable
               accessibilityRole="button"
               className="items-center rounded-2xl bg-brand-primary px-5 py-3"
-              disabled={isSubmitting || !canCreateAccount}
-              onPress={handleCreateAccount}
+              disabled={isPrimaryActionDisabled}
+              onPress={handlePrimaryAction}
               style={({ pressed }) => ({
-                opacity: isSubmitting || !canCreateAccount ? 0.65 : pressed ? 0.92 : 1,
+                opacity: isPrimaryActionDisabled ? 0.65 : pressed ? 0.92 : 1,
               })}>
-              <Text className="font-body-semibold text-body text-white">
-                {isSubmitting ? 'Creating account...' : 'Create account'}
-              </Text>
+              <Text className="font-body-semibold text-body text-white">{primaryActionLabel}</Text>
             </Pressable>
 
             {formError ? (

@@ -134,6 +134,44 @@ describe('Verify Email screen', () => {
     });
   });
 
+  test('shows setup recovery after Supabase linking fails and retries without repeating verification', async () => {
+    mockAttemptEmailAddressVerification.mockResolvedValue({
+      createdSessionId: 'session_123',
+      createdUserId: 'user_123',
+      status: 'complete',
+    });
+    mockLinkAppUser.mockRejectedValueOnce(new Error('Supabase unavailable'));
+
+    renderVerifyEmailScreen();
+
+    fireEvent.changeText(screen.getByLabelText('Verification code'), '123456');
+    fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('We could not finish setting up your account. Please try again.')
+      ).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Finish setup' })).toBeEnabled();
+    });
+
+    expect(mockAttemptEmailAddressVerification).toHaveBeenCalledTimes(1);
+    expect(mockLinkAppUser).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Finish setup' }));
+
+    await waitFor(() => {
+      expect(mockAttemptEmailAddressVerification).toHaveBeenCalledTimes(1);
+      expect(mockLinkAppUser).toHaveBeenCalledTimes(2);
+      expect(mockLinkAppUser).toHaveBeenLastCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
   test('shows inline verification errors instead of alerts when Clerk rejects the code', async () => {
     mockIsClerkAPIResponseError.mockReturnValue(true);
     mockAttemptEmailAddressVerification.mockRejectedValue({

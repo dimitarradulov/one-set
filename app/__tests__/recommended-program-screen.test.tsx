@@ -142,9 +142,7 @@ describe('Recommended Program screen', () => {
 
     render(<RecommendedProgramScreen />);
 
-    expect(
-      screen.getByText(/OneSet needs to recalculate your starter program/i)
-    ).toBeOnTheScreen();
+    expect(screen.getByText(/OneSet needs to recalculate your starter program/i)).toBeOnTheScreen();
     expect(screen.getByText('Return to Result Calculation').props.href).toBe('/result-calculation');
   });
 
@@ -158,9 +156,7 @@ describe('Recommended Program screen', () => {
 
     render(<RecommendedProgramScreen />);
 
-    expect(
-      screen.getByText(/OneSet needs to recalculate your starter program/i)
-    ).toBeOnTheScreen();
+    expect(screen.getByText(/OneSet needs to recalculate your starter program/i)).toBeOnTheScreen();
     expect(screen.getByText('Return to Result Calculation').props.href).toBe('/result-calculation');
   });
 });

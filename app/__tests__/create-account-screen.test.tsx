@@ -213,6 +213,45 @@ describe('Create Account screen', () => {
     });
   });
 
+  test('shows setup recovery after Supabase linking fails and retries without recreating the account', async () => {
+    mockCreate.mockResolvedValue({
+      createdSessionId: 'session_123',
+      createdUserId: 'user_123',
+    });
+    mockLinkAppUser.mockRejectedValueOnce(new Error('Supabase unavailable'));
+
+    renderCreateAccountScreen();
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('We could not finish setting up your account. Please try again.')
+      ).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Finish setup' })).toBeEnabled();
+    });
+
+    expect(screen.getByPlaceholderText('Password')).toHaveDisplayValue('');
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockLinkAppUser).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Finish setup' }));
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockLinkAppUser).toHaveBeenCalledTimes(2);
+      expect(mockLinkAppUser).toHaveBeenLastCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+    });
+  });
+
   test('routes to email verification and stores pending context when Clerk requires it', async () => {
     mockUseSignUp.mockReturnValue({
       isLoaded: true,
