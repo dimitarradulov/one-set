@@ -1,6 +1,5 @@
-import { isClerkAPIResponseError, useAuth, useClerk, useSignUp } from '@clerk/expo';
+import { useAuth, useSignUp } from '@clerk/expo';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,19 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CREATE_ACCOUNT_UNAVAILABLE_ALERTS } from '@/constants/create-account-actions';
-import {
-  APP_USER_SETUP_FAILURE_MESSAGE,
-  APP_USER_SETUP_FINISH_LABEL,
-  APP_USER_SETUP_FINISH_LOADING_LABEL,
-} from '@/constants/app-user-setup';
+import type { ClerkEmailPasswordSignUp } from '@/types/clerk-sign-up-flow';
 import type { CreateAccountActionId } from '@/types/create-account-actions';
-import { linkAppUser } from '@/utils/app-user-linking';
 import { dismissCreateAccountPrompt } from '@/utils/create-account-dismissal';
-import { clearPendingAuthFlow, setPendingAuthFlow } from '@/utils/pending-auth-flow';
-import {
-  normalizeCreateAccountEmail,
-  validateCreateAccountInput,
-} from '@/utils/create-account-validation';
+import { useCreateAccountAuth } from '@/utils/use-create-account-auth';
 
 const showUnavailableAlert = (actionId: CreateAccountActionId) => {
   const alertCopy = CREATE_ACCOUNT_UNAVAILABLE_ALERTS[actionId];
@@ -35,193 +25,28 @@ const showUnavailableAlert = (actionId: CreateAccountActionId) => {
 export default function CreateAccountScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const clerk = useClerk();
   const { getToken } = useAuth();
-  const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [setupClerkUserId, setSetupClerkUserId] = useState<string | null>(null);
-  const [setupEmailAddress, setSetupEmailAddress] = useState<string | null>(null);
-
-  const canCreateAccount = isSignUpLoaded && Boolean(signUp) && Boolean(clerk);
-  const isSetupRecovery = Boolean(setupClerkUserId && setupEmailAddress);
-
-  const clearSetupRecovery = () => {
-    setSetupClerkUserId(null);
-    setSetupEmailAddress(null);
-  };
-
-  const handleFinishSetup = async () => {
-    if (isSubmitting || !clerk || !setupClerkUserId || !setupEmailAddress) {
-      setFormError('Authentication is still loading. Please try again.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError(null);
-
-    try {
-      await linkAppUser({
-        clerkUserId: setupClerkUserId,
-        email: setupEmailAddress,
-        displayName: null,
-        getToken,
-      });
-
-      clearSetupRecovery();
-      clearPendingAuthFlow();
-      router.replace('/trial-paywall');
-    } catch (error) {
-      if (__DEV__) {
-        console.error(error);
-      }
-
-      setFormError(APP_USER_SETUP_FAILURE_MESSAGE);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCreateAccount = async () => {
-    if (!canCreateAccount || isSubmitting || !signUp || !clerk) {
-      setFormError('Authentication is still loading. Please try again.');
-      return;
-    }
-
-    const normalizedEmail = normalizeCreateAccountEmail(email);
-    const validationErrors = validateCreateAccountInput({
-      email: normalizedEmail,
-      password,
-    });
-
-    setEmailError(validationErrors.email ?? null);
-    setPasswordError(validationErrors.password ?? null);
-    setFormError(validationErrors.form ?? null);
-
-    if (validationErrors.email || validationErrors.password) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError(null);
-    clearPendingAuthFlow();
-    let shouldShowSetupFailure = false;
-
-    try {
-      const createdAccount = (await signUp.create({
-        emailAddress: normalizedEmail,
-        password,
-      })) as {
-        createdSessionId?: string | null;
-        createdUserId?: string | null;
-        missingFields?: string[];
-        status?: string | null;
-        unverifiedFields?: string[];
-      };
-
-      const createdSessionId = createdAccount.createdSessionId ?? null;
-
-      if (!createdSessionId) {
-        const signUpStatus =
-          createdAccount.status ?? (signUp as { status?: string | null }).status ?? null;
-        const unverifiedFields =
-          createdAccount.unverifiedFields ??
-          (signUp as { unverifiedFields?: string[] }).unverifiedFields ??
-          [];
-        const missingFields =
-          createdAccount.missingFields ??
-          (signUp as { missingFields?: string[] }).missingFields ??
-          [];
-
-        const requiresEmailVerification =
-          signUpStatus === 'missing_requirements' &&
-          unverifiedFields.includes('email_address') &&
-          missingFields.length === 0;
-
-        if (!requiresEmailVerification) {
-          setFormError('We could not finish creating your account. Please try again.');
-          return;
-        }
-
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-
-        setPendingAuthFlow({
-          emailAddress: normalizedEmail,
-        });
-        router.replace('/verify-email');
-
-        return;
-      }
-
-      clearPendingAuthFlow();
-      await clerk.setActive({ session: createdSessionId });
-
-      const createdUserId =
-        createdAccount.createdUserId ?? (clerk.user?.id as string | undefined) ?? null;
-
-      if (!createdUserId) {
-        setFormError('We could not finish creating your account. Please try again.');
-        return;
-      }
-
-      setSetupClerkUserId(createdUserId);
-      setSetupEmailAddress(normalizedEmail);
-      setPassword('');
-      shouldShowSetupFailure = true;
-
-      await linkAppUser({
-        clerkUserId: createdUserId,
-        email: normalizedEmail,
-        displayName: null,
-        getToken,
-      });
-
-      clearSetupRecovery();
-      router.replace('/trial-paywall');
-    } catch (error) {
-      if (isClerkAPIResponseError(error)) {
-        const firstError = error.errors[0];
-        const message =
-          firstError?.longMessage ?? firstError?.message ?? 'We could not create your account.';
-        const code = firstError?.code ?? '';
-
-        if (code.includes('identifier') || code.includes('email')) {
-          setEmailError(message);
-        } else {
-          setFormError(message);
-        }
-
-        return;
-      }
-
-      if (__DEV__) {
-        console.error(error);
-      }
-
-      setFormError(
-        shouldShowSetupFailure
-          ? APP_USER_SETUP_FAILURE_MESSAGE
-          : 'We could not create your account. Please try again.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handlePrimaryAction = isSetupRecovery ? handleFinishSetup : handleCreateAccount;
-  const primaryActionLabel = isSubmitting
-    ? isSetupRecovery
-      ? APP_USER_SETUP_FINISH_LOADING_LABEL
-      : 'Creating account...'
-    : isSetupRecovery
-      ? APP_USER_SETUP_FINISH_LABEL
-      : 'Create account';
-  const isPrimaryActionDisabled =
-    isSubmitting || (!isSetupRecovery && !canCreateAccount) || (isSetupRecovery && !clerk);
+  const { signUp, fetchStatus } = useSignUp();
+  const {
+    email,
+    password,
+    emailError,
+    passwordError,
+    formError,
+    primaryActionLabel,
+    isPrimaryActionDisabled,
+    handlePrimaryAction,
+    setEmail,
+    setPassword,
+    setEmailError,
+    setPasswordError,
+    setFormError,
+  } = useCreateAccountAuth({
+    signUp: signUp as ClerkEmailPasswordSignUp | null | undefined,
+    fetchStatus,
+    getToken,
+    router,
+  });
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -347,6 +172,8 @@ export default function CreateAccountScreen() {
                 {formError}
               </Text>
             ) : null}
+
+            <View nativeID="clerk-captcha" testID="clerk-captcha" />
           </View>
 
           <Pressable

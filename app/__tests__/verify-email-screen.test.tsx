@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import VerifyEmailScreen from '../verify-email';
+import { APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE } from '@/constants/app-user-setup';
 import {
   clearPendingAuthFlow,
   getPendingAuthFlow,
@@ -10,15 +11,24 @@ import {
 } from '@/utils/pending-auth-flow';
 
 const mockReplace = jest.fn();
-const mockAttemptEmailAddressVerification = jest.fn();
-const mockPrepareEmailVerification = jest.fn();
-const mockSetActive = jest.fn();
+const mockVerifyEmailCode = jest.fn();
+const mockSendEmailCode = jest.fn();
+const mockFinalize = jest.fn();
 const mockGetToken = jest.fn();
 const mockLinkAppUser = jest.fn();
 const mockUseSignUp = jest.fn();
-const mockUseClerk = jest.fn();
 const mockUseAuth = jest.fn();
-const mockIsClerkAPIResponseError = jest.fn(() => false);
+let mockSignUp: {
+  status: string;
+  missingFields: string[];
+  unverifiedFields: string[];
+  password: jest.Mock;
+  verifications: {
+    sendEmailCode: typeof mockSendEmailCode;
+    verifyEmailCode: typeof mockVerifyEmailCode;
+  };
+  finalize: typeof mockFinalize;
+};
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
@@ -31,12 +41,13 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@clerk/expo', () => ({
   useSignUp: () => mockUseSignUp(),
-  useClerk: () => mockUseClerk(),
   useAuth: () => mockUseAuth(),
-  isClerkAPIResponseError: (error: unknown) => mockIsClerkAPIResponseError(error),
+  isClerkAPIResponseError: (error: unknown) =>
+    typeof error === 'object' && error !== null && 'errors' in error,
 }));
 
 jest.mock('@/utils/app-user-linking', () => ({
+  ...jest.requireActual('@/utils/app-user-linking'),
   linkAppUser: (...args: unknown[]) => mockLinkAppUser(...args),
 }));
 
@@ -56,26 +67,46 @@ describe('Verify Email screen', () => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
     clearPendingAuthFlow();
-    mockIsClerkAPIResponseError.mockReturnValue(false);
 
+    mockSignUp = {
+      status: 'missing_requirements',
+      password: jest.fn(),
+      verifications: {
+        sendEmailCode: mockSendEmailCode,
+        verifyEmailCode: mockVerifyEmailCode,
+      },
+      unverifiedFields: ['email_address'],
+      missingFields: [],
+      finalize: mockFinalize,
+    };
     mockUseSignUp.mockReturnValue({
-      isLoaded: true,
-      signUp: {
-        attemptEmailAddressVerification: mockAttemptEmailAddressVerification,
-        prepareEmailAddressVerification: mockPrepareEmailVerification,
-        status: 'missing_requirements',
-      },
-    });
-    mockUseClerk.mockReturnValue({
-      setActive: mockSetActive,
-      user: {
-        id: 'user_123',
-      },
+      signUp: mockSignUp,
+      fetchStatus: 'idle',
     });
     mockUseAuth.mockReturnValue({
       getToken: mockGetToken,
     });
     mockGetToken.mockResolvedValue('clerk-session-token');
+    mockVerifyEmailCode.mockImplementation(async () => {
+      mockSignUp.status = 'complete';
+      return { error: null };
+    });
+    mockSendEmailCode.mockResolvedValue({ error: null });
+    mockFinalize.mockImplementation(
+      async ({
+        navigate,
+      }: {
+        navigate: (params: { session: { user: { id: string } } }) => Promise<void> | void;
+      }) => {
+        await navigate({
+          session: {
+            user: {
+              id: 'user_123',
+            },
+          },
+        });
+      }
+    );
     mockLinkAppUser.mockResolvedValue({
       id: 'app_user_123',
       clerk_user_id: 'user_123',
@@ -84,7 +115,6 @@ describe('Verify Email screen', () => {
       created_at: '2026-06-04T00:00:00Z',
       updated_at: '2026-06-04T00:00:00Z',
     });
-    mockPrepareEmailVerification.mockResolvedValue(undefined);
     setPendingAuthFlow({
       emailAddress: 'user@example.com',
     });
@@ -96,7 +126,7 @@ describe('Verify Email screen', () => {
     jest.useRealTimers();
   });
 
-  test('renders the verification UI and keeps the code input numeric and capped at six digits', () => {
+  test('renders the verification UI and keeps the visible code entry numeric and capped', () => {
     renderVerifyEmailScreen();
 
     expect(screen.getByText('Check your email')).toBeOnTheScreen();
@@ -104,10 +134,13 @@ describe('Verify Email screen', () => {
       screen.getByText('Enter the 6-digit code we sent to user@example.com.')
     ).toBeOnTheScreen();
     expect(screen.getAllByTestId('verification-code-box')).toHaveLength(6);
+    fireEvent.press(screen.getByRole('button', { name: 'Verification code entry' }));
     expect(screen.getByRole('button', { name: 'Verify email' })).toBeDisabled();
     expect(screen.getByRole('button', { name: "Didn't get it? Resend code" })).toBeEnabled();
 
     const codeInput = screen.getByLabelText('Verification code');
+    expect(codeInput).toHaveProp('className', expect.stringContaining('h-px'));
+
     fireEvent.changeText(codeInput, '12a3-4567');
 
     expect(codeInput).toHaveDisplayValue('123456');
@@ -117,10 +150,10 @@ describe('Verify Email screen', () => {
   });
 
   test('resends the verification email, disables both actions while sending, and starts the cooldown', async () => {
-    let resolvePrepare: (() => void) | undefined;
+    let resolvePrepare: ((value: { error: null }) => void) | undefined;
 
-    mockPrepareEmailVerification.mockReturnValue(
-      new Promise<void>((resolve) => {
+    mockSendEmailCode.mockReturnValue(
+      new Promise<{ error: null }>((resolve) => {
         resolvePrepare = resolve;
       })
     );
@@ -133,27 +166,21 @@ describe('Verify Email screen', () => {
     expect(screen.getByRole('button', { name: 'Resending...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Verify email' })).toBeDisabled();
 
-    resolvePrepare?.();
+    resolvePrepare?.({ error: null });
 
     await waitFor(() => {
-      expect(mockPrepareEmailVerification).toHaveBeenCalledWith({
-        strategy: 'email_code',
-      });
+      expect(mockSendEmailCode).toHaveBeenCalled();
       expect(screen.getByRole('button', { name: 'Resend in 30s' })).toBeDisabled();
     });
   });
 
   test('shows the verifying loading state and disables resend while the code is in flight', async () => {
-    let resolveAttempt:
-      | ((value: { createdSessionId: string; createdUserId: string; status: string }) => void)
-      | undefined;
+    let resolveAttempt: ((value: { error: null }) => void) | undefined;
 
-    mockAttemptEmailAddressVerification.mockReturnValue(
-      new Promise<{ createdSessionId: string; createdUserId: string; status: string }>(
-        (resolve) => {
-          resolveAttempt = resolve;
-        }
-      )
+    mockVerifyEmailCode.mockReturnValue(
+      new Promise<{ error: null }>((resolve) => {
+        resolveAttempt = resolve;
+      })
     );
 
     renderVerifyEmailScreen();
@@ -164,14 +191,11 @@ describe('Verify Email screen', () => {
     expect(screen.getByRole('button', { name: 'Verifying...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: "Didn't get it? Resend code" })).toBeDisabled();
 
-    resolveAttempt?.({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-      status: 'complete',
-    });
+    mockSignUp.status = 'complete';
+    resolveAttempt?.({ error: null });
 
     await waitFor(() => {
-      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
+      expect(mockFinalize).toHaveBeenCalled();
       expect(mockLinkAppUser).toHaveBeenCalledWith({
         clerkUserId: 'user_123',
         email: 'user@example.com',
@@ -184,7 +208,7 @@ describe('Verify Email screen', () => {
 
   test('counts down the resend cooldown and restores the resend action after 30 seconds', async () => {
     jest.useFakeTimers();
-    mockPrepareEmailVerification.mockResolvedValue(undefined);
+    mockSendEmailCode.mockResolvedValue({ error: null });
 
     renderVerifyEmailScreen();
 
@@ -210,23 +234,17 @@ describe('Verify Email screen', () => {
     expect(screen.getByRole('button', { name: "Didn't get it? Resend code" })).toBeEnabled();
   });
 
-  test('activates the session, links the app user, and advances on successful verification', async () => {
-    mockAttemptEmailAddressVerification.mockResolvedValue({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-      status: 'complete',
-    });
-
+  test('finalizes the session, links the app user, and advances on successful verification', async () => {
     renderVerifyEmailScreen();
 
     fireEvent.changeText(screen.getByLabelText('Verification code'), '123456');
     fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
 
     await waitFor(() => {
-      expect(mockAttemptEmailAddressVerification).toHaveBeenCalledWith({
+      expect(mockVerifyEmailCode).toHaveBeenCalledWith({
         code: '123456',
       });
-      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
+      expect(mockFinalize).toHaveBeenCalled();
       expect(mockLinkAppUser).toHaveBeenCalledWith({
         clerkUserId: 'user_123',
         email: 'user@example.com',
@@ -238,11 +256,6 @@ describe('Verify Email screen', () => {
   });
 
   test('shows setup recovery after Supabase linking fails and retries without repeating verification', async () => {
-    mockAttemptEmailAddressVerification.mockResolvedValue({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-      status: 'complete',
-    });
     mockLinkAppUser.mockRejectedValueOnce(new Error('Supabase unavailable'));
 
     renderVerifyEmailScreen();
@@ -257,13 +270,14 @@ describe('Verify Email screen', () => {
       expect(screen.getByRole('button', { name: 'Finish setup' })).toBeEnabled();
     });
 
-    expect(mockAttemptEmailAddressVerification).toHaveBeenCalledTimes(1);
+    expect(mockVerifyEmailCode).toHaveBeenCalledTimes(1);
+    expect(mockFinalize).toHaveBeenCalledTimes(1);
     expect(mockLinkAppUser).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByRole('button', { name: 'Finish setup' }));
 
     await waitFor(() => {
-      expect(mockAttemptEmailAddressVerification).toHaveBeenCalledTimes(1);
+      expect(mockVerifyEmailCode).toHaveBeenCalledTimes(1);
       expect(mockLinkAppUser).toHaveBeenCalledTimes(2);
       expect(mockLinkAppUser).toHaveBeenLastCalledWith({
         clerkUserId: 'user_123',
@@ -275,16 +289,35 @@ describe('Verify Email screen', () => {
     });
   });
 
+  test('explains Supabase JWT configuration errors during setup linking', async () => {
+    mockLinkAppUser.mockRejectedValueOnce({
+      code: 'PGRST301',
+      details: 'No suitable key was found to decode the JWT',
+      hint: null,
+      message: 'No suitable key or wrong key type',
+    });
+
+    renderVerifyEmailScreen();
+
+    fireEvent.changeText(screen.getByLabelText('Verification code'), '123456');
+    fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE)).toBeOnTheScreen();
+    });
+  });
+
   test('shows inline verification errors instead of alerts when Clerk rejects the code', async () => {
-    mockIsClerkAPIResponseError.mockReturnValue(true);
-    mockAttemptEmailAddressVerification.mockRejectedValue({
-      errors: [
-        {
-          code: 'verification_failed',
-          longMessage: 'That code is not valid.',
-          message: 'Invalid code',
-        },
-      ],
+    mockVerifyEmailCode.mockResolvedValue({
+      error: {
+        errors: [
+          {
+            code: 'verification_failed',
+            longMessage: 'That code is not valid.',
+            message: 'Invalid code',
+          },
+        ],
+      },
     });
 
     renderVerifyEmailScreen();
@@ -305,15 +338,16 @@ describe('Verify Email screen', () => {
   });
 
   test('shows inline resend errors instead of alerts when Clerk rejects the resend request', async () => {
-    mockIsClerkAPIResponseError.mockReturnValue(true);
-    mockPrepareEmailVerification.mockRejectedValue({
-      errors: [
-        {
-          code: 'verification_unavailable',
-          longMessage: 'The verification email could not be resent.',
-          message: 'Verification email unavailable',
-        },
-      ],
+    mockSendEmailCode.mockResolvedValue({
+      error: {
+        errors: [
+          {
+            code: 'verification_unavailable',
+            longMessage: 'The verification email could not be resent.',
+            message: 'Verification email unavailable',
+          },
+        ],
+      },
     });
 
     renderVerifyEmailScreen();
@@ -326,9 +360,7 @@ describe('Verify Email screen', () => {
     });
 
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(mockPrepareEmailVerification).toHaveBeenCalledWith({
-      strategy: 'email_code',
-    });
+    expect(mockSendEmailCode).toHaveBeenCalled();
   });
 
   test('replaces the route when verification context is missing', async () => {
@@ -345,7 +377,6 @@ describe('Verify Email screen', () => {
 
   test('replaces the route when Clerk sign-up state is missing', async () => {
     mockUseSignUp.mockReturnValue({
-      isLoaded: true,
       signUp: null,
     });
 

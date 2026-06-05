@@ -45,7 +45,7 @@ describe('root layout', () => {
   test('wraps the app with ClerkProvider and a token cache', () => {
     render(<RootLayout />);
 
-    const props = mockClerkProvider.mock.calls[0]?.[0] as {
+    const props = mockClerkProvider.mock.calls[0]?.[0] as unknown as {
       publishableKey: string;
       tokenCache: {
         getToken: () => Promise<string | null>;

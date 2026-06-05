@@ -22,7 +22,7 @@ await run({
   // The agent provider. Pass a model string to codex() — sonnet balances
   // capability and speed for most tasks. Switch to claude-opus-4-6 for harder
   // problems, or claude-haiku-4-5-20251001 for speed.
-  agent: codex('gpt-5.3-codex', { effort: 'xhigh' }),
+  agent: codex('gpt-5.4-mini', { effort: 'xhigh' }),
 
   // Path to the prompt file. Shell expressions inside are evaluated inside the
   // sandbox at the start of each iteration, so the agent always sees fresh data.

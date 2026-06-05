@@ -36,6 +36,18 @@ _Avoid_: Intensity level
 The post-**Program Recommendation** account gate that asks a preview user to create an account before progress can be saved or training can begin.
 _Avoid_: Auth prompt, login screen, auth wall
 
+**Email Account Creation**:
+The email-and-password path inside the **Account Creation Prompt** for creating a OneSet account.
+_Avoid_: Email login, password auth
+
+**Email Verification**:
+The provider-required confirmation step that proves a user controls the email address used for **Email Account Creation**.
+_Avoid_: OTP screen, code screen
+
+**App User**:
+The OneSet-owned user record that links an authenticated person to app-specific training data.
+_Avoid_: Clerk user, profile, account row
+
 **Preview Mode**:
 The restricted state for a user who has completed the **Assessment** and can inspect their **Program Recommendation** without an account, trial, or subscription.
 _Avoid_: Guest plan, free tier
@@ -75,12 +87,22 @@ _Avoid_: Manual review step, questionnaire screen
 - The **Account Creation Prompt** is addressed in the app route model as `/create-account`.
 - The **Account Creation Prompt** supports Apple sign-in and email/password account creation for the MVP.
 - Apple sign-in is the primary **Account Creation Prompt** action in the MVP.
+- **Email Account Creation** may be implemented before Apple sign-in without removing Apple sign-in from the MVP account creation model.
 - The **Account Creation Prompt** does not include Google sign-in in the MVP.
 - The first **Account Creation Prompt** implementation is UI-only; live Clerk account creation is a separate implementation story.
 - During the UI-only implementation, **Account Creation Prompt** account actions do not advance to the trial paywall.
 - The **Account Creation Prompt** is sign-up-first; returning-user sign-in is secondary because the welcome screen already provides the main sign-in entry point.
 - During the UI-only implementation, the returning-user sign-in action on the **Account Creation Prompt** does not navigate to another auth flow.
 - The **Account Creation Prompt** shows the email/password account creation form by default below the Apple sign-in action, separated by an "OR" divider.
+- **Email Account Creation** happens inside the custom OneSet **Account Creation Prompt**, not in a separate generic authentication screen.
+- **Email Account Creation** only produces an authenticated account after any provider-required email verification is complete.
+- If provider-required, **Email Verification** happens on a dedicated route after the **Account Creation Prompt**.
+- **Email Verification** is addressed in the app route model as `/verify-email`.
+- Completed **Email Account Creation** creates or links exactly one **App User**.
+- An **App User** is identified externally by the authenticated person's stable Clerk user ID.
+- Creating an **App User** does not by itself persist the **Assessment Draft** or create the user's training profile.
+- Completed **Email Account Creation** advances to the trial gate before training can begin.
+- Future user-specific training data belongs to the **App User**, not directly to the external authentication identity.
 - A user who dismisses the **Account Creation Prompt** remains in **Preview Mode** and returns to the prior preview surface when possible.
 - If the **Account Creation Prompt** has no usable navigation history, dismissal returns to the **Program Recommendation** preview.
 

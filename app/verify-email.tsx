@@ -1,6 +1,6 @@
-import { isClerkAPIResponseError, useAuth, useClerk, useSignUp } from '@clerk/expo';
+import { useAuth, useSignUp } from '@clerk/expo';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +16,17 @@ import {
   VERIFY_EMAIL_RESEND_FAILURE_MESSAGE,
   VERIFY_EMAIL_RESEND_LOADING_LABEL,
 } from '@/constants/verify-email';
-import { linkAppUser } from '@/utils/app-user-linking';
+import type { ClerkEmailPasswordSignUp } from '@/types/clerk-sign-up-flow';
+import {
+  finalizeClerkSignUp,
+  getAuthMethodError,
+  getClerkErrorMessage,
+  linkFinalizedClerkSignUp,
+} from '@/utils/clerk-sign-up-flow';
+import {
+  getAppUserLinkingErrorMessage,
+  isAppUserLinkingAuthConfigurationError,
+} from '@/utils/app-user-linking';
 import { clearPendingAuthFlow, getPendingAuthFlow } from '@/utils/pending-auth-flow';
 
 const normalizeVerificationCode = (value: string): string =>
@@ -25,10 +35,11 @@ const normalizeVerificationCode = (value: string): string =>
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const clerk = useClerk();
   const { getToken } = useAuth();
-  const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+  const { signUp, fetchStatus } = useSignUp();
+  const emailPasswordSignUp = signUp as ClerkEmailPasswordSignUp | null | undefined;
   const pendingAuthFlow = getPendingAuthFlow();
+  const verificationCodeInputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -44,7 +55,7 @@ export default function VerifyEmailScreen() {
   };
 
   const handleFinishSetup = async () => {
-    if (isVerifying || !clerk || !setupClerkUserId || !setupEmailAddress) {
+    if (isVerifying || !setupClerkUserId || !setupEmailAddress) {
       setErrorMessage('Authentication is still loading. Please try again.');
       return;
     }
@@ -53,10 +64,9 @@ export default function VerifyEmailScreen() {
     setErrorMessage(null);
 
     try {
-      await linkAppUser({
+      await linkFinalizedClerkSignUp({
         clerkUserId: setupClerkUserId,
         email: setupEmailAddress,
-        displayName: null,
         getToken,
       });
 
@@ -64,11 +74,11 @@ export default function VerifyEmailScreen() {
       clearPendingAuthFlow();
       router.replace('/trial-paywall');
     } catch (error) {
-      if (__DEV__) {
+      if (__DEV__ && !isAppUserLinkingAuthConfigurationError(error)) {
         console.error(error);
       }
 
-      setErrorMessage(APP_USER_SETUP_FAILURE_MESSAGE);
+      setErrorMessage(getAppUserLinkingErrorMessage(error, APP_USER_SETUP_FAILURE_MESSAGE));
     } finally {
       setIsVerifying(false);
     }
@@ -87,17 +97,13 @@ export default function VerifyEmailScreen() {
   }, [resendCooldownSeconds]);
 
   useEffect(() => {
-    if (!isSignUpLoaded) {
-      return;
-    }
-
-    if (!signUp || !pendingAuthFlow || !clerk) {
+    if (!emailPasswordSignUp || !pendingAuthFlow) {
       clearPendingAuthFlow();
       router.replace('/create-account');
     }
-  }, [clerk, isSignUpLoaded, pendingAuthFlow, router, signUp]);
+  }, [emailPasswordSignUp, pendingAuthFlow, router]);
 
-  if (!isSignUpLoaded || !signUp || !pendingAuthFlow || !clerk) {
+  if (!emailPasswordSignUp || !pendingAuthFlow) {
     return null;
   }
 
@@ -111,45 +117,37 @@ export default function VerifyEmailScreen() {
     let shouldShowSetupFailure = false;
 
     try {
-      const verificationAttempt = (await signUp.attemptEmailAddressVerification({
+      const verificationResult = await emailPasswordSignUp.verifications.verifyEmailCode({
         code,
-      })) as {
-        createdSessionId?: string | null;
-        createdUserId?: string | null;
-        status?: string | null;
-      };
+      });
+      const verificationError = getAuthMethodError(verificationResult);
 
-      const verificationStatus =
-        verificationAttempt.status ?? (signUp as { status?: string | null }).status ?? null;
-      const createdSessionId =
-        verificationAttempt.createdSessionId ??
-        (signUp as { createdSessionId?: string | null }).createdSessionId ??
-        null;
+      if (verificationError) {
+        setCode('');
+        setErrorMessage(
+          getClerkErrorMessage(
+            verificationError,
+            'We could not verify your email. Please try again.'
+          )
+        );
+        return;
+      }
 
-      if (verificationStatus !== 'complete' || !createdSessionId) {
+      if (emailPasswordSignUp.status !== 'complete') {
         setCode('');
         setErrorMessage('We could not verify your email. Please try again.');
         return;
       }
 
-      await clerk.setActive({ session: createdSessionId });
-
-      const verifiedUserId =
-        verificationAttempt.createdUserId ?? (clerk.user?.id as string | undefined) ?? null;
-
-      if (!verifiedUserId) {
-        setErrorMessage('We could not finish setting up your account. Please try again.');
-        return;
-      }
+      const verifiedUserId = await finalizeClerkSignUp(emailPasswordSignUp);
 
       setSetupClerkUserId(verifiedUserId);
       setSetupEmailAddress(pendingAuthFlow.emailAddress);
       shouldShowSetupFailure = true;
 
-      await linkAppUser({
+      await linkFinalizedClerkSignUp({
         clerkUserId: verifiedUserId,
         email: pendingAuthFlow.emailAddress,
-        displayName: null,
         getToken,
       });
 
@@ -157,25 +155,15 @@ export default function VerifyEmailScreen() {
       clearPendingAuthFlow();
       router.replace('/trial-paywall');
     } catch (error) {
-      if (isClerkAPIResponseError(error)) {
-        const firstError = error.errors[0];
-        setCode('');
-        setErrorMessage(
-          firstError?.longMessage ??
-            firstError?.message ??
-            'We could not verify your email. Please try again.'
-        );
-        return;
-      }
-
-      if (__DEV__) {
+      if (__DEV__ && !isAppUserLinkingAuthConfigurationError(error)) {
         console.error(error);
       }
 
+      setCode('');
       setErrorMessage(
         shouldShowSetupFailure
-          ? APP_USER_SETUP_FAILURE_MESSAGE
-          : 'We could not verify your email. Please try again.'
+          ? getAppUserLinkingErrorMessage(error, APP_USER_SETUP_FAILURE_MESSAGE)
+          : getClerkErrorMessage(error, 'We could not verify your email. Please try again.')
       );
     } finally {
       setIsVerifying(false);
@@ -183,7 +171,7 @@ export default function VerifyEmailScreen() {
   };
 
   const handleResendCode = async () => {
-    if (isVerifying || isResending || !clerk || !signUp) {
+    if (isVerifying || isResending || !emailPasswordSignUp) {
       setErrorMessage('Authentication is still loading. Please try again.');
       return;
     }
@@ -192,24 +180,21 @@ export default function VerifyEmailScreen() {
     setErrorMessage(null);
 
     try {
-      await signUp.prepareEmailAddressVerification({
-        strategy: 'email_code',
-      });
-      setResendCooldownSeconds(VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS);
-    } catch (error) {
-      if (isClerkAPIResponseError(error)) {
-        const firstError = error.errors[0];
-        setErrorMessage(
-          firstError?.longMessage ?? firstError?.message ?? VERIFY_EMAIL_RESEND_FAILURE_MESSAGE
-        );
+      const resendResult = await emailPasswordSignUp.verifications.sendEmailCode();
+      const resendError = getAuthMethodError(resendResult);
+
+      if (resendError) {
+        setErrorMessage(getClerkErrorMessage(resendError, VERIFY_EMAIL_RESEND_FAILURE_MESSAGE));
         return;
       }
 
+      setResendCooldownSeconds(VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS);
+    } catch (error) {
       if (__DEV__) {
         console.error(error);
       }
 
-      setErrorMessage(VERIFY_EMAIL_RESEND_FAILURE_MESSAGE);
+      setErrorMessage(getClerkErrorMessage(error, VERIFY_EMAIL_RESEND_FAILURE_MESSAGE));
     } finally {
       setIsResending(false);
     }
@@ -226,15 +211,29 @@ export default function VerifyEmailScreen() {
   const isPrimaryActionDisabled =
     isVerifying ||
     isResending ||
+    fetchStatus === 'fetching' ||
     (!isSetupRecovery && code.length !== VERIFY_EMAIL_CODE_LENGTH) ||
-    (!clerk && isSetupRecovery);
+    (!emailPasswordSignUp && isSetupRecovery);
   const resendActionLabel = isResending
     ? VERIFY_EMAIL_RESEND_LOADING_LABEL
     : resendCooldownSeconds > 0
       ? `Resend in ${resendCooldownSeconds}s`
       : VERIFY_EMAIL_RESEND_ACTION_LABEL;
   const isResendActionDisabled =
-    isSetupRecovery || isVerifying || isResending || resendCooldownSeconds > 0;
+    isSetupRecovery ||
+    isVerifying ||
+    isResending ||
+    fetchStatus === 'fetching' ||
+    resendCooldownSeconds > 0;
+  const isCodeInputDisabled = isVerifying || isResending;
+
+  const focusVerificationCodeInput = () => {
+    if (isCodeInputDisabled) {
+      return;
+    }
+
+    verificationCodeInputRef.current?.focus();
+  };
 
   return (
     <KeyboardAvoidingView behavior="padding" className="flex-1 bg-dark-background">
@@ -273,29 +272,37 @@ export default function VerifyEmailScreen() {
           </View>
 
           <View className="gap-6 rounded-3xl border border-dark-border bg-dark-surface p-5">
-            <View className="gap-4">
-              <View className="flex-row justify-between gap-2">
-                {Array.from({ length: VERIFY_EMAIL_CODE_LENGTH }).map((_, index) => {
-                  const digit = code[index] ?? '';
+            <View>
+              <Pressable
+                accessibilityLabel="Verification code entry"
+                accessibilityRole="button"
+                disabled={isCodeInputDisabled}
+                onPress={focusVerificationCodeInput}
+                testID="verification-code-entry">
+                <View className="flex-row justify-between gap-2">
+                  {Array.from({ length: VERIFY_EMAIL_CODE_LENGTH }).map((_, index) => {
+                    const digit = code[index] ?? '';
 
-                  return (
-                    <View
-                      key={index}
-                      testID="verification-code-box"
-                      className="h-14 flex-1 items-center justify-center rounded-2xl border border-dark-border bg-dark-background">
-                      <Text className="font-display text-h2 text-dark-text-primary">{digit}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+                    return (
+                      <View
+                        key={index}
+                        testID="verification-code-box"
+                        className="h-14 flex-1 items-center justify-center rounded-2xl border border-dark-border bg-dark-background">
+                        <Text className="font-display text-h2 text-dark-text-primary">{digit}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </Pressable>
 
               <TextInput
+                ref={verificationCodeInputRef}
                 accessibilityLabel="Verification code"
                 autoCapitalize="none"
                 autoComplete="one-time-code"
                 autoCorrect={false}
                 className="absolute h-px w-px opacity-0"
-                editable={!isVerifying && !isResending}
+                editable={!isCodeInputDisabled}
                 keyboardType="number-pad"
                 onChangeText={(text) => {
                   setCode(normalizeVerificationCode(text));
@@ -334,7 +341,7 @@ export default function VerifyEmailScreen() {
             </Pressable>
 
             {errorMessage ? (
-              <Text selectable className="text-brand-error font-body text-body-sm">
+              <Text selectable className="font-body text-body-sm text-red-500">
                 {errorMessage}
               </Text>
             ) : null}

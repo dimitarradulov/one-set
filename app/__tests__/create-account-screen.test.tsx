@@ -3,21 +3,31 @@ import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import CreateAccountScreen from '../create-account';
+import { APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE } from '@/constants/app-user-setup';
 import { clearPendingAuthFlow, getPendingAuthFlow } from '@/utils/pending-auth-flow';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
-const mockCreate = jest.fn();
-const mockPrepareEmailVerification = jest.fn();
-const mockSetActive = jest.fn();
+const mockPassword = jest.fn();
+const mockSendEmailCode = jest.fn();
+const mockFinalize = jest.fn();
 const mockGetToken = jest.fn();
 const mockLinkAppUser = jest.fn();
 const mockUseSignUp = jest.fn();
-const mockUseClerk = jest.fn();
 const mockUseAuth = jest.fn();
-const mockIsClerkAPIResponseError = jest.fn(() => false);
+let mockSignUp: {
+  status: string;
+  missingFields: string[];
+  unverifiedFields: string[];
+  password: typeof mockPassword;
+  verifications: {
+    sendEmailCode: typeof mockSendEmailCode;
+    verifyEmailCode: jest.Mock;
+  };
+  finalize: typeof mockFinalize;
+};
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
@@ -30,12 +40,13 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@clerk/expo', () => ({
   useSignUp: () => mockUseSignUp(),
-  useClerk: () => mockUseClerk(),
   useAuth: () => mockUseAuth(),
-  isClerkAPIResponseError: (error: unknown) => mockIsClerkAPIResponseError(error),
+  isClerkAPIResponseError: (error: unknown) =>
+    typeof error === 'object' && error !== null && 'errors' in error,
 }));
 
 jest.mock('@/utils/app-user-linking', () => ({
+  ...jest.requireActual('@/utils/app-user-linking'),
   linkAppUser: (...args: unknown[]) => mockLinkAppUser(...args),
 }));
 
@@ -55,25 +66,41 @@ describe('Create Account screen', () => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
 
+    mockSignUp = {
+      status: 'missing_requirements',
+      password: mockPassword,
+      verifications: {
+        sendEmailCode: mockSendEmailCode,
+        verifyEmailCode: jest.fn(),
+      },
+      unverifiedFields: ['email_address'],
+      missingFields: [],
+      finalize: mockFinalize,
+    };
     mockUseSignUp.mockReturnValue({
-      isLoaded: true,
-      signUp: {
-        create: mockCreate,
-        prepareEmailAddressVerification: mockPrepareEmailVerification,
-        status: 'complete',
-        unverifiedFields: [],
-        missingFields: [],
-      },
-    });
-    mockUseClerk.mockReturnValue({
-      setActive: mockSetActive,
-      user: {
-        id: 'user_123',
-      },
+      signUp: mockSignUp,
+      fetchStatus: 'idle',
     });
     mockUseAuth.mockReturnValue({
       getToken: mockGetToken,
     });
+    mockPassword.mockResolvedValue({ error: null });
+    mockSendEmailCode.mockResolvedValue({ error: null });
+    mockFinalize.mockImplementation(
+      async ({
+        navigate,
+      }: {
+        navigate: (params: { session: { user: { id: string } } }) => Promise<void> | void;
+      }) => {
+        await navigate({
+          session: {
+            user: {
+              id: 'user_123',
+            },
+          },
+        });
+      }
+    );
     mockGetToken.mockResolvedValue('clerk-session-token');
     mockLinkAppUser.mockResolvedValue({
       id: 'app_user_123',
@@ -83,7 +110,6 @@ describe('Create Account screen', () => {
       created_at: '2026-06-04T00:00:00Z',
       updated_at: '2026-06-04T00:00:00Z',
     });
-    mockIsClerkAPIResponseError.mockReturnValue(false);
     clearPendingAuthFlow();
   });
 
@@ -107,6 +133,7 @@ describe('Create Account screen', () => {
     expect(screen.getByText('Password')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Create account' })).toBeOnTheScreen();
+    expect(screen.getByTestId('clerk-captcha')).toBeOnTheScreen();
     expect(
       screen.getByRole('button', { name: 'Already have an account? Sign in.' })
     ).toBeOnTheScreen();
@@ -142,7 +169,7 @@ describe('Create Account screen', () => {
 
     expect(screen.getByText('Enter a valid email address.')).toBeOnTheScreen();
     expect(screen.getByText('Password must be at least 6 characters.')).toBeOnTheScreen();
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockPassword).not.toHaveBeenCalled();
     expect(Alert.alert).not.toHaveBeenCalledWith(
       'Account creation unavailable',
       expect.any(String)
@@ -150,12 +177,10 @@ describe('Create Account screen', () => {
   });
 
   test('disables the create action while the account request is in flight', async () => {
-    let resolveCreate:
-      | ((value: { createdSessionId: string; createdUserId: string }) => void)
-      | undefined;
+    let resolveCreate: ((value: { error: null }) => void) | undefined;
 
-    mockCreate.mockReturnValue(
-      new Promise<{ createdSessionId: string; createdUserId: string }>((resolve) => {
+    mockPassword.mockReturnValue(
+      new Promise<{ error: null }>((resolve) => {
         resolveCreate = resolve;
       })
     );
@@ -168,29 +193,15 @@ describe('Create Account screen', () => {
 
     expect(screen.getByRole('button', { name: 'Creating account...' })).toBeDisabled();
 
-    resolveCreate?.({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-    });
+    resolveCreate?.({ error: null });
 
     await waitFor(() => {
-      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
-      expect(mockLinkAppUser).toHaveBeenCalledWith({
-        clerkUserId: 'user_123',
-        email: 'user@example.com',
-        displayName: null,
-        getToken: mockGetToken,
-      });
-      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+      expect(mockSendEmailCode).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/verify-email');
     });
   });
 
-  test('activates the session, links the app user, and advances on success', async () => {
-    mockCreate.mockResolvedValue({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-    });
-
+  test('starts email/password sign-up, sends the verification code, and routes to verification', async () => {
     renderCreateAccountScreen();
 
     fireEvent.changeText(screen.getByPlaceholderText('Email address'), '  USER@Example.COM ');
@@ -198,26 +209,22 @@ describe('Create Account screen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
 
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(mockPassword).toHaveBeenCalledWith({
         emailAddress: 'user@example.com',
         password: 'secret1',
       });
-      expect(mockSetActive).toHaveBeenCalledWith({ session: 'session_123' });
-      expect(mockLinkAppUser).toHaveBeenCalledWith({
-        clerkUserId: 'user_123',
-        email: 'user@example.com',
-        displayName: null,
-        getToken: mockGetToken,
+      expect(mockSendEmailCode).toHaveBeenCalled();
+      expect(getPendingAuthFlow()).toEqual({
+        emailAddress: 'user@example.com',
       });
-      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
+      expect(mockFinalize).not.toHaveBeenCalled();
+      expect(mockLinkAppUser).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/verify-email');
     });
   });
 
   test('shows setup recovery after Supabase linking fails and retries without recreating the account', async () => {
-    mockCreate.mockResolvedValue({
-      createdSessionId: 'session_123',
-      createdUserId: 'user_123',
-    });
+    mockSignUp.status = 'complete';
     mockLinkAppUser.mockRejectedValueOnce(new Error('Supabase unavailable'));
 
     renderCreateAccountScreen();
@@ -234,13 +241,15 @@ describe('Create Account screen', () => {
     });
 
     expect(screen.getByPlaceholderText('Password')).toHaveDisplayValue('');
-    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockPassword).toHaveBeenCalledTimes(1);
+    expect(mockFinalize).toHaveBeenCalledTimes(1);
+    expect(mockSendEmailCode).not.toHaveBeenCalled();
     expect(mockLinkAppUser).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByRole('button', { name: 'Finish setup' }));
 
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockPassword).toHaveBeenCalledTimes(1);
       expect(mockLinkAppUser).toHaveBeenCalledTimes(2);
       expect(mockLinkAppUser).toHaveBeenLastCalledWith({
         clerkUserId: 'user_123',
@@ -252,27 +261,28 @@ describe('Create Account screen', () => {
     });
   });
 
-  test('routes to email verification and stores pending context when Clerk requires it', async () => {
-    mockUseSignUp.mockReturnValue({
-      isLoaded: true,
-      signUp: {
-        create: mockCreate,
-        prepareEmailAddressVerification: mockPrepareEmailVerification,
-        status: 'missing_requirements',
-        unverifiedFields: ['email_address'],
-        missingFields: [],
-      },
+  test('explains Supabase JWT configuration errors during immediate setup linking', async () => {
+    mockSignUp.status = 'complete';
+    mockLinkAppUser.mockRejectedValueOnce({
+      code: 'PGRST301',
+      details: 'No suitable key was found to decode the JWT',
+      hint: null,
+      message: 'No suitable key or wrong key type',
     });
 
-    mockCreate.mockResolvedValue({
-      createdSessionId: null,
-      createdUserId: 'user_123',
-      status: 'missing_requirements',
-      unverifiedFields: ['email_address'],
-      missingFields: [],
-    });
-    mockPrepareEmailVerification.mockResolvedValue(undefined);
+    renderCreateAccountScreen();
 
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret1');
+    fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE)).toBeOnTheScreen();
+    });
+  });
+
+  test('finalizes and links immediately when Clerk completes sign-up without verification', async () => {
+    mockSignUp.status = 'complete';
     renderCreateAccountScreen();
 
     fireEvent.changeText(screen.getByPlaceholderText('Email address'), '  USER@Example.COM ');
@@ -280,19 +290,19 @@ describe('Create Account screen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Create account' }));
 
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(mockPassword).toHaveBeenCalledWith({
         emailAddress: 'user@example.com',
         password: 'secret1',
       });
-      expect(mockPrepareEmailVerification).toHaveBeenCalledWith({
-        strategy: 'email_code',
+      expect(mockFinalize).toHaveBeenCalled();
+      expect(mockLinkAppUser).toHaveBeenCalledWith({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken: mockGetToken,
       });
-      expect(getPendingAuthFlow()).toEqual({
-        emailAddress: 'user@example.com',
-      });
-      expect(mockSetActive).not.toHaveBeenCalled();
-      expect(mockLinkAppUser).not.toHaveBeenCalled();
-      expect(mockReplace).toHaveBeenCalledWith('/verify-email');
+      expect(getPendingAuthFlow()).toBeNull();
+      expect(mockReplace).toHaveBeenCalledWith('/trial-paywall');
     });
   });
 
@@ -307,8 +317,7 @@ describe('Create Account screen', () => {
       ],
     };
 
-    mockIsClerkAPIResponseError.mockReturnValue(true);
-    mockCreate.mockRejectedValue(clerkError);
+    mockPassword.mockResolvedValue({ error: clerkError });
 
     renderCreateAccountScreen();
 

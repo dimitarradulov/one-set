@@ -1,4 +1,5 @@
 import { createClerkSupabaseClient } from '../supabase';
+import { APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE } from '@/constants/app-user-setup';
 import { linkAppUser } from '../app-user-linking';
 
 jest.mock('@supabase/supabase-js', () => {
@@ -155,5 +156,30 @@ describe('app user linking', () => {
     ).rejects.toThrow('permanent failure');
 
     expect(supabaseMock.__mockSupabase.mockUpsert).toHaveBeenCalledTimes(3);
+  });
+
+  test('throws Supabase JWT configuration errors without retrying', async () => {
+    const getToken = jest.fn();
+
+    supabaseMock.__mockSupabase.mockSingle.mockResolvedValue({
+      data: null,
+      error: {
+        code: 'PGRST301',
+        details: 'No suitable key was found to decode the JWT',
+        hint: null,
+        message: 'No suitable key or wrong key type',
+      },
+    });
+
+    await expect(
+      linkAppUser({
+        clerkUserId: 'user_123',
+        email: 'user@example.com',
+        displayName: null,
+        getToken,
+      })
+    ).rejects.toThrow(APP_USER_SETUP_AUTH_CONFIGURATION_MESSAGE);
+
+    expect(supabaseMock.__mockSupabase.mockUpsert).toHaveBeenCalledTimes(1);
   });
 });
