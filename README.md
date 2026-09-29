@@ -45,6 +45,8 @@ The approved product scope and proposed implementation are documented. The datab
 
 Open [OneSet.xcodeproj](OneSet.xcodeproj) in Xcode and run the `OneSet` scheme on an iOS simulator. The project currently uses Swift 6 and a provisional iOS 17 deployment target. Confirm the device and SDK floor before release as tracked in the [launch checklist](docs/launch-checklist.md).
 
+The shared palette and Dynamic Type-aware font styles live in [OneSet/DesignSystem](OneSet/DesignSystem). Use `OneSetColors` and `OneSetTypography` in SwiftUI views rather than repeating color values or font names. Change their definitions there when the design system changes. The Bebas Neue and Roboto Mono font files and license notices are in `OneSet/DesignSystem/Fonts`; font registration is in [Config/Info.plist](Config/Info.plist).
+
 For a command-line simulator build, run:
 
 ```sh

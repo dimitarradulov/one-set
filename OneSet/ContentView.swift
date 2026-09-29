@@ -4,20 +4,20 @@ struct ContentView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       Text("ONESET")
-        .font(.system(size: 40, weight: .bold))
-        .fontWidth(.condensed)
-        .foregroundStyle(Color(red: 0.85, green: 0.47, blue: 0.02))
+        .font(OneSetTypography.display)
+        .foregroundStyle(OneSetColors.accent)
 
       Text("Your training starts here")
-        .font(.title2.weight(.semibold))
+        .font(OneSetTypography.h2)
+        .foregroundStyle(OneSetColors.textPrimary)
 
       Text("The iOS app foundation is ready. Workouts and account setup are coming next.")
-        .font(.body)
-        .foregroundStyle(.secondary)
+        .font(OneSetTypography.body)
+        .foregroundStyle(OneSetColors.textSecondary)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .padding(24)
-    .background(Color(red: 0.10, green: 0.10, blue: 0.10))
+    .background(OneSetColors.background)
     .preferredColorScheme(.dark)
   }
 }
