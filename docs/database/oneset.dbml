@@ -1,0 +1,148 @@
+// Applied by migrations/001_documented_schema.sql to Neon production on 2026-09-29.
+// README.md specifies snapshot contents and transaction-level validation.
+Project OneSet {
+  database_type: 'PostgreSQL'
+  Note: 'Original program/workout/exercise model with editable templates and preserved session history.'
+}
+
+Enum weight_unit {
+  kg
+  lb
+}
+
+Table workout_programs {
+  id serial [pk]
+  name text [not null]
+  recommended_weeks integer [not null, default: 8, check: `recommended_weeks > 0`]
+}
+
+Table workouts {
+  id serial [pk]
+  name text [not null]
+  Note: 'Current editable template. Sessions retain their own name and guidance.'
+}
+
+Table program_workouts {
+  program_id integer [not null, ref: > workout_programs.id]
+  workout_id integer [not null, ref: > workouts.id]
+  position integer [check: `position > 0`, note: 'Null removes this entry from the current template while preserving history references']
+  indexes {
+    (program_id, workout_id) [pk]
+    (program_id, position) [unique]
+  }
+}
+
+Table exercises {
+  id serial [pk]
+  name text [not null]
+  instructions text [not null, note: 'Includes when to stop the set, total/added-load and unilateral guidance']
+  video_key text [note: 'Immutable private R2 object key; replaces public url']
+  reps_min integer [not null]
+  reps_max integer [not null]
+  rest_seconds integer [not null, check: `rest_seconds > 0`]
+  warmup_guidance jsonb [not null, check: `jsonb_typeof(warmup_guidance) = 'object'`, note: 'Validated percentage ranges and text; no warmup logs']
+  checks {
+    `reps_min > 0 AND reps_max >= reps_min`
+  }
+  Note: 'Shared exercise guidance and default rep targets for replacements.'
+}
+
+Table workout_exercises {
+  id serial [pk]
+  workout_id integer [not null, ref: > workouts.id]
+  exercise_id integer [not null, ref: > exercises.id]
+  position integer [check: `position > 0`, note: 'Null removes this entry from the current template while preserving history references']
+  reps_min integer [not null]
+  reps_max integer [not null]
+  checks {
+    `reps_min > 0 AND reps_max >= reps_min`
+  }
+  indexes {
+    (workout_id, position) [unique]
+  }
+}
+
+Table users {
+  id serial [pk]
+  clerk_user_id text [not null, unique]
+  preferred_unit weight_unit [not null]
+  training_days integer [not null, check: `training_days BETWEEN 2 AND 5`]
+  active_user_program_id uuid
+  Note: 'Clerk owns the account profile and access. This row links training data and stores app preferences.'
+}
+
+// One row is one run (cycle), as suggested by the original started_at field.
+Table user_programs {
+  id uuid [pk, note: 'Generated once on device, reused on every retry']
+  user_id integer [not null, ref: > users.id]
+  workout_program_id integer [not null, ref: > workout_programs.id]
+  started_at timestamptz [not null]
+  indexes {
+    (user_id, workout_program_id, started_at, id)
+  }
+}
+Ref: users.active_user_program_id > user_programs.id
+
+Table user_workout_exercises {
+  user_program_id uuid [not null, ref: > user_programs.id]
+  workout_exercise_id integer [not null, ref: > workout_exercises.id]
+  exercise_id integer [ref: > exercises.id, note: 'Null means keep the prescribed exercise']
+  note text
+  rest_seconds integer [check: `rest_seconds > 0`]
+  indexes {
+    (user_program_id, workout_exercise_id) [pk]
+  }
+  Note: 'Sparse overrides. Copy compatible preferences when starting a new run.'
+}
+
+Table workout_sessions {
+  id uuid [pk, note: 'Generated once on device']
+  user_program_id uuid [not null, ref: > user_programs.id]
+  workout_id integer [not null, ref: > workouts.id]
+  week_number integer [not null, check: `week_number > 0`]
+  workout_name text [not null, note: 'Copied at session start; later template renames do not rewrite history']
+  started_at timestamptz [not null]
+  completed_at timestamptz [note: 'Null means unfinished; no separate status field']
+  note text
+  revision bigint [not null, default: 1, check: `revision > 0`, note: 'Rejects an older upload retry after a newer session save']
+  indexes {
+    (user_program_id, started_at, id)
+  }
+  checks {
+    `completed_at IS NULL OR completed_at >= started_at`
+  }
+}
+
+// One row per prescribed slot, created at session start; one working set only.
+Table workout_session_sets {
+  workout_session_id uuid [not null]
+  position integer [not null, check: `position > 0`, note: 'Copied slot order; later reordering does not rewrite history']
+  workout_exercise_id integer [not null, ref: > workout_exercises.id]
+  exercise_id integer [not null, ref: > exercises.id, note: 'Actual movement, including a replacement']
+  prescription jsonb [not null, check: `jsonb_typeof(prescription) = 'object'`, note: 'Historical guidance assembled from exercise instructions and effective rep/rest targets; shape in README']
+  note text [note: 'Copied remembered note, then editable for this session']
+  weight numeric(10,3) [check: `weight >= 0 AND weight <> 'NaN'::numeric`]
+  unit weight_unit [not null]
+  reps integer [check: `reps > 0`]
+  completed_at timestamptz [note: 'Null means draft, or unperformed after the session finishes']
+  indexes {
+    (workout_session_id, workout_exercise_id) [pk]
+    (workout_session_id, position) [unique]
+    exercise_id
+  }
+  checks {
+    `completed_at IS NULL OR (weight IS NOT NULL AND reps IS NOT NULL)`
+  }
+}
+Ref: workout_session_sets.workout_session_id > workout_sessions.id [delete: cascade]
+
+// Only added table: completion marks independent of deletable history.
+Table completed_workouts {
+  user_program_id uuid [not null, ref: > user_programs.id]
+  week_number integer [not null, check: `week_number > 0`]
+  workout_id integer [not null, ref: > workouts.id]
+  indexes {
+    (user_program_id, week_number, workout_id) [pk]
+  }
+  Note: 'Insert on Finish; duplicate attempts share a mark. Absence means incomplete.'
+}
