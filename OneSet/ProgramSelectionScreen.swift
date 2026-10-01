@@ -111,6 +111,7 @@ private struct ProgramCard: View {
                 .foregroundStyle(OneSetColors.textPrimary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
+                .frame(minHeight: 28)
                 .background(OneSetColors.accentSubtle, in: Capsule())
                 .accessibilityIdentifier("programs.match.\(program.id)")
             }
