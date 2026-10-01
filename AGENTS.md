@@ -12,7 +12,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project OneSet.xcodeproj -scheme OneSet \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
-# Required validation before finishing any task.
+# Required before finishing tasks that change code; see validation guidance below.
 ./scripts/validate.sh
 ```
 
@@ -22,5 +22,5 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 - When adding or refactoring SwiftUI features, domain models, persistence, or services, follow [iOS architecture](docs/agents/architecture.md).
 - When editing documentation or configuration examples, follow [documentation conventions](docs/agents/documentation.md).
 - When changing the schema or migrations, follow [database changes](docs/agents/database.md).
-- Before finishing any DEVELOPMENT task, i.e. writing code, follow [validation](docs/agents/validation.md); UI changes also require simulator routes and screenshot inspection.
+- When changing code, follow [validation](docs/agents/validation.md) before finishing. Documentation-only and other non-code tasks require review of the changed files, not build/test scripts. Simulator routes and screenshot inspection are required only for UI changes that need visual verification, such as new screens, redesigns, or new visible elements.
 - When committing or preparing a pull request, follow [Git workflow](docs/agents/git-workflow.md).

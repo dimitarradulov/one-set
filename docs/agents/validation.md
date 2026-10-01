@@ -1,7 +1,8 @@
 # Validation
 
+Run `./scripts/validate.sh` from the repository root before finishing a task that changes code, including application code, tests, or executable scripts. Changes to build configuration that affect compilation or test execution also require this validation.
 
-Run `./scripts/validate.sh` from the repository root before finishing, as specified in the [root commands](../../AGENTS.md#commands).
+For tasks limited to documentation, agent instructions, configuration examples, or other non-code files that do not affect compilation or execution, review the changed files and any relevant links or examples. Skip build/test scripts and simulator validation for these tasks. For mixed tasks, apply validation to the code or UI changes they include.
 
 - Fix failures introduced by your changes and rerun validation after fixes.
 - Inspect the final diff for accidental or unrelated changes.
@@ -13,7 +14,11 @@ Treat the application workflows in the [launch checklist](../launch-checklist.md
 
 ## UI changes
 
-For changes to SwiftUI views, layout, styling, navigation, spacing, typography, colors, icons, or visual state, also run:
+Run UI validation only when the task changes visible appearance or screen behavior that needs visual verification: for example, adding a screen or visible element, redesigning a screen, changing layout or styling, or changing a visible state or navigation flow.
+
+Editing a SwiftUI file alone does not require UI validation. Refactors that preserve appearance and screen behavior, or changes confined to models, persistence, services, or other nonvisual logic, require code validation only.
+
+For UI changes that need visual verification, also run:
 
 ```sh
 ./scripts/validate-ui.sh --ui-home
