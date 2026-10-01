@@ -9,7 +9,8 @@ struct OneSetApp: App {
     let launch = AppLaunchConfiguration(arguments: ProcessInfo.processInfo.arguments)
     _onboarding = State(initialValue: OnboardingModel(
       catalog: dependencies.catalog,
-      initialPath: launch.onboardingPath
+      initialPath: launch.onboardingPath,
+      initialSelectedProgramID: launch.selectedProgramID
     ))
   }
 

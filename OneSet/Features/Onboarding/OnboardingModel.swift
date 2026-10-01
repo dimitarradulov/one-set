@@ -10,9 +10,14 @@ final class OnboardingModel {
 
   private let catalog: ProgramCatalog
 
-  init(catalog: ProgramCatalog, initialPath: [OnboardingRoute] = []) {
+  init(
+    catalog: ProgramCatalog,
+    initialPath: [OnboardingRoute] = [],
+    initialSelectedProgramID: TrainingProgram.ID? = nil
+  ) {
     self.catalog = catalog
     path = initialPath
+    selectedProgramID = initialSelectedProgramID
   }
 
   var programs: [TrainingProgram] {
@@ -39,7 +44,16 @@ final class OnboardingModel {
     guard catalog.program(id: id) != nil else { return }
     selectedProgramID = id
     if path.last == .programDetail(id) {
-      path.removeLast()
+      path.append(.trialPreview(id))
     }
+  }
+
+  func continueWithoutTrial() {
+    guard let selectedProgramID,
+          catalog.program(id: selectedProgramID) != nil,
+          path.last == .trialPreview(selectedProgramID)
+    else { return }
+
+    path.append(.programOverview(selectedProgramID))
   }
 }

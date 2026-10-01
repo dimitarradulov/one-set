@@ -119,6 +119,17 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["Workout templates"].exists)
     app.buttons["program.detail.select"].tap()
 
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["trial.preview.notice"].exists)
+    app.buttons["trial.continueWithoutTrial"].tap()
+
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    app.navigationBars.buttons.firstMatch.tap()
+    app.navigationBars.buttons.firstMatch.tap()
+
     let selectedMachineProgram = programCard("machine-full-body")
     XCTAssertTrue(selectedMachineProgram.waitForExistence(timeout: 3))
     XCTAssertTrue(selectedMachineProgram.label.localizedCaseInsensitiveContains("selected"))
@@ -135,6 +146,51 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["preferences.continue"].tap()
     XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
     XCTAssertFalse(programCard("machine-full-body").label.localizedCaseInsensitiveContains("selected"))
+  }
+
+  func testTrialBypassOpensSelectedProgramOverviewAndSwitchesRotationWeeks() {
+    openPreferences(using: "continue.apple")
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["trial.preview.notice"].label.localizedCaseInsensitiveContains("preview"))
+    XCTAssertFalse(app.staticTexts["Trial started"].exists)
+    XCTAssertFalse(app.staticTexts["Purchase complete"].exists)
+
+    app.buttons["trial.continueWithoutTrial"].tap()
+
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
+    XCTAssertTrue(app.staticTexts["overview.frequency"].label.contains("3 days per week"))
+    XCTAssertTrue(app.staticTexts["Recommended training weeks"].exists)
+    XCTAssertTrue(app.buttons["overview.week.1"].exists)
+    XCTAssertTrue(app.buttons["overview.week.8"].exists)
+    XCTAssertGreaterThanOrEqual(app.buttons["overview.week.1"].frame.height, 44)
+    let firstDay = app.descendants(matching: .any).matching(identifier: "overview.day.1").firstMatch
+    XCTAssertTrue(firstDay.exists)
+    XCTAssertTrue(app.staticTexts["overview.day.1.status"].label.contains("Not started"))
+    for day in 1...3 {
+      XCTAssertTrue(app.staticTexts["overview.day.\(day).status"].label.contains("Not started"))
+    }
+    XCTAssertFalse(app.staticTexts["Completed"].exists)
+
+    let firstDayPreview = app.descendants(matching: .any)
+      .matching(identifier: "overview.day.1.preview")
+      .firstMatch
+    XCTAssertTrue(firstDayPreview.exists)
+    firstDayPreview.tap()
+    let firstMovement = app.staticTexts["Weighted Chin-Up"]
+    let secondMovement = app.staticTexts["Incline Smith-Machine Press"]
+    XCTAssertTrue(firstMovement.waitForExistence(timeout: 3))
+    XCTAssertTrue(secondMovement.exists)
+    XCTAssertLessThan(firstMovement.frame.minY, secondMovement.frame.minY)
+
+    app.buttons["overview.week.4"].tap()
+    XCTAssertTrue(app.buttons["overview.week.4"].isSelected)
+    XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
+    XCTAssertTrue(app.staticTexts["overview.day.1.status"].label.contains("Not started"))
   }
 
   private func openPreferences(using actionIdentifier: String) {

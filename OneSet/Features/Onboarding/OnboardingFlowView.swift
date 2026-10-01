@@ -61,6 +61,34 @@ struct OnboardingFlowView: View {
           } else {
             ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
           }
+        case .trialPreview(let programID):
+          if let program = model.program(id: programID) {
+            TrialPreviewScreen(program: program, onContinueWithoutTrial: model.continueWithoutTrial)
+              .navigationTitle("Trial preview")
+              .navigationBarTitleDisplayMode(.inline)
+              .toolbar {
+                ToolbarItem(placement: .principal) {
+                  ProgressPips(currentStep: 3)
+                    .accessibilityLabel("Trial preview, step 3 of 4")
+                }
+              }
+          } else {
+            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+          }
+        case .programOverview(let programID):
+          if let program = model.program(id: programID) {
+            ProgramOverviewScreen(program: program)
+              .navigationTitle("Program")
+              .navigationBarTitleDisplayMode(.inline)
+              .toolbar {
+                ToolbarItem(placement: .principal) {
+                  ProgressPips(currentStep: 4)
+                    .accessibilityLabel("Program overview, step 4 of 4")
+                }
+              }
+          } else {
+            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+          }
         case .login:
           MockLoginScreen()
             .toolbar(.hidden, for: .navigationBar)
