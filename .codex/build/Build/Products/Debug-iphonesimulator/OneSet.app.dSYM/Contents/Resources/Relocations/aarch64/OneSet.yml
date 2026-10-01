@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Products/Debug-iphonesimulator/OneSet.app/OneSet'
+relocations:     []
+...

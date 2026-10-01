@@ -12,7 +12,7 @@ Priority comes from the founder's program library and product decisions. Earlier
 
 | ID | Requirement and acceptance criteria |
 | --- | --- |
-| FR-01 | Account-first Variant A onboarding: welcome, Apple/email account, kg/lb and 2/3/4/5-day preference, program selection, seven-day trial offer, overview. Previously registered users restore existing state; no accidental reset through onboarding. |
+| FR-01 | Account-first Variant A onboarding: welcome with Apple, Google, and email account actions plus Log in, then kg/lb and 2/3/4/5-day preference, program selection, seven-day trial offer, overview. There is no separate account-choice screen. Previously registered users restore existing state through Log in; no accidental reset through onboarding. |
 | FR-02 | Browse all ten gym-only programs, showing frequency and workout previews. Frequency filters prioritize matching programs without hiding access to others. |
 | FR-03 | Starting a program creates/resumes enrollment and a cycle linked directly to the program. Eight training weeks recommended; training weeks are rotations, not calendar weeks. |
 | FR-04 | Overview displays week selectors and ordered Day 1/Day 2 cards. Each occurrence has its own completion state. Missing days does not advance the sequence. |
@@ -70,7 +70,7 @@ Nutrition/supplements, social feeds, challenges, body tracking, AI coaching, cus
 
 ## Key user flows
 
-**First use:** Welcome → Apple/email account → kg/lb and 2–5 training days → browse all ten programs, with frequency matches first → select program → seven-day trial offer → program overview. This focused sequence is the approved onboarding structure; visual design and wording remain open. The trial begins only after successful subscription enrollment. Dismissing the offer leaves program previews and existing history available. Returning users restore their existing state. Interrupted onboarding retains progress. Ask for notification permission when rest alerts are enabled, not during initial onboarding.
+**First use:** Welcome → Continue with Apple, Continue with Google, or Continue with email → kg/lb and 2–5 training days → browse all ten programs, with frequency matches first → select program → seven-day trial offer → program overview. The account actions and Log in are on Welcome; there is no separate account-choice screen. This focused sequence is the approved onboarding structure; other visual details remain open. The trial begins only after successful subscription enrollment. Dismissing the offer leaves program previews and existing history available. Returning users restore their existing state through Log in. Interrupted onboarding retains progress. Ask for notification permission when rest alerts are enabled, not during initial onboarding.
 
 **Program and workout:** The overview shows training weeks and ordered Day cards. Opening a card previews exercises and triggers current video downloads on Wi-Fi without starting a session. Start creates a local session after the access check. Inputs save locally as drafts; completing a set starts rest. Finish records completed/total exercises, duration and an optional note. An unfinished session resumes after interruption. Switching programs or starting a new cycle requires finishing or confirming discard of the active session.
 

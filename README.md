@@ -6,7 +6,7 @@ The initial audience already knows basic gym movements. OneSet supplies curated 
 
 ## The experience
 
-1. Create an account with Apple or email.
+1. Create an account with Apple, Google, or email from the welcome screen, or log in to an existing account.
 2. Choose kg/lb and training frequency, then select one of ten programs.
 3. Start a seven-day trial; intended price afterward is $4.89/month, subject to actual storefront pricing.
 4. Open the program overview, organized by training week and Day 1/Day 2 rather than weekdays.
@@ -27,7 +27,7 @@ Deferred: nutrition, social feeds, custom programs/exercises, charts, Apple Watc
 
 Start with [requirements](docs/requirements.md) for the approved product scope. Use [domain language](CONTEXT.md) when terms such as cycle, occurrence and session are unclear. The [program library](docs/HIT_Workout_Program_Library.md) is the source for the ten workouts.
 
-For implementation, read [system design](docs/system-design.md), then the focused [database design](docs/database/README.md), [sync and recovery](docs/sync-and-recovery.md), and [API contracts](docs/api-contracts.md). The [launch checklist](docs/launch-checklist.md) tracks remaining verification and release gates.
+For iOS code structure, follow [iOS architecture](docs/agents/architecture.md). For implementation, read [system design](docs/system-design.md), then the focused [database design](docs/database/README.md), [sync and recovery](docs/sync-and-recovery.md), and [API contracts](docs/api-contracts.md). The [launch checklist](docs/launch-checklist.md) tracks remaining verification and release gates.
 
 The [DBML schema](docs/database/oneset.dbml) and [applied migration](docs/database/migrations/001_documented_schema.sql) are technical artifacts, not additional product specifications. Requirements govern product behavior; the technical documents describe proposed implementation where no code exists yet.
 
@@ -39,7 +39,7 @@ Start on Neon Free. Aim for free infrastructure, with a broader $5–10/month ta
 
 ## Project status
 
-The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. A minimal SwiftUI app scaffold now exists; account, workout, local storage, sync, and backend behavior are still to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
+The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. A SwiftUI onboarding scaffold uses feature-level observable models and an injected bundled catalog; account, workout, local storage, sync, and backend behavior are still to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
 
 ## iOS development
 

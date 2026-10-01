@@ -1,0 +1,23 @@
+{
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/UnitChoiceButton.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/UnitChoiceButton.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/UnitChoiceButton.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/UnitChoiceButton.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/UnitChoiceButton.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/UnitChoiceButton.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/WelcomeScreen.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/WelcomeScreen.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/WelcomeScreen.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/WelcomeScreen.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/WelcomeScreen.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/WelcomeScreen.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Programs/ProgramCard.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgramCard.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgramCard.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgramCard.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgramCard.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgramCard.swiftdeps"
+  }
+}

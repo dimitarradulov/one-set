@@ -1,0 +1,32 @@
+{
+  "source": "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Programs/ProgramSelectionScreen.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Training frequency is a guide. Every program remains open to you.",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 36
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose your program",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "All ten programs are available. We’ll put your %lld-day matches first.",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 19
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,24 @@
+{
+  "source": "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/UnitChoiceButton.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Kilograms",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pounds",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 32
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,23 @@
+{
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/ProgressPips.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgressPips.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgressPips.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgressPips.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgressPips.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/ProgressPips.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/TrainingDayButton.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingDayButton.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingDayButton.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingDayButton.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingDayButton.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingDayButton.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/TrainingPreferencesScreen.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingPreferencesScreen.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingPreferencesScreen.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingPreferencesScreen.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingPreferencesScreen.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/x86_64/TrainingPreferencesScreen.swiftdeps"
+  }
+}

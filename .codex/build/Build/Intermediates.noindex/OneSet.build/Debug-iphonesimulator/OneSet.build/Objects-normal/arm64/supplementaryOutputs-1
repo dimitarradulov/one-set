@@ -1,0 +1,23 @@
+{
+  "/Users/dimitarradulov/Dev/one-set/OneSet/App/AppDependencies.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppDependencies.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppDependencies.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppDependencies.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppDependencies.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppDependencies.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/App/AppLaunchConfiguration.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppLaunchConfiguration.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppLaunchConfiguration.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppLaunchConfiguration.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppLaunchConfiguration.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/AppLaunchConfiguration.swiftdeps"
+  },
+  "/Users/dimitarradulov/Dev/one-set/OneSet/App/OneSetApp.swift" : {
+    "const-values" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/OneSetApp.swiftconstvalues",
+    "dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/OneSetApp.d",
+    "diagnostics" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/OneSetApp.dia",
+    "object" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/OneSetApp.o",
+    "swift-dependencies" : "/Users/dimitarradulov/Dev/one-set/.codex/build/Build/Intermediates.noindex/OneSet.build/Debug-iphonesimulator/OneSet.build/Objects-normal/arm64/OneSetApp.swiftdeps"
+  }
+}
