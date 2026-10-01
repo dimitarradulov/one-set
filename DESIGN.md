@@ -70,10 +70,10 @@ Prefer icon + copy + shape/state changes over introducing many status colors. Wh
 ### Font families
 
 - **Headings / display:** Bebas Neue
-- **Body / UI / data:** Roboto Mono
-- **Fallback:** use the closest system sans/monospace fallback while custom fonts are unavailable; never block rendering on font loading.
+- **Body / UI / data:** Montserrat
+- **Fallback:** use the closest system sans-serif fallback while custom fonts are unavailable; never block rendering on font loading.
 
-Bebas Neue gives OneSet a condensed athletic display voice. Roboto Mono makes weights, reps, timers, and historical values easy to scan because numerals have consistent width.
+Bebas Neue gives OneSet a condensed athletic display voice. Montserrat provides a geometric sans-serif voice for body copy, controls, and workout data.
 
 ### Critical typography rule
 
@@ -86,18 +86,18 @@ Bebas Neue gives OneSet a condensed athletic display voice. Roboto Mono makes we
 | `display` | Bebas Neue | 40 | Regular | 44 | Welcome / major branded moments |
 | `h1` | Bebas Neue | 32 | Regular | 36 | Screen titles |
 | `h2` | Bebas Neue | 24 | Regular | 28 | Major section titles |
-| `body` | Roboto Mono | 16 | Regular | 24 | Default readable copy |
-| `bodyStrong` | Roboto Mono | 16 | Medium | 24 | Important values and row titles |
-| `label` | Roboto Mono | 14 | Medium | 20 | Form/component labels |
-| `caption` | Roboto Mono | 12 | Regular | 16 | Metadata and secondary status |
-| `metric` | Roboto Mono | 20 | Medium | Weight, reps, timer, important workout values |
-| `button` | Roboto Mono | 16 | Medium | 20 | Buttons |
+| `body` | Montserrat | 16 | Regular | 24 | Default readable copy |
+| `bodyStrong` | Montserrat | 16 | Medium | 24 | Important values and row titles |
+| `label` | Montserrat | 14 | Medium | 20 | Form/component labels |
+| `caption` | Montserrat | 12 | Regular | 16 | Metadata and secondary status |
+| `metric` | Montserrat | 20 | Medium | Weight, reps, timer, important workout values |
+| `button` | Montserrat | 16 | Medium | 20 | Buttons |
 
 ### Typography rules
 
 - Prefer sentence case for functional copy.
 - Bebas Neue may render headings in uppercase where visually appropriate; do not force body/UI copy to uppercase.
-- Use tabular numerals if supported by the chosen Roboto Mono build.
+- Use tabular numerals for weights, reps, timers, and historical values if supported by the chosen Montserrat build; verify numeric alignment and timer stability on-device.
 - Avoid letter-spacing tricks in body text. For Bebas Neue, keep tracking restrained and test on-device.
 - Support Dynamic Type. Do not lock workout rows to a fixed height that clips enlarged text.
 - At accessibility sizes, allow metadata and controls to stack vertically rather than shrinking type.
@@ -149,7 +149,7 @@ Use **SF Symbols** as the default iOS icon system.
 
 - Default icon size: 18–20 pt; 24 pt for primary standalone controls.
 - Pair ambiguous icons with labels.
-- Keep stroke/weight visually compatible with Roboto Mono Medium.
+- Keep stroke/weight visually compatible with Montserrat Medium.
 - Use filled variants primarily for selected/active states.
 - Do not create custom icons for standard actions such as back, close, play, settings, history, check, search, or delete unless the system symbol fails the use case.
 
@@ -182,7 +182,7 @@ For non-primary actions such as Preview, Replace, Add note, Manage subscription.
 
 Use for low-emphasis actions such as Skip, Not now, Restore purchases.
 
-- Roboto Mono 14–16 Medium.
+- Montserrat 14–16 Medium.
 - Minimum 44 × 44 pt hit target even when visual text is smaller.
 - Do not use orange for every text link; reserve accent for priority/selection.
 
@@ -213,7 +213,7 @@ Use cards only when they establish a meaningful group: program, workout/day, exe
 
 Use sparingly for short states such as `IN PROGRESS`, `PENDING`, or rep ranges.
 
-- Roboto Mono 12 Medium.
+- Montserrat 12 Medium.
 - Height: 28–32 pt.
 - Do not place long sentences in chips.
 - Completion must include icon/text, not color alone.
@@ -351,7 +351,7 @@ Use focused sequential screens with a visible but quiet progress indicator.
 Visual hierarchy per step:
 
 1. short Bebas Neue heading;
-2. concise Roboto Mono explanation;
+2. concise Montserrat explanation;
 3. primary selection/content;
 4. persistent Continue action when appropriate;
 5. secondary back/dismiss action.
@@ -469,7 +469,7 @@ color.accent           = #D97706
 color.accent.pressed   = #B86105
 
 font.display           = "Bebas Neue"
-font.body              = "Roboto Mono"
+font.body              = "Montserrat"
 
 space.1 = 4
 space.2 = 8
@@ -499,7 +499,7 @@ These should become semantic SwiftUI tokens rather than repeated literal values 
 
 - Centralize color, type, spacing, radius, and component styles in a small design-system module.
 - Prefer semantic names (`textPrimary`, `surfaceRaised`, `actionPrimary`) over visual names (`lightGray`, `orange`).
-- Wrap Bebas Neue and Roboto Mono in Dynamic Type-aware text styles.
+- Wrap Bebas Neue and Montserrat in Dynamic Type-aware text styles.
 - Use native controls/behaviors where they improve accessibility, keyboard behavior, focus, navigation, sheets, alerts, and haptics.
 - Build reusable components around product semantics: `WorkoutCard`, `ExerciseRow`, `PerformanceInput`, `RestTimerBar`, `SyncStatus`, `WeekSelector`, and `SessionRow`.
 - Components must expose states explicitly rather than hiding business state inside visual modifiers.

@@ -21,8 +21,8 @@
   <key>UIAppFonts</key>
   <array>
     <string>BebasNeue-Regular.ttf</string>
-    <string>RobotoMono-Regular.ttf</string>
-    <string>RobotoMono-Medium.ttf</string>
+    <string>Montserrat-Regular.ttf</string>
+    <string>Montserrat-Medium.ttf</string>
   </array>
   <key>UIApplicationSceneManifest</key>
   <dict>
