@@ -4,7 +4,7 @@ struct ContentView: View {
   @State private var path: [OnboardingRoute] = []
   @State private var weightUnit: WeightUnit = .kilograms
   @State private var trainingDays = 3
-  @State private var preferenceMessage: String?
+  @State private var selectedProgram: TrainingProgram?
 
   init() {
     let arguments = ProcessInfo.processInfo.arguments
@@ -14,6 +14,10 @@ struct ContentView: View {
       _path = State(initialValue: [.preferences])
     } else if arguments.contains("--ui-login") {
       _path = State(initialValue: [.login])
+    } else if arguments.contains("--ui-programs") {
+      _path = State(initialValue: [.preferences, .programs])
+    } else if arguments.contains("--ui-program-detail") {
+      _path = State(initialValue: [.preferences, .programs, .programDetail("machine-full-body")])
     }
   }
 
@@ -31,9 +35,7 @@ struct ContentView: View {
           TrainingPreferencesScreen(
             weightUnit: $weightUnit,
             trainingDays: $trainingDays,
-            message: $preferenceMessage,
-            onUnitChanged: clearPreferenceMessage,
-            onDaysChanged: clearPreferenceMessage
+            onContinue: showPrograms
           )
           .toolbar {
             ToolbarItem(placement: .principal) {
@@ -43,6 +45,40 @@ struct ContentView: View {
           }
           .toolbarTitleDisplayMode(.inline)
           .toolbar(.visible, for: .navigationBar)
+        case .programs:
+          ProgramSelectionScreen(
+            trainingDays: $trainingDays,
+            selectedProgram: $selectedProgram,
+            onSelect: selectProgram
+          )
+          .navigationTitle("Programs")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar(.visible, for: .navigationBar)
+          .toolbar {
+            ToolbarItem(placement: .principal) {
+              ProgressPips(currentStep: 2)
+                .accessibilityLabel("Program selection, step 2 of 4")
+            }
+          }
+        case .programDetail(let programID):
+          if let program = TrainingProgram.all.first(where: { $0.id == programID }) {
+            ProgramDetailScreen(
+              program: program,
+              isSelected: selectedProgram == program,
+              onSelect: { selectProgram(program) }
+            )
+            .navigationTitle(program.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+            .toolbar {
+              ToolbarItem(placement: .principal) {
+                ProgressPips(currentStep: 2)
+                  .accessibilityLabel("Program selection, step 2 of 4")
+              }
+            }
+          } else {
+            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+          }
         case .login:
           MockLoginScreen()
             .toolbar(.hidden, for: .navigationBar)
@@ -60,9 +96,17 @@ struct ContentView: View {
     path.append(.login)
   }
 
-  private func clearPreferenceMessage() {
-    preferenceMessage = nil
+  private func showPrograms() {
+    path.append(.programs)
   }
+
+  private func selectProgram(_ program: TrainingProgram) {
+    selectedProgram = program
+    if path.last == .programDetail(program.id) {
+      path.removeLast()
+    }
+  }
+
 }
 
 #Preview {

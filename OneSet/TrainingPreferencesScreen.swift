@@ -3,9 +3,7 @@ import SwiftUI
 struct TrainingPreferencesScreen: View {
   @Binding var weightUnit: WeightUnit
   @Binding var trainingDays: Int
-  @Binding var message: String?
-  let onUnitChanged: () -> Void
-  let onDaysChanged: () -> Void
+  let onContinue: () -> Void
 
   var body: some View {
     GeometryReader { geometry in
@@ -58,14 +56,6 @@ struct TrainingPreferencesScreen: View {
               }
             }
 
-            if let message {
-              Label(message, systemImage: "checkmark.circle.fill")
-                .font(OneSetTypography.caption)
-                .foregroundStyle(OneSetColors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("preferences.confirmation")
-                .transition(.opacity)
-            }
           }
           .frame(maxWidth: 560, alignment: .leading)
           .padding(.horizontal, 20)
@@ -75,7 +65,7 @@ struct TrainingPreferencesScreen: View {
         }
         .scrollIndicators(.hidden)
 
-        Button(action: continueOnboarding) {
+        Button(action: onContinue) {
           HStack {
             Text("Continue")
             Spacer()
@@ -105,15 +95,9 @@ struct TrainingPreferencesScreen: View {
 
   private func select(_ unit: WeightUnit) {
     weightUnit = unit
-    onUnitChanged()
   }
 
   private func select(days: Int) {
     trainingDays = days
-    onDaysChanged()
-  }
-
-  private func continueOnboarding() {
-    message = "Preferences saved for this launch. Program selection comes next."
   }
 }
