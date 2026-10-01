@@ -44,7 +44,7 @@ Free CPU/request/storage limits must be measured with token verification, transa
 
 ## Authentication and subscription
 
-Account enrollment links a unique Clerk subject to OneSet user ID. Proposed email method is email code; the approved choice is Apple/email, not a final password/code decision. Clerk session expiration is internal: active training continues locally; failed refresh prompts reauthentication after local finish. API rejects invalid tokens while local state remains intact.
+Account enrollment links a unique Clerk subject to OneSet user ID. The approved account choices on Welcome are Apple, Google, and email, with Log in for returning users. Proposed email method is email code, not a final password/code decision. Clerk session expiration is internal: active training continues locally; failed refresh prompts reauthentication after local finish. API rejects invalid tokens while local state remains intact.
 
 Clerk owns account profiles and access; Postgres keeps only the Clerk user ID link plus training-specific preferences. Read name/email from Clerk instead of maintaining local copies. Server requests use trusted Clerk identity/access checks. OneSet preferences and active-program choices use the latest values saved to the server; no user revision or settings conflict flow is needed.
 

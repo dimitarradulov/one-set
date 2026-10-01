@@ -1,0 +1,56 @@
+{
+  "source": "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Onboarding/OnboardingFlowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Welcome",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "Programs",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 36
+        }
+      },
+      {
+        "comment": "",
+        "key": "Program unavailable",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "Training preferences, step 1 of 4",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "Program selection, step 2 of 4",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Program selection, step 2 of 4",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 58
+        }
+      }
+    ]
+  },
+  "version": 1
+}

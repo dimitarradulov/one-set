@@ -1,6 +1,5 @@
 # Validation
 
-## Every task
 
 Run `./scripts/validate.sh` from the repository root before finishing, as specified in the [root commands](../../AGENTS.md#commands).
 

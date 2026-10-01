@@ -1,0 +1,64 @@
+{
+  "source": "/Users/dimitarradulov/Dev/one-set/OneSet/Features/Programs/ProgramCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%@, %lld days per week, %@%@%@",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "Matches your preferred training frequency. Opens program details.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opens program details.",
+        "location": {
+          "startingColumn": 104,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 30
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld days / week",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 39
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Matches your schedule",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 55
+        }
+      }
+    ]
+  },
+  "version": 1
+}

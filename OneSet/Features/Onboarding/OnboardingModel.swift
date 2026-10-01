@@ -1,0 +1,45 @@
+import Observation
+
+@MainActor
+@Observable
+final class OnboardingModel {
+  var path: [OnboardingRoute]
+  var weightUnit: WeightUnit = .kilograms
+  var trainingDays = 3
+  private(set) var selectedProgramID: TrainingProgram.ID?
+
+  private let catalog: ProgramCatalog
+
+  init(catalog: ProgramCatalog, initialPath: [OnboardingRoute] = []) {
+    self.catalog = catalog
+    path = initialPath
+  }
+
+  var programs: [TrainingProgram] {
+    TrainingProgram.matchingPreferenceFirst(catalog.programs, days: trainingDays)
+  }
+
+  func program(id: TrainingProgram.ID) -> TrainingProgram? {
+    catalog.program(id: id)
+  }
+
+  func showPreferences() {
+    path.append(.preferences)
+  }
+
+  func showLogin() {
+    path.append(.login)
+  }
+
+  func showPrograms() {
+    path.append(.programs)
+  }
+
+  func selectProgram(_ id: TrainingProgram.ID) {
+    guard catalog.program(id: id) != nil else { return }
+    selectedProgramID = id
+    if path.last == .programDetail(id) {
+      path.removeLast()
+    }
+  }
+}
