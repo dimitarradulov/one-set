@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		B20000000000000000000008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1000000000000000000000A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000006;
+			remoteInfo = OneSet;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A10000000000000000000005 /* OneSet.app */ = {
 			isa = PBXFileReference;
@@ -14,6 +24,7 @@
 			path = OneSet.app;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		B20000000000000000000001 /* OneSetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneSetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -22,10 +33,18 @@
 			path = OneSet;
 			sourceTree = "<group>";
 		};
+		B20000000000000000000002 /* OneSetUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSetUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A10000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B20000000000000000000003 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -39,6 +58,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000001 /* OneSet */,
+				B20000000000000000000002 /* OneSetUITests */,
 				A10000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -47,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* OneSet.app */,
+				B20000000000000000000001 /* OneSetUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +97,26 @@
 			productReference = A10000000000000000000005 /* OneSet.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B20000000000000000000004 /* OneSetUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20000000000000000000005 /* Build configuration list for PBXNativeTarget "OneSetUITests" */;
+			buildPhases = (
+				B20000000000000000000003 /* Frameworks */,
+				B20000000000000000000006 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B20000000000000000000007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B20000000000000000000002 /* OneSetUITests */,
+			);
+			name = OneSetUITests;
+			productName = OneSetUITests;
+			productReference = B20000000000000000000001 /* OneSetUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -87,6 +128,10 @@
 				TargetAttributes = {
 					A10000000000000000000006 = {
 						CreatedOnToolsVersion = 27.0;
+					};
+					B20000000000000000000004 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = A10000000000000000000006;
 					};
 				};
 			};
@@ -106,6 +151,7 @@
 			projectRoot = "";
 			targets = (
 				A10000000000000000000006 /* OneSet */,
+				B20000000000000000000004 /* OneSetUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -128,7 +174,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B20000000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B20000000000000000000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000006 /* OneSet */;
+			targetProxy = B20000000000000000000008 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000000C /* Debug */ = {
@@ -200,6 +261,36 @@
 			};
 			name = Release;
 		};
+		B20000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSetUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OneSet;
+			};
+			name = Debug;
+		};
+		B2000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSetUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OneSet;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -217,6 +308,15 @@
 			buildConfigurations = (
 				A1000000000000000000000C /* Debug */,
 				A1000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B20000000000000000000005 /* Build configuration list for PBXNativeTarget "OneSetUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B20000000000000000000009 /* Debug */,
+				B2000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
