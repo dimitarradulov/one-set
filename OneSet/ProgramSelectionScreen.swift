@@ -26,7 +26,7 @@ struct ProgramSelectionScreen: View {
             .fixedSize(horizontal: false, vertical: true)
         }
 
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
           ForEach(Array(programs.enumerated()), id: \.element.id) { index, program in
             ProgramCard(
               program: program,
@@ -41,11 +41,11 @@ struct ProgramSelectionScreen: View {
           .font(OneSetTypography.caption)
           .foregroundStyle(OneSetColors.textSecondary)
           .fixedSize(horizontal: false, vertical: true)
-          .padding(.top, 2)
+          .padding(.top, 4)
       }
       .frame(maxWidth: 560, alignment: .leading)
       .padding(.horizontal, 20)
-      .padding(.top, 22)
+      .padding(.top, 24)
       .padding(.bottom, 28)
       .frame(maxWidth: .infinity, alignment: .top)
     }
@@ -62,12 +62,12 @@ private struct ProgramCard: View {
 
   var body: some View {
     NavigationLink(value: OnboardingRoute.programDetail(program.id)) {
-      HStack(alignment: .top, spacing: 14) {
+      HStack(alignment: .top, spacing: 16) {
         Image(systemName: program.symbol)
           .font(.system(size: 19, weight: .medium))
           .foregroundStyle(isSelected ? OneSetColors.accent : OneSetColors.textSecondary)
           .frame(width: 40, height: 40)
-          .background(OneSetColors.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+          .background(OneSetColors.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
           .accessibilityHidden(true)
 
         VStack(alignment: .leading, spacing: 8) {
@@ -104,13 +104,13 @@ private struct ProgramCard: View {
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("programs.format.\(program.id)")
 
-          HStack(spacing: 6) {
+          HStack(spacing: 8) {
             if isMatch {
-              Text("MATCHES YOUR SCHEDULE")
+              Text("Matches your schedule")
                 .font(OneSetTypography.caption)
                 .foregroundStyle(OneSetColors.textPrimary)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(OneSetColors.accentSubtle, in: Capsule())
                 .accessibilityIdentifier("programs.match.\(program.id)")
             }
@@ -187,7 +187,7 @@ struct ProgramDetailScreen: View {
                 .font(OneSetTypography.body)
                 .foregroundStyle(OneSetColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
+                .padding(.top, 4)
                 .accessibilityIdentifier("program.detail.emphasis")
             }
 
@@ -211,7 +211,7 @@ struct ProgramDetailScreen: View {
         .scrollIndicators(.hidden)
 
         Button(action: onSelect) {
-          HStack(spacing: 10) {
+          HStack(spacing: 8) {
             if isSelected {
               Image(systemName: "checkmark.circle.fill")
                 .accessibilityHidden(true)
@@ -244,13 +244,13 @@ private struct WorkoutTemplateCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      HStack(alignment: .top, spacing: 10) {
+      HStack(alignment: .top, spacing: 12) {
         Text(String(format: "%02d", number))
           .font(OneSetTypography.caption)
           .foregroundStyle(OneSetColors.textSecondary)
           .accessibilityHidden(true)
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
           Text(workout.name)
             .font(OneSetTypography.bodyStrong)
             .foregroundStyle(OneSetColors.textPrimary)
@@ -265,9 +265,9 @@ private struct WorkoutTemplateCard: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(16)
-    .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 14))
+    .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
     .overlay {
-      RoundedRectangle(cornerRadius: 14)
+      RoundedRectangle(cornerRadius: 12)
         .strokeBorder(OneSetColors.border, lineWidth: 1)
     }
     .accessibilityElement(children: .combine)
