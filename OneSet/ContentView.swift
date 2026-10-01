@@ -8,7 +8,9 @@ struct ContentView: View {
 
   init() {
     let arguments = ProcessInfo.processInfo.arguments
-    if arguments.contains("--ui-preferences") {
+    if arguments.contains("--ui-welcome") {
+      _path = State(initialValue: [])
+    } else if arguments.contains("--ui-preferences") {
       _path = State(initialValue: [.preferences])
     } else if arguments.contains("--ui-login") {
       _path = State(initialValue: [.login])

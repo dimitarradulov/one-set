@@ -32,8 +32,12 @@ struct WelcomeScreen: View {
 
         ScrollView {
           VStack(spacing: 0) {
-            OneSetBrandMark()
-              .padding(.top, 22)
+            Image("OneSetLogo")
+              .resizable()
+              .scaledToFit()
+              .frame(width: 140, height: 80)
+              .accessibilityLabel("OneSet")
+              .padding(.top, 16)
 
             Spacer(minLength: 20)
 
@@ -68,6 +72,7 @@ struct WelcomeScreen: View {
                   action: onContinue
                 )
               }
+              .padding(.horizontal, 8)
 
               HStack(spacing: 5) {
                 Text("Already have an account?")

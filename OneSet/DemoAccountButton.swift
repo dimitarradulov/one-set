@@ -30,11 +30,12 @@ struct DemoAccountButton: View {
           }
         }
       }
+      .padding(.horizontal, 16)
       .frame(maxWidth: .infinity, minHeight: 52)
       .foregroundStyle(prominent ? Color.black : OneSetColors.textPrimary)
       .background {
         RoundedRectangle(cornerRadius: 12)
-          .fill(prominent ? Color.white : Color.black.opacity(0.42))
+          .fill(prominent ? OneSetColors.accent : Color.black.opacity(0.42))
       }
       .overlay {
         RoundedRectangle(cornerRadius: 12)
