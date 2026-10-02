@@ -9,9 +9,10 @@ struct ProgramCard: View {
   var body: some View {
     NavigationLink(value: OnboardingRoute.programDetail(program.id)) {
       HStack(alignment: .top, spacing: 16) {
-        Image(systemName: program.symbol)
-          .font(.system(size: 19, weight: .medium))
+        ProgramIcon(programID: program.id)
+          .stroke(style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
           .foregroundStyle(isSelected ? OneSetColors.accent : OneSetColors.textSecondary)
+          .frame(width: 28, height: 28)
           .frame(width: 40, height: 40)
           .background(OneSetColors.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
           .accessibilityHidden(true)
@@ -92,4 +93,3 @@ struct ProgramCard: View {
     .accessibilityIdentifier("programs.card.\(program.id)")
   }
 }
-

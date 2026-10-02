@@ -6,7 +6,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "A / B / C",
       emphasis: "Frequent whole-body practice with broad hypertrophy coverage.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Workout A — Vertical Pull + Upper Chest",
@@ -52,7 +51,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 4,
       format: "Upper A / Lower A / Upper B / Lower B",
       emphasis: "Shorter sessions with more recovery between upper- and lower-body work.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Upper A",
@@ -104,7 +102,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "Push / Pull / Legs",
       emphasis: "Classic movement-based training, with each major muscle group trained hard once per week.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Push",
@@ -148,7 +145,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 5,
       format: "Chest / Back / Legs / Shoulders / Arms",
       emphasis: "Concentrated body-part sessions with very low per-exercise set counts.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Day 1 — Chest",
@@ -208,7 +204,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 2,
       format: "A / B",
       emphasis: "The smallest practical weekly gym commitment while training major muscle groups hard.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Workout A",
@@ -240,7 +235,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "Lats + Upper Chest / Lower Body + Delts / Back + Shoulder Width",
       emphasis: "Build shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced lower-body work.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Day 1 — Lats + Upper Chest",
@@ -284,7 +278,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle",
       emphasis: "Whole-body muscular density, especially torso, upper back, arms, thighs, and posterior chain.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Day 1 — Torso Density + Arms",
@@ -330,7 +323,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body",
       emphasis: "Balanced proportions with broad shoulders, upper chest, lat width, proportional arms, and athletic legs.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Day 1 — Upper Chest + Back Width",
@@ -374,7 +366,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "A / B / C",
       emphasis: "Barbells, dumbbells, and bodyweight loading for gyms with limited machines or lifters who prefer free weights.",
-      symbol: "dumbbell",
       workouts: [
         WorkoutTemplate(
           name: "Workout A",
@@ -417,7 +408,6 @@ extension ProgramCatalog {
       trainingDaysPerWeek: 3,
       format: "A / B / C",
       emphasis: "Maximum stability, simple progression, and a low-skill environment for high-effort training.",
-      symbol: "figure.strengthtraining.traditional",
       workouts: [
         WorkoutTemplate(
           name: "Workout A",

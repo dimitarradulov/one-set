@@ -4,7 +4,6 @@ struct TrainingProgram: Hashable, Identifiable, Sendable {
   let trainingDaysPerWeek: Int
   let format: String
   let emphasis: String
-  let symbol: String
   let workouts: [WorkoutTemplate]
 
   var workoutCountLabel: String {

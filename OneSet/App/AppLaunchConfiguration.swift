@@ -13,6 +13,9 @@ struct AppLaunchConfiguration {
     } else if arguments.contains("--ui-login") {
       onboardingPath = [.login]
       selectedProgramID = nil
+    } else if arguments.contains("--ui-programs-selected") {
+      onboardingPath = [.preferences, .programs]
+      selectedProgramID = "push-pull-legs"
     } else if arguments.contains("--ui-programs") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = nil

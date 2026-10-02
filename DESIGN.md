@@ -153,6 +153,33 @@ Use **SF Symbols** as the default iOS icon system.
 - Use filled variants primarily for selected/active states.
 - Do not create custom icons for standard actions such as back, close, play, settings, history, check, search, or delete unless the system symbol fails the use case.
 
+### Program identity icons
+
+Use a consistent family of custom pictograms with bold, simple shapes that reflect each program's training focus. They should suit OneSet's serious HIT coach, training partner, and logbook character. Avoid cartoon styling and detailed miniature illustrations; keep each icon recognizable at the small size used beside the program name.
+
+The family may use different kinds of cues: training-structure marks for workout splits, anatomy for physique emphasis, and equipment for equipment-focused programs. Keep body silhouettes intact; avoid cuts or detached body sections. Keep drawing weight, proportions, and detail consistent across those cues. Use neutral icons normally and accent orange when selected; program identity comes from shape rather than a separate color for each program.
+
+#### Approved program icon brief
+
+Apply the set to the ten programs on Choose Your Program, within the existing icon tiles and card layout. Use the [program library](docs/HIT_Workout_Program_Library.md) as the source for each program's identity.
+
+| Program | Pictogram concept |
+| --- | --- |
+| Full Body | Balanced standing whole-body figure |
+| Upper / Lower | Intact standing figure with a small paired up/down arrow mark |
+| Push / Pull / Legs | Intact figure in a grounded stance, framed by opposing push/pull arrows |
+| Bro Split | Intact standing figure with five small surrounding marks for muscle-group days |
+| Minimalist Full Body | Whole-body mark reduced to a few essential strokes |
+| V-Taper | Broad shoulders and lats tapering toward the waist |
+| Powerhouse | Dense torso and substantial legs in a strong stance |
+| Classic Physique | Symmetrical classic physique pose, including proportional legs |
+| Free-Weight Full Body | Barbell with clearly defined plates |
+| Machine Full Body | Machine weight stack with a selector pin |
+
+The icons identify programs beside their names; they do not replace the descriptions or indicate difficulty. Preserve the explicit selected label, checkmark, and border. Review the finished set at its displayed size, especially Full Body versus Minimalist Full Body and V-Taper versus Classic Physique; those pairs must remain visually distinct.
+
+The implemented artwork lives in `ProgramIcon` as native SwiftUI vector paths keyed by stable program ID. Program cards render the artwork at 28 pt inside the existing 40 pt tile. Development routes `--ui-programs` and `--ui-programs-selected` show the default list and a selected Push / Pull / Legs card for visual verification.
+
 ---
 
 ## 6. Core components
