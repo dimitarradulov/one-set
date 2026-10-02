@@ -44,7 +44,13 @@ Free CPU/request/storage limits must be measured with token verification, transa
 
 ## Authentication and subscription
 
-Account enrollment links a unique Clerk subject to OneSet user ID. The approved account choices on Welcome are Apple, Google, and email, with Log in for returning users. Proposed email method is email code, not a final password/code decision. Clerk session expiration is internal: active training continues locally; failed refresh prompts reauthentication after local finish. API rejects invalid tokens while local state remains intact.
+Account enrollment links a unique Clerk subject to OneSet user ID. The approved account choices on Welcome are Apple, Google, and email, with Log in for returning users. Email authentication uses a verification code. Continue and Log in resolve existing account state before routing; neither resets completed setup. Unfinished onboarding choices save locally on Continue and are not synced across devices. After authentication, onboarding can continue offline using the bundled catalog; subscription enrollment requires connectivity. Clerk session expiration is internal: active training continues locally; failed refresh prompts reauthentication after local finish. API rejects invalid tokens while local state remains intact.
+
+Completed onboarding saves units, training frequency, and selected program to the backend on entering program overview after accepting or dismissing the trial offer. Offline completion persists locally and allows overview access; upload completed setup when connectivity returns. Intermediate steps remain local only. Cross-device restoration requires a successful completed-setup upload. The save must tolerate retries without duplicating enrollment or cycles; its API contract remains to be specified.
+
+Unfinished onboarding progress survives app closure while signed in, but is cleared on sign-out. Local setup belongs to the authenticated account and must never be exposed to another account. Email entry and code verification use OneSet's existing visual styles, with change-email, resend-code, and invalid/expired-code handling.
+
+If account setup lookup fails after authentication, continue from saved local state for that account when available; otherwise show retry rather than treating the account as new. Signing out with completed setup awaiting upload requires an explicit cancel-or-discard confirmation. Confirmed sign-out discards that local setup and its pending upload. These setup rules do not replace the separate protections for pending workout data.
 
 Clerk owns account profiles and access; Postgres keeps only the Clerk user ID link plus training-specific preferences. Read name/email from Clerk instead of maintaining local copies. Server requests use trusted Clerk identity/access checks. OneSet preferences and active-program choices use the latest values saved to the server; no user revision or settings conflict flow is needed.
 

@@ -6,4 +6,5 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 /.codex/
+/.impeccable/
 /references/

@@ -70,6 +70,21 @@ Nutrition/supplements, social feeds, challenges, body tracking, AI coaching, cus
 
 ## Key user flows
 
+### Authentication and interrupted onboarding
+
+- Email authentication uses a verification code.
+- Email entry and verification screens use OneSet's existing fonts, colors, and button styles. Support changing the email, resending the code, and clear invalid or expired code errors; do not add a name or profile questionnaire.
+- Continue with email supports new and existing accounts. Log in with an unregistered email offers explicit account creation rather than automatically creating an account after verification.
+- After authentication, both Continue and Log in route according to existing account state. Completed onboarding restores existing app state without resetting preferences; unfinished onboarding resumes the locally saved step, if available.
+- Save each onboarding screen's choices locally when the user taps Continue. Unfinished onboarding progress is not synced to the backend. A new device starts unfinished onboarding from the first preferences screen.
+- Closing and reopening the app while signed in retains unfinished local onboarding progress. Signing out clears unfinished onboarding progress; signing back in starts at the first preferences screen unless the account has completed setup.
+- Once authenticated, users can continue onboarding offline using the bundled program catalog. Subscription enrollment requires connectivity.
+- On reaching program overview after accepting or dismissing the trial offer, save completed setup (units, training frequency, and selected program) to the backend. If offline, retain completed setup locally, allow access to overview, and upload it when connectivity returns. Intermediate onboarding steps remain local only. Another device restores completed setup only after that upload succeeds.
+- If authentication succeeds but the backend cannot resolve existing setup, show a retry screen when no saved state for that account is available locally. Do not assume the account is new. When saved account state is available locally, continue from it.
+- Signing out with completed setup that has not uploaded requires a confirmation explaining that the setup has not been saved to the account. Offer cancel or sign out and discard that local setup; do not retain its pending upload after sign-out.
+
+First implementation milestone: Apple, Google, and email authentication; session restoration; sign-out; local onboarding persistence; and saving/restoring completed setup. Subscription enrollment remains mocked for this milestone; real purchase integration is a subsequent milestone. This staging does not change the launch requirement for entitlement before starting a workout.
+
 **First use:** Welcome → Continue with Apple, Continue with Google, or Continue with email → kg/lb and 2–5 training days → browse all ten programs, with frequency matches first → select program → seven-day trial offer → program overview. The account actions and Log in are on Welcome; there is no separate account-choice screen. This focused sequence is the approved onboarding structure; other visual details remain open. The trial begins only after successful subscription enrollment. Dismissing the offer leaves program previews and existing history available. Returning users restore their existing state through Log in. Interrupted onboarding retains progress. Ask for notification permission when rest alerts are enabled, not during initial onboarding.
 
 **Program and workout:** The overview shows training weeks and ordered Day cards. Opening a card previews exercises and triggers current video downloads on Wi-Fi without starting a session. Start creates a local session after the access check. Inputs save locally as drafts; completing a set starts rest. Finish records completed/total exercises, duration and an optional note. An unfinished session resumes after interruption. Switching programs or starting a new cycle requires finishing or confirming discard of the active session.
