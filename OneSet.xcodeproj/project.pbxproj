@@ -6,6 +6,11 @@
 	objectVersion = 71;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC1306FCC5700D6A32F /* ClerkKit */; };
+		B488DEC4306FCC5700D6A32F /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC3306FCC5700D6A32F /* ClerkKitUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B20000000000000000000008 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -31,6 +36,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */,
+				B488DEC4306FCC5700D6A32F /* ClerkKitUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,6 +89,8 @@
 			);
 			name = OneSet;
 			packageProductDependencies = (
+				B488DEC1306FCC5700D6A32F /* ClerkKit */,
+				B488DEC3306FCC5700D6A32F /* ClerkKitUI */,
 			);
 			productName = OneSet;
 			productReference = A10000000000000000000005 /* OneSet.app */;
@@ -135,6 +144,9 @@
 			);
 			mainGroup = A10000000000000000000003;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */,
+			);
 			productRefGroup = A10000000000000000000004 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -216,14 +228,17 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SR65MNSHRM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OneSet;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -238,8 +253,11 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SR65MNSHRM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OneSet;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -312,6 +330,30 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/clerk/clerk-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.8;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B488DEC1306FCC5700D6A32F /* ClerkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKit;
+		};
+		B488DEC3306FCC5700D6A32F /* ClerkKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKitUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000000000000000000000A /* Project object */;
 }
