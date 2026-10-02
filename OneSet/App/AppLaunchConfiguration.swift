@@ -36,6 +36,16 @@ struct AppLaunchConfiguration {
         .programOverview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
+    } else if arguments.contains("--ui-workout-preview") {
+      onboardingPath = [
+        .preferences,
+        .programs,
+        .programDetail("machine-full-body"),
+        .trialPreview("machine-full-body"),
+        .programOverview("machine-full-body"),
+        .workoutPreview(programID: "machine-full-body", workoutID: "Workout A")
+      ]
+      selectedProgramID = "machine-full-body"
     } else {
       onboardingPath = []
       selectedProgramID = nil

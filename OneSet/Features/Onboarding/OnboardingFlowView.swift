@@ -77,7 +77,12 @@ struct OnboardingFlowView: View {
           }
         case .programOverview(let programID):
           if let program = model.program(id: programID) {
-            ProgramOverviewScreen(program: program)
+            ProgramOverviewScreen(
+              program: program,
+              onPreviewWorkout: { workout in
+                model.previewWorkout(programID: programID, workoutID: workout.id)
+              }
+            )
               .navigationTitle("Program")
               .navigationBarTitleDisplayMode(.inline)
               .toolbar {
@@ -88,6 +93,20 @@ struct OnboardingFlowView: View {
               }
           } else {
             ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+          }
+        case .workoutPreview(let programID, let workoutID):
+          if let program = model.program(id: programID),
+             let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
+            WorkoutTemplatePreviewScreen(
+              program: program,
+              workout: program.workouts[workoutIndex],
+              day: workoutIndex + 1
+            )
+            .navigationTitle("Workout preview")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+          } else {
+            ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
           }
         case .login:
           MockLoginScreen()

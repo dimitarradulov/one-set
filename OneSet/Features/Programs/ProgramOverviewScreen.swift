@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProgramOverviewScreen: View {
   let program: TrainingProgram
+  let onPreviewWorkout: (WorkoutTemplate) -> Void
   @State private var selectedWeek = 1
 
   var body: some View {
@@ -95,7 +96,9 @@ struct ProgramOverviewScreen: View {
   }
 
   private func overviewCard(_ workout: WorkoutTemplate, day: Int) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
+    Button {
+      onPreviewWorkout(workout)
+    } label: {
       HStack(alignment: .top, spacing: 12) {
         Text("Day \(day)")
           .font(OneSetTypography.label)
@@ -117,42 +120,26 @@ struct ProgramOverviewScreen: View {
             .font(OneSetTypography.caption)
             .foregroundStyle(OneSetColors.textSecondary)
 
-          DisclosureGroup {
-            VStack(alignment: .leading, spacing: 8) {
-              ForEach(Array(workout.movements.enumerated()), id: \.offset) { index, movement in
-                HStack(alignment: .top, spacing: 8) {
-                  Text(String(format: "%02d", index + 1))
-                    .font(OneSetTypography.caption)
-                    .foregroundStyle(OneSetColors.textSecondary)
-                    .accessibilityHidden(true)
-
-                  Text(movement)
-                    .font(OneSetTypography.body)
-                    .foregroundStyle(OneSetColors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-              }
-            }
-            .padding(.top, 8)
-          } label: {
-            Text("Preview exercises")
-              .font(OneSetTypography.label)
-              .foregroundStyle(OneSetColors.textPrimary)
-              .frame(minHeight: 44, alignment: .leading)
-              .contentShape(Rectangle())
-          }
-          .accessibilityIdentifier("overview.day.\(day).preview")
+          Label("Preview workout template", systemImage: "arrow.right")
+            .font(OneSetTypography.label)
+            .foregroundStyle(OneSetColors.textPrimary)
+            .labelStyle(.titleAndIcon)
+            .frame(minHeight: 44, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(16)
+      .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
+      .overlay {
+        RoundedRectangle(cornerRadius: 12)
+          .strokeBorder(OneSetColors.border, lineWidth: 1)
+      }
+      .contentShape(RoundedRectangle(cornerRadius: 12))
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(16)
-    .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
-    .overlay {
-      RoundedRectangle(cornerRadius: 12)
-        .strokeBorder(OneSetColors.border, lineWidth: 1)
-    }
-    .accessibilityElement(children: .contain)
-    .accessibilityIdentifier("overview.day.\(day)")
+    .buttonStyle(.plain)
+    .accessibilityLabel("Preview Day \(day), \(workout.name), \(workout.movements.count) exercises, Not started")
+    .accessibilityHint("Shows the exercise order and rep targets in a read-only preview.")
+    .accessibilityIdentifier("overview.day.\(day).preview")
   }
 }

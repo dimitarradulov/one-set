@@ -4,5 +4,6 @@ enum OnboardingRoute: Hashable {
   case programDetail(String)
   case trialPreview(String)
   case programOverview(String)
+  case workoutPreview(programID: String, workoutID: String)
   case login
 }

@@ -125,6 +125,18 @@ final class OnboardingJourneyTests: XCTestCase {
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    let previewButton = app.buttons["overview.day.1.preview"]
+    XCTAssertTrue(previewButton.waitForExistence(timeout: 3))
+    XCTAssertTrue(previewButton.label.contains("Not started"))
+    previewButton.tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["workoutPreview.program"].label, "Machine Full Body")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.name"].label, "Hack Squat Machine")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.reps"].label, "6–10 reps")
+    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
     app.navigationBars.buttons.firstMatch.tap()
@@ -168,29 +180,39 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["overview.week.1"].exists)
     XCTAssertTrue(app.buttons["overview.week.8"].exists)
     XCTAssertGreaterThanOrEqual(app.buttons["overview.week.1"].frame.height, 44)
-    let firstDay = app.descendants(matching: .any).matching(identifier: "overview.day.1").firstMatch
+    let firstDay = app.buttons["overview.day.1.preview"]
     XCTAssertTrue(firstDay.exists)
-    XCTAssertTrue(app.staticTexts["overview.day.1.status"].label.contains("Not started"))
+    app.buttons["overview.week.4"].tap()
+    XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
     for day in 1...3 {
-      XCTAssertTrue(app.staticTexts["overview.day.\(day).status"].label.contains("Not started"))
+      XCTAssertTrue(app.buttons["overview.day.\(day).preview"].label.contains("Not started"))
     }
     XCTAssertFalse(app.staticTexts["Completed"].exists)
 
-    let firstDayPreview = app.descendants(matching: .any)
-      .matching(identifier: "overview.day.1.preview")
-      .firstMatch
+    let firstDayPreview = app.buttons["overview.day.1.preview"]
     XCTAssertTrue(firstDayPreview.exists)
     firstDayPreview.tap()
-    let firstMovement = app.staticTexts["Weighted Chin-Up"]
-    let secondMovement = app.staticTexts["Incline Smith-Machine Press"]
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["workoutPreview.program"].label.contains("Full Body"))
+    XCTAssertTrue(app.staticTexts["workoutPreview.readOnly"].label.contains("Read-only"))
+    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    let firstMovement = app.staticTexts["workoutPreview.exercise.1.name"]
+    let secondMovement = app.staticTexts["workoutPreview.exercise.2.name"]
     XCTAssertTrue(firstMovement.waitForExistence(timeout: 3))
+    XCTAssertEqual(firstMovement.label, "Weighted Chin-Up")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.reps"].label, "6–10 reps")
+    XCTAssertEqual(secondMovement.label, "Incline Smith-Machine Press")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exercise.2.reps"].label, "6–10 reps")
     XCTAssertTrue(secondMovement.exists)
     XCTAssertLessThan(firstMovement.frame.minY, secondMovement.frame.minY)
 
-    app.buttons["overview.week.4"].tap()
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.week.4"].isSelected)
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].exists)
     XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
-    XCTAssertTrue(app.staticTexts["overview.day.1.status"].label.contains("Not started"))
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Not started"))
   }
 
   private func openPreferences(using actionIdentifier: String) {

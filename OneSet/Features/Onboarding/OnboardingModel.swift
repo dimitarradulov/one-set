@@ -56,4 +56,14 @@ final class OnboardingModel {
 
     path.append(.programOverview(selectedProgramID))
   }
+
+  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
+    guard selectedProgramID == programID,
+          path.last == .programOverview(programID),
+          let program = catalog.program(id: programID),
+          program.workouts.contains(where: { $0.id == workoutID })
+    else { return }
+
+    path.append(.workoutPreview(programID: programID, workoutID: workoutID))
+  }
 }
