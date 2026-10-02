@@ -169,7 +169,7 @@ Apply the set to the ten programs on Choose Your Program, within the existing ic
 | Upper / Lower | Intact standing figure with a small paired up/down arrow mark |
 | Push / Pull / Legs | Intact figure in a grounded stance, framed by opposing push/pull arrows |
 | Bro Split | Intact standing figure with five small surrounding marks for muscle-group days |
-| Minimalist Full Body | Whole-body mark reduced to a few essential strokes |
+| Minimalist Full Body | Compact athletic figure with hands on hips, a substantial torso and legs, and few interior details |
 | V-Taper | Broad shoulders and lats tapering toward the waist |
 | Powerhouse | Dense torso and substantial legs in a strong stance |
 | Classic Physique | Symmetrical classic physique pose, including proportional legs |
@@ -179,6 +179,8 @@ Apply the set to the ten programs on Choose Your Program, within the existing ic
 The icons identify programs beside their names; they do not replace the descriptions or indicate difficulty. Preserve the explicit selected label, checkmark, and border. Review the finished set at its displayed size, especially Full Body versus Minimalist Full Body and V-Taper versus Classic Physique; those pairs must remain visually distinct.
 
 The implemented artwork lives in `ProgramIcon` as native SwiftUI vector paths keyed by stable program ID. Program cards render the artwork at 28 pt inside the existing 40 pt tile. Development routes `--ui-programs` and `--ui-programs-selected` show the default list and a selected Push / Pull / Legs card for visual verification.
+
+`--ui-programs-minimalist` opens a two-day preference with Minimalist Full Body selected and first in the list. Minimalist refers to training economy; its icon keeps an athletic body with a substantial torso and legs.
 
 ---
 

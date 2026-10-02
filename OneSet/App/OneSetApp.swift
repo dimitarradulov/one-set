@@ -7,11 +7,13 @@ struct OneSetApp: App {
   init() {
     let dependencies = AppDependencies.live
     let launch = AppLaunchConfiguration(arguments: ProcessInfo.processInfo.arguments)
-    _onboarding = State(initialValue: OnboardingModel(
+    let model = OnboardingModel(
       catalog: dependencies.catalog,
       initialPath: launch.onboardingPath,
       initialSelectedProgramID: launch.selectedProgramID
-    ))
+    )
+    model.trainingDays = launch.trainingDays
+    _onboarding = State(initialValue: model)
   }
 
   var body: some Scene {

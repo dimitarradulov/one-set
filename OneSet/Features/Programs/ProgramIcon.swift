@@ -32,9 +32,15 @@ struct ProgramIcon: Shape {
 
     case "minimalist-full-body":
       addHead(to: &path)
-      addLines([(16, 9), (16, 20)], to: &path)
-      addLines([(9, 16), (16, 10), (23, 16)], to: &path)
-      addLines([(10, 29), (16, 20), (22, 29)], to: &path)
+      // A compact hands-on-hips stance keeps an athletic body with economical detail.
+      addLines([
+        (12, 9), (8, 10), (5, 16), (10, 20), (10, 29), (14, 29),
+        (16, 23), (18, 29), (22, 29), (22, 20), (27, 16), (24, 10),
+        (20, 9), (12, 9)
+      ], to: &path)
+      path.closeSubpath()
+      addLines([(9, 14), (8, 16), (12, 19)], to: &path)
+      addLines([(23, 14), (24, 16), (20, 19)], to: &path)
 
     case "v-taper":
       // A cropped back contour emphasizes shoulder and lat width, not waist reduction.

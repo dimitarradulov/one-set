@@ -1,9 +1,11 @@
 struct AppLaunchConfiguration {
   let onboardingPath: [OnboardingRoute]
   let selectedProgramID: TrainingProgram.ID?
+  let trainingDays: Int
 
   init(arguments: [String]) {
     #if DEBUG
+    trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
     if arguments.contains("--ui-welcome") {
       onboardingPath = []
       selectedProgramID = nil
@@ -13,6 +15,9 @@ struct AppLaunchConfiguration {
     } else if arguments.contains("--ui-login") {
       onboardingPath = [.login]
       selectedProgramID = nil
+    } else if arguments.contains("--ui-programs-minimalist") {
+      onboardingPath = [.preferences, .programs]
+      selectedProgramID = "minimalist-full-body"
     } else if arguments.contains("--ui-programs-selected") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = "push-pull-legs"
@@ -54,6 +59,7 @@ struct AppLaunchConfiguration {
       selectedProgramID = nil
     }
     #else
+    trainingDays = 3
     onboardingPath = []
     selectedProgramID = nil
     #endif
