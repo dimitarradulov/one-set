@@ -1,83 +1,56 @@
 #!/bin/bash
 set -euo pipefail
-
-SCHEME="OneSet"
-PROJECT="OneSet.xcodeproj"
-DEVICE="iPhone 18 Pro"
-BUNDLE_ID="com.oneset.OneSet"
+source "$(dirname "$0")/validation-common.sh"
 
 UI_ROUTE="${1:-}"
-
-if [[ -z "$UI_ROUTE" ]]; then
-  echo "Usage:"
-  echo "  ./scripts/validate-ui.sh --ui-home"
-  echo "  ./scripts/validate-ui.sh --ui-settings"
-  echo "  ./scripts/validate-ui.sh --ui-workout-detail"
+if [[ ! "$UI_ROUTE" =~ ^--ui-[a-z-]+$ ]] || ! grep -Fq -- "\"$UI_ROUTE\"" OneSet/App/AppLaunchConfiguration.swift; then
+  echo "Supply an existing route from OneSet/App/AppLaunchConfiguration.swift, e.g.:" >&2
+  echo "  ./scripts/validate-ui.sh --ui-program-overview" >&2
   exit 1
 fi
 
-SCREENSHOT_NAME="${UI_ROUTE#--ui-}"
+oneset_toolchain
+oneset_artifacts
+SIMULATOR_UDID="$(oneset_simulator)"
+BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/ui"
+RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/ui-$(date +%Y%m%d-%H%M%S)-$$"
+BUNDLE_ID="com.oneset.OneSet"
+SCREENSHOT_NAME="${UI_ROUTE#--ui-}-${ONESET_SIMULATOR_FAMILY:-iphone}"
 
-echo "==> Booting simulator"
-
-xcrun simctl boot "$DEVICE" 2>/dev/null || true
-
-ACTIVE_DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}"
-DEVICE_UI_APP=""
-
+# GUI opening is convenient; CoreSimulator can build/launch/capture without it.
 for candidate in \
-  "$ACTIVE_DEVELOPER_DIR/../Applications/DeviceHub.app" \
-  "$ACTIVE_DEVELOPER_DIR/Applications/Simulator.app"; do
+  "$DEVELOPER_DIR/../Applications/DeviceHub.app" \
+  "$DEVELOPER_DIR/Applications/Simulator.app"; do
   if [[ -d "$candidate" ]]; then
-    DEVICE_UI_APP="$candidate"
+    open "$candidate" || echo "Could not open simulator window; continuing with simctl." >&2
     break
   fi
 done
 
-if [[ -n "$DEVICE_UI_APP" ]]; then
-  echo "==> Opening $(basename "$DEVICE_UI_APP" .app)"
-  open "$DEVICE_UI_APP" 2>/dev/null || true
-else
-  echo "Could not find Device Hub or Simulator in selected Xcode: $ACTIVE_DEVELOPER_DIR" >&2
+echo "==> Building app on $SIMULATOR_UDID"
+oneset_xcodebuild "$RUN_DIR/build.log" \
+  -project OneSet.xcodeproj -scheme OneSet \
+  -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+  -derivedDataPath "$BUILD_DIR" build
+
+APP_PATH="$BUILD_DIR/Build/Products/Debug-iphonesimulator/OneSet.app"
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "Built app missing at $APP_PATH" >&2
   exit 1
 fi
+xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
 
-echo "==> Building app"
-
-BUILD_DIR=".codex/build"
-
-xcodebuild \
-  -project "$PROJECT" \
-  -scheme "$SCHEME" \
-  -destination "platform=iOS Simulator,name=$DEVICE" \
-  -derivedDataPath "$BUILD_DIR" \
-  build
-
-APP_PATH=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d | head -n 1)
-
-if [[ -z "$APP_PATH" ]]; then
-  echo "Could not find built .app"
-  exit 1
+if [[ -n "${ONESET_CONTENT_SIZE:-}" ]]; then
+  ORIGINAL_CONTENT_SIZE="$(xcrun simctl ui "$SIMULATOR_UDID" content_size)"
+  trap 'xcrun simctl ui "$SIMULATOR_UDID" content_size "$ORIGINAL_CONTENT_SIZE" || true' EXIT
+  xcrun simctl ui "$SIMULATOR_UDID" content_size "$ONESET_CONTENT_SIZE"
+  SCREENSHOT_NAME="$SCREENSHOT_NAME-$ONESET_CONTENT_SIZE"
 fi
 
-echo "==> Installing app"
-
-xcrun simctl install booted "$APP_PATH"
-
-echo "==> Launching app with route: $UI_ROUTE"
-
-xcrun simctl terminate booted "$BUNDLE_ID" 2>/dev/null || true
-
-xcrun simctl launch \
-  booted \
-  "$BUNDLE_ID" \
-  "$UI_ROUTE"
-
+echo "==> Launching $UI_ROUTE on $SIMULATOR_UDID"
+# A not-running app is expected; install/launch errors still fail validation.
+xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
+xcrun simctl launch "$SIMULATOR_UDID" "$BUNDLE_ID" "$UI_ROUTE"
 sleep 2
-
-echo "==> Capturing screenshot"
-
-./scripts/screenshot.sh "$SCREENSHOT_NAME"
-
-echo "==> UI validation ready"
-echo ".codex/screenshots/$SCREENSHOT_NAME.png"
+./scripts/screenshot.sh "$SCREENSHOT_NAME" "$SIMULATOR_UDID"
+echo "==> UI validation ready for inspection; build log: $RUN_DIR/build.log"

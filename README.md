@@ -57,3 +57,5 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 ```
 
 If Xcode is already selected with `xcode-select`, the `DEVELOPER_DIR` prefix can be omitted. Device builds require an Apple development team and an available bundle identifier.
+
+Run `./scripts/validate.sh` for the required build and UI tests. Run `./scripts/setup-simulator.sh` to select or create a compatible simulator and wait for it to boot. See [simulator validation and recovery](docs/simulator-validation.md) for iPad checks, screenshots, missing runtimes and agent permissions.
