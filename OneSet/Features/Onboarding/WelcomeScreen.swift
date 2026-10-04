@@ -86,7 +86,7 @@ struct WelcomeScreen: View {
               }
               .font(OneSetTypography.caption)
 
-              Text("Demo only · no account is created")
+              Text("Apple and Google sign-in are not connected yet")
                 .font(OneSetTypography.caption)
                 .foregroundStyle(.white.opacity(0.72))
                 .accessibilityIdentifier("welcome.demoNotice")

@@ -15,6 +15,7 @@ class ValidationCommandsTests(unittest.TestCase):
         environment["ONESET_TEST_COMMON"] = str(ROOT / "scripts/validation-common.sh")
         environment["ONESET_ARTIFACTS_DIR"] = str(directory / "artifacts")
         environment["ONESET_TEST_LOG"] = str(directory / "build.log")
+        environment["ONESET_TEST_CAPTURE"] = str(directory / "xcodebuild-args")
         if fake_command:
             name, body = fake_command
             executable = directory / name
@@ -32,6 +33,14 @@ class ValidationCommandsTests(unittest.TestCase):
             self.assertEqual(result.returncode, 65)
             self.assertIn("host execution", result.stderr)
             self.assertIn("Operation not permitted", (directory / "build.log").read_text())
+
+    def test_xcodebuild_uses_only_the_active_architecture(self):
+        with tempfile.TemporaryDirectory() as path:
+            directory = Path(path)
+            result = self.shell('oneset_xcodebuild "$ONESET_TEST_LOG" -project OneSet.xcodeproj build', directory,
+                                ("xcodebuild", 'printf "%s\\n" "$@" > "$ONESET_TEST_CAPTURE"'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("ONLY_ACTIVE_ARCH=YES", (directory / "xcodebuild-args").read_text().splitlines())
 
     def test_artifact_write_denial_is_caught_even_when_directory_exists(self):
         with tempfile.TemporaryDirectory() as path:

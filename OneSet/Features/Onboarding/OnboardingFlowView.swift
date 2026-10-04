@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingFlowView: View {
   @Bindable var model: OnboardingModel
+  @Bindable var authentication: AuthenticationModel
 
   var body: some View {
     NavigationStack(path: $model.path) {
@@ -109,7 +110,7 @@ struct OnboardingFlowView: View {
             ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
           }
         case .login:
-          MockLoginScreen()
+          LoginScreen(model: authentication)
             .toolbar(.hidden, for: .navigationBar)
         }
       }
@@ -120,5 +121,8 @@ struct OnboardingFlowView: View {
 }
 
 #Preview {
-  OnboardingFlowView(model: OnboardingModel(catalog: .bundled))
+  OnboardingFlowView(
+    model: OnboardingModel(catalog: .bundled),
+    authentication: AuthenticationModel(service: PreviewAuthenticationService())
+  )
 }

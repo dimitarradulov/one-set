@@ -35,6 +35,8 @@ The [DBML schema](docs/database/oneset.dbml) and [applied migration](docs/databa
 
 Swift / SwiftUI → durable local storage → Cloudflare Worker → Neon Postgres. Clerk owns account profiles and access; payment integration remains to be specified; PostHog records a limited event list. Private R2 holds exercise videos, delivered through an authorized Worker with deliberate cache rules.
 
+For the current native email-code sign-in setup and later Apple/Google provider prerequisites, see [Clerk development setup](docs/clerk-development.md).
+
 Start on Neon Free. Aim for free infrastructure, with a broader $5–10/month target. Independent backups are approved only if they add no cost. Free allowances, actual video sizes and backup sizes must be verified before activation. No absolute zero-loss or zero-cost guarantee has been established.
 
 ## Project status

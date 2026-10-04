@@ -4,6 +4,7 @@ import ClerkKit
 @main
 struct OneSetApp: App {
   @State private var onboarding: OnboardingModel
+  @State private var authentication: AuthenticationModel
 
   init() {
     Clerk.configure(publishableKey: "pk_test_ZXhhY3QtbGlnZXItMzM1Ni5jbGVyay5hY2NvdW50cy5kZXYk")
@@ -17,11 +18,12 @@ struct OneSetApp: App {
     )
     model.trainingDays = launch.trainingDays
     _onboarding = State(initialValue: model)
+    _authentication = State(initialValue: AuthenticationModel(service: dependencies.authentication))
   }
 
   var body: some Scene {
     WindowGroup {
-      OnboardingFlowView(model: onboarding)
+      OnboardingFlowView(model: onboarding, authentication: authentication)
         .tint(OneSetColors.accent)
         .environment(Clerk.shared)
     }

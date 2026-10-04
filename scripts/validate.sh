@@ -8,7 +8,7 @@ python3 -m unittest discover -s scripts/tests -v
 SIMULATOR_UDID="$(oneset_simulator)"
 DESTINATION="platform=iOS Simulator,id=$SIMULATOR_UDID"
 RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/$(date +%Y%m%d-%H%M%S)-$$"
-BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/validation"
+BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/validation/$(basename "$RUN_DIR")"
 
 echo "==> Building"
 oneset_xcodebuild "$RUN_DIR/build.log" \

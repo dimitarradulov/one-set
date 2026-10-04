@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC1306FCC5700D6A32F /* ClerkKit */; };
-		B488DEC4306FCC5700D6A32F /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC3306FCC5700D6A32F /* ClerkKitUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,7 +36,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */,
-				B488DEC4306FCC5700D6A32F /* ClerkKitUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,7 +88,6 @@
 			name = OneSet;
 			packageProductDependencies = (
 				B488DEC1306FCC5700D6A32F /* ClerkKit */,
-				B488DEC3306FCC5700D6A32F /* ClerkKitUI */,
 			);
 			productName = OneSet;
 			productReference = A10000000000000000000005 /* OneSet.app */;
@@ -349,11 +346,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */;
 			productName = ClerkKit;
-		};
-		B488DEC3306FCC5700D6A32F /* ClerkKitUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */;
-			productName = ClerkKitUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

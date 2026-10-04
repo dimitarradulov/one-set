@@ -69,7 +69,7 @@ oneset_xcodebuild() {
   shift
   mkdir -p "$(dirname "$log")"
   local status=0
-  xcodebuild "$@" 2>&1 | tee "$log" || status=$?
+  xcodebuild ONLY_ACTIVE_ARCH=YES "$@" 2>&1 | tee "$log" || status=$?
   if [[ "$status" -ne 0 ]]; then
     echo "Xcode failed (exit $status). Full log: $log" >&2
     if grep -Eqi 'sandbox.*(Operation not permitted|deny)|sandbox_apply' "$log"; then

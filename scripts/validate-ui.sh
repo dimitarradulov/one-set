@@ -12,8 +12,8 @@ fi
 oneset_toolchain
 oneset_artifacts
 SIMULATOR_UDID="$(oneset_simulator)"
-BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/ui"
 RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/ui-$(date +%Y%m%d-%H%M%S)-$$"
+BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/ui/$(basename "$RUN_DIR")"
 BUNDLE_ID="com.oneset.OneSet"
 SCREENSHOT_NAME="${UI_ROUTE#--ui-}-${ONESET_SIMULATOR_FAMILY:-iphone}"
 

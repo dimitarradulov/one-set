@@ -25,12 +25,12 @@ final class OnboardingJourneyTests: XCTestCase {
     openPreferences(using: "continue.email")
   }
 
-  func testLoginIsInformationalAndReturnsToWelcome() {
+  func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
     app.buttons["welcome.login"].tap()
 
     XCTAssertTrue(app.staticTexts["login.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.staticTexts["Informational demo screen"].exists)
-    XCTAssertEqual(app.textFields.count, 0)
+    XCTAssertTrue(app.textFields["login.email"].exists)
+    XCTAssertTrue(app.buttons["login.sendCode"].exists)
     XCTAssertEqual(app.secureTextFields.count, 0)
 
     app.buttons["login.backToWelcome"].tap()
