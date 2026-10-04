@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+Config/Local.xcconfig
 .DS_Store
 DerivedData/
 *.xcuserstate
