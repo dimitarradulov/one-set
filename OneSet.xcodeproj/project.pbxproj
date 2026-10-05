@@ -230,6 +230,7 @@
 				DEVELOPMENT_TEAM = SR65MNSHRM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				ONESET_API_BASE_URL = "https://oneset-api-development.dimitarradulovv.workers.dev";
 				INFOPLIST_KEY_CFBundleDisplayName = OneSet;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				MARKETING_VERSION = 0.1.0;

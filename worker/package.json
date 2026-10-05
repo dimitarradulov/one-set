@@ -5,8 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "dev": "wrangler dev",
-    "types": "wrangler types"
+    "dev": "wrangler dev --env development",
+    "types": "wrangler types --env development"
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",

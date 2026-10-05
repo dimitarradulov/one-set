@@ -3,11 +3,29 @@
   "name": "oneset-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-05",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {"enabled": true, "traces": {"enabled": true}},
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true
+    }
+  },
   "vars": {
     "CLERK_ISSUER": "https://YOUR_INSTANCE.clerk.accounts.dev",
     "CLERK_AUTHORIZED_PARTIES": "https://YOUR_WEB_ORIGIN.example",
     "PROGRAM_CATALOG_MAP": "{}"
+  },
+  "env": {
+    "development": {
+      "name": "oneset-api-development",
+      "workers_dev": true,
+      "vars": {
+        "CLERK_ISSUER": "https://exact-liger-3356.clerk.accounts.dev",
+        "CLERK_AUTHORIZED_PARTIES": "https://oneset-api-development.dimitarradulovv.workers.dev",
+        "PROGRAM_CATALOG_MAP": "{\"1\":\"full-body\",\"2\":\"upper-lower\",\"3\":\"push-pull-legs\",\"4\":\"bro-split\",\"5\":\"minimalist-full-body\",\"6\":\"v-taper\",\"7\":\"powerhouse\",\"8\":\"classic-physique\",\"9\":\"free-weight-full-body\",\"10\":\"machine-full-body\"}"
+      }
+    }
   }
 }
