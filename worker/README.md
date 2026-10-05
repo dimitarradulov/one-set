@@ -1,6 +1,6 @@
 # OneSet account setup API
 
-This Worker implements the read-only `GET /v1/me/setup` contract in [account setup](../docs/account-setup.md). It reads the existing Neon schema; no migration or training-data writes are required.
+This Worker implements the `GET` and `PUT /v1/me/setup` contracts in [account setup](../docs/account-setup.md). PUT creates first completed setup using migration 002; reads use the existing Neon schema.
 
 Install dependencies with `npm ci` in this directory (Node 22 or later). Run `npm run typecheck` and `npm test`, or the repository's `./scripts/validate.sh` after installing dependencies. Tests verify real signed session tokens and owner-scoped SQL against the applied schema in disposable PGlite Postgres. They do not contact a live Clerk instance or Neon database.
 
@@ -31,3 +31,7 @@ The isolated branch contains the ten bundled program identities and a Clerk test
 Live verification used a real native Clerk development session: a new account returned `200` with no setup; the same account after fixture insertion returned `200` with its saved preferences, program and cycle; missing or invalid tokens returned `401`. Supplying another owner in a query parameter did not change the authenticated account's response. These HTTP checks verify the deployed API; they do not establish a complete live iOS authentication journey.
 
 Database credentials and the verification key are stored in Worker secret bindings. Public configuration is committed; credentials are not. Future deployments must preserve both secret bindings and use this branch's program mapping.
+
+## Completed onboarding saves
+
+`PUT /v1/me/setup` saves completed onboarding using the authenticated contract in [account setup](../docs/account-setup.md). Apply [migration 002](../docs/database/migrations/002_completed_setup.sql) before deploying this version. It adds a transactional first-completion function and leaves established cycles/history unchanged. Keep `PROGRAM_CATALOG_MAP` aligned with the bundled program IDs for both reads and writes. This change does not deploy the Worker or apply the migration automatically.

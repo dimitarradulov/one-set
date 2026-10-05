@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OnboardingFlowView: View {
+  @Environment(\.scenePhase) private var scenePhase
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
 
@@ -15,6 +16,23 @@ struct OnboardingFlowView: View {
     }
     .task(id: authentication.signedInUser?.id) {
       await model.resolveAccountSetup(using: authentication)
+      #if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("--ui-setup-upload-discard") {
+        await model.signOut(using: authentication)
+      }
+      #endif
+      await model.retryCompletedUploads(using: authentication)
+    }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active { Task { await model.uploadCompletedSetup(using: authentication) } }
+    }
+    .alert("Discard setup awaiting upload?", isPresented: $model.discardSetupPresented) {
+      Button("Cancel", role: .cancel) { }
+      Button("Sign out and discard", role: .destructive) {
+        Task { await model.signOut(using: authentication, discardPending: true) }
+      }
+    } message: {
+      Text("Your completed setup has not reached your account yet. Signing out will discard this device’s setup and its pending upload.")
     }
     .alert("Couldn’t sign out", isPresented: $model.signOutErrorPresented) {
       Button("OK", role: .cancel) { }
@@ -100,7 +118,10 @@ struct OnboardingFlowView: View {
             }
           case .trialPreview(let programID):
             if let program = model.program(id: programID) {
-              TrialPreviewScreen(program: program, onContinueWithoutTrial: model.continueWithoutTrial)
+              TrialPreviewScreen(program: program, onContinueWithoutTrial: {
+                model.continueWithoutTrial()
+                Task { await model.uploadCompletedSetup(using: authentication) }
+              })
                 .navigationTitle("Trial preview")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -116,12 +137,14 @@ struct OnboardingFlowView: View {
             if let program = model.program(id: programID) {
               ProgramOverviewScreen(
                 program: program,
+                uploadMessage: model.uploadMessage,
+                onRetryUpload: { Task { await model.uploadCompletedSetup(using: authentication) } },
                 preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
                 onPreviewWorkout: { workout in
                   model.previewWorkout(programID: programID, workoutID: workout.id)
                 }
               )
-                .navigationBarBackButtonHidden(model.restoredCycleID != nil)
+                .navigationBarBackButtonHidden(model.hasCompletedSetup)
                 .navigationTitle("Program")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

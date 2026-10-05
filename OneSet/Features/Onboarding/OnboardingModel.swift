@@ -17,12 +17,17 @@ final class OnboardingModel {
 
   private(set) var setupResolution: SetupResolution = .idle
   private(set) var restoredCycleID: UUID?
+  var discardSetupPresented = false
+  private(set) var uploadMessage: String?
+  private var uploadingGeneration: Int?
+  var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
+  var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
   var signOutErrorPresented = false
   private(set) var signOutErrorMessage = ""
   var progressErrorPresented = false
   private(set) var progressErrorMessage = ""
   private let progressStore: (any OnboardingProgressStore)?
-  private var savedProgress: UnfinishedOnboarding?
+  private var savedProgress: OnboardingProgress?
   private var isSigningOut = false
   private let setupService: (any AccountSetupService)?
   private var lookupGeneration = 0
@@ -60,18 +65,12 @@ final class OnboardingModel {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
       if let setup {
-        guard (2...5).contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
-          throw AccountSetupError.invalidSetup
-        }
-        weightUnit = setup.preferredUnit
-        trainingDays = setup.trainingDays
-        selectedProgramID = setup.programID
-        restoredCycleID = setup.cycleID
-        path = [.programOverview(setup.programID)]
+        try storeCompleted(setup, needsUpload: false, accountID: user.id)
+        apply(setup)
       } else if let savedProgress {
         restore(savedProgress)
       } else {
-        let progress = UnfinishedOnboarding(
+        let progress = OnboardingProgress(
           weightUnit: .kilograms, trainingDays: 3, selectedProgramID: nil, nextStep: .preferences
         )
         try progressStore?.save(progress, accountID: user.id)
@@ -104,7 +103,11 @@ final class OnboardingModel {
     return false
   }
 
-  func signOut(using authentication: AuthenticationModel) async {
+  func signOut(using authentication: AuthenticationModel, discardPending: Bool = false) async {
+    if hasPendingSetup && !discardPending {
+      discardSetupPresented = true
+      return
+    }
     guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     isSigningOut = true
     defer { isSigningOut = false }
@@ -148,6 +151,9 @@ final class OnboardingModel {
     setupResolution = .idle
     restoredCycleID = nil
     savedProgress = nil
+    uploadingGeneration = nil
+    uploadMessage = nil
+    discardSetupPresented = false
     progressErrorPresented = false
     signOutErrorPresented = false
     weightUnit = .kilograms
@@ -167,7 +173,7 @@ final class OnboardingModel {
   func continueWithGoogle(using authentication: AuthenticationModel) async {
     if authentication.signedInUser == nil {
       await authentication.signInWithGoogle()
-    } else if let selectedProgramID, restoredCycleID != nil {
+    } else if let selectedProgramID, hasCompletedSetup {
       path = [.programOverview(selectedProgramID)]
     } else {
       // Returning from preferences keeps choices still being edited in this workflow.
@@ -188,7 +194,7 @@ final class OnboardingModel {
       path.append(route)
       return
     }
-    if let selectedProgramID, restoredCycleID != nil {
+    if let selectedProgramID, hasCompletedSetup {
       path = [.programOverview(selectedProgramID)]
     } else if let savedProgress {
       restore(savedProgress)
@@ -212,11 +218,11 @@ final class OnboardingModel {
     }
   }
 
-  private func saveProgress(nextStep: UnfinishedOnboarding.Step, programID: TrainingProgram.ID?) -> Bool {
+  private func saveProgress(nextStep: OnboardingProgress.Step, programID: TrainingProgram.ID?) -> Bool {
     guard !isSigningOut else { return false }
     // Development preview routes have no authenticated account and do not persist.
     guard let accountID = resolvedAccountID, let progressStore else { return true }
-    let progress = UnfinishedOnboarding(
+    let progress = OnboardingProgress(
       weightUnit: weightUnit, trainingDays: trainingDays,
       selectedProgramID: programID, nextStep: nextStep
     )
@@ -233,20 +239,36 @@ final class OnboardingModel {
     }
   }
 
-  private func validate(_ progress: UnfinishedOnboarding) throws {
+  private func validate(_ progress: OnboardingProgress) throws {
+    if let completed = progress.completed {
+      guard progress.nextStep == .overview,
+            completed.setup.preferredUnit == progress.weightUnit,
+            completed.setup.trainingDays == progress.trainingDays,
+            completed.setup.programID == progress.selectedProgramID else {
+        throw AccountSetupError.invalidSetup
+      }
+    }
     guard (2...5).contains(progress.trainingDays),
           progress.selectedProgramID.map({ catalog.program(id: $0) != nil }) ?? true,
-          progress.nextStep != .trial || progress.selectedProgramID != nil else {
+          progress.nextStep != .trial || progress.selectedProgramID != nil,
+          progress.nextStep != .overview || progress.completed != nil else {
       throw AccountSetupError.invalidSetup
     }
   }
 
-  private func restore(_ progress: UnfinishedOnboarding) {
+  private func restore(_ progress: OnboardingProgress) {
+    if let completed = progress.completed {
+      apply(completed.setup)
+      uploadMessage = completed.needsUpload ? "Setup saved on this device. Waiting to upload." : nil
+      return
+    }
     weightUnit = progress.weightUnit
     trainingDays = progress.trainingDays
     selectedProgramID = progress.selectedProgramID
     restoredCycleID = nil
     switch progress.nextStep {
+    case .overview:
+      break
     case .preferences:
       path = [.preferences]
     case .programs:
@@ -259,12 +281,74 @@ final class OnboardingModel {
   }
 
   func continueWithoutTrial() {
-    guard let selectedProgramID,
+    guard !isSigningOut, let selectedProgramID,
           catalog.program(id: selectedProgramID) != nil,
           path.last == .trialPreview(selectedProgramID)
     else { return }
 
-    path.append(.programOverview(selectedProgramID))
+    if let accountID = resolvedAccountID {
+      let setup = AccountSetup(preferredUnit: weightUnit, trainingDays: trainingDays,
+                               programID: selectedProgramID, cycleID: UUID())
+      do {
+        try storeCompleted(setup, needsUpload: true, accountID: accountID)
+        apply(setup)
+        uploadMessage = "Setup saved on this device. Waiting to upload."
+      } catch {
+        progressErrorMessage = "Your setup couldn’t be saved on this device. Please try again. " + error.localizedDescription
+        progressErrorPresented = true
+      }
+    } else {
+      path.append(.programOverview(selectedProgramID))
+    }
+  }
+
+  private func apply(_ setup: AccountSetup, replacePath: Bool = true) {
+    weightUnit = setup.preferredUnit
+    trainingDays = setup.trainingDays
+    selectedProgramID = setup.programID
+    restoredCycleID = setup.cycleID
+    if replacePath { path = [.programOverview(setup.programID)] }
+  }
+
+  private func storeCompleted(_ setup: AccountSetup, needsUpload: Bool, accountID: String) throws {
+    guard (2...5).contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
+      throw AccountSetupError.invalidSetup
+    }
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+                                       selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: needsUpload)
+    try progressStore?.save(progress, accountID: accountID)
+    savedProgress = progress
+  }
+
+  func retryCompletedUploads(using authentication: AuthenticationModel) async {
+    while !Task.isCancelled, authentication.signedInUser != nil {
+      await uploadCompletedSetup(using: authentication)
+      do { try await Task.sleep(for: .seconds(15)) } catch { break }
+    }
+  }
+
+  func uploadCompletedSetup(using authentication: AuthenticationModel) async {
+    guard !isSigningOut, let user = authentication.signedInUser,
+          resolvedAccountID == user.id, let completed = savedProgress?.completed,
+          completed.needsUpload, let setupService,
+          uploadingGeneration != lookupGeneration else { return }
+    let generation = lookupGeneration
+    uploadingGeneration = generation
+    defer { if uploadingGeneration == generation { uploadingGeneration = nil } }
+    uploadMessage = "Uploading setup…"
+    do {
+      let setup = try await setupService.save(completed.setup, for: user)
+      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
+            !isSigningOut else { return }
+      try storeCompleted(setup, needsUpload: false, accountID: user.id)
+      // A different device may have established setup first. Respect its cycle.
+      apply(setup, replacePath: setup.cycleID != completed.setup.cycleID)
+      uploadMessage = nil
+    } catch {
+      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      uploadMessage = "Setup saved on this device. Upload pending. You can retry now or stay here for automatic retry."
+    }
   }
 
   func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {

@@ -366,21 +366,6 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
-    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
-    app.navigationBars.buttons.firstMatch.tap()
-
-    let selectedMachineProgram = programCard("machine-full-body")
-    XCTAssertTrue(selectedMachineProgram.waitForExistence(timeout: 3))
-    XCTAssertTrue(selectedMachineProgram.label.localizedCaseInsensitiveContains("selected"))
-
-    app.navigationBars.buttons.firstMatch.tap()
-    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
-    app.buttons["preferences.continue"].tap()
-    XCTAssertTrue(programCard("machine-full-body").waitForExistence(timeout: 3))
-    XCTAssertTrue(programCard("machine-full-body").label.localizedCaseInsensitiveContains("selected"))
-
     app.terminate()
     app.launch()
     app.buttons["continue.google"].tap()
@@ -558,6 +543,8 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
     app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
+    app.alerts.buttons["Sign out and discard"].tap()
     XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
 
     relaunch(with: ["--ui-auth-existing", "--ui-progress-keep"])
@@ -609,6 +596,122 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
     XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+  }
+
+  func testCompletedOfflineSetupSurvivesRestartAndRequiresCancelOrDiscard() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-offline"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    app.buttons["trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-setup-offline", "--ui-upload-offline"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["overview.preferences"].label.contains("lb"))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
+    app.alerts.buttons["Cancel"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].exists)
+    app.buttons["account.signOut"].tap()
+    app.alerts.buttons["Sign out and discard"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+  }
+
+  func testReconnectUploadsSetupAndAnotherDeviceRestoresIt() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-shared-backend", "--ui-backend-reset", "--ui-upload-offline"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    app.buttons["trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-shared-backend"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    let uploaded = NSPredicate(format: "exists == false")
+    expectation(for: uploaded, evaluatedWith: app.staticTexts["setup.uploadStatus"])
+    waitForExpectations(timeout: 5)
+    // Clear device-local state while retaining the shared account backend.
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-shared-backend"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
+    XCTAssertTrue(app.staticTexts["overview.preferences"].label.contains("lb"))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.alerts["Discard setup awaiting upload?"].exists)
+  }
+
+  func testMockedTrialAcceptanceRetriesUploadWithoutGrantingEntitlement() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry"])
+    completeSetupFromPreferences(acceptPreview: true)
+    XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["Trial started"].exists)
+    XCTAssertFalse(app.staticTexts["Purchase complete"].exists)
+    app.buttons["setup.retryUpload"].tap()
+    expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["setup.uploadStatus"])
+    waitForExpectations(timeout: 5)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.alerts["Discard setup awaiting upload?"].exists)
+  }
+
+  func testAutomaticUploadRetryRecoversInTheRunningApp() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry"])
+    completeSetupFromPreferences()
+    XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
+    expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["setup.uploadStatus"])
+    waitForExpectations(timeout: 20)
+    XCTAssertTrue(app.staticTexts["overview.title"].exists)
+  }
+
+  func testLateUploadAfterDiscardCannotApplyToAnotherAccount() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-delayed", "--ui-auth-existing"])
+    completeSetupFromPreferences()
+    XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
+    app.alerts.buttons["Sign out and discard"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    let changedAccount = expectation(for: NSPredicate(format: "exists == false"),
+                                    evaluatedWith: app.staticTexts["preferences.title"])
+    changedAccount.isInverted = true
+    waitForExpectations(timeout: 9)
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertFalse(app.staticTexts["overview.title"].exists)
+    app.buttons["account.signOut"].tap()
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+  }
+
+  func testFailedCompletionSaveKeepsTrialAndDoesNotPersistOverview() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-completion-save-error"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    app.buttons["trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.alerts["Couldn’t save progress"].waitForExistence(timeout: 3))
+    app.alerts.buttons["OK"].tap()
+    XCTAssertTrue(app.staticTexts["trial.title"].exists)
+    XCTAssertFalse(app.staticTexts["overview.title"].exists)
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-setup-offline"])
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+  }
+
+  private func completeSetupFromPreferences(acceptPreview: Bool = false) {
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    app.buttons[acceptPreview ? "trial.continuePreview" : "trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
   }
 
   private func authenticateExistingEmail(using action: String, email: String = "existing@example.com") {

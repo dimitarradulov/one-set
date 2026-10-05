@@ -1,6 +1,6 @@
 import Foundation
 
-struct AccountSetup: Decodable, Sendable {
+struct AccountSetup: Codable, Sendable {
   let preferredUnit: WeightUnit
   let trainingDays: Int
   let programID: TrainingProgram.ID

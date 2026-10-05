@@ -5,6 +5,15 @@ struct HTTPAccountSetupService: AccountSetupService {
   let authentication: ClerkAuthenticationService
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
+    try await send(for: user, setup: nil)
+  }
+
+  func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup {
+    guard let saved = try await send(for: user, setup: setup) else { throw AccountSetupError.invalidSetup }
+    return saved
+  }
+
+  private func send(for user: AuthenticatedUser, setup: AccountSetup?) async throws -> AccountSetup? {
     guard let baseURLString = Bundle.main.object(forInfoDictionaryKey: "OneSetAPIBaseURL") as? String,
           let baseURL = URL(string: baseURLString), baseURL.scheme == "https",
           baseURL.host != nil else { throw AccountSetupError.unavailable }
@@ -12,6 +21,11 @@ struct HTTPAccountSetupService: AccountSetupService {
     var request = URLRequest(url: baseURL.appending(path: "v1/me/setup"))
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
+    if let setup {
+      request.httpMethod = "PUT"
+      request.httpBody = try JSONEncoder().encode(setup)
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
     request.cachePolicy = .reloadIgnoringLocalCacheData
     request.timeoutInterval = 30
     let (data, response) = try await URLSession.shared.data(for: request)

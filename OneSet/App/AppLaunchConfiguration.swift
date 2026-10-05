@@ -7,7 +7,8 @@ struct AppLaunchConfiguration {
   init(arguments: [String]) {
     #if DEBUG
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
-    if arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error") {
+    if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
+      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error") {
       onboardingPath = []
       selectedProgramID = nil
       authenticationEntryPoint = nil

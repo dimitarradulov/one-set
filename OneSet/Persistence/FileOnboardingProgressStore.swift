@@ -1,11 +1,11 @@
 import Foundation
 
-/// An atomic, device-local file containing only unfinished onboarding, never workout data.
+/// An atomic, device-local file containing onboarding progress and pending setup uploads, never workout data.
 @MainActor
 final class FileOnboardingProgressStore: OnboardingProgressStore {
   private struct Document: Codable {
     var version = 1
-    var accounts: [String: UnfinishedOnboarding] = [:]
+    var accounts: [String: OnboardingProgress] = [:]
   }
 
   private let fileURL: URL
@@ -14,11 +14,11 @@ final class FileOnboardingProgressStore: OnboardingProgressStore {
     self.fileURL = fileURL
   }
 
-  func load(accountID: String) throws -> UnfinishedOnboarding? {
+  func load(accountID: String) throws -> OnboardingProgress? {
     try read().accounts[accountID]
   }
 
-  func save(_ progress: UnfinishedOnboarding, accountID: String) throws {
+  func save(_ progress: OnboardingProgress, accountID: String) throws {
     var document = try read()
     document.accounts[accountID] = progress
     try write(document)

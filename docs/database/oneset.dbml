@@ -1,3 +1,4 @@
+// Migration 002 adds complete_onboarding(), a user-row-locked first-completion command.
 // Applied by migrations/001_documented_schema.sql to Neon production on 2026-09-29.
 // README.md specifies snapshot contents and transaction-level validation.
 Project OneSet {

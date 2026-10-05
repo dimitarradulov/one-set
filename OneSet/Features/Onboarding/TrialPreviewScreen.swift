@@ -67,6 +67,12 @@ struct TrialPreviewScreen: View {
         }
         .scrollIndicators(.hidden)
 
+        Button("Continue with trial preview", action: onContinueWithoutTrial)
+          .font(OneSetTypography.button)
+          .frame(maxWidth: 560, minHeight: 52)
+          .accessibilityIdentifier("trial.continuePreview")
+          .padding(.horizontal, 20)
+
         Button(action: onContinueWithoutTrial) {
           Text("Continue without trial")
             .font(OneSetTypography.button)

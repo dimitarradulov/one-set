@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ProgramOverviewScreen: View {
   let program: TrainingProgram
+  var uploadMessage: String? = nil
+  var onRetryUpload: (() -> Void)? = nil
   var preferencesSummary: String? = nil
   let onPreviewWorkout: (WorkoutTemplate) -> Void
   @State private var selectedWeek = 1
@@ -28,6 +30,19 @@ struct ProgramOverviewScreen: View {
               .foregroundStyle(OneSetColors.textSecondary)
               .fixedSize(horizontal: false, vertical: true)
               .accessibilityIdentifier("overview.preferences")
+          }
+        }
+
+        if let uploadMessage {
+          VStack(alignment: .leading, spacing: 8) {
+            Text(uploadMessage)
+              .font(OneSetTypography.body)
+              .foregroundStyle(OneSetColors.textSecondary)
+              .accessibilityIdentifier("setup.uploadStatus")
+            if let onRetryUpload {
+              Button("Retry upload", action: onRetryUpload)
+                .accessibilityIdentifier("setup.retryUpload")
+            }
           }
         }
 
