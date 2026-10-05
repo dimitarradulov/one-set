@@ -13,6 +13,7 @@ struct AppDependencies {
     let preview = arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
+      || arguments.contains("--ui-google-auth-error")
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
@@ -38,6 +39,9 @@ struct AppDependencies {
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
           resetPersistedSession: arguments.contains("--ui-auth-reset"),
           signOutFails: arguments.contains("--ui-auth-signout-error"),
+          googleIncomplete: arguments.contains("--ui-google-incomplete"),
+          googleFails: arguments.contains("--ui-google-error") || arguments.contains("--ui-google-auth-error"),
+          googleCancels: arguments.contains("--ui-google-cancel"),
           appleCancels: arguments.contains("--ui-apple-cancel"),
           appleFails: arguments.contains("--ui-apple-error") || arguments.contains("--ui-apple-auth-error")
         ),

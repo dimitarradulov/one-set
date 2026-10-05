@@ -17,6 +17,9 @@ final class PreviewAuthenticationService: AuthenticationService {
   private let emailIsRegistered: Bool
   private let persistsSession: Bool
   private let signOutFails: Bool
+  private let googleIncomplete: Bool
+  private var googleFails: Bool
+  private let googleCancels: Bool
   private let appleCancels: Bool
   private var appleFails: Bool
   private var pendingFlow: PendingFlow?
@@ -28,12 +31,18 @@ final class PreviewAuthenticationService: AuthenticationService {
     persistsSession: Bool = false,
     resetPersistedSession: Bool = false,
     signOutFails: Bool = false,
+    googleIncomplete: Bool = false,
+    googleFails: Bool = false,
+    googleCancels: Bool = false,
     appleCancels: Bool = false,
     appleFails: Bool = false
   ) {
     self.emailIsRegistered = emailIsRegistered || startsSignedIn
     self.persistsSession = persistsSession
     self.signOutFails = signOutFails
+    self.googleIncomplete = googleIncomplete
+    self.googleFails = googleFails
+    self.googleCancels = googleCancels
     self.appleCancels = appleCancels
     self.appleFails = appleFails
     if resetPersistedSession {
@@ -54,12 +63,17 @@ final class PreviewAuthenticationService: AuthenticationService {
       appleFails = false
       throw AuthenticationError.incompleteAppleAuthentication
     }
-    let user = AuthenticatedUser(id: "preview-apple", emailAddress: "apple@example.com")
-    signedInUser = user
-    if persistsSession {
-      UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
-      UserDefaults.standard.set(user.emailAddress, forKey: Self.persistedEmailAddressKey)
+    completeAuthentication(as: AuthenticatedUser(id: "preview-apple", emailAddress: "apple@example.com"))
+  }
+
+  func signInWithGoogle() async throws {
+    if googleCancels { throw CancellationError() }
+    if googleFails {
+      googleFails = false
+      throw AuthenticationError.incompleteGoogleAuthentication
     }
+    if googleIncomplete { return }
+    completeAuthentication(as: AuthenticatedUser(id: "preview-google", emailAddress: "google@example.com"))
   }
 
   func requestSignInCode(to emailAddress: String) async throws -> EmailCodeRequestResult {
@@ -83,14 +97,9 @@ final class PreviewAuthenticationService: AuthenticationService {
       throw AuthenticationError.noCodeRequested
     }
     guard code == "123456" else { throw AuthenticationError.invalidVerificationCode }
-    let user = AuthenticatedUser(id: "preview-\(pendingEmailAddress)", emailAddress: pendingEmailAddress)
-    signedInUser = user
-    if persistsSession {
-      UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
-      if let emailAddress = user.emailAddress {
-        UserDefaults.standard.set(emailAddress, forKey: Self.persistedEmailAddressKey)
-      }
-    }
+    completeAuthentication(as: AuthenticatedUser(
+      id: "preview-\(pendingEmailAddress)", emailAddress: pendingEmailAddress
+    ))
     pendingFlow = nil
   }
 
@@ -105,6 +114,14 @@ final class PreviewAuthenticationService: AuthenticationService {
     cancelPendingEmailFlow()
     if persistsSession {
       Self.clearPersistedSession()
+    }
+  }
+
+  private func completeAuthentication(as user: AuthenticatedUser) {
+    signedInUser = user
+    if persistsSession {
+      UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
+      UserDefaults.standard.set(user.emailAddress, forKey: Self.persistedEmailAddressKey)
     }
   }
 

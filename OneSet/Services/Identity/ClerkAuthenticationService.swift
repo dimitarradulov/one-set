@@ -23,17 +23,7 @@ final class ClerkAuthenticationService: AuthenticationService {
     pendingVerification = nil
     do {
       let result = try await Clerk.shared.auth.signInWithApple(requestedScopes: [.email])
-      switch result {
-      case .signIn(let signIn):
-        guard signIn.status == .complete else {
-          throw AuthenticationError.incompleteAppleAuthentication
-        }
-      case .signUp(let signUp):
-        guard signUp.status == .complete else {
-          throw AuthenticationError.incompleteAppleAuthentication
-        }
-      }
-      guard signedInUser != nil else { throw AuthenticationError.incompleteAppleAuthentication }
+      try validateProviderResult(result, incompleteError: .incompleteAppleAuthentication)
     } catch {
       let nativeError = error as NSError
       if nativeError.domain == ASAuthorizationError.errorDomain,
@@ -42,6 +32,34 @@ final class ClerkAuthenticationService: AuthenticationService {
       }
       throw error
     }
+  }
+
+  func signInWithGoogle() async throws {
+    pendingVerification = nil
+    do {
+      let result = try await Clerk.shared.auth.signInWithOAuth(provider: .google)
+      try validateProviderResult(result, incompleteError: .incompleteGoogleAuthentication)
+    } catch {
+      let nativeError = error as NSError
+      if nativeError.domain == ASWebAuthenticationSessionError.errorDomain,
+         nativeError.code == ASWebAuthenticationSessionError.Code.canceledLogin.rawValue {
+        throw CancellationError()
+      }
+      throw error
+    }
+  }
+
+  private func validateProviderResult(
+    _ result: TransferFlowResult,
+    incompleteError: AuthenticationError
+  ) throws {
+    switch result {
+    case .signIn(let signIn):
+      guard signIn.status == .complete else { throw incompleteError }
+    case .signUp(let signUp):
+      guard signUp.status == .complete else { throw incompleteError }
+    }
+    guard signedInUser != nil else { throw incompleteError }
   }
 
   func requestSignInCode(to emailAddress: String) async throws -> EmailCodeRequestResult {

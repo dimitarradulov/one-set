@@ -36,6 +36,8 @@ struct OneSetApp: App {
         .task {
           if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
             await authentication.signInWithApple()
+          } else if ProcessInfo.processInfo.arguments.contains("--ui-google-auth-error") {
+            await authentication.signInWithGoogle()
           }
         }
         #endif

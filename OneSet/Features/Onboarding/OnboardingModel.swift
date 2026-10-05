@@ -164,8 +164,15 @@ final class OnboardingModel {
     catalog.program(id: id)
   }
 
-  func showPreferences() {
-    path.append(.preferences)
+  func continueWithGoogle(using authentication: AuthenticationModel) async {
+    if authentication.signedInUser == nil {
+      await authentication.signInWithGoogle()
+    } else if let selectedProgramID, restoredCycleID != nil {
+      path = [.programOverview(selectedProgramID)]
+    } else {
+      // Returning from preferences keeps choices still being edited in this workflow.
+      path.append(.preferences)
+    }
   }
 
   func showLogin() {

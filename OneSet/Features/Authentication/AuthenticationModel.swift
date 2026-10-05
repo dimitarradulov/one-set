@@ -41,16 +41,31 @@ final class AuthenticationModel {
   }
 
   func signInWithApple() async {
+    await authenticate(incompleteError: .incompleteAppleAuthentication) {
+      try await service.signInWithApple()
+    }
+  }
+
+  func signInWithGoogle() async {
+    await authenticate(incompleteError: .incompleteGoogleAuthentication) {
+      try await service.signInWithGoogle()
+    }
+  }
+
+  private func authenticate(
+    incompleteError: AuthenticationError,
+    action: () async throws -> Void
+  ) async {
     guard !isWorking, signedInUser == nil else { return }
     cancel()
     isWorking = true
     defer { isWorking = false }
     do {
-      try await service.signInWithApple()
-      guard signedInUser != nil else { throw AuthenticationError.incompleteAppleAuthentication }
+      try await action()
+      guard signedInUser != nil else { throw incompleteError }
       didCompleteAuthentication = true
     } catch is CancellationError {
-      // Dismissing Apple's sheet leaves Welcome available for another attempt.
+      // Dismissing a provider's sheet leaves Welcome available for another attempt.
     } catch {
       errorMessage = error.localizedDescription
     }

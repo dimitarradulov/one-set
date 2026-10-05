@@ -15,7 +15,8 @@ struct AppLaunchConfiguration {
       onboardingPath = [.emailAuthentication]
       selectedProgramID = nil
       authenticationEntryPoint = .continueWithEmail
-    } else if arguments.contains("--ui-welcome") || arguments.contains("--ui-apple-auth-error") {
+    } else if arguments.contains("--ui-welcome") || arguments.contains("--ui-apple-auth-error")
+      || arguments.contains("--ui-google-auth-error") {
       onboardingPath = []
       selectedProgramID = nil
       authenticationEntryPoint = nil

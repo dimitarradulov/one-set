@@ -1,6 +1,7 @@
 import Foundation
 
 enum AuthenticationError: LocalizedError {
+  case incompleteGoogleAuthentication
   case incompleteAppleAuthentication
   case noCodeRequested
   case incompleteSignIn
@@ -11,6 +12,8 @@ enum AuthenticationError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
+    case .incompleteGoogleAuthentication:
+      "Google authentication could not be completed. Please try again."
     case .incompleteAppleAuthentication:
       "Apple authentication could not be completed. Please try again."
     case .noCodeRequested:

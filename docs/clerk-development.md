@@ -1,6 +1,6 @@
 # Clerk development setup
 
-OneSet uses the native ClerkKit SDK for native Apple and email-code sign-in. The app includes only a Clerk publishable key; never add a Clerk secret key, database URL, or other service credential to the iOS target.
+OneSet uses the native ClerkKit SDK for Apple, Google OAuth, and email-code sign-in. The app includes only a Clerk publishable key; never add a Clerk secret key, database URL, or other service credential to the iOS target.
 
 The resolved `clerk-ios` 1.5.8 package supports iOS 17 and newer and requires Xcode 26 / Swift 6.2. OneSet's iOS target and current Xcode toolchain meet those requirements. The app links only the `ClerkKit` product, which provides the custom native flow.
 
@@ -43,10 +43,25 @@ To verify live integration, run a signed development build (or a simulator signe
 
 For visual inspection, `./scripts/validate-ui.sh --ui-welcome` opens Welcome and `./scripts/validate-ui.sh --ui-apple-auth-error` opens a deterministic Apple failure state. The failure route injects substitutes only in Debug builds.
 
-## Later Google provider work
+## Google sign-in
 
-Continue with Google remains a demo route.
+Continue with Google uses ClerkKit's `signInWithOAuth(provider: .google)` browser flow. The resolved SDK supports Google and automatically transfers a new identity from sign-in to sign-up, handles the callback, and activates the completed session. OneSet verifies completion and the authenticated user before routing through the shared account setup lookup. Existing setup restores its unit, frequency, program and cycle; confirmed missing setup enters preferences. Lookup errors retain Retry. Unfinished local onboarding resumes through the existing account-scoped store, including offline. Session restoration and sign-out use the same Clerk session as Apple and email. Cancellation leaves Welcome without an error; recoverable failures show an error and enable another attempt.
 
-- **Google:** add the iOS app to Clerk's Native applications and enable Google for sign-up and sign-in. For native OAuth, allowlist the app callback URI `{BUNDLE_ID}://callback` in Clerk's Native applications settings; development instances use shared Google credentials. For production, create a Google Cloud project and OAuth client credentials, then configure the web client ID and secret in Clerk. See [Clerk's Google connection guide](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google) and [iOS social connection guidance](https://clerk.com/docs/ios/guides/configure/auth-strategies/social-connections/overview).
+Required development configuration:
+
+1. Enable Native API and register the iOS app in Clerk Native applications with `YOUR_APP_ID_PREFIX` and `YOUR_BUNDLE_ID`. Keep the Associated Domain `webcredentials:YOUR_FRONTEND_API_URL` and configure `YOUR_CLERK_PUBLISHABLE_KEY` as described above.
+2. Add Google in Clerk SSO connections and enable it for sign-up and sign-in. Development instances can use Clerk's shared Google credentials. Keep password, name and custom profile fields optional so Google can complete the account.
+3. In Native applications → Allowlist for mobile SSO redirect, add `YOUR_BUNDLE_ID://callback`. ClerkKit defaults to this callback and uses the bundle identifier as the callback scheme. `Config/Info.plist` registers `$(PRODUCT_BUNDLE_IDENTIFIER)` under `CFBundleURLTypes`, so different bundle IDs use the matching scheme without a hard-coded callback.
+4. For production, create a Google Cloud project and OAuth web client, then configure `YOUR_GOOGLE_CLIENT_ID` and `YOUR_GOOGLE_CLIENT_SECRET` in Clerk with the authorized redirect URI shown in the dashboard. See [Clerk's Google connection guide](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google) and [iOS OAuth guidance](https://clerk.com/docs/ios/guides/configure/auth-strategies/social-connections/overview). This flow needs no Google iOS SDK or Google secret in the app.
+
+The development environment and dashboard were checked on 2026-10-05: Native API is enabled, the iOS bundle is registered, Google is enabled for authentication using shared development credentials, and the app callback is already allowlisted. No dashboard mutation was needed. The live Google round trip is pending developer verification on an iPhone; injected tests do not establish the provider token exchange.
+
+To verify live integration:
+
+1. Run a signed development build with the configured Clerk instance and development Worker. Select **Continue with Google** and complete Google's browser flow. Confirm preferences open for a confirmed new setup, or the existing overview restores preferences without resetting them.
+2. Choose preferences and select Continue to save local progress. Force-quit and relaunch; confirm the Clerk session and saved onboarding return. Sign out and confirm Welcome returns, then relaunch to confirm the session stays signed out.
+3. Cancel Google's browser and confirm Welcome remains usable without an error. Retry after a recoverable provider error. A setup lookup error should show Retry instead of entering new-account preferences.
+
+For visual inspection, `./scripts/validate-ui.sh --ui-welcome` opens Welcome and `./scripts/validate-ui.sh --ui-google-auth-error` opens a deterministic Google failure state. The failure route injects substitutes only in Debug builds. The trial offer remains mocked; this authentication flow adds no entitlement or custom account-merging behavior.
 
 Keep provider secrets in Clerk/Apple/Google dashboards. Only client identifiers and publishable keys belong in client configuration when the provider's native SDK requires them.

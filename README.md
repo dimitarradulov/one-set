@@ -41,7 +41,7 @@ Start on Neon Free. Aim for free infrastructure, with a broader $5–10/month ta
 
 ## Project status
 
-The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. SwiftUI onboarding uses feature-level observable models and an injected bundled catalog. Clerk native Apple and email authentication and the read-only [account setup lookup](docs/account-setup.md) are implemented; the lookup requires a configured development Worker. Account-scoped unfinished onboarding saves locally on Continue and resumes after restart, including when setup lookup is offline. Google authentication, completed-setup upload, workout recording and sync remain to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
+The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. SwiftUI onboarding uses feature-level observable models and an injected bundled catalog. Clerk native Apple, Google OAuth, and email authentication and the read-only [account setup lookup](docs/account-setup.md) are implemented; the lookup requires a configured development Worker. Account-scoped unfinished onboarding saves locally on Continue and resumes after restart, including when setup lookup is offline. Completed-setup upload, workout recording and sync remain to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
 
 ## iOS development
 

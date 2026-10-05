@@ -39,6 +39,17 @@
                ReferencedContainer = "container:OneSet.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C30000000000000000000004"
+               BuildableName = "OneSetTests.xctest"
+               BlueprintName = "OneSetTests"
+               ReferencedContainer = "container:OneSet.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

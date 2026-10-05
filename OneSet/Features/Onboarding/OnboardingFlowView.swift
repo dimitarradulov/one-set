@@ -33,7 +33,9 @@ struct OnboardingFlowView: View {
         isAuthenticating: authentication.isWorking,
         authenticationError: authentication.errorMessage,
         onContinueWithApple: { Task { await authentication.signInWithApple() } },
-        onContinueWithGoogle: model.showPreferences,
+        onContinueWithGoogle: {
+          Task { await model.continueWithGoogle(using: authentication) }
+        },
         onContinueWithEmail: {
           authentication.begin(.continueWithEmail)
           model.showEmailAuthentication()

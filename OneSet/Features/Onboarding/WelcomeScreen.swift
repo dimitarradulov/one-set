@@ -67,7 +67,7 @@ struct WelcomeScreen: View {
                   systemImage: "g.circle.fill",
                   identifier: "continue.google",
                   prominent: false,
-                  showsDemo: true,
+                  showsDemo: false,
                   action: onContinueWithGoogle
                 )
                 AccountButton(
@@ -83,7 +83,7 @@ struct WelcomeScreen: View {
               .disabled(isAuthenticating)
 
               if isAuthenticating {
-                ProgressView("Signing in with Apple…")
+                ProgressView("Signing in…")
                   .font(OneSetTypography.caption)
                   .accessibilityIdentifier("welcome.authProgress")
               }
@@ -108,10 +108,6 @@ struct WelcomeScreen: View {
               }
               .font(OneSetTypography.caption)
 
-              Text("Google sign-in is not connected yet")
-                .font(OneSetTypography.caption)
-                .foregroundStyle(.white.opacity(0.72))
-                .accessibilityIdentifier("welcome.demoNotice")
             }
           }
           .frame(maxWidth: 500, minHeight: geometry.size.height)

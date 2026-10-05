@@ -77,8 +77,75 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["account.signOut"].tap()
   }
 
-  func testGoogleDemoActionOpensPreferencesWithoutAuthentication() {
-    openPreferences(using: "continue.google")
+  func testGoogleNewAccountOpensPreferencesAndSupportsSharedSignOut() {
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+  }
+
+  func testGoogleExistingAccountRestoresSetupAfterLookupRetry() {
+    relaunch(with: ["--ui-setup-completed", "--ui-setup-retry"])
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.buttons["setup.retry"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    app.buttons["setup.retry"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+  }
+
+  func testGoogleSessionResumesLocalChoicesOfflineAfterRestartAndClearsOnSignOut() {
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-auth-reset", "--ui-progress-reset"])
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep", "--ui-setup-offline"])
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep"])
+    XCTAssertTrue(app.buttons["continue.google"].waitForExistence(timeout: 3))
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+    app.buttons["account.signOut"].tap()
+  }
+
+  func testGoogleCancellationStaysOnWelcomeWithoutAnError() {
+    relaunch(with: ["--ui-google-cancel"])
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertFalse(app.staticTexts["welcome.authError"].exists)
+  }
+
+  func testGoogleRecoverableErrorAllowsAnotherAttempt() {
+    relaunch(with: ["--ui-google-error"])
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["welcome.authError"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.buttons["continue.google"].isEnabled)
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+  }
+
+  func testGoogleDoesNotEnterSetupWithoutAnAuthenticatedUser() {
+    relaunch(with: ["--ui-google-incomplete"])
+    app.buttons["continue.google"].tap()
+    XCTAssertTrue(app.staticTexts["welcome.authError"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.buttons["continue.google"].isEnabled)
   }
 
   func testContinueWithEmailAsksBeforeCreatingAnAccountThenOpensPreferences() {
@@ -558,7 +625,7 @@ final class OnboardingJourneyTests: XCTestCase {
   private func openPreferences(using actionIdentifier: String) {
     let action = app.buttons[actionIdentifier]
     XCTAssertTrue(action.waitForExistence(timeout: 3))
-    XCTAssertTrue(action.label.localizedCaseInsensitiveContains("demo only"))
+    XCTAssertFalse(action.label.localizedCaseInsensitiveContains("demo only"))
     action.tap()
 
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
