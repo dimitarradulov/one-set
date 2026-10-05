@@ -13,8 +13,8 @@ final class PreviewAccountSetupService: AccountSetupService {
     completed = arguments.contains("--ui-setup-completed")
     delayed = arguments.contains("--ui-setup-delayed")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
-    shouldFail = arguments.contains("--ui-setup-retry") || arguments.contains("--ui-account-setup-error")
-    alwaysFails = arguments.contains("--ui-account-setup-error")
+    shouldFail = arguments.contains("--ui-setup-retry") || (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
+    alwaysFails = (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
   }
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {

@@ -15,6 +15,7 @@ struct OneSetApp: App {
     let model = OnboardingModel(
       catalog: dependencies.catalog,
       setupService: dependencies.accountSetup,
+      progressStore: dependencies.onboardingProgress,
       initialPath: launch.onboardingPath,
       initialSelectedProgramID: launch.selectedProgramID
     )

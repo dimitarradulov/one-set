@@ -378,6 +378,113 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
   }
 
+  func testSavedPreferencesResumeProgramSelectionAfterOfflineRelaunch() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-offline", "--ui-progress-keep"])
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+    XCTAssertEqual(firstProgramCardID(), "programs.card.bro-split")
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
+    app.buttons["preferences.days.2"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("minimalist-full-body").waitForExistence(timeout: 3))
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-offline", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    app.buttons["trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 2 training days per week")
+  }
+
+  func testUnsavedPreferenceChoicesAreNotCheckpoints() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-setup-offline"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+  }
+
+  func testSelectedProgramResumesTrialOfflineAndSignOutClearsProgress() {
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-auth-reset", "--ui-auth-existing", "--ui-progress-reset"])
+    authenticateExistingEmail(using: "continue.email")
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.continue"].tap()
+    programCard("full-body").tap()
+    app.buttons["program.detail.select"].tap()
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep", "--ui-setup-offline"])
+    XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+    app.buttons["trial.continueWithoutTrial"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-existing", "--ui-progress-keep"])
+    authenticateExistingEmail(using: "welcome.login")
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    app.buttons["account.signOut"].tap()
+  }
+
+  func testLocalSaveFailureKeepsChoicesAndDoesNotAdvanceOrPersist() {
+    relaunch(with: ["--ui-progress-save-error", "--ui-progress-reset"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(app.alerts["Couldn’t save progress"].waitForExistence(timeout: 3))
+    let screenshot = XCTAttachment(screenshot: app.screenshot())
+    screenshot.name = "onboarding-save-error"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+    app.alerts.buttons["OK"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+  }
+
+  func testAnotherAccountCannotResumeSavedChoicesDuringOfflineLookup() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-existing", "--ui-progress-keep", "--ui-setup-offline"])
+    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
+    XCTAssertFalse(programCard("bro-split").exists)
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+  }
+
+  func testBackendCompletedSetupTakesPriorityOverUnfinishedLocalChoices() {
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-setup-completed"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+  }
+
   private func authenticateExistingEmail(using action: String, email: String = "existing@example.com") {
     app.buttons[action].tap()
     app.textFields["login.email"].tap()

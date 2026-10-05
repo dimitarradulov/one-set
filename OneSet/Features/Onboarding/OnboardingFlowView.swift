@@ -21,6 +21,9 @@ struct OnboardingFlowView: View {
     } message: {
       Text(model.signOutErrorMessage)
     }
+    .alert("Couldn’t save progress", isPresented: $model.progressErrorPresented) { } message: {
+      Text(model.progressErrorMessage)
+    }
     .preferredColorScheme(.dark)
   }
 
