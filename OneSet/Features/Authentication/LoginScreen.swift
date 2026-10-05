@@ -2,6 +2,8 @@ import SwiftUI
 
 struct LoginScreen: View {
   @Bindable var model: AuthenticationModel
+  var onContinueAfterAuthentication: (() -> Void)?
+
   @Environment(\.dismiss) private var dismiss
   @FocusState private var focusedField: Field?
 
@@ -15,12 +17,36 @@ struct LoginScreen: View {
       if let user = model.signedInUser {
         signedInContent(user)
       } else {
-        Button("Back to Welcome", action: dismiss.callAsFunction)
-          .font(OneSetTypography.label)
-          .foregroundStyle(OneSetColors.textPrimary)
-          .accessibilityIdentifier("login.backToWelcome")
+        Button("Back to Welcome") {
+          model.cancel()
+          dismiss()
+        }
+        .font(OneSetTypography.label)
+        .foregroundStyle(OneSetColors.textPrimary)
+        .accessibilityIdentifier("login.backToWelcome")
 
-        signInContent
+        Text(model.entryPoint.title)
+          .font(OneSetTypography.h1)
+          .foregroundStyle(OneSetColors.textPrimary)
+          .accessibilityAddTraits(.isHeader)
+          .accessibilityIdentifier("login.title")
+
+        switch model.step {
+        case .email:
+          emailEntry
+        case .accountCreationOffer:
+          accountCreationOffer
+        case .code:
+          codeEntry
+        }
+
+        if model.isWorking {
+          ProgressView()
+            .tint(OneSetColors.accent)
+            .accessibilityIdentifier("login.progress")
+        }
+
+        errorMessageView
       }
 
       Spacer(minLength: 0)
@@ -33,16 +59,11 @@ struct LoginScreen: View {
     .animation(.easeInOut(duration: 0.2), value: model.signedInUser)
   }
 
-  @ViewBuilder
-  private var signInContent: some View {
-    Text("Log in")
-      .font(OneSetTypography.h1)
-      .foregroundStyle(OneSetColors.textPrimary)
-      .accessibilityAddTraits(.isHeader)
-      .accessibilityIdentifier("login.title")
-
-    if model.step == .email {
-      Text("Enter your email and we’ll send you a verification code.")
+  private var emailEntry: some View {
+    VStack(alignment: .leading, spacing: 20) {
+      Text(model.entryPoint == .continueWithEmail
+        ? "Enter your email and we’ll send a verification code."
+        : "Enter your email and we’ll send a code to log in.")
         .font(OneSetTypography.body)
         .foregroundStyle(OneSetColors.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
@@ -60,7 +81,30 @@ struct LoginScreen: View {
       actionButton("Send code", identifier: "login.sendCode") {
         await model.sendCode()
       }
-    } else {
+    }
+  }
+
+  private var accountCreationOffer: some View {
+    VStack(alignment: .leading, spacing: 20) {
+      Text("No account was found for \(model.emailAddress). Would you like to create one?")
+        .font(OneSetTypography.body)
+        .foregroundStyle(OneSetColors.textSecondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier("login.accountNotFound")
+
+      actionButton("Create an account", identifier: "login.createAccount") {
+        await model.createAccount()
+      }
+
+      Button("Use another email", action: model.changeEmail)
+        .font(OneSetTypography.label)
+        .foregroundStyle(OneSetColors.textPrimary)
+        .accessibilityIdentifier("login.changeEmail")
+    }
+  }
+
+  private var codeEntry: some View {
+    VStack(alignment: .leading, spacing: 20) {
       Text("Enter the code sent to \(model.emailAddress).")
         .font(OneSetTypography.body)
         .foregroundStyle(OneSetColors.textSecondary)
@@ -75,7 +119,7 @@ struct LoginScreen: View {
         .accessibilityIdentifier("login.code")
 
       actionButton("Verify code", identifier: "login.verifyCode") {
-        await model.verifyCode()
+        await verifyCode()
       }
 
       HStack(spacing: 20) {
@@ -90,14 +134,6 @@ struct LoginScreen: View {
       .font(OneSetTypography.label)
       .foregroundStyle(OneSetColors.textPrimary)
     }
-
-    if model.isWorking {
-      ProgressView()
-        .tint(OneSetColors.accent)
-        .accessibilityIdentifier("login.progress")
-    }
-
-    errorMessageView
   }
 
   @ViewBuilder
@@ -125,12 +161,24 @@ struct LoginScreen: View {
         .foregroundStyle(OneSetColors.textSecondary)
         .accessibilityIdentifier("login.account")
 
+      if let onContinueAfterAuthentication {
+        actionButton("Continue", identifier: "login.continue") {
+          onContinueAfterAuthentication()
+        }
+      }
+
       actionButton("Sign out", identifier: "login.signOut") {
         await model.signOut()
       }
 
       errorMessageView
     }
+  }
+
+  private func verifyCode() async {
+    await model.verifyCode()
+    guard model.didCompleteAuthentication else { return }
+    onContinueAfterAuthentication?()
   }
 
   private func actionButton(

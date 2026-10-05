@@ -1,12 +1,13 @@
 import SwiftUI
 
-struct DemoAccountButton: View {
+struct AccountButton: View {
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   let title: String
   let systemImage: String
   let identifier: String
   let prominent: Bool
+  let showsDemo: Bool
   let action: () -> Void
 
   var body: some View {
@@ -15,7 +16,9 @@ struct DemoAccountButton: View {
         if dynamicTypeSize.isAccessibilitySize {
           VStack(alignment: .leading, spacing: 4) {
             titleLabel
-            demoLabel.padding(.leading, 36)
+            if showsDemo {
+              demoLabel.padding(.leading, 36)
+            }
           }
         } else {
           HStack(spacing: 12) {
@@ -26,7 +29,9 @@ struct DemoAccountButton: View {
               .font(OneSetTypography.button)
               .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
-            demoLabel
+            if showsDemo {
+              demoLabel
+            }
           }
         }
       }
@@ -45,8 +50,10 @@ struct DemoAccountButton: View {
       .contentShape(RoundedRectangle(cornerRadius: 12))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("\(title), demo only")
-    .accessibilityHint("Opens training preferences. No account or credentials are used.")
+    .accessibilityLabel(showsDemo ? "\(title), demo only" : title)
+    .accessibilityHint(showsDemo
+      ? "Opens training preferences. No account or credentials are used."
+      : "Opens the email verification flow.")
     .accessibilityIdentifier(identifier)
   }
 

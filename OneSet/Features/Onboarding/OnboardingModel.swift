@@ -36,6 +36,10 @@ final class OnboardingModel {
     path.append(.login)
   }
 
+  func showEmailAuthentication() {
+    path.append(.emailAuthentication)
+  }
+
   func showPrograms() {
     path.append(.programs)
   }

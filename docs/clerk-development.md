@@ -10,21 +10,21 @@ In the Clerk Dashboard, select the development instance and configure:
 
 1. Enable **Native API** under Native applications.
 2. Add the OneSet iOS native application using the Apple App ID Prefix and the app's Bundle ID.
-3. Enable email as a sign-in identifier and **Email verification code** as its first factor and sign-up verification method.
+3. Require email, enable email as a sign-in identifier, and choose **Email verification code** for sign-in and sign-up verification. Keep password optional or disable it; OneSet does not collect passwords or profile details.
 4. Add the Clerk Frontend API domain as an Associated Domain in Xcode using `webcredentials:{YOUR_FRONTEND_API_URL}`.
 5. Configure the app with the instance's publishable key in `OneSetApp` and inject `Clerk.shared` into the SwiftUI environment.
 
-The current development instance reports Native API enabled, email verification codes enabled for sign-in and sign-up verification, and email enabled as a first-factor identifier. Password is currently required for new sign-ups; this ticket's flow signs in existing accounts only. The app currently uses the Clerk development publishable key already present in its app configuration. Replace it with a placeholder such as `YOUR_CLERK_PUBLISHABLE_KEY` when setting up a different development instance. Publishable keys identify an instance and are safe for client use; secret keys are not.
+The current development instance reports Native API enabled, email verification codes enabled for sign-in and sign-up verification, and email enabled as a first-factor identifier. Password is enabled but is no longer required; first and last name are optional. The app currently uses the Clerk development publishable key already present in its app configuration. Replace it with a placeholder such as `YOUR_CLERK_PUBLISHABLE_KEY` when setting up a different development instance. Publishable keys identify an instance and are safe for client use; secret keys are not.
 
 ## Verify the email sign-in round trip
 
 1. Run OneSet on an iOS simulator or device.
-2. Select **Log in**, enter an email belonging to a user in the selected Clerk development instance, and select **Send code**.
+2. Select **Log in**, enter an email belonging to a user in the selected Clerk development instance, and select **Send code**. For a new account, select **Continue with email**, submit an unregistered email, then explicitly choose **Create an account**.
 3. Retrieve the email code, enter it, and select **Verify code**.
 4. Confirm the signed-in account appears. Force-quit and relaunch the app to confirm Clerk restores the session.
 5. Select **Sign out** and confirm the app returns to the email-code form.
 
-Clerk request and verification failures remain visible on the login screen. Use a reachable mailbox and check Clerk's development email delivery settings if a code does not arrive.
+Clerk request and verification failures remain visible in the OneSet flow. Use a reachable mailbox for a live check and confirm the account appears after verification. If a new-account attempt reports that more information is required, check that the development instance does not require a password, name, or custom sign-up field.
 
 ## Later Apple and Google provider work
 

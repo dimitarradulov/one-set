@@ -9,8 +9,9 @@ struct OneSetApp: App {
   init() {
     Clerk.configure(publishableKey: "pk_test_ZXhhY3QtbGlnZXItMzM1Ni5jbGVyay5hY2NvdW50cy5kZXYk")
 
-    let dependencies = AppDependencies.live
-    let launch = AppLaunchConfiguration(arguments: ProcessInfo.processInfo.arguments)
+    let arguments = ProcessInfo.processInfo.arguments
+    let dependencies = AppDependencies.live(arguments: arguments)
+    let launch = AppLaunchConfiguration(arguments: arguments)
     let model = OnboardingModel(
       catalog: dependencies.catalog,
       initialPath: launch.onboardingPath,
@@ -18,7 +19,10 @@ struct OneSetApp: App {
     )
     model.trainingDays = launch.trainingDays
     _onboarding = State(initialValue: model)
-    _authentication = State(initialValue: AuthenticationModel(service: dependencies.authentication))
+    _authentication = State(initialValue: AuthenticationModel(
+      service: dependencies.authentication,
+      entryPoint: launch.authenticationEntryPoint ?? .logIn
+    ))
   }
 
   var body: some Scene {

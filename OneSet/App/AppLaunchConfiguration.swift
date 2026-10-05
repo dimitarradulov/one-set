@@ -2,31 +2,43 @@ struct AppLaunchConfiguration {
   let onboardingPath: [OnboardingRoute]
   let selectedProgramID: TrainingProgram.ID?
   let trainingDays: Int
+  let authenticationEntryPoint: AuthenticationModel.EntryPoint?
 
   init(arguments: [String]) {
     #if DEBUG
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
-    if arguments.contains("--ui-welcome") {
+    if arguments.contains("--ui-email-auth") {
+      onboardingPath = [.emailAuthentication]
+      selectedProgramID = nil
+      authenticationEntryPoint = .continueWithEmail
+    } else if arguments.contains("--ui-welcome") {
       onboardingPath = []
       selectedProgramID = nil
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-preferences") {
       onboardingPath = [.preferences]
       selectedProgramID = nil
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-login") {
       onboardingPath = [.login]
       selectedProgramID = nil
+      authenticationEntryPoint = .logIn
     } else if arguments.contains("--ui-programs-minimalist") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = "minimalist-full-body"
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-programs-selected") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = "push-pull-legs"
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-programs") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = nil
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-program-detail") {
       onboardingPath = [.preferences, .programs, .programDetail("machine-full-body")]
       selectedProgramID = nil
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-trial-preview") {
       onboardingPath = [
         .preferences,
@@ -35,6 +47,7 @@ struct AppLaunchConfiguration {
         .trialPreview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-program-overview") {
       onboardingPath = [
         .preferences,
@@ -44,6 +57,7 @@ struct AppLaunchConfiguration {
         .programOverview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
+      authenticationEntryPoint = nil
     } else if arguments.contains("--ui-workout-preview") {
       onboardingPath = [
         .preferences,
@@ -54,14 +68,17 @@ struct AppLaunchConfiguration {
         .workoutPreview(programID: "machine-full-body", workoutID: "Workout A")
       ]
       selectedProgramID = "machine-full-body"
+      authenticationEntryPoint = nil
     } else {
       onboardingPath = []
       selectedProgramID = nil
+      authenticationEntryPoint = nil
     }
     #else
     trainingDays = 3
     onboardingPath = []
     selectedProgramID = nil
+    authenticationEntryPoint = nil
     #endif
   }
 }

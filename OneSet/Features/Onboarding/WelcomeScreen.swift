@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WelcomeScreen: View {
   let onContinue: () -> Void
+  let onContinueWithEmail: () -> Void
   let onLogIn: () -> Void
 
   var body: some View {
@@ -50,26 +51,29 @@ struct WelcomeScreen: View {
                 .accessibilityAddTraits(.isHeader)
 
               VStack(spacing: 10) {
-                DemoAccountButton(
+                AccountButton(
                   title: "Continue with Apple",
                   systemImage: "apple.logo",
                   identifier: "continue.apple",
                   prominent: true,
+                  showsDemo: true,
                   action: onContinue
                 )
-                DemoAccountButton(
+                AccountButton(
                   title: "Continue with Google",
                   systemImage: "g.circle.fill",
                   identifier: "continue.google",
                   prominent: false,
+                  showsDemo: true,
                   action: onContinue
                 )
-                DemoAccountButton(
+                AccountButton(
                   title: "Continue with email",
                   systemImage: "envelope",
                   identifier: "continue.email",
                   prominent: false,
-                  action: onContinue
+                  showsDemo: false,
+                  action: onContinueWithEmail
                 )
               }
               .padding(.horizontal, 8)

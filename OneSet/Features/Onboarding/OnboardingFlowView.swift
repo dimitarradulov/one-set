@@ -8,7 +8,14 @@ struct OnboardingFlowView: View {
     NavigationStack(path: $model.path) {
       WelcomeScreen(
         onContinue: model.showPreferences,
-        onLogIn: model.showLogin
+        onContinueWithEmail: {
+          authentication.begin(.continueWithEmail)
+          model.showEmailAuthentication()
+        },
+        onLogIn: {
+          authentication.begin(.logIn)
+          model.showLogin()
+        }
       )
       .navigationTitle("Welcome")
       .toolbar(.hidden, for: .navigationBar)
@@ -112,6 +119,11 @@ struct OnboardingFlowView: View {
         case .login:
           LoginScreen(model: authentication)
             .toolbar(.hidden, for: .navigationBar)
+        case .emailAuthentication:
+          LoginScreen(model: authentication) {
+            model.showPreferences()
+          }
+          .toolbar(.hidden, for: .navigationBar)
         }
       }
     }

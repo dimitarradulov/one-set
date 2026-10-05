@@ -10,6 +10,7 @@ final class OnboardingJourneyTests: XCTestCase {
     if app.state != .notRunning {
       app.terminate()
     }
+    app.launchArguments = ["--ui-auth-test"]
     app.launch()
   }
 
@@ -21,14 +22,125 @@ final class OnboardingJourneyTests: XCTestCase {
     openPreferences(using: "continue.google")
   }
 
-  func testEmailDemoActionOpensPreferencesWithoutAuthentication() {
-    openPreferences(using: "continue.email")
+  func testContinueWithEmailAsksBeforeCreatingAnAccountThenOpensPreferences() {
+    app.buttons["continue.email"].tap()
+    XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText("new@example.com")
+    app.buttons["login.sendCode"].tap()
+
+    XCTAssertTrue(app.buttons["login.createAccount"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.textFields["login.code"].exists)
+
+    app.buttons["login.createAccount"].tap()
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("123456")
+    app.buttons["login.verifyCode"].tap()
+
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.secureTextFields.count, 0)
+  }
+
+  func testContinueWithEmailSignsInAnExistingAccount() {
+    relaunch(with: ["--ui-auth-existing"])
+    app.buttons["continue.email"].tap()
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText("existing@example.com")
+    app.buttons["login.sendCode"].tap()
+
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("123456")
+    app.buttons["login.verifyCode"].tap()
+
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.secureTextFields.count, 0)
+  }
+
+  func testLoginWithUnknownEmailRequiresExplicitAccountCreation() {
+    app.buttons["welcome.login"].tap()
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText("new@example.com")
+    app.buttons["login.sendCode"].tap()
+
+    XCTAssertTrue(app.buttons["login.createAccount"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.textFields["login.code"].exists)
+    XCTAssertTrue(app.staticTexts["login.accountNotFound"].exists)
+
+    app.buttons["login.createAccount"].tap()
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("123456")
+    app.buttons["login.verifyCode"].tap()
+
+    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+  }
+
+  func testIncorrectCodeShowsErrorAndResendKeepsVerificationAvailable() {
+    relaunch(with: ["--ui-auth-existing"])
+    app.buttons["welcome.login"].tap()
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText("existing@example.com")
+    app.buttons["login.sendCode"].tap()
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("000000")
+    app.buttons["login.verifyCode"].tap()
+    XCTAssertTrue(app.staticTexts["login.error"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.textFields["login.code"].exists)
+
+    app.buttons["login.resendCode"].tap()
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+    app.buttons["login.changeEmail"].tap()
+    XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.textFields["login.email"].value as? String, "existing@example.com")
+    XCTAssertFalse(app.textFields["login.code"].exists)
+  }
+
+  func testRestoredSessionCanSignOutFromLogin() {
+    relaunch(with: ["--ui-auth-restored", "--ui-login"])
+
+    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["login.account"].label, "restored@example.com")
+    app.buttons["login.signOut"].tap()
+
+    XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
+  }
+
+  func testAuthenticatedSessionRestoresAfterRelaunchWithoutCompletingOnboarding() {
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-auth-reset"])
+    app.buttons["continue.email"].tap()
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText("new@example.com")
+    app.buttons["login.sendCode"].tap()
+    app.buttons["login.createAccount"].tap()
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("123456")
+    app.buttons["login.verifyCode"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-persist-session-test"])
+    app.buttons["continue.email"].tap()
+
+    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["login.account"].label, "new@example.com")
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    app.buttons["login.continue"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
   }
 
   func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
+    app.buttons["continue.email"].tap()
+    XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
+    app.buttons["login.backToWelcome"].tap()
     app.buttons["welcome.login"].tap()
 
     XCTAssertTrue(app.staticTexts["login.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["login.title"].label, "Log in")
     XCTAssertTrue(app.textFields["login.email"].exists)
     XCTAssertTrue(app.buttons["login.sendCode"].exists)
     XCTAssertEqual(app.secureTextFields.count, 0)
@@ -38,7 +150,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testPreferencesRetainChoicesOnBackAndResetAfterRelaunch() {
-    openPreferences(using: "continue.email")
+    openPreferences(using: "continue.apple")
 
     for dayCount in 2...5 {
       let option = app.buttons["preferences.days.\(dayCount)"]
@@ -71,7 +183,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testProgramMatchesAreFirstForTwoAndFiveDayPreferencesAndAllProgramsStayAvailable() {
-    openPreferences(using: "continue.email")
+    openPreferences(using: "continue.apple")
     app.buttons["preferences.days.2"].tap()
     app.buttons["preferences.continue"].tap()
 
@@ -225,6 +337,12 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.textFields.count, 0)
     XCTAssertEqual(app.secureTextFields.count, 0)
     XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+  }
+
+  private func relaunch(with additionalArguments: [String]) {
+    app.terminate()
+    app.launchArguments = ["--ui-auth-test"] + additionalArguments
+    app.launch()
   }
 
   private func firstProgramCardID() -> String? {
