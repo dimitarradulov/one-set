@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProgramOverviewScreen: View {
   let program: TrainingProgram
+  var preferencesSummary: String? = nil
   let onPreviewWorkout: (WorkoutTemplate) -> Void
   @State private var selectedWeek = 1
 
@@ -21,6 +22,13 @@ struct ProgramOverviewScreen: View {
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("overview.frequency")
+          if let preferencesSummary {
+            Text(preferencesSummary)
+              .font(OneSetTypography.label)
+              .foregroundStyle(OneSetColors.textSecondary)
+              .fixedSize(horizontal: false, vertical: true)
+              .accessibilityIdentifier("overview.preferences")
+          }
         }
 
         VStack(alignment: .leading, spacing: 12) {

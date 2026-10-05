@@ -1,4 +1,4 @@
-enum WeightUnit: String, CaseIterable, Identifiable, Sendable {
+enum WeightUnit: String, CaseIterable, Identifiable, Codable, Sendable {
   case kilograms = "kg"
   case pounds = "lb"
 

@@ -41,7 +41,7 @@ Start on Neon Free. Aim for free infrastructure, with a broader $5–10/month ta
 
 ## Project status
 
-The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. A SwiftUI onboarding scaffold uses feature-level observable models and an injected bundled catalog; account, workout, local storage, sync, and backend behavior are still to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
+The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. SwiftUI onboarding uses feature-level observable models and an injected bundled catalog. Clerk email authentication and the read-only [account setup lookup](docs/account-setup.md) are implemented; the lookup requires a configured development Worker. Apple/Google authentication, local persistence, completed-setup upload, workout recording and sync remain to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
 
 ## iOS development
 
@@ -60,4 +60,4 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 If Xcode is already selected with `xcode-select`, the `DEVELOPER_DIR` prefix can be omitted. Device builds require an Apple development team and an available bundle identifier.
 
-Run `./scripts/validate.sh` for the required build and UI tests. Run `./scripts/setup-simulator.sh` to select or create a compatible simulator and wait for it to boot. See [simulator validation and recovery](docs/simulator-validation.md) for iPad checks, screenshots, missing runtimes and agent permissions.
+Install API dependencies with `npm ci --prefix worker` (Node 22 or later), then run `./scripts/validate.sh` for the required build, UI tests and Worker typecheck/API contract tests. See [Worker development setup](worker/README.md) for the API endpoint and identity configuration. Run `./scripts/setup-simulator.sh` to select or create a compatible simulator and wait for it to boot. See [simulator validation and recovery](docs/simulator-validation.md) for iPad checks, screenshots, missing runtimes and agent permissions.

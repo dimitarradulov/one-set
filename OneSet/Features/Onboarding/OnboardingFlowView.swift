@@ -5,6 +5,26 @@ struct OnboardingFlowView: View {
   @Bindable var authentication: AuthenticationModel
 
   var body: some View {
+    Group {
+      switch model.setupResolution {
+      case .loading, .failed:
+        AccountSetupScreen(model: model, authentication: authentication)
+      case .idle:
+        journey
+      }
+    }
+    .task(id: authentication.signedInUser?.id) {
+      await model.resolveAccountSetup(using: authentication)
+    }
+    .alert("Couldn’t sign out", isPresented: $model.signOutErrorPresented) {
+      Button("OK", role: .cancel) { }
+    } message: {
+      Text(model.signOutErrorMessage)
+    }
+    .preferredColorScheme(.dark)
+  }
+
+  private var journey: some View {
     NavigationStack(path: $model.path) {
       WelcomeScreen(
         onContinue: model.showPreferences,
@@ -20,44 +40,29 @@ struct OnboardingFlowView: View {
       .navigationTitle("Welcome")
       .toolbar(.hidden, for: .navigationBar)
       .navigationDestination(for: OnboardingRoute.self) { route in
-        switch route {
-        case .preferences:
-          TrainingPreferencesScreen(
-            weightUnit: $model.weightUnit,
-            trainingDays: $model.trainingDays,
-            onContinue: model.showPrograms
-          )
-          .toolbar {
-            ToolbarItem(placement: .principal) {
-              ProgressPips()
-                .accessibilityLabel("Training preferences, step 1 of 4")
-            }
-          }
-          .toolbarTitleDisplayMode(.inline)
-          .toolbar(.visible, for: .navigationBar)
-        case .programs:
-          ProgramSelectionScreen(
-            programs: model.programs,
-            trainingDays: model.trainingDays,
-            selectedProgramID: model.selectedProgramID
-          )
-          .navigationTitle("Programs")
-          .navigationBarTitleDisplayMode(.inline)
-          .toolbar(.visible, for: .navigationBar)
-          .toolbar {
-            ToolbarItem(placement: .principal) {
-              ProgressPips(currentStep: 2)
-                .accessibilityLabel("Program selection, step 2 of 4")
-            }
-          }
-        case .programDetail(let programID):
-          if let program = model.program(id: programID) {
-            ProgramDetailScreen(
-              program: program,
-              isSelected: model.selectedProgramID == program.id,
-              onSelect: { model.selectProgram(program.id) }
+        Group {
+          switch route {
+          case .preferences:
+            TrainingPreferencesScreen(
+              weightUnit: $model.weightUnit,
+              trainingDays: $model.trainingDays,
+              onContinue: model.showPrograms
             )
-            .navigationTitle(program.name)
+            .toolbar {
+              ToolbarItem(placement: .principal) {
+                ProgressPips()
+                  .accessibilityLabel("Training preferences, step 1 of 4")
+              }
+            }
+            .toolbarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+          case .programs:
+            ProgramSelectionScreen(
+              programs: model.programs,
+              trainingDays: model.trainingDays,
+              selectedProgramID: model.selectedProgramID
+            )
+            .navigationTitle("Programs")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
@@ -66,65 +71,94 @@ struct OnboardingFlowView: View {
                   .accessibilityLabel("Program selection, step 2 of 4")
               }
             }
-          } else {
-            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
-          }
-        case .trialPreview(let programID):
-          if let program = model.program(id: programID) {
-            TrialPreviewScreen(program: program, onContinueWithoutTrial: model.continueWithoutTrial)
-              .navigationTitle("Trial preview")
+          case .programDetail(let programID):
+            if let program = model.program(id: programID) {
+              ProgramDetailScreen(
+                program: program,
+                isSelected: model.selectedProgramID == program.id,
+                onSelect: { model.selectProgram(program.id) }
+              )
+              .navigationTitle(program.name)
               .navigationBarTitleDisplayMode(.inline)
+              .toolbar(.visible, for: .navigationBar)
               .toolbar {
                 ToolbarItem(placement: .principal) {
-                  ProgressPips(currentStep: 3)
-                    .accessibilityLabel("Trial preview, step 3 of 4")
+                  ProgressPips(currentStep: 2)
+                    .accessibilityLabel("Program selection, step 2 of 4")
                 }
               }
-          } else {
-            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
-          }
-        case .programOverview(let programID):
-          if let program = model.program(id: programID) {
-            ProgramOverviewScreen(
-              program: program,
-              onPreviewWorkout: { workout in
-                model.previewWorkout(programID: programID, workoutID: workout.id)
-              }
-            )
-              .navigationTitle("Program")
+            } else {
+              ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+            }
+          case .trialPreview(let programID):
+            if let program = model.program(id: programID) {
+              TrialPreviewScreen(program: program, onContinueWithoutTrial: model.continueWithoutTrial)
+                .navigationTitle("Trial preview")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                  ToolbarItem(placement: .principal) {
+                    ProgressPips(currentStep: 3)
+                      .accessibilityLabel("Trial preview, step 3 of 4")
+                  }
+                }
+            } else {
+              ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+            }
+          case .programOverview(let programID):
+            if let program = model.program(id: programID) {
+              ProgramOverviewScreen(
+                program: program,
+                preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
+                onPreviewWorkout: { workout in
+                  model.previewWorkout(programID: programID, workoutID: workout.id)
+                }
+              )
+                .navigationBarBackButtonHidden(model.restoredCycleID != nil)
+                .navigationTitle("Program")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                  ToolbarItem(placement: .principal) {
+                    ProgressPips(currentStep: 4)
+                      .accessibilityLabel("Program overview, step 4 of 4")
+                  }
+                }
+            } else {
+              ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+            }
+          case .workoutPreview(let programID, let workoutID):
+            if let program = model.program(id: programID),
+               let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
+              WorkoutTemplatePreviewScreen(
+                program: program,
+                workout: program.workouts[workoutIndex],
+                day: workoutIndex + 1
+              )
+              .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)
-              .toolbar {
-                ToolbarItem(placement: .principal) {
-                  ProgressPips(currentStep: 4)
-                    .accessibilityLabel("Program overview, step 4 of 4")
-                }
-              }
-          } else {
-            ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
-          }
-        case .workoutPreview(let programID, let workoutID):
-          if let program = model.program(id: programID),
-             let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
-            WorkoutTemplatePreviewScreen(
-              program: program,
-              workout: program.workouts[workoutIndex],
-              day: workoutIndex + 1
-            )
-            .navigationTitle("Workout preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.visible, for: .navigationBar)
-          } else {
-            ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
-          }
-        case .login:
-          LoginScreen(model: authentication)
+              .toolbar(.visible, for: .navigationBar)
+            } else {
+              ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+            }
+          case .login:
+            LoginScreen(model: authentication)
+              .toolbar(.hidden, for: .navigationBar)
+          case .emailAuthentication:
+            LoginScreen(model: authentication)
             .toolbar(.hidden, for: .navigationBar)
-        case .emailAuthentication:
-          LoginScreen(model: authentication) {
-            model.showPreferences()
           }
-          .toolbar(.hidden, for: .navigationBar)
         }
+        .toolbar {
+          if authentication.signedInUser != nil {
+            ToolbarItem(placement: .topBarTrailing) {
+              Button("Sign out") {
+                Task { await model.signOut(using: authentication) }
+              }
+              .disabled(authentication.isWorking)
+              .accessibilityIdentifier("account.signOut")
+            }
+          }
+        }
+        .toolbar(authentication.signedInUser == nil ? .automatic : .visible, for: .navigationBar)
       }
     }
     .preferredColorScheme(.dark)

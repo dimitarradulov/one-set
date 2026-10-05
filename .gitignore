@@ -9,3 +9,7 @@ xcuserdata/
 /.codex/
 /.impeccable/
 /references/
+
+/worker/node_modules/
+/worker/.wrangler/
+/worker/.dev.vars

@@ -8,7 +8,7 @@ For tasks limited to documentation, agent instructions, configuration examples, 
 - Inspect the final diff for accidental or unrelated changes.
 - Report which checks actually ran and their outcomes. If validation cannot be performed, state exactly what remains unvalidated.
 
-The validation script invokes an Xcode build, the `OneSetUITests` target, and simulator discovery/recovery regression tests. No coverage threshold is defined. Build logs and `.xcresult` results are retained under `.codex/validation/` by default.
+Install Worker dependencies first with `npm ci --prefix worker` (Node 22 or later). The validation script invokes an Xcode build, the `OneSetUITests` target, simulator discovery/recovery regression tests, and Worker typechecking/API contract tests. No coverage threshold is defined. Build logs and `.xcresult` results are retained under `.codex/validation/` by default.
 
 All simulator scripts select an available compatible device by UUID, wait for boot readiness and create a replacement when automatic selection cannot boot an existing device. A particular model name is not required. For device overrides, iPad validation, artifact paths, missing runtimes and host/agent permissions, follow [simulator validation and recovery](../simulator-validation.md).
 

@@ -5,6 +5,8 @@ source "$(dirname "$0")/validation-common.sh"
 oneset_toolchain
 oneset_artifacts
 python3 -m unittest discover -s scripts/tests -v
+npm --prefix worker run typecheck
+npm --prefix worker test
 SIMULATOR_UDID="$(oneset_simulator)"
 DESTINATION="platform=iOS Simulator,id=$SIMULATOR_UDID"
 RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/$(date +%Y%m%d-%H%M%S)-$$"

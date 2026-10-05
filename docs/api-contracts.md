@@ -1,6 +1,6 @@
 # Proposed API contracts
 
-Design-level HTTPS/JSON interface, not implemented endpoints. Aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md); reviewed 2026-09-29. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+Design-level HTTPS/JSON interface. The narrow [account setup lookup](account-setup.md) is implemented; the other endpoints remain proposals. Aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md); reviewed 2026-09-29. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
@@ -9,6 +9,7 @@ Design-level HTTPS/JSON interface, not implemented endpoints. Aligned with [ones
 | GET /catalog/programs | Ten current program summaries; frequency filters |
 | GET /catalog/programs/{id} | Current workouts, workout-exercise IDs, rep targets and referenced exercise guidance/media for download |
 | GET /catalog/exercises | Search supplied catalog; stable pagination |
+| GET /me/setup | Implemented owner-scoped completed setup lookup; [contract](account-setup.md) |
 | GET /me/bootstrap | Complete consistent owned snapshot, including OneSet settings, runs, preferences, sessions and completion marks; Clerk profile/access is resolved separately |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
 | POST /cycles | Create and select a new run with its initial compatible preference copy; retries return it without recopying or reactivating |

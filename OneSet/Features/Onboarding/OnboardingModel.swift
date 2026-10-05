@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 @MainActor
@@ -8,16 +9,96 @@ final class OnboardingModel {
   var trainingDays = 3
   private(set) var selectedProgramID: TrainingProgram.ID?
 
+  enum SetupResolution {
+    case idle
+    case loading
+    case failed(String)
+  }
+
+  private(set) var setupResolution: SetupResolution = .idle
+  private(set) var restoredCycleID: UUID?
+  var signOutErrorPresented = false
+  private(set) var signOutErrorMessage = ""
+  private let setupService: (any AccountSetupService)?
+  private var lookupGeneration = 0
+  private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
 
   init(
     catalog: ProgramCatalog,
+    setupService: (any AccountSetupService)? = nil,
     initialPath: [OnboardingRoute] = [],
     initialSelectedProgramID: TrainingProgram.ID? = nil
   ) {
     self.catalog = catalog
+    self.setupService = setupService
     path = initialPath
     selectedProgramID = initialSelectedProgramID
+  }
+
+  func resolveAccountSetup(using authentication: AuthenticationModel) async {
+    guard let user = authentication.signedInUser else {
+      if resolvedAccountID != nil || !isSetupIdle { resetAccount() }
+      return
+    }
+    guard resolvedAccountID != user.id, let setupService else { return }
+    lookupGeneration += 1
+    let generation = lookupGeneration
+    setupResolution = .loading
+    do {
+      let setup = try await setupService.lookup(for: user)
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id else { return }
+      if let setup {
+        guard (2...5).contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
+          throw AccountSetupError.invalidSetup
+        }
+        weightUnit = setup.preferredUnit
+        trainingDays = setup.trainingDays
+        selectedProgramID = setup.programID
+        restoredCycleID = setup.cycleID
+        path = [.programOverview(setup.programID)]
+      } else {
+        weightUnit = .kilograms
+        trainingDays = 3
+        selectedProgramID = nil
+        restoredCycleID = nil
+        path = [.preferences]
+      }
+      resolvedAccountID = user.id
+      setupResolution = .idle
+    } catch {
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id else { return }
+      setupResolution = .failed(error.localizedDescription)
+    }
+  }
+
+  private var isSetupIdle: Bool {
+    if case .idle = setupResolution { return true }
+    return false
+  }
+
+  func signOut(using authentication: AuthenticationModel) async {
+    await authentication.signOut()
+    if authentication.signedInUser == nil {
+      resetAccount()
+    } else if let message = authentication.errorMessage {
+      signOutErrorMessage = message
+      signOutErrorPresented = true
+    }
+  }
+
+  func resetAccount() {
+    lookupGeneration += 1
+    resolvedAccountID = nil
+    setupResolution = .idle
+    restoredCycleID = nil
+    signOutErrorPresented = false
+    weightUnit = .kilograms
+    trainingDays = 3
+    selectedProgramID = nil
+    path = []
   }
 
   var programs: [TrainingProgram] {
@@ -33,11 +114,23 @@ final class OnboardingModel {
   }
 
   func showLogin() {
-    path.append(.login)
+    showAccountEntry(.login)
   }
 
   func showEmailAuthentication() {
-    path.append(.emailAuthentication)
+    showAccountEntry(.emailAuthentication)
+  }
+
+  private func showAccountEntry(_ route: OnboardingRoute) {
+    guard resolvedAccountID != nil else {
+      path.append(route)
+      return
+    }
+    if let selectedProgramID, restoredCycleID != nil {
+      path = [.programOverview(selectedProgramID)]
+    } else {
+      path = [.preferences]
+    }
   }
 
   func showPrograms() {

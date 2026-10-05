@@ -74,8 +74,8 @@ final class OnboardingJourneyTests: XCTestCase {
     app.textFields["login.code"].typeText("123456")
     app.buttons["login.verifyCode"].tap()
 
-    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
-    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
   }
 
   func testIncorrectCodeShowsErrorAndResendKeepsVerificationAvailable() {
@@ -100,15 +100,11 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertFalse(app.textFields["login.code"].exists)
   }
 
-  func testRestoredSessionCanSignOutFromLogin() {
-    relaunch(with: ["--ui-auth-restored", "--ui-login"])
-
-    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
-    XCTAssertEqual(app.staticTexts["login.account"].label, "restored@example.com")
-    app.buttons["login.signOut"].tap()
-
-    XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
-    XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
+  func testRestoredSessionResolvesSetupAndCanSignOut() {
+    relaunch(with: ["--ui-auth-restored"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
   }
 
   func testAuthenticatedSessionRestoresAfterRelaunchWithoutCompletingOnboarding() {
@@ -124,13 +120,8 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
 
     relaunch(with: ["--ui-auth-persist-session-test"])
-    app.buttons["continue.email"].tap()
-
-    XCTAssertTrue(app.staticTexts["login.signedInTitle"].waitForExistence(timeout: 3))
-    XCTAssertEqual(app.staticTexts["login.account"].label, "new@example.com")
-    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
-    app.buttons["login.continue"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["account.signOut"].tap()
   }
 
   func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
@@ -325,6 +316,77 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["overview.day.1.preview"].exists)
     XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Not started"))
+  }
+
+  func testCompletedAccountRestoresOverviewFromBothEmailEntryPoints() {
+    for action in ["continue.email", "welcome.login"] {
+      relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
+      authenticateExistingEmail(using: action)
+      XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+      XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+      XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+      XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+      app.buttons["account.signOut"].tap()
+      XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    }
+  }
+
+  func testFailedLookupRequiresRetryBeforeRestoringTheProgram() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-retry"])
+    XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertFalse(app.staticTexts["overview.title"].exists)
+    app.buttons["setup.retry"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+  }
+
+  func testUnavailableSavedProgramRequiresRetryInsteadOfResettingSetup() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-invalid-program"])
+    XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.buttons["setup.retry"].exists)
+  }
+
+  func testSignOutDuringLookupPreventsLateAccountSetupFromAffectingAnotherAccount() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-delayed", "--ui-auth-existing"])
+    XCTAssertTrue(app.descendants(matching: .any)["setup.loading"].waitForExistence(timeout: 3))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 12))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+    XCTAssertFalse(app.staticTexts["overview.title"].exists)
+  }
+
+  func testFailedSignOutExplainsFailureAndKeepsTheCurrentProgram() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-auth-signout-error"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.alerts["Couldn’t sign out"].waitForExistence(timeout: 3))
+    app.alerts.buttons["OK"].tap()
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+  }
+
+  func testSignedInWelcomeEntryReturnsToResolvedPreferences() {
+    relaunch(with: ["--ui-auth-restored"])
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.navigationBars.buttons.firstMatch.tap()
+    app.buttons["welcome.login"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
+  }
+
+  private func authenticateExistingEmail(using action: String, email: String = "existing@example.com") {
+    app.buttons[action].tap()
+    app.textFields["login.email"].tap()
+    app.textFields["login.email"].typeText(email)
+    app.buttons["login.sendCode"].tap()
+    XCTAssertTrue(app.textFields["login.code"].waitForExistence(timeout: 3))
+    app.textFields["login.code"].tap()
+    app.textFields["login.code"].typeText("123456")
+    app.buttons["login.verifyCode"].tap()
   }
 
   private func openPreferences(using actionIdentifier: String) {

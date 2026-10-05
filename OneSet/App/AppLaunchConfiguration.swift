@@ -7,7 +7,11 @@ struct AppLaunchConfiguration {
   init(arguments: [String]) {
     #if DEBUG
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
-    if arguments.contains("--ui-email-auth") {
+    if arguments.contains("--ui-account-setup-error") {
+      onboardingPath = []
+      selectedProgramID = nil
+      authenticationEntryPoint = nil
+    } else if arguments.contains("--ui-email-auth") {
       onboardingPath = [.emailAuthentication]
       selectedProgramID = nil
       authenticationEntryPoint = .continueWithEmail

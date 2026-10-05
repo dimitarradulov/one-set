@@ -77,6 +77,14 @@ final class ClerkAuthenticationService: AuthenticationService {
     pendingVerification = nil
   }
 
+  func sessionToken(for user: AuthenticatedUser) async throws -> String {
+    guard signedInUser?.id == user.id, let session = Clerk.shared.session,
+          let token = try await session.getToken(), signedInUser?.id == user.id else {
+      throw AccountSetupError.authenticationRequired
+    }
+    return token
+  }
+
   func signOut() async throws {
     try await Clerk.shared.auth.signOut()
     pendingVerification = nil

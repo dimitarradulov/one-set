@@ -16,6 +16,7 @@ final class PreviewAuthenticationService: AuthenticationService {
 
   private let emailIsRegistered: Bool
   private let persistsSession: Bool
+  private let signOutFails: Bool
   private var pendingFlow: PendingFlow?
   private var pendingEmailAddress: String?
 
@@ -23,10 +24,12 @@ final class PreviewAuthenticationService: AuthenticationService {
     emailIsRegistered: Bool = false,
     startsSignedIn: Bool = false,
     persistsSession: Bool = false,
-    resetPersistedSession: Bool = false
+    resetPersistedSession: Bool = false,
+    signOutFails: Bool = false
   ) {
     self.emailIsRegistered = emailIsRegistered || startsSignedIn
     self.persistsSession = persistsSession
+    self.signOutFails = signOutFails
     if resetPersistedSession {
       Self.clearPersistedSession()
     }
@@ -60,7 +63,7 @@ final class PreviewAuthenticationService: AuthenticationService {
       throw AuthenticationError.noCodeRequested
     }
     guard code == "123456" else { throw AuthenticationError.invalidVerificationCode }
-    let user = AuthenticatedUser(id: "preview-user", emailAddress: pendingEmailAddress)
+    let user = AuthenticatedUser(id: "preview-\(pendingEmailAddress)", emailAddress: pendingEmailAddress)
     signedInUser = user
     if persistsSession {
       UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
@@ -77,6 +80,7 @@ final class PreviewAuthenticationService: AuthenticationService {
   }
 
   func signOut() async throws {
+    if signOutFails { throw URLError(.notConnectedToInternet) }
     signedInUser = nil
     cancelPendingEmailFlow()
     if persistsSession {
