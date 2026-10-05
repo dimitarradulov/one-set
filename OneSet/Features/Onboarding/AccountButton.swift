@@ -53,7 +53,7 @@ struct AccountButton: View {
     .accessibilityLabel(showsDemo ? "\(title), demo only" : title)
     .accessibilityHint(showsDemo
       ? "Opens training preferences. No account or credentials are used."
-      : "Opens the email verification flow.")
+      : "Starts authentication with your account provider.")
     .accessibilityIdentifier(identifier)
   }
 

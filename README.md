@@ -35,13 +35,13 @@ The [DBML schema](docs/database/oneset.dbml) and [applied migration](docs/databa
 
 Swift / SwiftUI → durable local storage → Cloudflare Worker → Neon Postgres. Clerk owns account profiles and access; payment integration remains to be specified; PostHog records a limited event list. Private R2 holds exercise videos, delivered through an authorized Worker with deliberate cache rules.
 
-For the current native email-code sign-in setup and later Apple/Google provider prerequisites, see [Clerk development setup](docs/clerk-development.md).
+For the current native email-code sign-in setup and Apple/Google provider prerequisites, see [Clerk development setup](docs/clerk-development.md).
 
 Start on Neon Free. Aim for free infrastructure, with a broader $5–10/month target. Independent backups are approved only if they add no cost. Free allowances, actual video sizes and backup sizes must be verified before activation. No absolute zero-loss or zero-cost guarantee has been established.
 
 ## Project status
 
-The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. SwiftUI onboarding uses feature-level observable models and an injected bundled catalog. Clerk email authentication and the read-only [account setup lookup](docs/account-setup.md) are implemented; the lookup requires a configured development Worker. Account-scoped unfinished onboarding saves locally on Continue and resumes after restart, including when setup lookup is offline. Apple/Google authentication, completed-setup upload, workout recording and sync remain to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
+The approved product scope and proposed implementation are documented. The database schema was applied to the `oneset` database in Neon project `wispy-bird-47588933` on 2026-09-29. SwiftUI onboarding uses feature-level observable models and an injected bundled catalog. Clerk native Apple and email authentication and the read-only [account setup lookup](docs/account-setup.md) are implemented; the lookup requires a configured development Worker. Account-scoped unfinished onboarding saves locally on Continue and resumes after restart, including when setup lookup is offline. Google authentication, completed-setup upload, workout recording and sync remain to be implemented. The focused onboarding sequence is approved; its earlier prototype is not in this checkout.
 
 ## iOS development
 

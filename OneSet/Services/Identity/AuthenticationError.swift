@@ -1,6 +1,7 @@
 import Foundation
 
 enum AuthenticationError: LocalizedError {
+  case incompleteAppleAuthentication
   case noCodeRequested
   case incompleteSignIn
   case incompleteSignUp
@@ -10,6 +11,8 @@ enum AuthenticationError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
+    case .incompleteAppleAuthentication:
+      "Apple authentication could not be completed. Please try again."
     case .noCodeRequested:
       "Request a verification code before entering it."
     case .incompleteSignIn:

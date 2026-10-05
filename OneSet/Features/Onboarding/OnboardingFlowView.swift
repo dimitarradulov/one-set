@@ -30,7 +30,10 @@ struct OnboardingFlowView: View {
   private var journey: some View {
     NavigationStack(path: $model.path) {
       WelcomeScreen(
-        onContinue: model.showPreferences,
+        isAuthenticating: authentication.isWorking,
+        authenticationError: authentication.errorMessage,
+        onContinueWithApple: { Task { await authentication.signInWithApple() } },
+        onContinueWithGoogle: model.showPreferences,
         onContinueWithEmail: {
           authentication.begin(.continueWithEmail)
           model.showEmailAuthentication()

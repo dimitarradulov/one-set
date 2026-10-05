@@ -32,6 +32,13 @@ struct OneSetApp: App {
       OnboardingFlowView(model: onboarding, authentication: authentication)
         .tint(OneSetColors.accent)
         .environment(Clerk.shared)
+        #if DEBUG
+        .task {
+          if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
+            await authentication.signInWithApple()
+          }
+        }
+        #endif
     }
   }
 }

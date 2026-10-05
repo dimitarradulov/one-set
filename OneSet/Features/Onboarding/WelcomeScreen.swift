@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct WelcomeScreen: View {
-  let onContinue: () -> Void
+  let isAuthenticating: Bool
+  let authenticationError: String?
+  let onContinueWithApple: () -> Void
+  let onContinueWithGoogle: () -> Void
   let onContinueWithEmail: () -> Void
   let onLogIn: () -> Void
 
@@ -56,8 +59,8 @@ struct WelcomeScreen: View {
                   systemImage: "apple.logo",
                   identifier: "continue.apple",
                   prominent: true,
-                  showsDemo: true,
-                  action: onContinue
+                  showsDemo: false,
+                  action: onContinueWithApple
                 )
                 AccountButton(
                   title: "Continue with Google",
@@ -65,7 +68,7 @@ struct WelcomeScreen: View {
                   identifier: "continue.google",
                   prominent: false,
                   showsDemo: true,
-                  action: onContinue
+                  action: onContinueWithGoogle
                 )
                 AccountButton(
                   title: "Continue with email",
@@ -77,11 +80,26 @@ struct WelcomeScreen: View {
                 )
               }
               .padding(.horizontal, 8)
+              .disabled(isAuthenticating)
+
+              if isAuthenticating {
+                ProgressView("Signing in with Apple…")
+                  .font(OneSetTypography.caption)
+                  .accessibilityIdentifier("welcome.authProgress")
+              }
+              if let authenticationError {
+                Text(authenticationError)
+                  .font(OneSetTypography.caption)
+                  .foregroundStyle(OneSetColors.textPrimary)
+                  .multilineTextAlignment(.center)
+                  .accessibilityIdentifier("welcome.authError")
+              }
 
               HStack(spacing: 5) {
                 Text("Already have an account?")
                   .foregroundStyle(.white.opacity(0.85))
                 Button("Log in", action: onLogIn)
+                  .disabled(isAuthenticating)
                   .font(OneSetTypography.label)
                   .foregroundStyle(OneSetColors.accent)
                   .underline()
@@ -90,7 +108,7 @@ struct WelcomeScreen: View {
               }
               .font(OneSetTypography.caption)
 
-              Text("Apple and Google sign-in are not connected yet")
+              Text("Google sign-in is not connected yet")
                 .font(OneSetTypography.caption)
                 .foregroundStyle(.white.opacity(0.72))
                 .accessibilityIdentifier("welcome.demoNotice")

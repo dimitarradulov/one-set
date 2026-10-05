@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 @MainActor
@@ -37,6 +38,22 @@ final class AuthenticationModel {
   init(service: any AuthenticationService, entryPoint: EntryPoint = .logIn) {
     self.service = service
     self.entryPoint = entryPoint
+  }
+
+  func signInWithApple() async {
+    guard !isWorking, signedInUser == nil else { return }
+    cancel()
+    isWorking = true
+    defer { isWorking = false }
+    do {
+      try await service.signInWithApple()
+      guard signedInUser != nil else { throw AuthenticationError.incompleteAppleAuthentication }
+      didCompleteAuthentication = true
+    } catch is CancellationError {
+      // Dismissing Apple's sheet leaves Welcome available for another attempt.
+    } catch {
+      errorMessage = error.localizedDescription
+    }
   }
 
   func begin(_ entryPoint: EntryPoint) {

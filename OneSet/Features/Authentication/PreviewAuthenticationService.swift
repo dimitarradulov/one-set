@@ -17,6 +17,8 @@ final class PreviewAuthenticationService: AuthenticationService {
   private let emailIsRegistered: Bool
   private let persistsSession: Bool
   private let signOutFails: Bool
+  private let appleCancels: Bool
+  private var appleFails: Bool
   private var pendingFlow: PendingFlow?
   private var pendingEmailAddress: String?
 
@@ -25,11 +27,15 @@ final class PreviewAuthenticationService: AuthenticationService {
     startsSignedIn: Bool = false,
     persistsSession: Bool = false,
     resetPersistedSession: Bool = false,
-    signOutFails: Bool = false
+    signOutFails: Bool = false,
+    appleCancels: Bool = false,
+    appleFails: Bool = false
   ) {
     self.emailIsRegistered = emailIsRegistered || startsSignedIn
     self.persistsSession = persistsSession
     self.signOutFails = signOutFails
+    self.appleCancels = appleCancels
+    self.appleFails = appleFails
     if resetPersistedSession {
       Self.clearPersistedSession()
     }
@@ -39,6 +45,20 @@ final class PreviewAuthenticationService: AuthenticationService {
               let userID = UserDefaults.standard.string(forKey: Self.persistedUserIDKey),
               let emailAddress = UserDefaults.standard.string(forKey: Self.persistedEmailAddressKey) {
       signedInUser = AuthenticatedUser(id: userID, emailAddress: emailAddress)
+    }
+  }
+
+  func signInWithApple() async throws {
+    if appleCancels { throw CancellationError() }
+    if appleFails {
+      appleFails = false
+      throw AuthenticationError.incompleteAppleAuthentication
+    }
+    let user = AuthenticatedUser(id: "preview-apple", emailAddress: "apple@example.com")
+    signedInUser = user
+    if persistsSession {
+      UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
+      UserDefaults.standard.set(user.emailAddress, forKey: Self.persistedEmailAddressKey)
     }
   }
 

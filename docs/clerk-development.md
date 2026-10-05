@@ -1,6 +1,6 @@
 # Clerk development setup
 
-OneSet uses the native ClerkKit SDK for iOS email-code sign-in. The app includes only a Clerk publishable key; never add a Clerk secret key, database URL, or other service credential to the iOS target.
+OneSet uses the native ClerkKit SDK for native Apple and email-code sign-in. The app includes only a Clerk publishable key; never add a Clerk secret key, database URL, or other service credential to the iOS target.
 
 The resolved `clerk-ios` 1.5.8 package supports iOS 17 and newer and requires Xcode 26 / Swift 6.2. OneSet's iOS target and current Xcode toolchain meet those requirements. The app links only the `ClerkKit` product, which provides the custom native flow.
 
@@ -26,11 +26,27 @@ The current development instance reports Native API enabled, email verification 
 
 Clerk request and verification failures remain visible in the OneSet flow. Use a reachable mailbox for a live check and confirm the account appears after verification. If a new-account attempt reports that more information is required, check that the development instance does not require a password, name, or custom sign-up field.
 
-## Later Apple and Google provider work
+## Native Apple sign-in
 
-The current app buttons for Continue with Apple and Continue with Google remain demo routes. Provider configuration and native UI are not part of this email sign-in ticket.
+Continue with Apple uses ClerkKit's native `signInWithApple(requestedScopes: [.email])` flow. Clerk handles existing and new identities; OneSet then resolves account setup through the same lookup, local resume, Retry, and sign-out flow as email authentication. The app requests no name/profile fields. Cancellation leaves Welcome available; a failure shows an error and permits another attempt. The mocked trial offer does not activate an entitlement.
 
-- **Apple:** add the app under Clerk's Native applications, enable Apple for sign-up and sign-in, add the Sign in with Apple capability, and use ClerkKit's native `signInWithApple()` flow. Production/web-based OAuth also needs Apple Services ID and key configuration; private relay email delivery has separate Apple Developer setup. See [Clerk's native Apple guide](https://clerk.com/docs/ios/guides/configure/auth-strategies/sign-in-with-apple).
+Required development configuration:
+
+1. In Clerk Native applications, enable Native API and register the iOS app with `YOUR_APP_ID_PREFIX` and `YOUR_BUNDLE_ID`. The App ID Prefix must match the Apple Developer App ID; it is not always the Team ID.
+2. In Clerk SSO connections, add Apple and enable it for sign-up and sign-in. Keep password/name fields optional as above.
+3. Enable Sign in with Apple for that App ID in Apple Developer and refresh the provisioning profile for device builds. The app's entitlements include `com.apple.developer.applesignin` with `Default` and the Clerk Associated Domain.
+4. Native Apple sign-in exchanges an identity token, so it requires no browser callback URL or custom URL scheme. Hosted/web Apple OAuth separately requires Apple Services ID and key configuration. Private relay email delivery has its own Apple Developer configuration. See [Clerk's native Apple guide](https://clerk.com/docs/ios/guides/configure/auth-strategies/sign-in-with-apple).
+
+The development Frontend API was checked on 2026-10-05: Native API and Apple authentication are enabled. This check does not establish Apple Developer provisioning or a successful provider round trip. A live simulator attempt on the same date returned the SDK’s native authorization error asking the user to sign in to an Apple account in Settings; successful token exchange remains unverified. Retry with a signed-in simulator or a correctly provisioned physical device.
+
+To verify live integration, run a signed development build (or a simulator signed in to an Apple account), select **Continue with Apple**, complete Apple's sheet, and confirm OneSet opens preferences for a new setup or restores the existing overview. Relaunch to verify session restoration, then use **Sign out**. Repeat after canceling the sheet and after a recoverable provider failure. A physical device check is required before release. Deterministic journey tests verify routing and recovery, but do not establish Apple token exchange or dashboard registration.
+
+For visual inspection, `./scripts/validate-ui.sh --ui-welcome` opens Welcome and `./scripts/validate-ui.sh --ui-apple-auth-error` opens a deterministic Apple failure state. The failure route injects substitutes only in Debug builds.
+
+## Later Google provider work
+
+Continue with Google remains a demo route.
+
 - **Google:** add the iOS app to Clerk's Native applications and enable Google for sign-up and sign-in. For native OAuth, allowlist the app callback URI `{BUNDLE_ID}://callback` in Clerk's Native applications settings; development instances use shared Google credentials. For production, create a Google Cloud project and OAuth client credentials, then configure the web client ID and secret in Clerk. See [Clerk's Google connection guide](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google) and [iOS social connection guidance](https://clerk.com/docs/ios/guides/configure/auth-strategies/social-connections/overview).
 
 Keep provider secrets in Clerk/Apple/Google dashboards. Only client identifiers and publishable keys belong in client configuration when the provider's native SDK requires them.

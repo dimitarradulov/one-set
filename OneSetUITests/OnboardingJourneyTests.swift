@@ -14,8 +14,67 @@ final class OnboardingJourneyTests: XCTestCase {
     app.launch()
   }
 
-  func testAppleDemoActionOpensPreferencesWithoutAuthentication() {
-    openPreferences(using: "continue.apple")
+  func testAppleCancellationStaysOnWelcomeWithoutAnError() {
+    relaunch(with: ["--ui-apple-cancel"])
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertFalse(app.staticTexts["welcome.authError"].exists)
+  }
+
+  func testAppleNewAccountOpensPreferencesAndSupportsSharedSignOut() {
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+  }
+
+  func testAppleExistingAccountRestoresSetupAfterLookupRetry() {
+    relaunch(with: ["--ui-setup-completed", "--ui-setup-retry"])
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.buttons["setup.retry"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    app.buttons["setup.retry"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+  }
+
+  func testAppleRecoverableErrorAllowsAnotherAttempt() {
+    relaunch(with: ["--ui-apple-error"])
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["welcome.authError"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.buttons["continue.apple"].isEnabled)
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+  }
+
+  func testAppleSessionResumesLocalChoicesOfflineAfterRestartAndClearsOnSignOut() {
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-auth-reset", "--ui-progress-reset"])
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep", "--ui-setup-offline"])
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep"])
+    XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
+    app.buttons["account.signOut"].tap()
   }
 
   func testGoogleDemoActionOpensPreferencesWithoutAuthentication() {
@@ -141,7 +200,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testPreferencesRetainChoicesOnBackAndResetAfterRelaunch() {
-    openPreferences(using: "continue.apple")
+    openPreferences(using: "continue.google")
 
     for dayCount in 2...5 {
       let option = app.buttons["preferences.days.\(dayCount)"]
@@ -167,14 +226,14 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.terminate()
     app.launch()
-    app.buttons["continue.apple"].tap()
+    app.buttons["continue.google"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
   }
 
   func testProgramMatchesAreFirstForTwoAndFiveDayPreferencesAndAllProgramsStayAvailable() {
-    openPreferences(using: "continue.apple")
+    openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()
     app.buttons["preferences.continue"].tap()
 
@@ -203,7 +262,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testNonMatchingProgramCanBeSelectedAndSelectionSurvivesBackNavigation() {
-    openPreferences(using: "continue.apple")
+    openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()
     app.buttons["preferences.continue"].tap()
 
@@ -257,14 +316,14 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.terminate()
     app.launch()
-    app.buttons["continue.apple"].tap()
+    app.buttons["continue.google"].tap()
     app.buttons["preferences.continue"].tap()
     XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
     XCTAssertFalse(programCard("machine-full-body").label.localizedCaseInsensitiveContains("selected"))
   }
 
   func testTrialBypassOpensSelectedProgramOverviewAndSwitchesRotationWeeks() {
-    openPreferences(using: "continue.apple")
+    openPreferences(using: "continue.google")
     app.buttons["preferences.continue"].tap()
     programCard("full-body").tap()
     app.buttons["program.detail.select"].tap()

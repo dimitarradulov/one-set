@@ -1,3 +1,4 @@
+import AuthenticationServices
 import ClerkKit
 import Foundation
 
@@ -16,6 +17,31 @@ final class ClerkAuthenticationService: AuthenticationService {
       id: user.id,
       emailAddress: user.primaryEmailAddress?.emailAddress
     )
+  }
+
+  func signInWithApple() async throws {
+    pendingVerification = nil
+    do {
+      let result = try await Clerk.shared.auth.signInWithApple(requestedScopes: [.email])
+      switch result {
+      case .signIn(let signIn):
+        guard signIn.status == .complete else {
+          throw AuthenticationError.incompleteAppleAuthentication
+        }
+      case .signUp(let signUp):
+        guard signUp.status == .complete else {
+          throw AuthenticationError.incompleteAppleAuthentication
+        }
+      }
+      guard signedInUser != nil else { throw AuthenticationError.incompleteAppleAuthentication }
+    } catch {
+      let nativeError = error as NSError
+      if nativeError.domain == ASAuthorizationError.errorDomain,
+         nativeError.code == ASAuthorizationError.Code.canceled.rawValue {
+        throw CancellationError()
+      }
+      throw error
+    }
   }
 
   func requestSignInCode(to emailAddress: String) async throws -> EmailCodeRequestResult {
