@@ -23,4 +23,4 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 - When editing documentation or configuration examples, follow [documentation conventions](docs/agents/documentation.md).
 - When changing the schema or migrations, follow [database changes](docs/agents/database.md).
 - When changing code, follow [validation](docs/agents/validation.md) before finishing. Documentation-only and other non-code tasks require review of the changed files, not build/test scripts. Simulator routes and screenshot inspection are required only for UI changes that need visual verification, such as new screens, redesigns, or new visible elements.
-- When committing or preparing a pull request, follow [Git workflow](docs/agents/git-workflow.md).
+- Before starting concurrent implementation, committing, or preparing a pull request, follow [Git workflow](docs/agents/git-workflow.md).

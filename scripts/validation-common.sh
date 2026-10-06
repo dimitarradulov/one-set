@@ -49,7 +49,7 @@ oneset_simulator() {
   if [[ -n "${ONESET_SIMULATOR_UDID:-}" ]]; then
     options+=(--udid "$ONESET_SIMULATOR_UDID")
   fi
-  python3 "$ONESET_ROOT/scripts/simulator.py" "${options[@]}"
+  python3 "$ONESET_ROOT/scripts/simulator.py" "${options[@]}" "$@"
 }
 
 oneset_artifacts() {
@@ -77,4 +77,20 @@ oneset_xcodebuild() {
     fi
     return "$status"
   fi
+}
+
+# Execute an exported shell function in a child that inherits the lease descriptor.
+oneset_with_simulator() {
+  export -f "$1"
+  oneset_simulator --run /bin/bash -c 'set -euo pipefail; source "$1"; shift; "$@"' \
+    "$0" "$ONESET_ROOT/scripts/validation-common.sh" "$@"
+}
+
+oneset_capture_screenshot() {
+  local output="$ONESET_ARTIFACTS_DIR/screenshots/$1.png"
+  mkdir -p "$(dirname "$output")"
+  echo "==> Capturing simulator screenshot"
+  xcrun simctl io "$SIMULATOR_UDID" screenshot "$output"
+  echo "==> Screenshot saved to:"
+  echo "$output"
 }

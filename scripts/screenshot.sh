@@ -9,19 +9,10 @@ if [[ ! "$NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
 fi
 oneset_toolchain
 oneset_artifacts
-OUTPUT_DIR="$ONESET_ARTIFACTS_DIR/screenshots"
 if [[ -n "${2:-}" ]]; then
   ONESET_SIMULATOR_UDID="$2"
 fi
-SIMULATOR_UDID="$(oneset_simulator)"
-
-mkdir -p "$OUTPUT_DIR"
-
-OUTPUT_PATH="$OUTPUT_DIR/$NAME.png"
-
-echo "==> Capturing simulator screenshot"
-
-xcrun simctl io "$SIMULATOR_UDID" screenshot "$OUTPUT_PATH"
-
-echo "==> Screenshot saved to:"
-echo "$OUTPUT_PATH"
+oneset_run() {
+  oneset_capture_screenshot "$1"
+}
+oneset_with_simulator oneset_run "$NAME"

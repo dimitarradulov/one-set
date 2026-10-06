@@ -29,13 +29,20 @@ The scripts can run from any working directory. Preview routes are defined in [A
 | `DEVELOPER_DIR` | Explicit Xcode `Contents/Developer` directory. An invalid explicit value fails instead of silently selecting another installation. |
 | `ONESET_SIMULATOR_FAMILY` | `iphone` (default) or `ipad`. |
 | `ONESET_SIMULATOR_UDID` | Exact simulator UUID. Must be available and compatible with the selected family and deployment target; errors never silently switch this override. |
+| `ONESET_SIMULATOR_LOCK_TIMEOUT` | Positive finite wait timeout in seconds for a busy simulator; default 900 (15 minutes). |
 | `ONESET_SIMULATOR_BOOT_TIMEOUT` | Positive readiness timeout in seconds per device; default 180. |
 | `ONESET_ARTIFACTS_DIR` | Build, log, test-result and screenshot root; default repository `.codex`. Use an absolute writable directory when agent permissions protect `.codex`. |
 | `ONESET_CONTENT_SIZE` | Optional `simctl ui content_size` value for `validate-ui.sh`, such as `accessibility-extra-extra-extra-large`. |
 
 Selection uses available iOS runtimes meeting the project's deployment targets, newest first. It prefers booted devices and reusable `OneSet Validation` devices within each runtime. Every build, install, launch and screenshot uses the selected UUID. Readiness uses `simctl bootstatus -b` with a timeout. Automatic selection tries up to two existing devices, then creates compatible devices from installed runtime/device types with at most two creation attempts per runtime. Recovery preserves existing simulator data and does not restart the shared CoreSimulator service.
 
-Build logs and `.xcresult` test results are saved under `.codex/validation/<run>/`. Validation and UI preview builds use separate derived-data directories. UI testing disables parallel simulator clones. Avoid running two validation commands against the same simulator concurrently; they can interrupt each other's app sessions. Use distinct UUIDs and artifact directories when concurrent runs are needed.
+Build logs and `.xcresult` test results are saved under `.codex/validation/<run>/`. Validation and UI preview builds use separate derived-data directories. UI testing disables parallel simulator clones. All simulator entry points acquire a per-device lock before booting or using the device. Runs targeting the same UUID wait in sequence, including runs from different worktrees or artifact directories. The lock stays held through builds, tests, screenshot capture, and restoration of Dynamic Type settings. Setup releases its lock after boot readiness; it does not reserve the device for a later command.
+
+A waiting command reports the UUID, holder PID, command, worktree, and elapsed wait on stderr. It fails after `ONESET_SIMULATOR_LOCK_TIMEOUT` without using that device. An explicit UUID never switches devices. To run simultaneously, select distinct UUIDs with `ONESET_SIMULATOR_UDID` and use separate worktrees or artifact roots.
+
+Locks live in `~/Library/Caches/OneSet/simulator-locks/`, independent of the checkout and artifact configuration. Kernel locks release when their owning file descriptors close, including after failure or interruption. A protected shell inherits the descriptor, so an abruptly killed supervisor cannot release a device still used by that shell. Lock files remain in place; their metadata can describe a previous run when unlocked. Do not delete lock files or use metadata to break an active lock. Manual simulator operations and tools outside these scripts do not participate in locking.
+
+For concurrent implementation, follow the [worktree guidance](agents/git-workflow.md#concurrent-implementation).
 
 ## First-time host setup
 

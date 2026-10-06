@@ -2,9 +2,12 @@
 import importlib.util
 from pathlib import Path
 import subprocess
+import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 spec = importlib.util.spec_from_file_location(
     "simulator", Path(__file__).resolve().parents[1] / "simulator.py"
@@ -30,10 +33,10 @@ def device(udid="existing", family="phone", state="Shutdown"):
 
 
 class SimulatorTests(unittest.TestCase):
-    def prepare(self, devices, runtimes=None, family="iphone", udid=None, fail_boot=False):
+    def prepare(self, devices, runtimes=None, family="iphone", udid=None, fail_boot=False, lease=None):
         calls = []
 
-        def run(args, timeout=30):
+        def run(args, timeout=30, lease=None):
             calls.append(args)
             if args == ["list", "runtimes", "-j"]:
                 return {"runtimes": runtimes if runtimes is not None else [runtime()]}
@@ -48,8 +51,21 @@ class SimulatorTests(unittest.TestCase):
             return ""
 
         with patch.object(simulator, "simctl", side_effect=run):
-            result = simulator.prepare(family, udid, 17, 2)
+            result = simulator.prepare(family, udid, 17, 2, lease)
         return result, calls
+
+    def test_failed_boot_releases_before_leasing_replacement(self):
+        lease = Mock()
+        self.prepare({"ios-27.0": [device()]}, fail_boot=True, lease=lease)
+        self.assertEqual([call[0] for call in lease.method_calls], ["acquire", "close", "acquire"])
+
+    def test_lock_timeout_prevents_boot_and_recovery(self):
+        lease = Mock()
+        lease.acquire.side_effect = simulator.LeaseTimeout("busy")
+        with self.assertRaises(simulator.LeaseTimeout):
+            self.prepare({"ios-27.0": [device()]}, lease=lease)
+        lease.acquire.assert_called_once_with("existing")
+        lease.close.assert_not_called()
 
     def test_missing_hard_coded_phone_uses_available_device(self):
         result, calls = self.prepare({"ios-27.0": [device()]})
@@ -86,6 +102,13 @@ class SimulatorTests(unittest.TestCase):
         result, _ = self.prepare({"ios-16.0": [device("old")], "ios-27.0": [device()]},
                                  runtimes=[runtime("16.0"), runtime("28.0", False), runtime()])
         self.assertEqual(result, "existing")
+
+    def test_boot_subprocess_inherits_lease_descriptor(self):
+        lease = Mock()
+        lease.file.fileno.return_value = 42
+        with patch.object(simulator.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+            simulator.simctl(["bootstatus", "uuid", "-b"], lease=lease)
+        self.assertEqual(run.call_args.kwargs["pass_fds"], (42,))
 
     def test_simctl_timeout_is_actionable(self):
         with patch.object(simulator.subprocess, "run", side_effect=subprocess.TimeoutExpired("simctl", 1)):
