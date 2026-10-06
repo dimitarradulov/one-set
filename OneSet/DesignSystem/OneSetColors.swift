@@ -9,6 +9,7 @@ enum OneSetColors {
   static let textPrimary = Color(red: 229 / 255, green: 229 / 255, blue: 229 / 255)
   static let textSecondary = Color(red: 163 / 255, green: 163 / 255, blue: 163 / 255)
   static let textTertiary = Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255)
+  static let error = Color(red: 255 / 255, green: 107 / 255, blue: 107 / 255)
 
   static let accent = Color(red: 217 / 255, green: 119 / 255, blue: 6 / 255)
   static let accentPressed = Color(red: 184 / 255, green: 97 / 255, blue: 5 / 255)

@@ -82,6 +82,14 @@ export async function handleSetupRequest(
         $3::integer, $4::integer, $5::uuid)`,
       [subject, body.preferred_unit, String(body.training_days), program, body.cycle_id]);
     }
+    // Provision the identity link before lookup, including for restored sessions.
+    // Initial preferences match onboarding; only completed setup will select a cycle.
+    // The unique Clerk ID makes retries/concurrent requests safe without changing saved data.
+    await database.query(`
+      INSERT INTO users (clerk_user_id, preferred_unit, training_days)
+      VALUES ($1, 'kg', 3)
+      ON CONFLICT (clerk_user_id) DO NOTHING
+    `, [subject]);
     // A single statement gives a consistent snapshot and checks ownership of the active cycle.
     const [row] = await database.query(`
       SELECT u.preferred_unit, u.training_days, u.active_user_program_id,

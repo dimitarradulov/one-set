@@ -282,10 +282,10 @@
 				DEVELOPMENT_TEAM = SR65MNSHRM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
-				ONESET_API_BASE_URL = "https://oneset-api-development.dimitarradulovv.workers.dev";
 				INFOPLIST_KEY_CFBundleDisplayName = OneSet;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				MARKETING_VERSION = 0.1.0;
+				ONESET_API_BASE_URL = "https://oneset-api-development.dimitarradulovv.workers.dev";
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -355,6 +355,7 @@
 		C30000000000000000000009 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -363,7 +364,6 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneSet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OneSet";
 			};
 			name = Debug;
@@ -371,6 +371,7 @@
 		C3000000000000000000000A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -379,7 +380,6 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneSet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OneSet";
 			};
 			name = Release;

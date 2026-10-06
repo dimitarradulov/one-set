@@ -24,3 +24,17 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 - When changing the schema or migrations, follow [database changes](docs/agents/database.md).
 - When changing code, follow [validation](docs/agents/validation.md) before finishing. Documentation-only and other non-code tasks require review of the changed files, not build/test scripts. Simulator routes and screenshot inspection are required only for UI changes that need visual verification, such as new screens, redesigns, or new visible elements.
 - Before starting concurrent implementation, committing, or preparing a pull request, follow [Git workflow](docs/agents/git-workflow.md).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles use the default label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain docs use a single-context layout rooted at `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.

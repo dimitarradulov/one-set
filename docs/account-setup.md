@@ -21,7 +21,9 @@ A confirmed new/unfinished account returns `200 {"setup":null}`. Invalid authent
 
 The app resolves setup after session restoration or either email authentication action. Completed setup restores units, frequency, selected bundled program and the existing cycle identity, then opens overview. Confirmed absence resumes unfinished progress saved for that account, or starts preferences. Failed lookup resumes valid local progress when available; otherwise it exposes Retry and Sign out.
 
-Lookup is a single consistent, owner-scoped read of `users` and its active owned `user_programs` cycle. It neither creates enrollment/cycles nor reads or edits workout history. The schema already stores all required fields; no migration is needed. Numeric database catalog IDs are mapped explicitly to bundled IDs through Worker configuration; see [development setup](../worker/README.md).
+After authentication, lookup first ensures a `users` row exists for the verified Clerk ID using `INSERT ... ON CONFLICT (clerk_user_id) DO NOTHING`. New rows use the initial onboarding preferences (`kg`, three training days) and no active cycle; these values do not mark onboarding complete. Retries and concurrent requests preserve existing preferences and account identity. Provisioning failure returns `503 TEMPORARY_FAILURE`, so Retry or a later session restoration can try again. Names and email addresses remain in Clerk, as specified by the database design.
+
+The subsequent lookup is a single consistent, owner-scoped read of `users` and its active owned `user_programs` cycle. It neither creates enrollment/cycles nor reads or edits workout history. The schema already stores all required fields; no migration is needed. Numeric database catalog IDs are mapped explicitly to bundled IDs through Worker configuration; see [development setup](../worker/README.md).
 
 Account changes cancel the view task. The workflow also checks a request generation and the current authenticated account before applying a result, including results from substitutes that ignore cancellation. Sign-out clears all account presentation choices. The trial remains mocked.
 

@@ -18,7 +18,7 @@ struct AccountSetupScreen: View {
       case .failed(let message):
         Text(message)
           .font(OneSetTypography.body)
-          .foregroundStyle(OneSetColors.textSecondary)
+          .foregroundStyle(OneSetColors.error)
           .accessibilityIdentifier("setup.error")
         Button("Retry") {
           Task { await model.resolveAccountSetup(using: authentication) }
@@ -42,6 +42,7 @@ struct AccountSetupScreen: View {
       .accessibilityIdentifier("account.signOut")
       if let message = authentication.errorMessage {
         Text(message).font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.error)
       }
       Spacer()
     }

@@ -60,6 +60,13 @@ test('confirmed absence returns null for a new account', async () => {
   const response = await handleSetupRequest(request(await token('user_new')), env, database);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { setup: null });
+  const { rows } = await db.query(`SELECT clerk_user_id, preferred_unit, training_days,
+    active_user_program_id FROM users WHERE clerk_user_id = 'user_new'`);
+  assert.deepEqual(rows, [{ clerk_user_id: 'user_new', preferred_unit: 'kg',
+    training_days: 3, active_user_program_id: null }]);
+  const cycles = await db.query(`SELECT id FROM user_programs
+    WHERE user_id = (SELECT id FROM users WHERE clerk_user_id = 'user_new')`);
+  assert.equal(cycles.rows.length, 0);
 });
 
 test('invalid credentials never return private setup', async () => {
@@ -72,7 +79,9 @@ test('invalid credentials never return private setup', async () => {
     await token('user_a', { sts: 'pending' }),
   ];
   for (const bearer of invalidTokens) {
-    const response = await handleSetupRequest(request(bearer), env, database);
+    const response = await handleSetupRequest(request(bearer), env, {
+      query: async () => { assert.fail('unauthenticated requests must not access the database'); },
+    });
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { error: { code: 'AUTH_REQUIRED' } });
   }
@@ -84,6 +93,52 @@ test('a broken cross-account active-cycle link never exposes the other account s
   const response = await handleSetupRequest(request(await token('user_cross')), env, database);
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: { code: 'SETUP_UNAVAILABLE' } });
+});
+
+test('concurrent first lookups create exactly one verified account and ignore client identity claims', async () => {
+  const bearer = await token('user_concurrent');
+  const responses = await Promise.all(Array.from({ length: 4 }, () =>
+    handleSetupRequest(request(bearer, '?user_id=user_spoofed'), env, database)));
+  for (const response of responses) {
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { setup: null });
+  }
+  const { rows } = await db.query(`SELECT clerk_user_id FROM users
+    WHERE clerk_user_id IN ('user_concurrent', 'user_spoofed')`);
+  assert.deepEqual(rows, [{ clerk_user_id: 'user_concurrent' }]);
+});
+
+test('repeat lookups preserve an unfinished account preferences and identity', async () => {
+  const { rows: before } = await db.query(`INSERT INTO users
+    (clerk_user_id, preferred_unit, training_days) VALUES ('user_unfinished', 'lb', 4)
+    RETURNING *`);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await handleSetupRequest(request(await token('user_unfinished')), env, database);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { setup: null });
+  }
+  const { rows: after } = await db.query(`SELECT * FROM users WHERE clerk_user_id = 'user_unfinished'`);
+  assert.deepEqual(after, before);
+});
+
+test('retry after lookup failure reuses the account created before the failure', async () => {
+  const bearer = await token('user_retry');
+  let queryCount = 0;
+  const failed = await handleSetupRequest(request(bearer), env, {
+    query: async (sql, params) => {
+      if (++queryCount === 2) throw new Error('lookup unavailable');
+      return database.query(sql, params);
+    },
+  });
+  assert.equal(failed.status, 503);
+  assert.deepEqual(await failed.json(), { error: { code: 'TEMPORARY_FAILURE' } });
+  const { rows: before } = await db.query(`SELECT * FROM users WHERE clerk_user_id = 'user_retry'`);
+  assert.equal(before.length, 1);
+  const retried = await handleSetupRequest(request(bearer), env, database);
+  assert.equal(retried.status, 200);
+  assert.deepEqual(await retried.json(), { setup: null });
+  const { rows: after } = await db.query(`SELECT * FROM users WHERE clerk_user_id = 'user_retry'`);
+  assert.deepEqual(after, before);
 });
 
 test('database outage and unmapped programs are failures, not evidence of a new account', async () => {

@@ -1,6 +1,6 @@
 # OneSet account setup API
 
-This Worker implements the `GET` and `PUT /v1/me/setup` contracts in [account setup](../docs/account-setup.md). PUT creates first completed setup using migration 002; reads use the existing Neon schema.
+This Worker implements the `GET` and `PUT /v1/me/setup` contracts in [account setup](../docs/account-setup.md). After verifying a Clerk session, it creates the account identity link if absent, then reads setup from the existing Neon schema. Completed-setup saves require migration 002.
 
 Install dependencies with `npm ci` in this directory (Node 22 or later). Run `npm run typecheck` and `npm test`, or the repository's `./scripts/validate.sh` after installing dependencies. Tests verify real signed session tokens and owner-scoped SQL against the applied schema in disposable PGlite Postgres. They do not contact a live Clerk instance or Neon database.
 
@@ -26,11 +26,13 @@ The JWT adapter follows [Clerk verification](https://clerk.com/docs/reference/ba
 
 As of 2026-10-05, `oneset-api-development` is deployed at [the development setup endpoint](https://oneset-api-development.dimitarradulovv.workers.dev/v1/me/setup). It uses the schema-only `oneset-development` Neon branch (`br-autumn-term-b1pjy8wc`) in the existing OneSet project. This branch has no automatic deletion date. Production data was not changed.
 
-The isolated branch contains the ten bundled program identities and a Clerk test account with a completed setup fixture. Workout templates and training history are not seeded. The program mapping in the development environment matches this branch's IDs. Account enrollment writes remain a separate feature.
+The isolated branch contains the ten bundled program identities and a Clerk test account with a completed setup fixture. Workout templates and training history are not seeded. The program mapping in the development environment matches this branch's IDs. Account identity provisioning is deployed in Worker version `31bad2ca-8d69-4195-8c3c-b124b0bf0466` (2026-10-05) and occurs on authenticated setup lookup. Completed-setup enrollment writes remain a separate feature.
 
 Live verification used a real native Clerk development session: a new account returned `200` with no setup; the same account after fixture insertion returned `200` with its saved preferences, program and cycle; missing or invalid tokens returned `401`. Supplying another owner in a query parameter did not change the authenticated account's response. These HTTP checks verify the deployed API; they do not establish a complete live iOS authentication journey.
 
 Database credentials and the verification key are stored in Worker secret bindings. Public configuration is committed; credentials are not. Future deployments must preserve both secret bindings and use this branch's program mapping.
+
+The identity-provisioning update passed signed-token API tests against disposable PGlite, including first lookup, concurrent lookup, preserved preferences and retry after lookup failure. The deployed version rejects missing/invalid tokens with `401`. Authenticated live provisioning still needs verification with an actual app session; no live Clerk token or direct Neon connection was available for this update.
 
 ## Completed onboarding saves
 

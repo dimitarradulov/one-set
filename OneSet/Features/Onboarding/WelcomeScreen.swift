@@ -90,7 +90,7 @@ struct WelcomeScreen: View {
               if let authenticationError {
                 Text(authenticationError)
                   .font(OneSetTypography.caption)
-                  .foregroundStyle(OneSetColors.textPrimary)
+                  .foregroundStyle(OneSetColors.error)
                   .multilineTextAlignment(.center)
                   .accessibilityIdentifier("welcome.authError")
               }

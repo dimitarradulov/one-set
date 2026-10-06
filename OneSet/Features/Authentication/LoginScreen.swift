@@ -141,7 +141,7 @@ struct LoginScreen: View {
     if let errorMessage = model.errorMessage {
       Text(errorMessage)
         .font(OneSetTypography.label)
-        .foregroundStyle(OneSetColors.accent)
+        .foregroundStyle(OneSetColors.error)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier("login.error")
         .accessibilityAddTraits(.updatesFrequently)
