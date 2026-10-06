@@ -11,7 +11,6 @@ const env = {
   CLERK_ISSUER: issuer,
   CLERK_JWT_KEY: await exportSPKI(keys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
-  PROGRAM_CATALOG_MAP: '{"1":"machine-full-body"}',
 };
 async function token(subject = 'user_a', claims = {}, signingKey = keys.privateKey) {
   return new SignJWT({ sid: 'sess_test', ...claims })
@@ -33,16 +32,21 @@ const database: SetupDatabase = {
   query: async (sql, params) => (await db.query<Record<string, unknown>>(sql, params)).rows,
 };
 await db.exec(`
-  INSERT INTO workout_programs (id, name) VALUES (1, 'Machine Full Body');
+  INSERT INTO workout_programs (id, name) VALUES
+    (1, 'Full Body'), (2, 'Upper / Lower'), (3, 'Push / Pull / Legs'),
+    (4, 'Bro Split'), (5, 'Minimalist Full Body'), (6, 'V-Taper'),
+    (7, 'Powerhouse'), (8, 'Classic Physique'),
+    (9, 'Free-Weight Full Body'), (10, 'Machine Full Body');
   INSERT INTO users (id, clerk_user_id, preferred_unit, training_days) VALUES
     (1, 'user_a', 'lb', 5), (2, 'user_b', 'kg', 2);
   INSERT INTO user_programs (id, user_id, workout_program_id, started_at) VALUES
-    ('11111111-1111-4111-8111-111111111111', 1, 1, now()),
-    ('22222222-2222-4222-8222-222222222222', 2, 1, now());
+    ('11111111-1111-4111-8111-111111111111', 1, 10, now()),
+    ('22222222-2222-4222-8222-222222222222', 2, 10, now());
   UPDATE users SET active_user_program_id = '11111111-1111-4111-8111-111111111111' WHERE id = 1;
   UPDATE users SET active_user_program_id = '22222222-2222-4222-8222-222222222222' WHERE id = 2;
   SELECT setval(pg_get_serial_sequence('users', 'id'), 2);
 `);
+await db.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
 
 test('lookup returns only verified owner setup even with a client ownership claim', async () => {
   const response = await handleSetupRequest(request(await token(), '?user_id=user_b'), env, database);
@@ -141,13 +145,19 @@ test('retry after lookup failure reuses the account created before the failure',
   assert.deepEqual(after, before);
 });
 
-test('database outage and unmapped programs are failures, not evidence of a new account', async () => {
+test('database outage and unresolved program identities are failures, not evidence of a new account', async () => {
   const outage = await handleSetupRequest(request(await token()), env, {
     query: async () => { throw new Error('offline'); },
   });
   assert.equal(outage.status, 503);
-  const unmapped = await handleSetupRequest(request(await token()), { ...env, PROGRAM_CATALOG_MAP: '{}' }, database);
-  assert.equal(unmapped.status, 503);
+  const unresolved = await handleSetupRequest(request(await token('user_unmapped')), env, {
+    query: async sql => sql.trimStart().startsWith('SELECT') ? [{
+      preferred_unit: 'kg', training_days: 3, active_user_program_id: '33333333-3333-4333-8333-333333333333',
+      cycle_id: '33333333-3333-4333-8333-333333333333', workout_program_id: 99,
+      program_id: null, has_cycles: true,
+    }] : [],
+  });
+  assert.equal(unresolved.status, 503);
 });
 
 test('repeat lookups preserve established settings and cycle identity', async () => {
@@ -209,7 +219,7 @@ test('concurrent completions and interrupted acknowledgments create a single cyc
 
 test('save rejects forged ownership, invalid bodies and authentication', async () => {
   for (const body of [{ ...completedSetup, user_id: 'user_b' },
-    { ...completedSetup, training_days: 6 }, { ...completedSetup, program_id: 'unknown' },
+    { ...completedSetup, training_days: 6 }, { ...completedSetup, program_id: 'unknown space' },
     { ...completedSetup, cycle_id: 'bad' }, null]) {
     const response = await handleSetupRequest(saveRequest(await token('user_invalid_save'), body), env, database);
     assert.equal(response.status, 400);

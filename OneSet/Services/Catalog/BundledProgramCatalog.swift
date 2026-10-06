@@ -1,5 +1,5 @@
 extension ProgramCatalog {
-  static let bundled = ProgramCatalog(programs: [
+  static var bundled: ProgramCatalog { ProgramCatalog(programs: [
     TrainingProgram(
       id: "full-body",
       name: "Full Body",
@@ -448,5 +448,5 @@ extension ProgramCatalog {
         )
       ]
     )
-  ])
+  ]) }
 }

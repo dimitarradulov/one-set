@@ -1,8 +1,13 @@
-struct WorkoutTemplate: Hashable, Identifiable, Sendable {
+struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
+  let id: String
   let name: String
   let exercises: [WorkoutExercise]
 
-  var id: String { name }
+  init(id: String? = nil, name: String, exercises: [WorkoutExercise]) {
+    self.id = id ?? name
+    self.name = name
+    self.exercises = exercises
+  }
 
   var movements: [String] {
     exercises.map(\.name)
@@ -16,15 +21,46 @@ struct WorkoutTemplate: Hashable, Identifiable, Sendable {
   }
 }
 
-struct WorkoutExercise: Hashable, Identifiable, Sendable {
+struct WorkoutExercise: Codable, Hashable, Identifiable, Sendable {
+  let id: String
+  let exerciseKey: String
   let name: String
   let repTarget: RepTarget
 
-  var id: String { name }
+  let instructions: String
+  let stoppingGuidance: String
+  let warmupGuidance: String
+  let restSeconds: Int?
+  let defaultRepTarget: RepTarget?
+  let videoKey: String?
+
+  init(
+    id: String? = nil,
+    exerciseKey: String? = nil,
+    name: String,
+    repTarget: RepTarget,
+    instructions: String = "",
+    stoppingGuidance: String = "",
+    warmupGuidance: String = "",
+    restSeconds: Int? = nil,
+    defaultRepTarget: RepTarget? = nil,
+    videoKey: String? = nil
+  ) {
+    self.id = id ?? name
+    self.exerciseKey = exerciseKey ?? name
+    self.name = name
+    self.repTarget = repTarget
+    self.instructions = instructions
+    self.stoppingGuidance = stoppingGuidance
+    self.warmupGuidance = warmupGuidance
+    self.restSeconds = restSeconds
+    self.defaultRepTarget = defaultRepTarget
+    self.videoKey = videoKey
+  }
 }
 
-struct RepTarget: Hashable, Sendable {
-  enum Scope: Hashable, Sendable {
+struct RepTarget: Codable, Hashable, Sendable {
+  enum Scope: String, Codable, Hashable, Sendable {
     case reps
     case eachLeg
     case eachSide

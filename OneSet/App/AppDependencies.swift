@@ -63,8 +63,16 @@ struct AppDependencies {
     #endif
 
     let authentication = ClerkAuthenticationService()
+    let catalogDirectory = URL.applicationSupportDirectory.appending(path: "Catalog")
+    let catalog = ProgramCatalog(
+      programs: ProgramCatalog.bundled.programs,
+      service: HTTPProgramCatalogService(authentication: authentication),
+      persistence: FileProgramCatalogPersistence(
+        fileURL: catalogDirectory.appending(path: "published-catalog.json")
+      )
+    )
     return AppDependencies(
-      catalog: .bundled,
+      catalog: catalog,
       authentication: authentication,
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication)

@@ -1,22 +1,24 @@
 # Database design
 
-The [DBML](oneset.dbml) keeps the original ten tables plus `completed_workouts`. It is implemented by [migration 001](migrations/001_documented_schema.sql), applied to the `oneset` database on project `wispy-bird-47588933`'s `production` branch on 2026-09-29. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
+The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002 and 003 add setup completion and stable catalog publication without replacing existing program, cycle or history IDs. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
 
 ## Tables and their purpose
 
 | Table | Purpose and fields worth keeping |
 | --- | --- |
-| `workout_programs` | Program name and recommended weeks. |
-| `workouts` | Reusable workout ID and name. |
+| `workout_programs` | Program name, recommended weeks, stable authoring key and whether new users may select it. |
+| `workouts` | Reusable workout ID, stable authoring key and name. |
 | `program_workouts` | Links a program to its ordered workouts. Frequency is the count of current entries, not another field. |
-| `exercises` | Name, instructions, private video key, default rep range, rest and warmup guidance. Defaults support user-selected replacements. Instructions include when to stop the set and total-load/per-side conventions. |
-| `workout_exercises` | Exercise, order and workout-specific `reps_min`/`reps_max`. An exercise can have different targets in different workouts. Its existing ID identifies the slot. |
+| `exercises` | Stable key, name, instructions, private video key, default rep range, rest and warmup guidance. Defaults support user-selected replacements. Instructions include when to stop the set and total-load/per-side conventions. |
+| `workout_exercises` | Stable slot key, exercise, order, workout-specific rep bounds and rep scope (`reps`, `each_leg` or `each_side`). An exercise can have different targets in different workouts. |
 | `users` | Clerk identity link, kg/lb preference, training-day preference and active program run. No name/email copies, access timestamps or settings revision. |
 | `user_programs` | One run through a program, with owner, program and start time. A new cycle is another row. |
 | `user_workout_exercises` | Remembered replacement, note and rest preference for a run's original exercise slot. Missing row means use defaults. |
 | `workout_sessions` | One attempt at a run/week/workout, copied workout name, start/finish times, optional note and upload revision. Ownership comes through `user_programs`; no duplicate user ID. |
 | `workout_session_sets` | One row per original slot, including unfinished work. Stores actual exercise, copied order/guidance/note, weight, entered unit, reps and completion time. |
 | `completed_workouts` | Three-column run/week/workout completion mark. Kept separately only because deleting history must not rewind program progress. |
+| `catalog_publications` | Immutable identifier and fingerprints for each successfully reviewed source snapshot. |
+| `catalog_state` | Singleton pointer to the current complete catalog snapshot and publication fingerprint. |
 
 ```mermaid
 flowchart LR
@@ -102,9 +104,19 @@ Runs use `(user_id, workout_program_id, started_at, id)` for resume lookup. Sess
 
 Previous performance uses completed sets in completed sessions, preferring the same program + workout + actual exercise, then the same original slot if it occurs twice. Fall back to the latest completed result elsewhere with a label. Edits and deletion affect this query directly; no summary tables are needed.
 
+## YAML catalog publication
+
+[Migration 003](migrations/003_catalog_publication.sql) adds nullable stable authoring keys to the four editable catalog entities and backfills the ten existing program IDs in place. Existing foreign keys, active cycles, and account settings continue to point at their original integer IDs. `workout_programs.is_offered` hides explicitly withdrawn programs from new enrollment while retaining their content for existing followers. `workout_exercises.rep_scope` stores whether the target means ordinary reps, each leg, or each side.
+
+The `catalog_publications` row and `catalog_state` pointer store a complete authored source document. Preview compares against that source and its fingerprint; publishing passes both fingerprints into one Postgres function. That function locks the singleton state, checks for stale preview, applies program/workout/slot/exercise changes, and changes the snapshot pointer in the same transaction. Stable key uniqueness prevents duplicate identities. Null `position` keeps removed workouts and slots referenced by history while excluding them from current order.
+
+The founder's readable source lives in [`worker/catalog`](../../worker/catalog/). `npm run catalog -- preview --environment development --source catalog` validates and writes a local review file; `npm run catalog -- publish --environment development --source catalog` publishes only that reviewed source. See [Worker configuration and commands](../../worker/README.md) for the separate maintenance credential. Migration 003 must be rehearsed on an isolated Neon branch before it is applied to a shared development database.
+
+The Worker tests load migration 003 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, and verify that the original active cycle still refers to program ID 10. These checks do not replace a Neon branch rehearsal.
+
 ## Verification and migration
 
-The schema is checked with the `@dbml/core` DBML parser, PostgreSQL SQL export and disposable PGlite/PostgreSQL. All 11 tables (58 columns) load successfully. Twenty-nine SQL/query checks passed: rep ranges, JSON object checks, duplicate sets/positions, fractional/bodyweight loads, finish/retry constraints, template removal without history loss, replacement identity, retained units, ownership queries through runs, latest-run selection and cascading deletion with completion marks retained. Application ownership, local persistence, retry ordering and provider integrations still need implementation tests; SQL checks do not prove those workflows.
+The original schema from migration 001 contains 11 tables and 58 columns; the existing 29 SQL/query checks cover rep ranges, JSON object checks, duplicate sets/positions, fractional/bodyweight loads, finish/retry constraints, template removal without history loss, replacement identity, retained units, ownership queries through runs, latest-run selection and cascading deletion with completion marks retained. DBML parsing and PostgreSQL export validate the schema artifacts, while the Worker tests load migrations 001–003 into disposable PGlite and exercise the catalog publication tables and function. Application ownership, local persistence, retry ordering and provider integrations still need their own tests; SQL checks do not prove those workflows.
 
 Before applying migration 001, the ten original live tables were inspected and each had zero rows. The migration refuses to replace them if any has gained rows. It was rehearsed on a temporary Neon branch, then applied to `production`. Live verification found 11 tables, 58 columns, 17 foreign keys and 11 primary keys; `completed_workouts` exists and the old `workout_sessions_sets` table is absent. The temporary branch was deleted by Neon's migration workflow.
 

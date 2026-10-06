@@ -59,7 +59,7 @@ struct ProgramOverviewScreen: View {
 
           ScrollView(.horizontal) {
             HStack(spacing: 8) {
-              ForEach(1...8, id: \.self) { week in
+              ForEach(1...program.recommendedWeeks, id: \.self) { week in
                 Button {
                   selectedWeek = week
                 } label: {

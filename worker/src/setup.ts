@@ -7,7 +7,6 @@ export interface SetupConfiguration {
   CLERK_ISSUER: string;
   CLERK_JWT_KEY: string;
   CLERK_AUTHORIZED_PARTIES: string;
-  PROGRAM_CATALOG_MAP: string;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -68,19 +67,20 @@ export async function handleSetupRequest(
         for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
         body = JSON.parse(new TextDecoder().decode(bytes));
       } catch { return json({ error: { code: 'INVALID_SETUP' } }, 400); }
-      const catalog: Record<string, unknown> = JSON.parse(env.PROGRAM_CATALOG_MAP);
-      const program = Object.entries(catalog).find(([id, name]) =>
-        name === body?.program_id && /^[1-9][0-9]*$/.test(id))?.[0];
       if (!body || !['kg', 'lb'].includes(body.preferred_unit)
         || !Number.isInteger(body.training_days) || body.training_days < 2 || body.training_days > 5
-        || !program || typeof body.cycle_id !== 'string'
+        || typeof body.program_id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(body.program_id)
+        || typeof body.cycle_id !== 'string'
         || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.cycle_id)
         || Object.keys(body).some(key => !['preferred_unit', 'training_days', 'program_id', 'cycle_id'].includes(key))) {
         return json({ error: { code: 'INVALID_SETUP' } }, 400);
       }
+      const [program] = await database.query(`SELECT id FROM workout_programs
+        WHERE authoring_key = $1 AND is_offered = true`, [body.program_id]);
+      if (!program || !Number.isInteger(program.id)) return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
       await database.query(`SELECT public.complete_onboarding($1, $2::weight_unit,
         $3::integer, $4::integer, $5::uuid)`,
-      [subject, body.preferred_unit, String(body.training_days), program, body.cycle_id]);
+      [subject, body.preferred_unit, String(body.training_days), String(program.id), body.cycle_id]);
     }
     // Provision the identity link before lookup, including for restored sessions.
     // Initial preferences match onboarding; only completed setup will select a cycle.
@@ -93,17 +93,17 @@ export async function handleSetupRequest(
     // A single statement gives a consistent snapshot and checks ownership of the active cycle.
     const [row] = await database.query(`
       SELECT u.preferred_unit, u.training_days, u.active_user_program_id,
-             p.id AS cycle_id, p.workout_program_id,
+             p.id AS cycle_id, p.workout_program_id, program.authoring_key AS program_id,
              EXISTS (SELECT 1 FROM user_programs owned WHERE owned.user_id = u.id) AS has_cycles
       FROM users u
       LEFT JOIN user_programs p ON p.id = u.active_user_program_id AND p.user_id = u.id
+      LEFT JOIN workout_programs program ON program.id = p.workout_program_id
       WHERE u.clerk_user_id = $1
     `, [subject]);
     if (!row || (row.active_user_program_id === null && row.has_cycles === false)) {
       return json({ setup: null });
     }
-    const catalog: Record<string, unknown> = JSON.parse(env.PROGRAM_CATALOG_MAP);
-    const programID = catalog[String(row.workout_program_id)];
+    const programID = row.program_id;
     if (!row.cycle_id || typeof programID !== 'string' || !programID
       || !['kg', 'lb'].includes(String(row.preferred_unit))
       || typeof row.training_days !== 'number' || row.training_days < 2 || row.training_days > 5) {

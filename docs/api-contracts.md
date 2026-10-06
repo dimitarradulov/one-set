@@ -1,14 +1,17 @@
 # Proposed API contracts
 
-Design-level HTTPS/JSON interface. The narrow [account setup lookup](account-setup.md) is implemented; the other endpoints remain proposals. Aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md); reviewed 2026-09-29. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog and account setup routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
 | Method / path | Responsibility |
 | --- | --- |
-| GET /catalog/programs | Ten current program summaries; frequency filters |
-| GET /catalog/programs/{id} | Current workouts, workout-exercise IDs, rep targets and referenced exercise guidance/media for download |
-| GET /catalog/exercises | Search supplied catalog; stable pagination |
+| GET /v1/catalog | Authenticated complete catalog snapshot with `ETag` conditional revalidation |
+| GET /v1/catalog/programs | Same complete catalog snapshot |
+| GET /v1/catalog/programs/{key} | One stable-key program and the shared exercise catalog |
+| GET /v1/catalog/exercises | Shared exercise guidance from the same publication snapshot |
+| POST /v1/maintenance/catalog/preview | Validate and compare source with the current snapshot; maintenance bearer secret |
+| POST /v1/maintenance/catalog/publish | Atomically publish the exact reviewed source; maintenance bearer secret |
 | GET /me/setup | Implemented owner-scoped completed setup lookup; [contract](account-setup.md) |
 | GET /me/bootstrap | Complete consistent owned snapshot, including OneSet settings, runs, preferences, sessions and completion marks; Clerk profile/access is resolved separately |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
@@ -24,11 +27,12 @@ Design-level HTTPS/JSON interface. The narrow [account setup lookup](account-set
 | GET /media/content?video_key=... | Protected range-capable response; authorize before serving cached bytes |
 | DELETE /me | Proposed account-erasure flow; reauthentication and retention implementation required |
 
-Run creation/activation/catalog maintenance are not assumed to be callable by unauthenticated visitors. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
+Catalog reads and account setup require Clerk authentication. Catalog maintenance requires the separate `CATALOG_PUBLISH_TOKEN`; a Clerk session cannot publish. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
 
 ## Payload rules
 
-- **Catalog:** program fields are `id`, `name`, `recommended_weeks`. Frequency is derived from current program-workout rows. Return current template entries with `position IS NOT NULL`; include `workout_exercises.id`, `workout_id`, `exercise_id`, `position`, `reps_min`, `reps_max` and referenced exercise guidance. There are no versions, logical keys, equipment or estimated-duration fields. Template slots have no prescription JSON.
+- **Catalog:** `GET /v1/catalog` returns `{ publication_id, catalog: { exercises, programs } }` from one publication snapshot. Programs use stable `key`, `name`, `recommended_weeks`, `training_days_per_week`, `format`, `emphasis`, and ordered workouts. Workouts and slots have stable authoring keys; slots contain an exercise key, order, rep bounds, and optional `scope` (`reps`, `each_leg`, or `each_side`). Shared exercises carry stable keys, complete technique, stopping and warm-up text, default reps, rest seconds and an optional video key. `removed: true` explicitly withdraws a program/workout/slot from new choices while retaining its stable database identity and history references. `ETag` identifies the complete snapshot; `If-None-Match` receives `304` when unchanged. The Worker also serves `/v1/catalog/programs`, `/v1/catalog/programs/{key}`, and `/v1/catalog/exercises` from that same snapshot.
+- **Catalog publication:** preview accepts `{ source, source_fingerprint }`, validates stable keys, all references, required guidance, rep bounds and order, then returns `preview_id`, source/backend fingerprints, changes, and affected programs without writing. Publish accepts that exact source plus all preview identifiers. A changed source or backend returns `409 STALE_PREVIEW`; invalid data returns `422 INVALID_CATALOG`. One database transaction applies the catalog and changes the singleton publication pointer. Repeating the identical publication ID and source returns the prior success; a failed transaction leaves the prior snapshot visible. The publisher CLI requires an explicit environment and reads its separate maintenance token from environment-scoped variables.
 - **Settings:** PATCH accepts `preferred_unit` (`kg`/`lb`) and `training_days` (2–5). Read `active_user_program_id` from bootstrap; change it through cycle creation/activation. No settings revision. Clerk owns account profile/access.
 - **Cycles:** POST accepts client-generated `id`, `workout_program_id`, `started_at` and an initial `preferences` array. Each preference contains `workout_exercise_id`, optional replacement `exercise_id`, `note` and `rest_seconds`. Insert the owned run/preferences and select it atomically. Creation retries verify fixed run identity and return the existing run without repeating either copy or activation. Resume uses `started_at DESC, id DESC`; activation selects only the latest run for that program. No run revision or current flag.
 - **Remembered preferences:** PUT supplies all three override values; null clears an override. All nulls may remove the sparse row. Null `exercise_id` means use the template exercise. Require positive rest seconds when supplied. Validate that the user owns the run and the slot belongs to its current program template. Changing a preference never edits existing session copies.
