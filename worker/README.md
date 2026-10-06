@@ -35,3 +35,5 @@ Database credentials and the verification key are stored in Worker secret bindin
 ## Completed onboarding saves
 
 `PUT /v1/me/setup` saves completed onboarding using the authenticated contract in [account setup](../docs/account-setup.md). Apply [migration 002](../docs/database/migrations/002_completed_setup.sql) before deploying this version. It adds a transactional first-completion function and leaves established cycles/history unchanged. Keep `PROGRAM_CATALOG_MAP` aligned with the bundled program IDs for both reads and writes. This change does not deploy the Worker or apply the migration automatically.
+
+Migration 002 was applied to the deployed development database (`oneset` on `oneset-development`) on 2026-10-06 after rehearsal on a temporary child branch. First completion, safe retries and preservation of established records passed; the installed function and unchanged row counts were verified. The temporary branch was deleted. The updated Worker PUT handler has not been deployed by this migration task.
