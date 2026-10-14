@@ -22,6 +22,12 @@ const environment = {
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CATALOG_PUBLISH_TOKEN: 'e2e-publisher-secret',
 };
+async function token(subject: string): Promise<string> {
+  return new SignJWT({ sid: `e2e-session-${subject}` })
+    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' }).setSubject(subject)
+    .setIssuer(issuer).setIssuedAt().setNotBefore('0s').setExpirationTime('1m')
+    .sign(signingKeys.privateKey);
+}
 const engine = new PGlite();
 const database: CatalogDatabase = {
   query: async (sql, params = []) => (await engine.query<Record<string, unknown>>(sql, params)).rows,
@@ -46,6 +52,7 @@ await engine.exec(`
   SELECT setval(pg_get_serial_sequence('users', 'id'), 1);
 `);
 await engine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await engine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 
 after(async () => { await engine.close(); });
 
@@ -113,12 +120,12 @@ workouts:
     ], { cwd: process.cwd(), env: cliEnvironment });
     assert.match(publication.stdout, /Published catalog to e2e:/);
 
-    const userToken = await new SignJWT({ sid: 'e2e-session' })
+    const followerToken = await new SignJWT({ sid: 'e2e-session' })
       .setProtectedHeader({ alg: 'RS256', typ: 'JWT' }).setSubject('e2e-follower')
       .setIssuer(issuer).setIssuedAt().setNotBefore('0s').setExpirationTime('1m')
       .sign(signingKeys.privateKey);
     const response = await fetch(`http://127.0.0.1:${address.port}/v1/catalog`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      headers: { Authorization: `Bearer ${followerToken}` },
     });
     assert.equal(response.status, 200);
     const result = await response.json() as {
@@ -172,6 +179,88 @@ workouts:
       FROM workout_programs program JOIN user_programs cycle ON cycle.workout_program_id = program.id
       JOIN users ON users.id = cycle.user_id WHERE program.authoring_key = 'machine-full-body'`);
     assert.deepEqual(preserved, [{ id: 10, active_user_program_id: '11111111-1111-4111-8111-111111111111' }]);
+
+    await database.query(`INSERT INTO completed_workouts (user_program_id, week_number, workout_id)
+      SELECT cycle.id, 2, link.workout_id FROM user_programs cycle
+      JOIN workout_programs program ON program.id = cycle.workout_program_id
+      JOIN program_workouts link ON link.program_id = program.id
+      WHERE cycle.id = $1 LIMIT 1 ON CONFLICT DO NOTHING`, ['11111111-1111-4111-8111-111111111111']);
+    const programFile = join(sourceDirectory, 'programs', '10-machine-full-body.yaml');
+    const originalProgram = await readFile(programFile, 'utf8');
+    await writeFile(programFile, `${originalProgram.trimEnd()}\nremoved: true\n`);
+
+    const removedPreview = await execute(process.execPath, [
+      '--import', 'tsx', 'scripts/catalog.ts', 'preview', '--environment', 'e2e',
+      '--source', sourceDirectory, '--preview-file', reviewFile,
+    ], { cwd: process.cwd(), env: cliEnvironment });
+    assert.match(removedPreview.stdout, /remove/i);
+    await execute(process.execPath, [
+      '--import', 'tsx', 'scripts/catalog.ts', 'publish', '--environment', 'e2e',
+      '--source', sourceDirectory, '--preview-file', reviewFile,
+    ], { cwd: process.cwd(), env: cliEnvironment });
+
+    const removedCatalog = await fetch(`http://127.0.0.1:${address.port}/v1/catalog`, {
+      headers: { Authorization: `Bearer ${followerToken}` },
+    });
+    const removedResult = await removedCatalog.json() as {
+      catalog: { programs: Array<{ key: string; removed?: boolean }> };
+    };
+    assert.equal(removedResult.catalog.programs.find(program => program.key === 'machine-full-body')?.removed, true);
+    const existingFollowerSetup = await handleSetupRequest(new Request('https://api.oneset.test/v1/me/setup', {
+      headers: { Authorization: `Bearer ${followerToken}` },
+    }), environment, setupDatabase);
+    assert.deepEqual(await existingFollowerSetup.json(), { setup: {
+      preferred_unit: 'kg', training_days: 3, program_id: 'machine-full-body',
+      cycle_id: '11111111-1111-4111-8111-111111111111',
+    } });
+    const staleExistingUpload = await handleSetupRequest(new Request('https://api.oneset.test/v1/me/setup', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${followerToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newSetup, program_id: 'machine-full-body' }),
+    }), environment, setupDatabase);
+    assert.deepEqual(await staleExistingUpload.json(), { setup: {
+      preferred_unit: 'kg', training_days: 3, program_id: 'machine-full-body',
+      cycle_id: '11111111-1111-4111-8111-111111111111',
+    } });
+
+    const removedSelection = await handleSetupRequest(new Request('https://api.oneset.test/v1/me/setup', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${await token('pending-new-user')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newSetup, program_id: 'machine-full-body' }),
+    }), environment, setupDatabase);
+    assert.equal(removedSelection.status, 409);
+    assert.deepEqual(await removedSelection.json(), { error: { code: 'PROGRAM_UNAVAILABLE' } });
+    const rejectedNewUser = await database.query(`SELECT count(*)::integer AS cycles FROM user_programs
+      JOIN users ON users.id = user_programs.user_id WHERE users.clerk_user_id = 'pending-new-user'`);
+    assert.deepEqual(rejectedNewUser, [{ cycles: 0 }]);
+
+    await writeFile(programFile, originalProgram);
+    await execute(process.execPath, [
+      '--import', 'tsx', 'scripts/catalog.ts', 'preview', '--environment', 'e2e',
+      '--source', sourceDirectory, '--preview-file', reviewFile,
+    ], { cwd: process.cwd(), env: cliEnvironment });
+    await execute(process.execPath, [
+      '--import', 'tsx', 'scripts/catalog.ts', 'publish', '--environment', 'e2e',
+      '--source', sourceDirectory, '--preview-file', reviewFile,
+    ], { cwd: process.cwd(), env: cliEnvironment });
+
+    const restoredState = await database.query(`SELECT program.id, program.is_offered,
+        users.active_user_program_id, count(DISTINCT completion.workout_id)::integer AS completed_workouts
+      FROM workout_programs program
+      JOIN user_programs cycle ON cycle.workout_program_id = program.id
+      JOIN users ON users.id = cycle.user_id
+      LEFT JOIN completed_workouts completion ON completion.user_program_id = cycle.id
+      WHERE program.authoring_key = 'machine-full-body'
+      GROUP BY program.id, program.is_offered, users.active_user_program_id`);
+    assert.deepEqual(restoredState, [{ id: 10, is_offered: true,
+      active_user_program_id: '11111111-1111-4111-8111-111111111111', completed_workouts: 1 }]);
+    const nowAvailable = await handleSetupRequest(new Request('https://api.oneset.test/v1/me/setup', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${await token('restorable-user')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newSetup, program_id: 'machine-full-body',
+        cycle_id: '33333333-3333-4333-8333-333333333333' }),
+    }), environment, setupDatabase);
+    assert.equal(nowAvailable.status, 200, JSON.stringify(await nowAvailable.clone().json()));
   } finally {
     server.close();
     await once(server, 'close');

@@ -89,7 +89,8 @@ struct OnboardingFlowView: View {
             ProgramSelectionScreen(
               programs: model.programs,
               trainingDays: model.trainingDays,
-              selectedProgramID: model.selectedProgramID
+              selectedProgramID: model.selectedProgramID,
+              recoveryMessage: model.programSelectionMessage
             )
             .navigationTitle("Programs")
             .navigationBarTitleDisplayMode(.inline)

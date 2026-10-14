@@ -1,6 +1,6 @@
 # Catalog publishing
 
-The catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16), and compatible editing and correction behavior in [issue #18](https://github.com/dimitarradulov/one-set/issues/18). The founder maintains the text catalog in `worker/catalog/`; structural changes and whole-program removal use the separate catalog maintenance workflow.
+The catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16), and compatible editing and correction behavior in [issue #18](https://github.com/dimitarradulov/one-set/issues/18). This is the implementation reference for [issue #15](https://github.com/dimitarradulov/one-set/issues/15). The founder maintains the text catalog in `worker/catalog/`; structural changes and whole-program removal use the separate catalog maintenance workflow.
 
 ## Files and source of truth
 
@@ -39,6 +39,14 @@ export ONESET_CATALOG_PUBLISH_TOKEN_DEVELOPMENT='<publisher-token>'
 ```
 
 The publisher token is distinct from user authentication. Preview and publish are separate operations; rerun preview after any source or backend catalog change. Publish only the source captured by the last successful preview. The Worker applies the reviewed catalog transactionally and retries are idempotent. See [Worker commands](../worker/README.md) for environment and credential setup.
+
+## Remove and restore a program
+
+Set `removed: true` in the program's YAML file, then run `npm run catalog -- preview --environment <name> --source catalog`. Review the removal and affected program list before running `npm run catalog -- publish --environment <name> --source catalog` against the same source. Omitting a previously published program is an error; removal must be explicit.
+
+To restore it, remove the `removed: true` line (or restore the earlier YAML file), preview again, review the restoration, and publish. The program keeps its original key and database identity. Existing followers continue to resolve its content and setup; new setup uploads are rejected while it is removed. The app returns a pending new user to program selection so they can choose an offered program. Catalog publication does not modify cycles or training history.
+
+Use the same environment and source directory for each preview/publish pair. Publishing verifies that the source and backend still match the reviewed preview and applies the complete catalog atomically.
 
 ## Authoring and correction
 
