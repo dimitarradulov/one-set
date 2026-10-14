@@ -176,11 +176,13 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
-  func removedProgramStaysAvailableToExistingFollowersButNotNewSelections() async {
+  func removedProgramStaysAvailableToExistingFollowersButNotNewSelections() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
     let removed = replacing(
       program(id: "founder-authored-plan", name: "Founder Authored Plan"), offered: false
     )
-    let persistence = MemoryProgramCatalogPersistence()
+    let persistence = FileProgramCatalogPersistence(fileURL: directory.appending(path: "catalog.json"))
     let completeCatalog = ProgramCatalog.bundled.programs + [removed]
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
