@@ -115,6 +115,22 @@ function previousEntries(source: CatalogSource | undefined): {
   return { programs, workouts, slots, exercises };
 }
 
+function programDetails(program: CatalogProgram): Omit<CatalogProgram, 'workouts'> {
+  const { workouts: _workouts, ...details } = program;
+  return details;
+}
+
+function workoutDetails(workout: CatalogWorkout): Omit<CatalogWorkout, 'exercises'> {
+  const { exercises: _exercises, ...details } = workout;
+  return details;
+}
+
+function changedFields(previous: JsonObject, next: JsonObject, excluding: string[]): string[] {
+  const ignored = new Set(excluding);
+  const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
+  return [...keys].filter(key => !ignored.has(key) && canonicalJSON(previous[key]) !== canonicalJSON(next[key])).sort();
+}
+
 export function validateCatalogSource(
   value: unknown,
   previous?: CatalogSource,
@@ -245,45 +261,125 @@ export function validateCatalogSource(
 }
 
 export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSource): {
-  changes: Array<{ kind: string; program_key?: string; name?: string }>;
+  changes: Array<{
+    kind: string;
+    program_key?: string;
+    program_name?: string;
+    workout_key?: string;
+    workout_name?: string;
+    name?: string;
+    detail?: string;
+  }>;
   affectedPrograms: string[];
 } {
   const before = previousEntries(previous);
   const after = previousEntries(next);
-  const changes: Array<{ kind: string; program_key?: string; name?: string }> = [];
+  const changes: Array<{
+    kind: string;
+    program_key?: string;
+    program_name?: string;
+    workout_key?: string;
+    workout_name?: string;
+    name?: string;
+    detail?: string;
+  }> = [];
   const affected = new Map<string, string>();
   const includeAffected = (program: CatalogProgram) => {
     affected.set(program.key, `${program.name} (${program.key})`);
+  };
+  const addChange = (
+    kind: string,
+    program: CatalogProgram | undefined,
+    workout: CatalogWorkout | undefined,
+    name: string | undefined,
+    detail?: string,
+  ) => {
+    changes.push({
+      kind,
+      ...(program ? { program_key: program.key, program_name: program.name } : {}),
+      ...(workout ? { workout_key: workout.key, workout_name: workout.name } : {}),
+      ...(name ? { name } : {}),
+      ...(detail ? { detail } : {}),
+    });
+    if (program) includeAffected(program);
   };
 
   for (const program of next.programs) {
     const oldProgram = before.programs.get(program.key);
     if (!oldProgram) {
-      changes.push({ kind: 'add', program_key: program.key, name: program.name });
-      includeAffected(program);
-    } else if (canonicalJSON(oldProgram) !== canonicalJSON(program)) {
-      changes.push({ kind: program.removed ? 'remove' : 'update', program_key: program.key, name: program.name });
-      includeAffected(program);
+      addChange('add program', program, undefined, program.name);
+    } else if (oldProgram.removed !== true && program.removed === true) {
+      addChange('remove program', program, undefined, program.name);
+    } else if (oldProgram.removed === true && program.removed !== true) {
+      addChange('restore program', program, undefined, program.name);
+    } else if (canonicalJSON(programDetails(oldProgram)) !== canonicalJSON(programDetails(program))) {
+      addChange('update program', program, undefined, program.name,
+        `Changed fields: ${changedFields(programDetails(oldProgram), programDetails(program), []).join(', ')}`);
+    }
+  }
+
+  for (const [key, entry] of before.workouts) {
+    if (!after.workouts.has(key)) addChange('remove workout', entry.program, entry.workout, entry.workout.name);
+  }
+  for (const [key, entry] of after.workouts) {
+    const oldEntry = before.workouts.get(key);
+    if (!oldEntry) {
+      addChange('add workout', entry.program, entry.workout, entry.workout.name);
+    } else if (oldEntry.workout.removed !== true && entry.workout.removed === true) {
+      addChange('remove workout', entry.program, entry.workout, entry.workout.name);
+    } else if (oldEntry.workout.removed === true && entry.workout.removed !== true) {
+      addChange('restore workout', entry.program, entry.workout, entry.workout.name);
+    } else if (canonicalJSON(workoutDetails(oldEntry.workout)) !== canonicalJSON(workoutDetails(entry.workout))) {
+      addChange('update workout', entry.program, entry.workout, entry.workout.name,
+        `Changed fields: ${changedFields(workoutDetails(oldEntry.workout), workoutDetails(entry.workout), []).join(', ')}`);
+    }
+  }
+
+  for (const [key, entry] of before.slots) {
+    if (!after.slots.has(key)) {
+      const parent = before.workouts.get(entry.workout.key);
+      addChange('remove exercise slot', parent?.program, entry.workout, entry.slot.key,
+        `Exercise ${entry.slot.exercise}`);
+    }
+  }
+  for (const [key, entry] of after.slots) {
+    const oldEntry = before.slots.get(key);
+    const parent = after.workouts.get(entry.workout.key);
+    if (!oldEntry) {
+      addChange('add exercise slot', parent?.program, entry.workout, entry.slot.key,
+        `Exercise ${entry.slot.exercise}`);
+    } else if (oldEntry.slot.removed !== true && entry.slot.removed === true) {
+      addChange('remove exercise slot', parent?.program, entry.workout, entry.slot.key,
+        `Exercise ${entry.slot.exercise}`);
+    } else if (oldEntry.slot.removed === true && entry.slot.removed !== true) {
+      addChange('restore exercise slot', parent?.program, entry.workout, entry.slot.key,
+        `Exercise ${entry.slot.exercise}`);
+    } else if (canonicalJSON(oldEntry.slot) !== canonicalJSON(entry.slot)) {
+      addChange('update exercise slot', parent?.program, entry.workout, entry.slot.key,
+        `Exercise ${entry.slot.exercise}; changed fields: ${changedFields(oldEntry.slot, entry.slot, []).join(', ')}`);
     }
   }
 
   for (const exercise of next.exercises) {
     const oldExercise = before.exercises.get(exercise.key);
     if (oldExercise && canonicalJSON(oldExercise) !== canonicalJSON(exercise)) {
-      changes.push({ kind: 'update exercise', name: exercise.name });
+      const impacted = new Map<string, CatalogProgram>();
       for (const program of [...(previous?.programs ?? []), ...next.programs]) {
         const currentUse = program.removed !== true && program.workouts.some(workout =>
           workout.removed !== true && workout.exercises.some(slot =>
             slot.removed !== true && slot.exercise === exercise.key));
         if (currentUse) {
-          includeAffected(program);
+          impacted.set(program.key, program);
         }
+      }
+      const detail = `Changed fields: ${changedFields(oldExercise, exercise, []).join(', ')}`;
+      if (impacted.size === 0) addChange('update shared exercise', undefined, undefined, exercise.name, detail);
+      else for (const program of impacted.values()) {
+        addChange('update shared exercise', program, undefined, exercise.name, detail);
       }
     }
   }
 
-  for (const [key, oldProgram] of before.programs) {
-    if (!after.programs.has(key)) includeAffected(oldProgram);
-  }
+  for (const [key, oldProgram] of before.programs) if (!after.programs.has(key)) includeAffected(oldProgram);
   return { changes, affectedPrograms: [...affected.values()].sort() };
 }

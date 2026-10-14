@@ -213,11 +213,19 @@ test('shared guidance edits preview every program and restoring an earlier sourc
   assert.equal(reviewedResponse.status, 200);
   const reviewed = await reviewedResponse.json() as {
     preview_id: string; backend_fingerprint: string; affected_programs: string[];
+    changes: Array<{ kind: string; program_key?: string; workout_key?: string; name?: string; detail?: string }>;
   };
   const impact = reviewed;
   assert.deepEqual(impact.affected_programs, [
     'Machine Full Body Revised (machine-full-body)', 'Machine Upper Body (machine-upper-body)',
   ]);
+  assert.ok(impact.changes.some(change => change.kind === 'update program' && change.program_key === 'machine-full-body'));
+  assert.ok(impact.changes.some(change => change.kind === 'update workout' && change.workout_key === 'machine-full-body-a'));
+  assert.ok(impact.changes.some(change => change.kind === 'update exercise slot'
+    && change.name === 'machine-full-body-a-chest-press'));
+  assert.equal(impact.changes.filter(change => change.kind === 'update shared exercise').length, 2);
+  assert.ok(impact.changes.find(change => change.kind === 'update exercise slot')?.detail?.includes('reps'));
+  assert.ok(impact.changes.find(change => change.kind === 'update shared exercise')?.detail?.includes('instructions'));
 
   const mismatch = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
     environment.CATALOG_PUBLISH_TOKEN, 'POST', {

@@ -9,7 +9,15 @@ import { validateCatalogSource, type CatalogSource, type JsonObject } from '../s
 interface PreviewResult {
   preview_id: string;
   backend_fingerprint: string;
-  changes: Array<{ kind: string; program_key?: string; name?: string }>;
+  changes: Array<{
+    kind: string;
+    program_key?: string;
+    program_name?: string;
+    workout_key?: string;
+    workout_name?: string;
+    name?: string;
+    detail?: string;
+  }>;
   affected_programs: string[];
 }
 
@@ -191,7 +199,15 @@ async function main(args: string[]): Promise<void> {
     }, null, 2) + '\n');
     console.log(`Preview for ${environment}`);
     for (const change of result.changes ?? []) {
-      console.log(`  ${change.kind}: ${change.name ?? change.program_key ?? 'catalog'}`);
+      const location = [
+        change.program_name ? `${change.program_name} (${change.program_key})` : undefined,
+        change.workout_name ? `${change.workout_name} (${change.workout_key})` : undefined,
+      ].filter(Boolean).join(' / ');
+      const subject = change.name && change.name !== change.program_name && change.name !== change.workout_name
+        ? change.name : undefined;
+      const label = [location, subject].filter(Boolean).join(' / ') || change.program_key || 'catalog';
+      const detail = change.detail ? ` — ${change.detail}` : '';
+      console.log(`  ${change.kind}: ${label}${detail}`);
     }
     console.log(`Affected programs: ${(result.affected_programs ?? []).join(', ') || 'none'}`);
     console.log(`Preview ID: ${result.preview_id}`);

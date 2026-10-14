@@ -51,7 +51,31 @@ workouts:
     response.end(JSON.stringify({
       preview_id: 'preview-123',
       backend_fingerprint: 'empty',
-      changes: [{ kind: 'add', program_key: 'machine-full-body', name: 'Machine Full Body' }],
+      changes: [
+        { kind: 'add program', program_key: 'machine-full-body', program_name: 'Machine Full Body', name: 'Machine Full Body' },
+        { kind: 'add workout', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'machine-full-body-a' },
+        { kind: 'update workout', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'Workout A Revised' },
+        { kind: 'remove workout', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-b', workout_name: 'Workout B', name: 'Workout B' },
+        { kind: 'restore workout', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-c', workout_name: 'Workout C', name: 'Workout C' },
+        { kind: 'add exercise slot', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'machine-full-body-a-row',
+          detail: 'Exercise cable_row' },
+        { kind: 'update exercise slot', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'machine-full-body-a-chest-press',
+          detail: 'Exercise machine_chest_press; changed fields: reps' },
+        { kind: 'remove exercise slot', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'machine-full-body-a-press',
+          detail: 'Exercise machine_chest_press' },
+        { kind: 'restore exercise slot', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          workout_key: 'machine-full-body-a', workout_name: 'Workout A', name: 'machine-full-body-a-press',
+          detail: 'Exercise machine_chest_press' },
+        { kind: 'update shared exercise', program_key: 'machine-full-body', program_name: 'Machine Full Body',
+          name: 'Machine Chest Press' },
+      ],
       affected_programs: ['Machine Full Body'],
     }));
   });
@@ -75,6 +99,16 @@ workouts:
 
     assert.match(output, /Preview for test/);
     assert.match(output, /Machine Full Body/);
+    assert.match(output, /add program: Machine Full Body \(machine-full-body\)/);
+    assert.match(output, /add workout: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\)/);
+    assert.match(output, /update workout: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ Workout A Revised/);
+    assert.match(output, /remove workout: Machine Full Body \(machine-full-body\) \/ Workout B \(machine-full-body-b\)/);
+    assert.match(output, /restore workout: Machine Full Body \(machine-full-body\) \/ Workout C \(machine-full-body-c\)/);
+    assert.match(output, /add exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-row — Exercise cable_row/);
+    assert.match(output, /update exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-chest-press — Exercise machine_chest_press; changed fields: reps/);
+    assert.match(output, /remove exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press — Exercise machine_chest_press/);
+    assert.match(output, /restore exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press — Exercise machine_chest_press/);
+    assert.match(output, /update shared exercise: Machine Full Body \(machine-full-body\) \/ Machine Chest Press/);
     assert.match(output, /preview-123/);
     assert.ok(requestBody && typeof requestBody === 'object');
     assert.equal((requestBody as { source?: { programs?: Array<{ key: string }> } }).source?.programs?.[0]?.key,

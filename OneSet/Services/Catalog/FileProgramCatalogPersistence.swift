@@ -21,7 +21,3 @@ struct FileProgramCatalogPersistence: ProgramCatalogPersistence {
     try data.write(to: fileURL, options: .atomic)
   }
 }
-
-enum ProgramCatalogPersistenceError: Error {
-  case emptySnapshot
-}
