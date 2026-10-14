@@ -24,7 +24,10 @@ struct OnboardingFlowView: View {
       await model.retryCompletedUploads(using: authentication)
     }
     .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await model.uploadCompletedSetup(using: authentication) } }
+      if phase == .active {
+        Task { await model.refreshCatalog() }
+        Task { await model.uploadCompletedSetup(using: authentication) }
+      }
     }
     .alert("Discard setup awaiting upload?", isPresented: $model.discardSetupPresented) {
       Button("Cancel", role: .cancel) { }

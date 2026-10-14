@@ -59,6 +59,7 @@ final class OnboardingModel {
     let generation = lookupGeneration
     setupResolution = .loading
     do {
+      await catalog.refresh()
       savedProgress = try progressStore?.load(accountID: user.id)
       if let savedProgress { try validate(savedProgress) }
       let setup = try await setupService.lookup(for: user)
@@ -163,7 +164,11 @@ final class OnboardingModel {
   }
 
   var programs: [TrainingProgram] {
-    TrainingProgram.matchingPreferenceFirst(catalog.programs, days: trainingDays)
+    TrainingProgram.matchingPreferenceFirst(catalog.offeredPrograms, days: trainingDays)
+  }
+
+  func refreshCatalog() async {
+    await catalog.refresh()
   }
 
   func program(id: TrainingProgram.ID) -> TrainingProgram? {
@@ -209,7 +214,7 @@ final class OnboardingModel {
   }
 
   func selectProgram(_ id: TrainingProgram.ID) {
-    guard catalog.program(id: id) != nil else { return }
+    guard catalog.offeredPrograms.contains(where: { $0.id == id }) else { return }
     guard path.last == .programDetail(id),
           saveProgress(nextStep: .trial, programID: id) else { return }
     selectedProgramID = id
@@ -282,7 +287,7 @@ final class OnboardingModel {
 
   func continueWithoutTrial() {
     guard !isSigningOut, let selectedProgramID,
-          catalog.program(id: selectedProgramID) != nil,
+          catalog.offeredPrograms.contains(where: { $0.id == selectedProgramID }),
           path.last == .trialPreview(selectedProgramID)
     else { return }
 

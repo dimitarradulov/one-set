@@ -1,9 +1,9 @@
-// Migration 002 adds complete_onboarding(), a user-row-locked first-completion command.
+// Migration 002 adds complete_onboarding(); migration 003 adds stable catalog keys and publication state.
 // Applied by migrations/001_documented_schema.sql to Neon production on 2026-09-29.
 // README.md specifies snapshot contents and transaction-level validation.
 Project OneSet {
   database_type: 'PostgreSQL'
-  Note: 'Original program/workout/exercise model with editable templates and preserved session history.'
+  Note: 'Stable YAML authoring keys map editable catalog content to persistent database identities; publication snapshots preserve user history.'
 }
 
 Enum weight_unit {
@@ -13,12 +13,15 @@ Enum weight_unit {
 
 Table workout_programs {
   id serial [pk]
+  authoring_key text [unique, note: 'Stable YAML program identity; remains fixed when display fields change']
   name text [not null]
   recommended_weeks integer [not null, default: 8, check: `recommended_weeks > 0`]
+  is_offered boolean [not null, default: true, note: 'False hides new enrollment choices while existing followers retain this program']
 }
 
 Table workouts {
   id serial [pk]
+  authoring_key text [unique, note: 'Stable YAML workout-template identity']
   name text [not null]
   Note: 'Current editable template. Sessions retain their own name and guidance.'
 }
@@ -35,6 +38,7 @@ Table program_workouts {
 
 Table exercises {
   id serial [pk]
+  authoring_key text [unique, note: 'Stable shared-exercise identity from the YAML catalog']
   name text [not null]
   instructions text [not null, note: 'Includes when to stop the set, total/added-load and unilateral guidance']
   video_key text [note: 'Immutable private R2 object key; replaces public url']
@@ -50,11 +54,13 @@ Table exercises {
 
 Table workout_exercises {
   id serial [pk]
+  authoring_key text [unique, note: 'Stable YAML slot identity; repurposed movements get a new key']
   workout_id integer [not null, ref: > workouts.id]
   exercise_id integer [not null, ref: > exercises.id]
   position integer [check: `position > 0`, note: 'Null removes this entry from the current template while preserving history references']
   reps_min integer [not null]
   reps_max integer [not null]
+  rep_scope text [not null, default: 'reps', check: `rep_scope IN ('reps', 'each_leg', 'each_side')`, note: 'reps, each_leg, or each_side']
   checks {
     `reps_min > 0 AND reps_max >= reps_min`
   }
@@ -137,7 +143,30 @@ Table workout_session_sets {
 }
 Ref: workout_session_sets.workout_session_id > workout_sessions.id [delete: cascade]
 
-// Only added table: completion marks independent of deletable history.
+Table catalog_publications {
+  id text [pk, note: 'Preview identifier used as an idempotent publication key']
+  source_fingerprint text [not null]
+  backend_fingerprint text [not null]
+  source_document jsonb [not null, note: 'Complete reviewed catalog source applied by this publication']
+  published_at timestamptz [not null, default: `now()`]
+  checks {
+    `jsonb_typeof(source_document) = 'object'`
+  }
+}
+
+Table catalog_state {
+  singleton boolean [pk, not null, default: true, check: `singleton = true`]
+  publication_id text [ref: > catalog_publications.id]
+  source_fingerprint text
+  source_document jsonb [note: 'Current complete snapshot; reads return data from this publication only']
+  updated_at timestamptz [not null, default: `now()`]
+  checks {
+    `(publication_id IS NULL) = (source_fingerprint IS NULL)`
+    `(publication_id IS NULL) = (source_document IS NULL)`
+  }
+}
+
+// Progress marks remain independent of deletable history.
 Table completed_workouts {
   user_program_id uuid [not null, ref: > user_programs.id]
   week_number integer [not null, check: `week_number > 0`]

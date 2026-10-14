@@ -16,7 +16,7 @@ struct ProgramSelectionScreen: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("programs.title")
 
-          Text("All ten programs are available. We’ll put your \(trainingDays)-day matches first.")
+          Text("\(trainingDays)-day matches come first. Every offered program stays available.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)

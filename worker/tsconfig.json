@@ -10,5 +10,5 @@
     "types": ["node"],
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src", "tests", "worker-configuration.d.ts"]
+  "include": ["src", "tests", "scripts", "worker-configuration.d.ts"]
 }
