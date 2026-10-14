@@ -13,7 +13,7 @@ Priority comes from the founder's program library and product decisions. Earlier
 | ID | Requirement and acceptance criteria |
 | --- | --- |
 | FR-01 | Account-first Variant A onboarding: welcome with Apple, Google, and email account actions plus Log in, then kg/lb and 2/3/4/5-day preference, program selection, seven-day trial offer, overview. There is no separate account-choice screen. Previously registered users restore existing state through Log in; no accidental reset through onboarding. |
-| FR-02 | Browse all ten gym-only programs, showing frequency and workout previews. Frequency filters prioritize matching programs without hiding access to others. |
+| FR-02 | Browse the current curated gym-only catalog, initially the ten supplied programs, showing frequency and workout previews. Frequency filters prioritize matching programs without hiding access to others. Published programs can be added without an app release. |
 | FR-03 | Starting a program creates/resumes enrollment and a cycle linked directly to the program. Eight training weeks recommended; training weeks are rotations, not calendar weeks. |
 | FR-04 | Overview displays week selectors and ordered Day 1/Day 2 cards. Each occurrence has its own completion state. Missing days does not advance the sequence. |
 | FR-05 | Open a downloaded workout offline; draft inputs, completed sets, instructions, previous results and timer state survive app interruption. Entering data never waits for a network response. |
@@ -37,7 +37,7 @@ Priority comes from the founder's program library and product decisions. Earlier
 | FR-23 | Offline starts allowed until the last verified entitlement expiration. Beyond that, renewal must be checked online. A previously started session can always finish locally and later sync. Server must not reject historical workout data merely because a subscription has since expired. |
 | FR-24 | Credential expiration/revocation never interrupts active training. Refresh silently where possible; if reauthentication is required, prompt after local workout finish and resume sync afterward. No promise that credentials themselves never expire. |
 | FR-25 | Drafts and completed data save locally before success UI; automatic sync uses explicit saved-on-device versus synced states. Target one training device at a time; restoring synced history on a replacement device remains supported. |
-| FR-26 | Content maintenance is a documented validated file-import/video-upload process. No admin app. |
+| FR-26 | The founder maintains programs, workout templates, and shared exercise prescriptions through readable YAML files and documented preview/publish commands without manual database editing. Support additions, edits, explicit removals, and restoration of earlier content. Removed programs are hidden from new selections while existing followers can continue and retain history. The app checks for updates on launch/foreground, without periodic polling, and retains an offline catalog. No admin app. Video upload is deferred for the text-catalog milestone. See [catalog publishing](catalog-publishing.md). |
 
 ## Non-functional requirements
 
@@ -65,6 +65,7 @@ Nutrition/supplements, social feeds, challenges, body tracking, AI coaching, cus
 - Changing exercise after logging: require explicit action; do not relabel an existing completed set as another exercise. Design assumption: amend the historical set through edit flow or clear/re-enter the current result with confirmation.
 - Replacement prescription mismatch: supported exercises carry their own rep targets and instructions covering technique and when to stop the set; apply the selected movement's defaults. Content compatibility rules are an implementation gate.
 - Forgotten timer with denied notifications: reconstruct elapsed/remaining time correctly, no retroactive notification spam.
+- Published workout-day additions/removals apply from the current training week onward. Preserve completed work and history; do not reopen earlier weeks. Removed days stop being required. Started and completed sessions retain their captured content.
 - Retried session uploads must not duplicate sets or advance completion twice.
 - Deleting an older session: proposed behavior leaves already advanced sequence in place; it changes history/progression without undoing future training.
 

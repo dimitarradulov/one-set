@@ -4,8 +4,12 @@ OneSet guides lifters through curated HIT programs and keeps a reliable record o
 
 ## Language
 
+**Catalog**: The curated collection of programs, workout templates, exercises, and prescriptions supplied by OneSet.
+
 **Program**: A named training plan containing an ordered rotation of workouts.
 _Avoid_: Plan (when referring to a different concept)
+
+**Removed program**: A program no longer offered for new selection, which existing followers can continue and whose training history remains available.
 
 **Enrollment**: A user's lasting relationship with a program, including remembered exercise preferences.
 _Avoid_: Cycle
