@@ -199,6 +199,10 @@ export function validateCatalogSource(
       workoutRows.push(workout);
       slotRows.push(...rawSlots);
     }
+    const activeWorkoutCount = workouts.filter(workout => workout.removed !== true).length;
+    if (program.removed !== true && (activeWorkoutCount < 1 || activeWorkoutCount > 5)) {
+      errors.push(`${label} must have between one and five active workouts`);
+    }
     programs.push({ ...program, workouts } as unknown as CatalogProgram);
   }
   addUniqueKeyErrors(workoutRows, 'workout', errors);

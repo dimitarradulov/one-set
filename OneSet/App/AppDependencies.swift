@@ -19,6 +19,8 @@ struct AppDependencies {
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || arguments.contains("--ui-google-auth-error")
+      || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
+      || arguments.contains("--ui-catalog-offline")
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
@@ -51,8 +53,23 @@ struct AppDependencies {
           recommendedWeeks: program.recommendedWeeks, isOffered: false
         )
       }
+      let catalogURL = URL.applicationSupportDirectory
+        .appending(path: "Catalog", directoryHint: .isDirectory)
+        .appending(path: "preview-catalog.json")
+      let catalogSeed = arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
+      if catalogSeed {
+        try? FileManager.default.removeItem(at: catalogURL)
+      }
+      let catalogService: (any ProgramCatalogService)? =
+        catalogSeed
+        ? PreviewProgramCatalogService(editedProgram: arguments.contains("--ui-catalog-seed-edited")) : nil
       return AppDependencies(
-        catalog: ProgramCatalog(programs: bundledPrograms),
+        catalog: ProgramCatalog(
+          programs: bundledPrograms,
+          service: catalogService,
+          persistence: catalogSeed || arguments.contains("--ui-catalog-offline")
+            ? FileProgramCatalogPersistence(fileURL: catalogURL) : nil
+        ),
         authentication: PreviewAuthenticationService(
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
           startsSignedIn: uploadPreview || arguments.contains("--ui-auth-restored")
@@ -90,3 +107,38 @@ struct AppDependencies {
     )
   }
 }
+
+#if DEBUG
+@MainActor
+private struct PreviewProgramCatalogService: ProgramCatalogService {
+  let editedProgram: Bool
+
+  func fetchCatalog(ifNoneMatch: String?) async throws -> ProgramCatalogFetchResult {
+    var programs = ProgramCatalog.bundled.programs
+    if editedProgram,
+       let index = programs.firstIndex(where: { $0.id == "push-pull-legs" }) {
+      let current = programs[index]
+      programs[index] = TrainingProgram(
+        id: current.id, name: "Push Pull Legs Updated",
+        format: current.format, emphasis: "Updated publication for refresh continuity.",
+        workouts: current.workouts, recommendedWeeks: current.recommendedWeeks, isOffered: current.isOffered
+      )
+    }
+    programs.append(TrainingProgram(
+      id: "founder-authored-plan", name: "Founder Authored Plan",
+      format: "A / B / C", emphasis: "A newly published plan.",
+      workouts: [WorkoutTemplate(id: "founder-authored-plan-day-a", name: "Day A", exercises: [
+        WorkoutExercise(
+          id: "founder-authored-plan-slot-a", exerciseKey: "barbell-row", name: "Barbell Row",
+          repTarget: RepTarget(minimum: 8, maximum: 12), instructions: "Row with control.",
+          stoppingGuidance: "Stop when form breaks.", warmupGuidance: "Warm up gradually.",
+          restSeconds: 150, defaultRepTarget: RepTarget(minimum: 8, maximum: 12)
+        )
+      ])], recommendedWeeks: 8
+    ))
+    return .snapshot(PublishedProgramCatalogSnapshot(
+      publicationID: "preview-publication", entityTag: "\"preview-catalog\"", programs: programs
+    ))
+  }
+}
+#endif

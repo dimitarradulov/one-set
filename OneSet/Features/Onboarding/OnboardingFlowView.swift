@@ -14,6 +14,9 @@ struct OnboardingFlowView: View {
         journey
       }
     }
+    .task {
+      await model.refreshCatalog()
+    }
     .task(id: authentication.signedInUser?.id) {
       await model.resolveAccountSetup(using: authentication)
       #if DEBUG
