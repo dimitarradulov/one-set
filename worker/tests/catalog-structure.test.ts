@@ -169,7 +169,10 @@ test('structural publication preserves history and applies day changes at the cy
   ];
   const structurePreview = await publish(revised);
   assert.ok(structurePreview.changes.some(change =>
-    change.kind === 'update' && change.program_key === 'machine-full-body'));
+    change.kind === 'add workout' && change.program_key === 'machine-full-body'));
+  assert.ok(structurePreview.changes.some(change => change.kind === 'update workout'));
+  assert.ok(structurePreview.changes.some(change => change.kind === 'add exercise slot'));
+  assert.ok(structurePreview.changes.some(change => change.kind === 'remove exercise slot'));
   assert.ok(structurePreview.affected_programs.includes('Machine Full Body (machine-full-body)'));
 
   const currentResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
@@ -235,7 +238,8 @@ test('structural publication preserves history and applies day changes at the cy
   ];
   const removalPreview = await publish(removal);
   assert.ok(removalPreview.changes.some(change =>
-    change.kind === 'update' && change.program_key === 'machine-full-body'));
+    change.kind === 'remove workout' && change.program_key === 'machine-full-body'));
+  assert.ok(removalPreview.changes.some(change => change.kind === 'remove exercise slot'));
 
   const afterRemoval = await database.query(`SELECT workouts.authoring_key,
       periods.starts_week, periods.ends_week
@@ -268,7 +272,9 @@ test('structural publication preserves history and applies day changes at the cy
 
   // Restoring and removing again within the same current week must not leave
   // overlapping active periods or duplicate active rows for the same day.
-  await publish(revised);
+  const restorePreview = await publish(revised);
+  assert.ok(restorePreview.changes.some(change => change.kind === 'restore workout'));
+  assert.ok(restorePreview.changes.some(change => change.kind === 'restore exercise slot'));
   const afterRestore = await database.query(`SELECT starts_week, ends_week
     FROM user_program_workout_periods
     WHERE user_program_id = $1 AND workout_id = $2 ORDER BY starts_week`,

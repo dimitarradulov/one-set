@@ -1,28 +1,6 @@
 import Foundation
 import Observation
 
-struct PublishedProgramCatalogSnapshot: Codable, Equatable, Sendable {
-  let publicationID: String?
-  let entityTag: String
-  let programs: [TrainingProgram]
-}
-
-enum ProgramCatalogFetchResult: Sendable {
-  case notModified
-  case snapshot(PublishedProgramCatalogSnapshot)
-}
-
-@MainActor
-protocol ProgramCatalogService {
-  func fetchCatalog(ifNoneMatch: String?) async throws -> ProgramCatalogFetchResult
-}
-
-@MainActor
-protocol ProgramCatalogPersistence {
-  func load() throws -> PublishedProgramCatalogSnapshot?
-  func save(_ snapshot: PublishedProgramCatalogSnapshot) throws
-}
-
 @MainActor
 @Observable
 final class ProgramCatalog {
@@ -91,35 +69,33 @@ final class ProgramCatalog {
     var workoutIDs = Set<String>()
     var slotIDs = Set<String>()
     for program in programs {
-      guard Self.isStableKey(program.id), !program.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+      guard CatalogValueValidation.isStableKey(program.id), !program.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             (1...5).contains(program.trainingDaysPerWeek), program.recommendedWeeks > 0,
             !program.format.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.emphasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.workouts.isEmpty else { return false }
       for workout in program.workouts {
-        guard Self.isStableKey(workout.id), workoutIDs.insert(workout.id).inserted,
+        guard CatalogValueValidation.isStableKey(workout.id), workoutIDs.insert(workout.id).inserted,
               !workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !workout.exercises.isEmpty else { return false }
         for exercise in workout.exercises {
-          guard Self.isStableKey(exercise.id), slotIDs.insert(exercise.id).inserted,
-                Self.isStableKey(exercise.exerciseKey),
+          guard CatalogValueValidation.isStableKey(exercise.id), slotIDs.insert(exercise.id).inserted,
+                CatalogValueValidation.isStableKey(exercise.exerciseKey),
                 !exercise.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 !exercise.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 !exercise.stoppingGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 !exercise.warmupGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 let restSeconds = exercise.restSeconds, restSeconds > 0,
-                exercise.repTarget.minimum > 0, exercise.repTarget.maximum >= exercise.repTarget.minimum,
-                exercise.repTarget.maximum <= 100,
+                CatalogValueValidation.isValidRepRange(
+                  minimum: exercise.repTarget.minimum, maximum: exercise.repTarget.maximum
+                ),
                 let defaultTarget = exercise.defaultRepTarget,
-                defaultTarget.minimum > 0, defaultTarget.maximum >= defaultTarget.minimum,
-                defaultTarget.maximum <= 100 else { return false }
+                CatalogValueValidation.isValidRepRange(
+                  minimum: defaultTarget.minimum, maximum: defaultTarget.maximum
+                ) else { return false }
         }
       }
     }
     return true
-  }
-
-  private static func isStableKey(_ value: String) -> Bool {
-    !value.isEmpty && value.range(of: #"^[a-z0-9][a-z0-9_-]*$"#, options: .regularExpression) != nil
   }
 }
