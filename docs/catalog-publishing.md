@@ -1,6 +1,6 @@
 # Catalog publishing
 
-Status: design interview synthesized into [implementation issue #15](https://github.com/dimitarradulov/one-set/issues/15), labeled `ready-for-agent`. The issue includes the confirmed testing boundaries. No feature implementation has been performed in this design session.
+Status: the catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16). Compatible editing and correction behavior is covered by [issue #18](https://github.com/dimitarradulov/one-set/issues/18); structural changes and whole-program removal have separate implementation work.
 
 ## Agreed scope
 
@@ -46,4 +46,6 @@ This elaborates [FR-26](requirements.md) and the [catalog publication proposal](
 
 ## Current implementation
 
-The app uses a bundled Swift catalog. The Worker implements account setup reads and writes; catalog endpoints and a publishing command are not implemented. The documented development database has the ten program identities, without populated workout templates. App workout and exercise identities currently depend on names, while database identities are numeric; the implementation must resolve these differences before editable content can be delivered reliably.
+The Worker serves authenticated catalog snapshots with an `ETag`, and the founder's CLI validates YAML, requests a backend preview, and publishes only the reviewed source. Stable authoring keys map catalog entries to persistent database identities. Preview reports program, workout, slot, and shared-exercise changes; shared exercise impact is listed by program name and stable key. The database stores the complete publication snapshot and updates it atomically, while session prescriptions remain captured separately.
+
+For a compatible correction, preserve stable authoring keys, edit the YAML, preview and inspect all reported effects, then publish. To restore an earlier version, use `git restore --source <commit> -- catalog` from `worker/`, preview that source against the current backend, and publish it as a new publication. This changes catalog content only; it does not roll back user settings, cycles, completion records, or captured session prescriptions. See [Worker commands](../worker/README.md) for environment and credential setup.
