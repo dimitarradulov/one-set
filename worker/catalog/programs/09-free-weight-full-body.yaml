@@ -1,7 +1,6 @@
 key: free-weight-full-body
 name: Free-Weight Full Body
 recommended_weeks: 8
-training_days_per_week: 3
 format: "A / B / C"
 emphasis: "Gyms with limited machines or lifters who strongly prefer barbells, dumbbells, and bodyweight loading."
 workouts:

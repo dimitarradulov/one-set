@@ -78,7 +78,6 @@ private struct CatalogProgramDocument: Decodable, Sendable {
   let key: String
   let name: String
   let recommendedWeeks: Int
-  let trainingDaysPerWeek: Int
   let format: String
   let emphasis: String
   let removed: Bool?
@@ -86,7 +85,7 @@ private struct CatalogProgramDocument: Decodable, Sendable {
 
   func model(exercises: [String: CatalogExerciseDocument]) throws -> TrainingProgram {
     guard !key.isEmpty, !name.isEmpty,
-          recommendedWeeks > 0, (2...5).contains(trainingDaysPerWeek),
+          recommendedWeeks > 0,
           !format.isEmpty, !emphasis.isEmpty else {
       throw ProgramCatalogServiceError.invalidResponse
     }
@@ -131,7 +130,6 @@ private struct CatalogProgramDocument: Decodable, Sendable {
     return TrainingProgram(
       id: key,
       name: name,
-      trainingDaysPerWeek: trainingDaysPerWeek,
       format: format,
       emphasis: emphasis,
       workouts: visibleWorkouts,

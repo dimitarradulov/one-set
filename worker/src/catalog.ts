@@ -88,6 +88,21 @@ function checkedPrevious(value: unknown): CatalogSource | undefined {
   return errors.length === 0 ? catalog : undefined;
 }
 
+function currentCatalog(source: CatalogSource): CatalogSource {
+  return {
+    ...source,
+    programs: source.programs.map(program => {
+      const workouts = program.workouts
+        .filter(workout => workout.removed !== true)
+        .map(workout => ({
+          ...workout,
+          exercises: workout.exercises.filter(slot => slot.removed !== true),
+        }));
+      return { ...program, training_days_per_week: workouts.length, workouts };
+    }),
+  };
+}
+
 async function clerkAuthenticated(request: Request, env: CatalogConfiguration): Promise<boolean> {
   const bearer = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
   if (!bearer || !env.CLERK_JWT_KEY || !env.CLERK_ISSUER || !env.CLERK_AUTHORIZED_PARTIES) return false;
@@ -228,21 +243,22 @@ async function readCatalog(
   }
   const source = checkedPrevious(state.source_document);
   if (!source) return error('CATALOG_UNAVAILABLE', 503);
+  const catalog = currentCatalog(source);
   const path = new URL(request.url).pathname;
   if (path === '/v1/catalog/programs') {
-    return json({ publication_id: state.publication_id, catalog: source }, 200, { ETag: etag });
+    return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
   }
   if (path === '/v1/catalog/exercises') {
     return json({ publication_id: state.publication_id, exercises: source.exercises }, 200, { ETag: etag });
   }
   const programKey = path.match(/^\/v1\/catalog\/programs\/([^/]+)$/)?.[1];
   if (programKey) {
-    const program = source.programs.find(item => item.key === decodeURIComponent(programKey));
+    const program = catalog.programs.find(item => item.key === decodeURIComponent(programKey));
     return program
       ? json({ publication_id: state.publication_id, program, exercises: source.exercises }, 200, { ETag: etag })
       : error('PROGRAM_NOT_FOUND', 404);
   }
-  return json({ publication_id: state.publication_id, catalog: source }, 200, { ETag: etag });
+  return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
 }
 
 export async function handleCatalogRequest(

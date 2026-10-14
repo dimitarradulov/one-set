@@ -46,7 +46,7 @@ struct AppDependencies {
       let bundledPrograms = ProgramCatalog.bundled.programs.map { program in
         guard removedProgramPreview, program.id == "machine-full-body" else { return program }
         return TrainingProgram(
-          id: program.id, name: program.name, trainingDaysPerWeek: program.trainingDaysPerWeek,
+          id: program.id, name: program.name,
           format: program.format, emphasis: program.emphasis, workouts: program.workouts,
           recommendedWeeks: program.recommendedWeeks, isOffered: false
         )

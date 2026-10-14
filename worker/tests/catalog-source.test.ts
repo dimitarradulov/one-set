@@ -73,7 +73,6 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
   const programs = new Map<string, {
     key: string;
     name: string;
-    training_days_per_week: number;
     format: string;
     emphasis: string;
     workouts: Array<{ name: string; exercises: Array<{
@@ -86,7 +85,7 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
   const exerciseNames = new Map(exerciseDocument.exercises.map(exercise => [exercise.key, exercise.name]));
   for (const file of (await readdir('catalog/programs')).filter(path => path.endsWith('.yaml'))) {
     const program = parse(await readFile(join('catalog/programs', file), 'utf8')) as {
-      key: string; name: string; training_days_per_week: number; format: string; emphasis: string;
+      key: string; name: string; format: string; emphasis: string;
       workouts: Array<{ name: string; exercises: Array<{
         exercise: string; reps: { minimum: number; maximum: number }; scope?: string;
       }> }>;
@@ -115,7 +114,7 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
     const program = programs.get(key);
     assert.ok(program);
     assert.equal(program.name, section[2]);
-    assert.equal(program.training_days_per_week, Number(text.match(/\*\*Frequency:\*\* (\d+) days per week/)?.[1]));
+    assert.equal(program.workouts.length, Number(text.match(/\*\*Frequency:\*\* (\d+) days per week/)?.[1]));
     const sourceEmphasis = text.match(/\*\*(?:Best for|Visual goal):\*\* ([^\n<]+)/)?.[1];
     assert.equal(program.emphasis, sourceEmphasis);
     const sourceFormat = text.match(/\*\*Format:\*\* ([^\n<]+)/)?.[1];

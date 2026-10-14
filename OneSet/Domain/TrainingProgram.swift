@@ -1,17 +1,17 @@
 struct TrainingProgram: Codable, Hashable, Identifiable, Sendable {
   let id: String
   let name: String
-  let trainingDaysPerWeek: Int
   let format: String
   let emphasis: String
   let workouts: [WorkoutTemplate]
   let recommendedWeeks: Int
   let isOffered: Bool
 
+  var trainingDaysPerWeek: Int { workouts.count }
+
   init(
     id: String,
     name: String,
-    trainingDaysPerWeek: Int,
     format: String,
     emphasis: String,
     workouts: [WorkoutTemplate],
@@ -20,7 +20,6 @@ struct TrainingProgram: Codable, Hashable, Identifiable, Sendable {
   ) {
     self.id = id
     self.name = name
-    self.trainingDaysPerWeek = trainingDaysPerWeek
     self.format = format
     self.emphasis = emphasis
     self.workouts = workouts

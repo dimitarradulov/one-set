@@ -37,7 +37,6 @@ const source = {
     key: 'machine-full-body',
     name: 'Machine Full Body',
     recommended_weeks: 8,
-    training_days_per_week: 3,
     format: 'A / B / C',
     emphasis: 'Stable machine work with high effort and simple progression.',
     workouts: [{
@@ -49,7 +48,6 @@ const source = {
     key: 'machine-upper-body',
     name: 'Machine Upper Body',
     recommended_weeks: 8,
-    training_days_per_week: 2,
     format: 'A / B',
     emphasis: 'A second program sharing the same authored exercise guidance.',
     workouts: [{
@@ -85,6 +83,7 @@ await databaseEngine.exec(`
 `);
 await databaseEngine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
 await databaseEngine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
+await databaseEngine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
 
 function request(path: string, bearer?: string, method = 'GET', body?: unknown): Request {
   return new Request(`https://api.oneset.test${path}`, {
@@ -147,13 +146,15 @@ test('publisher preview and publish expose the reviewed program to authenticated
   assert.equal(catalogResponse.status, 200);
   const delivered = await catalogResponse.json() as {
     publication_id: string;
-    catalog: { programs: Array<{ key: string; name: string; workouts: Array<{
+    catalog: { programs: Array<{ key: string; name: string; training_days_per_week: number; workouts: Array<{
       key: string; exercises: Array<{ scope: string }>;
     }> }>;
       exercises: Array<{ key: string; stopping_guidance: string }> };
   };
   assert.equal(delivered.publication_id, acknowledgement.publication_id);
   assert.equal(delivered.catalog.programs[0]?.key, 'machine-full-body');
+  assert.equal(delivered.catalog.programs[0]?.training_days_per_week,
+    delivered.catalog.programs[0]?.workouts.length);
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.key, 'machine-full-body-a');
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.exercises[0]?.scope, 'each_side');
   assert.equal(delivered.catalog.exercises[0]?.stopping_guidance, source.exercises[0]?.stopping_guidance);

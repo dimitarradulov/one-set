@@ -84,11 +84,23 @@ Table user_programs {
   user_id integer [not null, ref: > users.id]
   workout_program_id integer [not null, ref: > workout_programs.id]
   started_at timestamptz [not null]
+  current_training_week integer [not null, default: 1, check: `current_training_week > 0`, note: 'Monotonic progress boundary; catalog edits do not recalculate it from the changed workout sequence']
   indexes {
     (user_id, workout_program_id, started_at, id)
   }
 }
 Ref: users.active_user_program_id > user_programs.id
+
+Table user_program_workout_periods {
+  user_program_id uuid [not null, ref: > user_programs.id]
+  workout_id integer [not null, ref: > workouts.id]
+  starts_week integer [not null, check: `starts_week > 0`]
+  ends_week integer [check: `ends_week >= starts_week`, note: 'Null means the workout remains part of the cycle from starts_week onward']
+  indexes {
+    (user_program_id, workout_id, starts_week) [pk]
+  }
+  Note: 'Per-cycle workout participation intervals preserve each cycle’s structure boundary while catalog membership changes.'
+}
 
 Table user_workout_exercises {
   user_program_id uuid [not null, ref: > user_programs.id]

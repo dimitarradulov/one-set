@@ -9,10 +9,12 @@ struct ProgramCatalogOnboardingTests {
     let added = TrainingProgram(
       id: "founder-authored-plan",
       name: "Founder Authored Plan",
-      trainingDaysPerWeek: 4,
       format: "A / B",
       emphasis: "A newly published plan.",
-      workouts: [WorkoutTemplate(id: "founder-plan-a", name: "Workout A", exercises: [])],
+      workouts: [
+        WorkoutTemplate(id: "founder-plan-a", name: "Workout A", exercises: []),
+        WorkoutTemplate(id: "founder-plan-b", name: "Workout B", exercises: []),
+      ],
       recommendedWeeks: 6
     )
     let persistence = MemoryProgramCatalogPersistence()
@@ -27,6 +29,7 @@ struct ProgramCatalogOnboardingTests {
     await catalog.refresh()
 
     #expect(catalog.program(id: added.id) == added)
+    #expect(added.trainingDaysPerWeek == added.workouts.count)
     #expect(catalog.offeredPrograms.count == ProgramCatalog.bundled.programs.count + 1)
     let onboarding = OnboardingModel(
       catalog: catalog,
@@ -50,7 +53,6 @@ struct ProgramCatalogOnboardingTests {
     let added = TrainingProgram(
       id: "founder-authored-plan",
       name: "Founder Authored Plan",
-      trainingDaysPerWeek: 3,
       format: "A / B / C",
       emphasis: "A newly published plan.",
       workouts: [WorkoutTemplate(id: "founder-plan-a", name: "Workout A", exercises: [])],
@@ -78,7 +80,6 @@ struct ProgramCatalogOnboardingTests {
     let removed = TrainingProgram(
       id: "founder-authored-plan",
       name: "Founder Authored Plan",
-      trainingDaysPerWeek: 3,
       format: "A / B / C",
       emphasis: "A removed program retained for current followers.",
       workouts: [WorkoutTemplate(id: "founder-plan-a", name: "Workout A", exercises: [])],

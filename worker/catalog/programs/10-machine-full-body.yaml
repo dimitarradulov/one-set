@@ -1,7 +1,6 @@
 key: machine-full-body
 name: Machine Full Body
 recommended_weeks: 8
-training_days_per_week: 3
 format: "A / B / C"
 emphasis: "Lifters who want maximum stability, simple progression, and a low-skill environment for high-effort training."
 workouts:
