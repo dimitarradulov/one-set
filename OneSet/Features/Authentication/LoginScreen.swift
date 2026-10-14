@@ -17,13 +17,15 @@ struct LoginScreen: View {
       if let user = model.signedInUser {
         signedInContent(user)
       } else {
-        Button("Back to Welcome") {
-          model.cancel()
-          dismiss()
+        if model.entryPoint == .logIn {
+          Button("Back to Welcome") {
+            model.cancel()
+            dismiss()
+          }
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textPrimary)
+          .accessibilityIdentifier("login.backToWelcome")
         }
-        .font(OneSetTypography.label)
-        .foregroundStyle(OneSetColors.textPrimary)
-        .accessibilityIdentifier("login.backToWelcome")
 
         Text(model.entryPoint.title)
           .font(OneSetTypography.h1)

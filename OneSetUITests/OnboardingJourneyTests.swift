@@ -253,7 +253,8 @@ final class OnboardingJourneyTests: XCTestCase {
   func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
     app.buttons["continue.email"].tap()
     XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
-    app.buttons["login.backToWelcome"].tap()
+    XCTAssertFalse(app.buttons["login.backToWelcome"].exists)
+    app.navigationBars.buttons.firstMatch.tap()
     app.buttons["welcome.login"].tap()
 
     XCTAssertTrue(app.staticTexts["login.title"].waitForExistence(timeout: 3))
