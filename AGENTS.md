@@ -27,6 +27,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 ## Agent skills
 
+### Cloudflare
+
+Use the Cloudflare CLI workflow for Workers, CDN, and R2 object storage. Do not use or add Cloudflare MCP servers, including documentation servers. Use the project's Wrangler installation in `worker/`; for operations Wrangler does not support, call the Cloudflare REST API from the terminal. See [Cloudflare CLI workflow](docs/agents/cloudflare.md).
+
 ### Issue tracker
 
 Issues and specs live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
