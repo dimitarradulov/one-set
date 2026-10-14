@@ -1,0 +1,103 @@
+key: powerhouse
+name: Powerhouse
+recommended_weeks: 8
+training_days_per_week: 3
+format: Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle
+emphasis: "A dense, powerful wrestler-like build — thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps."
+workouts:
+  - key: powerhouse-day-1-torso-density-arms
+    name: Day 1 — Torso Density + Arms
+    position: 1
+    exercises:
+      - key: powerhouse-day-1-torso-density-arms-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-1-torso-density-arms-weighted-dip
+        exercise: weighted-dip
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-1-torso-density-arms-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-1-torso-density-arms-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 4
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-1-torso-density-arms-barbell-curl
+        exercise: barbell-curl
+        position: 5
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-1-torso-density-arms-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 6
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-1-torso-density-arms-dumbbell-wrist-curl
+        exercise: dumbbell-wrist-curl
+        position: 7
+        reps: { minimum: 12, maximum: 20 }
+  - key: powerhouse-day-2-thighs-posterior-chain-traps
+    name: Day 2 — Thighs + Posterior Chain + Traps
+    position: 2
+    exercises:
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-leg-press
+        exercise: leg-press
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-machine-neck-extension
+        exercise: machine-neck-extension
+        position: 6
+        reps: { minimum: 12, maximum: 20 }
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-cable-crunch
+        exercise: cable-crunch
+        position: 7
+        reps: { minimum: 10, maximum: 15 }
+  - key: powerhouse-day-3-upper-back-shoulder-girdle-traps
+    name: Day 3 — Upper Back + Shoulder Girdle + Traps
+    position: 3
+    exercises:
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-chest-supported-machine-row
+        exercise: chest-supported-machine-row
+        position: 1
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 2
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-hammer-curl
+        exercise: hammer-curl
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-machine-neck-flexion
+        exercise: machine-neck-flexion
+        position: 6
+        reps: { minimum: 12, maximum: 20 }
+      - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 7
+        reps: { minimum: 8, maximum: 12 }

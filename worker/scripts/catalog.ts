@@ -4,7 +4,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
-import { validateCatalogSource, type JsonObject } from '../src/catalog-validation.js';
+import { validateCatalogSource, type CatalogSource, type JsonObject } from '../src/catalog-validation.js';
 
 interface PreviewResult {
   preview_id: string;
@@ -51,6 +51,10 @@ function parseArguments(args: string[]): { command: string; options: Map<string,
   const options = new Map<string, string>();
   for (let index = 0; index < tail.length; index++) {
     const key = tail[index];
+    if (key === '--check') {
+      options.set('check', 'true');
+      continue;
+    }
     if (!key.startsWith('--') || index + 1 >= tail.length) throw new Error(`Unexpected argument ${key}`);
     options.set(key.slice(2), tail[++index]);
   }
@@ -64,13 +68,96 @@ function envBinding(prefix: string, environment: string): string | undefined {
 function usage(): string {
   return [
     'Usage:',
+    '  npm run catalog -- generate-bundled [--source <directory>] [--output <path>] [--check]',
     '  npm run catalog -- preview --environment <name> [--source <directory>] [--preview-file <path>]',
     '  npm run catalog -- publish --environment <name> [--source <directory>] [--preview-file <path>]',
   ].join('\n');
 }
 
+function swiftString(value: string): string {
+  return JSON.stringify(value);
+}
+
+function swiftRepRange(range: { minimum: number; maximum: number }, scope?: string): string {
+  const scopeName = scope === 'each_leg' ? '.eachLeg' : scope === 'each_side' ? '.eachSide' : '.reps';
+  return `RepTarget(minimum: ${range.minimum}, maximum: ${range.maximum}, scope: ${scopeName})`;
+}
+
+function generateBundledSwift(catalog: CatalogSource): string {
+  const exercises = new Map(catalog.exercises.map(exercise => [exercise.key, exercise]));
+  const programs = catalog.programs.map(program => {
+    const workouts = program.workouts.filter(workout => workout.removed !== true).map(workout => {
+      const slots = workout.exercises.filter(slot => slot.removed !== true).map(slot => {
+        const exercise = exercises.get(slot.exercise);
+        if (!exercise) throw new Error(`slot ${slot.key} references missing exercise ${slot.exercise}`);
+        const videoKey = typeof exercise.video_key === 'string' ? swiftString(exercise.video_key) : 'nil';
+        const target = swiftRepRange(slot.reps, slot.scope);
+        const defaults = swiftRepRange(exercise.default_reps);
+        return [
+          '            WorkoutExercise(',
+          `              id: ${swiftString(slot.key)}, exerciseKey: ${swiftString(exercise.key)},`,
+          `              name: ${swiftString(exercise.name)}, repTarget: ${target},`,
+          `              instructions: ${swiftString(exercise.instructions)},`,
+          `              stoppingGuidance: ${swiftString(exercise.stopping_guidance)},`,
+          `              warmupGuidance: ${swiftString(exercise.warmup_guidance)},`,
+          `              restSeconds: ${exercise.rest_seconds}, defaultRepTarget: ${defaults},`,
+          `              videoKey: ${videoKey}`, '            )',
+        ].join('\n');
+      });
+      return [
+        '        WorkoutTemplate(',
+        `          id: ${swiftString(workout.key)}, name: ${swiftString(workout.name)},`,
+        '          exercises: [', slots.map(slot => slot.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
+        '          ]', '        )',
+      ].join('\n');
+    });
+    return [
+      '    TrainingProgram(',
+      `      id: ${swiftString(program.key)}, name: ${swiftString(program.name)},`,
+      `      trainingDaysPerWeek: ${program.training_days_per_week}, format: ${swiftString(program.format)},`,
+      `      emphasis: ${swiftString(program.emphasis)},`,
+      '      workouts: [', workouts.map(workout => workout.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
+      `      ], recommendedWeeks: ${program.recommended_weeks}, isOffered: ${program.removed !== true}`,
+      '    )',
+    ].join('\n');
+  });
+  return [
+    'import Foundation', '',
+    'extension ProgramCatalog {',
+    '  static var bundled: ProgramCatalog { ProgramCatalog(programs: [',
+    programs.map(program => program.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
+    '  ]) }', '}', '',
+  ].join('\n');
+}
+
+async function generateBundledCommand(options: Map<string, string>): Promise<void> {
+  const sourceDirectory = resolve(options.get('source') ?? 'catalog');
+  const output = resolve(options.get('output') ?? '../OneSet/Services/Catalog/BundledProgramCatalog.swift');
+  const rawCatalog = await readCatalog(sourceDirectory);
+  const { catalog, errors } = validateCatalogSource(rawCatalog);
+  if (errors.length > 0 || !catalog) throw new Error(`Catalog validation failed:\n- ${errors.join('\n- ')}`);
+  const generated = generateBundledSwift(catalog);
+  if (options.get('check') === 'true') {
+    let current: string;
+    try {
+      current = await readFile(output, 'utf8');
+    } catch {
+      throw new Error(`Generated fallback is missing: ${output}`);
+    }
+    if (current !== generated) throw new Error(`Generated fallback is stale: ${output}; run generate-bundled.`);
+    console.log(`Bundled fallback matches ${sourceDirectory}.`);
+    return;
+  }
+  await writeFile(output, generated);
+  console.log(`Generated bundled fallback: ${output}`);
+}
+
 async function main(args: string[]): Promise<void> {
   const { command, options } = parseArguments(args);
+  if (command === 'generate-bundled') {
+    await generateBundledCommand(options);
+    return;
+  }
   const environment = options.get('environment');
   if (!['preview', 'publish'].includes(command) || !environment || !/^[a-z][a-z0-9-]*$/.test(environment)) {
     throw new Error(usage());

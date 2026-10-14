@@ -71,7 +71,7 @@ struct AppLaunchConfiguration {
         .programDetail("machine-full-body"),
         .trialPreview("machine-full-body"),
         .programOverview("machine-full-body"),
-        .workoutPreview(programID: "machine-full-body", workoutID: "Workout A")
+        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")
       ]
       selectedProgramID = "machine-full-body"
       authenticationEntryPoint = nil

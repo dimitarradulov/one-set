@@ -1,0 +1,95 @@
+key: classic-physique
+name: Classic Physique
+recommended_weeks: 8
+training_days_per_week: 3
+format: Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body
+emphasis: "Balanced old-school proportions — broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs."
+workouts:
+  - key: classic-physique-day-1-upper-chest-back-width
+    name: Day 1 — Upper Chest + Back Width
+    position: 1
+    exercises:
+      - key: classic-physique-day-1-upper-chest-back-width-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-1-upper-chest-back-width-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-1-upper-chest-back-width-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 3
+        reps: { minimum: 12, maximum: 20 }
+      - key: classic-physique-day-1-upper-chest-back-width-chest-supported-machine-row
+        exercise: chest-supported-machine-row
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: classic-physique-day-1-upper-chest-back-width-barbell-curl
+        exercise: barbell-curl
+        position: 5
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-1-upper-chest-back-width-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 6
+        reps: { minimum: 10, maximum: 15 }
+  - key: classic-physique-day-2-legs-torso
+    name: Day 2 — Legs + Torso
+    position: 2
+    exercises:
+      - key: classic-physique-day-2-legs-torso-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-2-legs-torso-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-2-legs-torso-leg-extension
+        exercise: leg-extension
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: classic-physique-day-2-legs-torso-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: classic-physique-day-2-legs-torso-hanging-knee-raise
+        exercise: hanging-knee-raise
+        position: 5
+        reps: { minimum: 10, maximum: 15 }
+      - key: classic-physique-day-2-legs-torso-45-degree-back-extension
+        exercise: 45-degree-back-extension
+        position: 6
+        reps: { minimum: 10, maximum: 15 }
+  - key: classic-physique-day-3-delts-balanced-upper-body
+    name: Day 3 — Delts + Balanced Upper Body
+    position: 3
+    exercises:
+      - key: classic-physique-day-3-delts-balanced-upper-body-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 2
+        reps: { minimum: 8, maximum: 12 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-weighted-dip
+        exercise: weighted-dip
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-cable-lateral-raise
+        exercise: cable-lateral-raise
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 5
+        reps: { minimum: 12, maximum: 20 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-incline-dumbbell-curl
+        exercise: incline-dumbbell-curl
+        position: 6
+        reps: { minimum: 8, maximum: 12 }
+      - key: classic-physique-day-3-delts-balanced-upper-body-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 7
+        reps: { minimum: 8, maximum: 12 }

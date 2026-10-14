@@ -2,7 +2,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -11,6 +11,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { handleCatalogRequest, type CatalogDatabase } from '../src/catalog.ts';
 import { handleSetupRequest, type SetupDatabase } from '../src/setup.ts';
+import { parse } from 'yaml';
 
 const execute = promisify(execFile);
 const issuer = 'https://clerk.test';
@@ -126,12 +127,24 @@ workouts:
         exercises: Array<{ key: string; instructions: string; stopping_guidance: string; warmup_guidance: string }>;
       };
     };
-    assert.equal(result.catalog.programs[0]?.key, 'machine-full-body');
-    assert.equal(result.catalog.programs[0]?.recommended_weeks, 8);
-    assert.equal(result.catalog.programs[0]?.workouts.length, 3);
-    assert.equal(result.catalog.exercises[0]?.instructions.length > 0, true);
-    assert.equal(result.catalog.exercises[0]?.stopping_guidance.length > 0, true);
-    assert.equal(result.catalog.exercises[0]?.warmup_guidance.length > 0, true);
+    const sourceExercises = parse(await readFile(join(sourceDirectory, 'exercises.yaml'), 'utf8')) as { exercises: unknown[] };
+    const sourcePrograms = (await readdir(join(sourceDirectory, 'programs')))
+      .filter(file => file.endsWith('.yaml')).sort();
+    const expectedCatalog = {
+      exercises: sourceExercises.exercises,
+      programs: await Promise.all(sourcePrograms.map(async file =>
+        parse(await readFile(join(sourceDirectory, 'programs', file), 'utf8')))),
+    };
+    assert.deepEqual(result.catalog, expectedCatalog);
+    assert.equal(result.catalog.programs.length, 11);
+    const machineProgram = result.catalog.programs.find(program => program.key === 'machine-full-body');
+    assert.equal(machineProgram?.recommended_weeks, 8);
+    assert.equal(machineProgram?.workouts.length, 3);
+    assert.equal(result.catalog.exercises.length, 47);
+    const hackSquat = result.catalog.exercises.find(exercise => exercise.key === 'hack-squat-machine');
+    assert.equal(typeof hackSquat?.instructions, 'string');
+    assert.equal(typeof hackSquat?.stopping_guidance, 'string');
+    assert.equal(typeof hackSquat?.warmup_guidance, 'string');
     assert.equal(result.catalog.programs.some(program => program.key === 'founder-authored-plan'), true);
 
     const newUserToken = await new SignJWT({ sid: 'e2e-new-user-session' })
