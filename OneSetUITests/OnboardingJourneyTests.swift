@@ -329,6 +329,47 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(programCard("bro-split").label.localizedCaseInsensitiveContains("matches your schedule"))
   }
 
+  func testBackendAddedProgramSurvivesAnOfflineRelaunch() {
+    relaunch(with: ["--ui-catalog-seed", "--ui-programs"])
+    let publishedProgram = programCard("founder-authored-plan")
+    XCTAssertTrue(publishedProgram.waitForExistence(timeout: 5))
+    XCTAssertTrue(publishedProgram.label.contains("Founder Authored Plan"))
+
+    relaunch(with: ["--ui-catalog-offline", "--ui-programs"])
+    let restoredProgram = programCard("founder-authored-plan")
+    XCTAssertTrue(restoredProgram.waitForExistence(timeout: 5))
+    XCTAssertTrue(restoredProgram.label.contains("Founder Authored Plan"))
+  }
+
+  func testRefreshUpdatesSelectedProgramContentWithoutLosingSelectionOrRoute() {
+    relaunch(with: ["--ui-catalog-seed-edited", "--ui-programs-selected"])
+    let selectedProgram = programCard("push-pull-legs")
+    XCTAssertTrue(selectedProgram.waitForExistence(timeout: 5))
+    XCTAssertTrue(selectedProgram.label.contains("Push Pull Legs Updated"))
+    XCTAssertTrue(selectedProgram.label.localizedCaseInsensitiveContains("selected"))
+    XCTAssertTrue(app.staticTexts["programs.title"].exists)
+  }
+
+  func testRemovedProgramIsFilteredFromNewChoicesAndRestoredForAnExistingFollower() {
+    relaunch(with: ["--ui-programs-removed"])
+    XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
+    XCTAssertFalse(programCard("machine-full-body").exists)
+
+    relaunch(with: ["--ui-setup-removed-follower"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+  }
+
+  func testPendingSetupForRemovedProgramReturnsToAvailableProgramSelection() {
+    relaunch(with: ["--ui-setup-upload-removed"])
+
+    let recoveryMessage = app.descendants(matching: .any).matching(identifier: "programs.recoveryMessage").firstMatch
+    XCTAssertTrue(recoveryMessage.waitForExistence(timeout: 5))
+    XCTAssertTrue(recoveryMessage.label.contains("no longer available"))
+    XCTAssertFalse(programCard("machine-full-body").exists)
+    XCTAssertTrue(programCard("full-body").exists)
+  }
+
   func testNonMatchingProgramCanBeSelectedAndSelectionSurvivesBackNavigation() {
     openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()

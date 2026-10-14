@@ -2,4 +2,5 @@
 interface Env {
   DATABASE_URL: string;
   CLERK_JWT_KEY: string;
+  CATALOG_PUBLISH_TOKEN: string;
 }

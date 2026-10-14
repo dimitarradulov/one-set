@@ -31,7 +31,13 @@ struct HTTPAccountSetupService: AccountSetupService {
     let (data, response) = try await URLSession.shared.data(for: request)
     guard let response = response as? HTTPURLResponse else { throw AccountSetupError.unavailable }
     guard response.statusCode == 200 else {
-      throw response.statusCode == 401 ? AccountSetupError.authenticationRequired : AccountSetupError.unavailable
+      if response.statusCode == 401 { throw AccountSetupError.authenticationRequired }
+      if response.statusCode == 409,
+         let result = try? JSONDecoder().decode(ErrorResponse.self, from: data),
+         result.error.code == "PROGRAM_UNAVAILABLE" {
+        throw AccountSetupError.programUnavailable
+      }
+      throw AccountSetupError.unavailable
     }
     struct LookupResponse: Decodable {
       let setup: AccountSetup?
@@ -43,4 +49,9 @@ struct HTTPAccountSetupService: AccountSetupService {
     }
     return try JSONDecoder().decode(LookupResponse.self, from: data).setup
   }
+}
+
+private struct ErrorResponse: Decodable {
+  struct APIError: Decodable { let code: String }
+  let error: APIError
 }

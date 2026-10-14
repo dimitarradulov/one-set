@@ -4,6 +4,7 @@ struct ProgramSelectionScreen: View {
   let programs: [TrainingProgram]
   let trainingDays: Int
   let selectedProgramID: TrainingProgram.ID?
+  var recoveryMessage: String? = nil
 
   var body: some View {
     ScrollView {
@@ -16,10 +17,21 @@ struct ProgramSelectionScreen: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("programs.title")
 
-          Text("All ten programs are available. We’ll put your \(trainingDays)-day matches first.")
+          Text("\(trainingDays)-day matches come first. Every offered program stays available.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
+        }
+
+        if let recoveryMessage {
+          Label(recoveryMessage, systemImage: "arrow.uturn.backward.circle")
+            .font(OneSetTypography.body)
+            .foregroundStyle(OneSetColors.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(OneSetColors.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("programs.recoveryMessage")
         }
 
         VStack(spacing: 8) {

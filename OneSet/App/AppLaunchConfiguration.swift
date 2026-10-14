@@ -8,6 +8,7 @@ struct AppLaunchConfiguration {
     #if DEBUG
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
     if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
+      || arguments.contains("--ui-setup-upload-removed")
       || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error") {
       onboardingPath = []
       selectedProgramID = nil
@@ -23,6 +24,10 @@ struct AppLaunchConfiguration {
       authenticationEntryPoint = nil
     } else if arguments.contains("--ui-preferences") {
       onboardingPath = [.preferences]
+      selectedProgramID = nil
+      authenticationEntryPoint = nil
+    } else if arguments.contains("--ui-programs-removed") {
+      onboardingPath = [.preferences, .programs]
       selectedProgramID = nil
       authenticationEntryPoint = nil
     } else if arguments.contains("--ui-login") {
@@ -71,7 +76,7 @@ struct AppLaunchConfiguration {
         .programDetail("machine-full-body"),
         .trialPreview("machine-full-body"),
         .programOverview("machine-full-body"),
-        .workoutPreview(programID: "machine-full-body", workoutID: "Workout A")
+        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")
       ]
       selectedProgramID = "machine-full-body"
       authenticationEntryPoint = nil

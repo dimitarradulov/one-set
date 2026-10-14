@@ -19,6 +19,7 @@ final class OnboardingModel {
   private(set) var restoredCycleID: UUID?
   var discardSetupPresented = false
   private(set) var uploadMessage: String?
+  private(set) var programSelectionMessage: String?
   private var uploadingGeneration: Int?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
   var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
@@ -59,6 +60,7 @@ final class OnboardingModel {
     let generation = lookupGeneration
     setupResolution = .loading
     do {
+      await catalog.refresh()
       savedProgress = try progressStore?.load(accountID: user.id)
       if let savedProgress { try validate(savedProgress) }
       let setup = try await setupService.lookup(for: user)
@@ -153,6 +155,7 @@ final class OnboardingModel {
     savedProgress = nil
     uploadingGeneration = nil
     uploadMessage = nil
+    programSelectionMessage = nil
     discardSetupPresented = false
     progressErrorPresented = false
     signOutErrorPresented = false
@@ -163,7 +166,11 @@ final class OnboardingModel {
   }
 
   var programs: [TrainingProgram] {
-    TrainingProgram.matchingPreferenceFirst(catalog.programs, days: trainingDays)
+    TrainingProgram.matchingPreferenceFirst(catalog.offeredPrograms, days: trainingDays)
+  }
+
+  func refreshCatalog() async {
+    await catalog.refresh()
   }
 
   func program(id: TrainingProgram.ID) -> TrainingProgram? {
@@ -209,10 +216,11 @@ final class OnboardingModel {
   }
 
   func selectProgram(_ id: TrainingProgram.ID) {
-    guard catalog.program(id: id) != nil else { return }
+    guard catalog.offeredPrograms.contains(where: { $0.id == id }) else { return }
     guard path.last == .programDetail(id),
           saveProgress(nextStep: .trial, programID: id) else { return }
     selectedProgramID = id
+    programSelectionMessage = nil
     if path.last == .programDetail(id) {
       path.append(.trialPreview(id))
     }
@@ -282,7 +290,7 @@ final class OnboardingModel {
 
   func continueWithoutTrial() {
     guard !isSigningOut, let selectedProgramID,
-          catalog.program(id: selectedProgramID) != nil,
+          catalog.offeredPrograms.contains(where: { $0.id == selectedProgramID }),
           path.last == .trialPreview(selectedProgramID)
     else { return }
 
@@ -347,8 +355,34 @@ final class OnboardingModel {
       uploadMessage = nil
     } catch {
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      if (error as? AccountSetupError) == .programUnavailable {
+        recoverPendingSetupAfterProgramRemoval(completed, accountID: user.id)
+        return
+      }
       uploadMessage = "Setup saved on this device. Upload pending. You can retry now or stay here for automatic retry."
     }
+  }
+
+  private func recoverPendingSetupAfterProgramRemoval(_ completed: CompletedOnboarding, accountID: String) {
+    let progress = OnboardingProgress(
+      weightUnit: completed.setup.preferredUnit,
+      trainingDays: completed.setup.trainingDays,
+      selectedProgramID: nil,
+      nextStep: .programs
+    )
+    do {
+      try progressStore?.save(progress, accountID: accountID)
+    } catch {
+      progressErrorMessage = "Your available program choices couldn’t be saved on this device. "
+        + error.localizedDescription
+      progressErrorPresented = true
+    }
+    savedProgress = progress
+    selectedProgramID = nil
+    restoredCycleID = nil
+    path = [.preferences, .programs]
+    uploadMessage = nil
+    programSelectionMessage = "That program is no longer available. Choose an available program to finish setup."
   }
 
   func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {

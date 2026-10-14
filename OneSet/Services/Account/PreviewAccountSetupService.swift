@@ -10,6 +10,7 @@ final class PreviewAccountSetupService: AccountSetupService {
   private let completed: Bool
   private let delayed: Bool
   private let invalidProgram: Bool
+  private let removedProgramUpload: Bool
   private var shouldFail: Bool
   private let alwaysFails: Bool
 
@@ -23,9 +24,10 @@ final class PreviewAccountSetupService: AccountSetupService {
     if arguments.contains("--ui-backend-reset"), let backendURL {
       try? FileManager.default.removeItem(at: backendURL)
     }
-    completed = arguments.contains("--ui-setup-completed")
+    completed = arguments.contains("--ui-setup-completed") || arguments.contains("--ui-setup-removed-follower")
     delayed = arguments.contains("--ui-setup-delayed")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
+    removedProgramUpload = arguments.contains("--ui-setup-upload-removed")
     shouldFail = arguments.contains("--ui-setup-retry") || (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
     alwaysFails = (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
   }
@@ -58,6 +60,7 @@ final class PreviewAccountSetupService: AccountSetupService {
       uploadFailsOnce = false
       throw AccountSetupError.unavailable
     }
+    if removedProgramUpload { throw AccountSetupError.programUnavailable }
     guard !uploadOffline else { throw AccountSetupError.unavailable }
     guard let backendURL else { return setup }
     var accounts = (try? Data(contentsOf: backendURL)).flatMap {
