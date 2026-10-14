@@ -23,7 +23,22 @@ npm run catalog -- preview --environment development --source catalog
 npm run catalog -- publish --environment development --source catalog
 ```
 
-Preview checks stable keys, references, complete exercise guidance, positive rep bounds and order. It rejects omitted previously published programs, workouts, slots or exercises. The review file binds the exact source and backend fingerprint to the chosen environment; rerun preview after any source or backend change. Keep review output private to your local working tree.
+Preview checks stable keys, references, complete exercise guidance, positive rep bounds and order. It rejects omitted previously published programs, workouts, slots or exercises. An exercise guidance edit lists every current program use as `Program name (program-key)`, so programs with the same display name remain distinct. Slot rep ranges are authored separately in each workout template; shared exercise defaults do not overwrite them.
+
+Keep the authoring key unchanged when editing a program, workout, exercise, or slot. Renaming an item and changing compatible prescription fields preserves its identity. A slot key cannot be reassigned to a different exercise or workout; give a genuinely different slot a new key through the structural-change workflow.
+
+The review file binds the exact source and backend fingerprint to the chosen environment; rerun preview after any source or backend change. Keep review output private to your local working tree. A stale preview is rejected without changing the catalog, and a failed database transaction leaves the previous snapshot in place. Retrying the same successful publication is safe.
+
+From `worker/`, correct a publication by restoring the desired catalog files from Git, then preview and publish them as a new publication:
+
+```sh
+git restore --source <commit-with-correct-content> -- catalog
+npm run catalog -- preview --environment development --source catalog
+# Confirm the changes and every affected program, then:
+npm run catalog -- publish --environment development --source catalog
+```
+
+This republishes catalog text only. It does not rewind cycles, preferences, completion marks, completed records, or prescriptions already captured by sessions. Existing app installs receive the corrected snapshot on their normal catalog refresh and retain their cached copy while offline.
 
 Run `npm run dev` to use the development environment locally. Regenerate binding types with `npm run types`. For deployment, use `npx wrangler deploy --env development`; the deployed environment requires secrets named `DATABASE_URL` and `CLERK_JWT_KEY`. Production deployment remains outside this ticket's scope.
 
