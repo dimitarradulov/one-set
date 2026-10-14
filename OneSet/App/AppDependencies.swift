@@ -11,9 +11,11 @@ struct AppDependencies {
     let directory = URL.applicationSupportDirectory.appending(path: "Onboarding")
     #if DEBUG
     let uploadPreview = arguments.contains("--ui-setup-upload-pending")
-      || arguments.contains("--ui-setup-upload-discard")
+      || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
+    let removedProgramPreview = arguments.contains("--ui-programs-removed")
+      || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
-    let preview = completionSaveError || uploadPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
+    let preview = completionSaveError || uploadPreview || removedProgramPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || arguments.contains("--ui-google-auth-error")
@@ -41,11 +43,20 @@ struct AppDependencies {
     #endif
     #if DEBUG
     if preview {
+      let bundledPrograms = ProgramCatalog.bundled.programs.map { program in
+        guard removedProgramPreview, program.id == "machine-full-body" else { return program }
+        return TrainingProgram(
+          id: program.id, name: program.name, trainingDaysPerWeek: program.trainingDaysPerWeek,
+          format: program.format, emphasis: program.emphasis, workouts: program.workouts,
+          recommendedWeeks: program.recommendedWeeks, isOffered: false
+        )
+      }
       return AppDependencies(
-        catalog: .bundled,
+        catalog: ProgramCatalog(programs: bundledPrograms),
         authentication: PreviewAuthenticationService(
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
-          startsSignedIn: uploadPreview || arguments.contains("--ui-auth-restored") || arguments.contains("--ui-account-setup-error")
+          startsSignedIn: uploadPreview || arguments.contains("--ui-auth-restored")
+            || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
             || arguments.contains("--ui-progress-save-error"),
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
           resetPersistedSession: arguments.contains("--ui-auth-reset"),

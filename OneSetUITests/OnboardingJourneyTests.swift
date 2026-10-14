@@ -329,6 +329,26 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(programCard("bro-split").label.localizedCaseInsensitiveContains("matches your schedule"))
   }
 
+  func testRemovedProgramIsFilteredFromNewChoicesAndRestoredForAnExistingFollower() {
+    relaunch(with: ["--ui-programs-removed"])
+    XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
+    XCTAssertFalse(programCard("machine-full-body").exists)
+
+    relaunch(with: ["--ui-setup-removed-follower"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+  }
+
+  func testPendingSetupForRemovedProgramReturnsToAvailableProgramSelection() {
+    relaunch(with: ["--ui-setup-upload-removed"])
+
+    let recoveryMessage = app.descendants(matching: .any).matching(identifier: "programs.recoveryMessage").firstMatch
+    XCTAssertTrue(recoveryMessage.waitForExistence(timeout: 5))
+    XCTAssertTrue(recoveryMessage.label.contains("no longer available"))
+    XCTAssertFalse(programCard("machine-full-body").exists)
+    XCTAssertTrue(programCard("full-body").exists)
+  }
+
   func testNonMatchingProgramCanBeSelectedAndSelectionSurvivesBackNavigation() {
     openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()

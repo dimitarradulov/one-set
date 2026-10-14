@@ -76,11 +76,13 @@ export async function handleSetupRequest(
         return json({ error: { code: 'INVALID_SETUP' } }, 400);
       }
       const [program] = await database.query(`SELECT id FROM workout_programs
-        WHERE authoring_key = $1 AND is_offered = true`, [body.program_id]);
+        WHERE authoring_key = $1`, [body.program_id]);
       if (!program || !Number.isInteger(program.id)) return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
-      await database.query(`SELECT public.complete_onboarding($1, $2::weight_unit,
-        $3::integer, $4::integer, $5::uuid)`,
+      const [completion] = await database.query(`SELECT public.complete_onboarding($1, $2::weight_unit,
+        $3::integer, $4::integer, $5::uuid) AS accepted`,
       [subject, body.preferred_unit, String(body.training_days), String(program.id), body.cycle_id]);
+      if (completion?.accepted === false) return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
+      if (completion?.accepted !== true) return json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
     }
     // Provision the identity link before lookup, including for restored sessions.
     // Initial preferences match onboarding; only completed setup will select a cycle.
