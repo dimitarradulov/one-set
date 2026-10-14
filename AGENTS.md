@@ -44,4 +44,4 @@ The five canonical roles use the default label strings. See `docs/agents/triage-
 
 ### Domain docs
 
-Domain docs use a single-context layout rooted at `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+Before exploring domain concepts, read [domain docs](docs/agents/domain.md). OneSet uses a single-context layout rooted at `GLOSSARY.md` and `docs/adr/`.

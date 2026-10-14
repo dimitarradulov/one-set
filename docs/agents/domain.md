@@ -1,51 +1,24 @@
 # Domain Docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+## Before exploring
 
-## Before exploring, read these
+Read [GLOSSARY.md](../../GLOSSARY.md) for OneSet's domain vocabulary and the relevant decisions in [docs/adr/](../adr/). Use the glossary's canonical terms in issues, proposals, code, and tests.
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists: it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`**: read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+OneSet has a single domain context:
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
-
-## File structure
-
-Single-context repo (most repos):
-
-```
+```text
 /
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
+├── GLOSSARY.md
+└── docs/adr/
+    └── 0001-program-removal-preserves-followers.md
 ```
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+If a root `GLOSSARY-MAP.md` is introduced, follow it to the glossary for each relevant context and read both system-wide and context-specific ADRs. Proceed with the available documentation when a glossary or ADR directory is absent; create them lazily when a term or decision is resolved.
 
-```
-/
-├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
-└── src/
-    ├── ordering/
-    │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
-        ├── CONTEXT.md
-        └── docs/adr/
-```
+## When terms or decisions change
 
-## Use the glossary's vocabulary
+Use `/domain-modeling` to sharpen ambiguous terms, stress-test relationships with concrete scenarios, and cross-check claims against the code. Capture resolved terms in `GLOSSARY.md` as they arise, using the [glossary format](../../.agents/skills/domain-modeling/GLOSSARY-FORMAT.md). Keep definitions concise and specific to OneSet's domain; product requirements and implementation decisions belong in their respective documents.
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
+Offer an ADR only when the decision is hard to reverse, surprising without context, and the result of a real trade-off. Use the [ADR format](../../.agents/skills/domain-modeling/ADR-FORMAT.md): a short title and a paragraph recording the context, decision, and reason, with sequential `0001-slug.md` numbering. Add sections only when they help explain the decision.
 
-If the concept you need isn't in the glossary yet, that's a signal: either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
-
-## Flag ADR conflicts
-
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
-
-> _Contradicts ADR-0007 (event-sourced orders), but worth reopening because…_
+If a proposal conflicts with an existing ADR, identify the ADR and explain why it should be reconsidered before changing the decision.

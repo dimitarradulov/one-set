@@ -25,9 +25,9 @@ Deferred: nutrition, social feeds, custom programs/exercises, charts, Apple Watc
 
 ## Documentation
 
-Start with [requirements](docs/requirements.md) for the approved product scope. Use [domain language](CONTEXT.md) when terms such as cycle, occurrence and session are unclear. The [program library](docs/HIT_Workout_Program_Library.md) is the source for the ten workouts.
+Start with [requirements](docs/requirements.md) for the approved product scope. Use [domain language](GLOSSARY.md) when terms such as cycle, occurrence and session are unclear. The [program library](docs/HIT_Workout_Program_Library.md) is the source for the ten workouts.
 
-For iOS code structure, follow [iOS architecture](docs/agents/architecture.md). For implementation, read [system design](docs/system-design.md), then the focused [database design](docs/database/README.md), [sync and recovery](docs/sync-and-recovery.md), and [API contracts](docs/api-contracts.md). The [launch checklist](docs/launch-checklist.md) tracks remaining verification and release gates.
+For iOS code structure, follow [iOS architecture](docs/agents/architecture.md). For implementation, read [system design](docs/system-design.md), then the focused [database design](docs/database/README.md), [sync and recovery](docs/sync-and-recovery.md), and [API contracts](docs/api-contracts.md). Follow [validation guidance](docs/agents/validation.md) for checks; track unfinished work and release decisions in GitHub Issues.
 
 The [DBML schema](docs/database/oneset.dbml) and [applied migration](docs/database/migrations/001_documented_schema.sql) are technical artifacts, not additional product specifications. Requirements govern product behavior; the technical documents describe proposed implementation where no code exists yet.
 
@@ -45,7 +45,7 @@ The approved product scope and proposed implementation are documented. The datab
 
 ## iOS development
 
-Open [OneSet.xcodeproj](OneSet.xcodeproj) in Xcode and run the `OneSet` scheme on an iOS simulator. The project currently uses Swift 6 and a provisional iOS 17 deployment target. Confirm the device and SDK floor before release as tracked in the [launch checklist](docs/launch-checklist.md).
+Open [OneSet.xcodeproj](OneSet.xcodeproj) in Xcode and run the `OneSet` scheme on an iOS simulator. The project currently uses Swift 6 and a provisional iOS 17 deployment target. [Issue #22](https://github.com/dimitarradulov/one-set/issues/22) tracks confirmation of the minimum supported iOS version and release SDK baseline.
 
 The shared palette and Dynamic Type-aware font styles live in [OneSet/DesignSystem](OneSet/DesignSystem). Use `OneSetColors` and `OneSetTypography` in SwiftUI views rather than repeating color values or font names. Change their definitions there when the design system changes. The Bebas Neue and Montserrat font files and license notices are in `OneSet/DesignSystem/Fonts`; font registration is in [Config/Info.plist](Config/Info.plist).
 

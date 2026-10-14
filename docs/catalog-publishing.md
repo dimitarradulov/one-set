@@ -19,7 +19,7 @@ Status: design interview synthesized into [implementation issue #15](https://git
 - Author content as one YAML file per program and a shared exercise file, tracked in Git. Run a preview command to validate and review changes, then a separate publish command to apply them.
 - Check for catalog updates when the app opens or returns to the foreground, without periodic polling. Continue using saved content while checking or offline; active sessions retain their captured content.
 
-This elaborates [FR-26](requirements.md) and the [catalog publication proposal](system-design.md#catalog-publication). The initial content comes from the [program library](HIT_Workout_Program_Library.md). Use the terms in [CONTEXT.md](../CONTEXT.md).
+This elaborates [FR-26](requirements.md) and the [catalog publication proposal](system-design.md#catalog-publication). The initial content comes from the [program library](HIT_Workout_Program_Library.md). Use the terms in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Proposed implementation
 

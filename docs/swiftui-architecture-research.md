@@ -85,7 +85,7 @@ Version the local schema independently from the PostgreSQL schema and API payloa
 ## Adoption sequence
 
 1. Keep existing small views and typed onboarding navigation. Move onboarding coordination into an observable model as real account actions and durable progress arrive.
-2. Model domain identities and session snapshots using [CONTEXT.md](../CONTEXT.md), then implement the local store and repository transaction boundary before the logging screen.
+2. Model domain identities and session snapshots using [GLOSSARY.md](../GLOSSARY.md), then implement the local store and repository transaction boundary before the logging screen.
 3. Build one complete active-session slice: edit, complete a set, restore after interruption, finish offline. Inject time and storage failures; measure commit latency on supported devices.
 4. Add sync and the specified account lifecycle, exercising unresolved uploads, auth expiration and stale responses before integrating history edits/deletion.
 5. Extend with program/history models and service adapters. Add complexity where real workflows need it; consider TCA if composed effects and cross-feature transitions become difficult to maintain.

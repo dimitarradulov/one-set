@@ -26,7 +26,7 @@ All simulator scripts select an available compatible device by UUID, wait for bo
 
 When simulator access or a Swift macro plugin reports a host sandbox denial, retry the same validation with permitted host execution when available. Parsing, typechecking and generic builds do not replace the required build and test run. If host execution is unavailable, report the exact blocker and the recovery steps from that guide. Do not claim that visual or accessibility checks passed unless they actually ran.
 
-Treat the application workflows in the [launch checklist](../launch-checklist.md) as future acceptance checks.
+Derive application workflow acceptance checks from the approved [requirements](../requirements.md). Track unfinished verification and release decisions in GitHub Issues.
 
 ## UI changes
 
