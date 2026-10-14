@@ -1,0 +1,127 @@
+key: bro-split
+name: Bro Split
+recommended_weeks: 8
+training_days_per_week: 5
+format: "Chest / Back / Legs / Shoulders / Arms"
+emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts."
+workouts:
+  - key: bro-split-day-1-chest
+    name: Day 1 — Chest
+    position: 1
+    exercises:
+      - key: bro-split-day-1-chest-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-1-chest-weighted-dip
+        exercise: weighted-dip
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-1-chest-machine-chest-press
+        exercise: machine-chest-press
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-1-chest-pec-deck
+        exercise: pec-deck
+        position: 4
+        reps: { minimum: 10, maximum: 15 }
+  - key: bro-split-day-2-back
+    name: Day 2 — Back
+    position: 2
+    exercises:
+      - key: bro-split-day-2-back-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-2-back-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-2-back-chest-supported-machine-row
+        exercise: chest-supported-machine-row
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-2-back-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-2-back-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+  - key: bro-split-day-3-legs
+    name: Day 3 — Legs
+    position: 3
+    exercises:
+      - key: bro-split-day-3-legs-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-3-legs-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-3-legs-leg-press
+        exercise: leg-press
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: bro-split-day-3-legs-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-3-legs-leg-extension
+        exercise: leg-extension
+        position: 5
+        reps: { minimum: 10, maximum: 15 }
+  - key: bro-split-day-4-shoulders
+    name: Day 4 — Shoulders
+    position: 4
+    exercises:
+      - key: bro-split-day-4-shoulders-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-4-shoulders-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 2
+        reps: { minimum: 12, maximum: 20 }
+      - key: bro-split-day-4-shoulders-cable-lateral-raise
+        exercise: cable-lateral-raise
+        position: 3
+        reps: { minimum: 12, maximum: 20 }
+      - key: bro-split-day-4-shoulders-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: bro-split-day-4-shoulders-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+  - key: bro-split-day-5-arms
+    name: Day 5 — Arms
+    position: 5
+    exercises:
+      - key: bro-split-day-5-arms-barbell-curl
+        exercise: barbell-curl
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-5-arms-close-grip-smith-machine-bench-press
+        exercise: close-grip-smith-machine-bench-press
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: bro-split-day-5-arms-incline-dumbbell-curl
+        exercise: incline-dumbbell-curl
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-5-arms-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 4
+        reps: { minimum: 10, maximum: 15 }
+      - key: bro-split-day-5-arms-hammer-curl
+        exercise: hammer-curl
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: bro-split-day-5-arms-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 6
+        reps: { minimum: 8, maximum: 12 }

@@ -1,0 +1,112 @@
+key: upper-lower
+name: Upper / Lower
+recommended_weeks: 8
+training_days_per_week: 4
+format: "Upper A / Lower A / Upper B / Lower B"
+emphasis: "Lifters who prefer shorter sessions and want more recovery between upper- and lower-body work."
+workouts:
+  - key: upper-lower-upper-a
+    name: Upper A
+    position: 1
+    exercises:
+      - key: upper-lower-upper-a-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-a-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-a-chest-supported-machine-row
+        exercise: chest-supported-machine-row
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-upper-a-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: upper-lower-upper-a-barbell-curl
+        exercise: barbell-curl
+        position: 5
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-a-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 6
+        reps: { minimum: 8, maximum: 12 }
+  - key: upper-lower-lower-a
+    name: Lower A
+    position: 2
+    exercises:
+      - key: upper-lower-lower-a-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-lower-a-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-lower-a-leg-extension
+        exercise: leg-extension
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: upper-lower-lower-a-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-lower-a-cable-crunch
+        exercise: cable-crunch
+        position: 5
+        reps: { minimum: 10, maximum: 15 }
+  - key: upper-lower-upper-b
+    name: Upper B
+    position: 3
+    exercises:
+      - key: upper-lower-upper-b-weighted-dip
+        exercise: weighted-dip
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-b-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-b-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: upper-lower-upper-b-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-upper-b-incline-dumbbell-curl
+        exercise: incline-dumbbell-curl
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-upper-b-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 6
+        reps: { minimum: 10, maximum: 15 }
+  - key: upper-lower-lower-b
+    name: Lower B
+    position: 4
+    exercises:
+      - key: upper-lower-lower-b-leg-press
+        exercise: leg-press
+        position: 1
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-lower-b-45-degree-back-extension
+        exercise: 45-degree-back-extension
+        position: 2
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-lower-b-bulgarian-split-squat
+        exercise: bulgarian-split-squat
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+        scope: each_leg
+      - key: upper-lower-lower-b-lying-leg-curl
+        exercise: lying-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: upper-lower-lower-b-hanging-knee-raise
+        exercise: hanging-knee-raise
+        position: 5
+        reps: { minimum: 10, maximum: 15 }

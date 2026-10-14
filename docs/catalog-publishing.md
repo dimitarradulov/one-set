@@ -1,49 +1,53 @@
 # Catalog publishing
 
-Status: design interview synthesized into [implementation issue #15](https://github.com/dimitarradulov/one-set/issues/15), labeled `ready-for-agent`. The issue includes the confirmed testing boundaries. No feature implementation has been performed in this design session.
+The founder maintains the text catalog in `worker/catalog/`. The ten program identities match the existing app and database authoring keys. Keep the numbered program filenames in the intended catalog order and keep program, workout, and slot keys stable when editing names or prescriptions.
 
-## Agreed scope
+## Files and source of truth
 
-- The founder is the only content maintainer for this milestone.
-- Author programs and workout templates in readable files. A documented command validates the content, shows the proposed changes, and publishes it to the backend without manual database editing.
-- Support initial publication, adding programs, and editing existing content.
-- Support removing programs, workout templates, and exercise slots. Removed programs are hidden from new selections; existing followers can continue them and retain their history.
-- Removal requires an explicit marker in the content file. Omitting previously published content produces a validation error rather than removing it implicitly.
-- Exercise technique, stopping guidance, warmups, and rest guidance are shared wherever an exercise appears. Rep targets and exercise order are prescribed separately in each workout template. The publish preview identifies all programs affected by a shared exercise edit.
-- The app downloads published additions and changes from the backend without requiring an App Store release, retaining a local catalog for offline use.
-- Video publication is deferred for this milestone.
-- Publish complete text prescriptions: exercise order, rep targets, technique instructions, stopping guidance, warmups, and rest durations.
-- Template changes apply to future sessions, including within an existing cycle. Started and completed sessions retain their captured content. Offline users continue with cached content until updates can be downloaded.
-- Added or removed workout days apply from the user's current training week onward. Completed work and history are preserved; earlier training weeks are not reopened. Removed workout days stop being required.
-- Earlier catalog content can be restored and republished, including making a removed program available again. Catalog restoration preserves training records.
-- Author content as one YAML file per program and a shared exercise file, tracked in Git. Run a preview command to validate and review changes, then a separate publish command to apply them.
-- Check for catalog updates when the app opens or returns to the foreground, without periodic polling. Continue using saved content while checking or offline; active sessions retain their captured content.
+- `worker/catalog/programs/01-full-body.yaml` through `10-machine-full-body.yaml` contain display information, workout order, exercise slots, rep ranges, and unilateral scope.
+- `worker/catalog/exercises.yaml` contains shared technique, stopping, warmup, rest, and default-rep guidance. An exercise edit applies to every program that uses its key.
+- `OneSet/Services/Catalog/BundledProgramCatalog.swift` is generated from these YAML files. Do not edit it by hand.
+- `docs/HIT_Workout_Program_Library.md` is the approved content source. Read [the content review register](catalog-content-review.md) for movements without a dedicated technique cue in that source.
 
-This elaborates [FR-26](requirements.md) and the [catalog publication proposal](system-design.md#catalog-publication). The initial content comes from the [program library](HIT_Workout_Program_Library.md). Use the terms in [GLOSSARY.md](../GLOSSARY.md).
+The YAML preserves one definitive exercise per slot. A slot's `reps` value is its prescribed target. `scope: each_leg` or `scope: each_side` preserves unilateral interpretation; omit `scope` for ordinary repetitions. Each shared exercise has `default_reps` for use when that exercise is selected as a replacement. The current seed defaults are retained; defaults added for newly represented exercises use the most common rep range assigned to that exercise in the ten programs, breaking a tie by the lower minimum.
 
-## Proposed implementation
+Rest durations use the source library's rest bands: large compounds use 150–240 seconds, moderate compounds use 120–180 seconds, and isolation exercises use 90–150 seconds. `rest_seconds` selects a value in the appropriate band; the source does not specify per-exercise durations. Global technique, stopping, and warmup language must remain consistent with the approved library. Do not add exercise-specific advice without a reviewed source.
 
-- Give programs, workout templates, exercises, and exercise slots stable authoring keys independent of their editable names. Preserve identity across compatible edits; allocate new identity for a different movement or repurposed slot. Translate these keys to database identities without maintaining a per-program deployment configuration.
-- Convert the initial ten programs from the library into YAML and generate the bundled fallback from the same reviewed source. Keep program display information and unilateral rep interpretation intact when delivering backend content.
-- Validate references, unique keys, exercise order, rep ranges, required text prescriptions, and explicit removals before publication. Show additions, changes, removals, restorations, and affected programs, including those affected by shared exercise edits.
-- Preview against the chosen backend environment. Publish exactly the reviewed content; if either the source files or backend catalog changed after preview, require a fresh preview. Apply the complete catalog change in one transaction so failed publication cannot expose partial content. Retrying identical publication should produce no additional changes.
-- Keep publication credentials outside the iOS app and separate from ordinary user access. Document local credential setup and environment selection using placeholders.
-- Retain removed content and stable historical references. New selection excludes removed programs; restoration and continued access for existing followers use the retained identity.
-- Deliver a complete, internally consistent text catalog and replace the local cached catalog atomically after successful validation. Failed or incompatible downloads retain the last usable copy. An installed bundled catalog supplies the initial offline fallback.
-- Preserve cycle progress explicitly when workout structure changes, rather than inferring it solely from the edited sequence. Added days must not reopen earlier weeks; removed days must not become outstanding requirements. Started-session content remains usable even if its template is removed while the session is active.
-- Correct a bad publication by restoring earlier files and running preview/publish again. This restores catalog content only; it does not roll back user data or undo sessions already performed using the intervening content.
+## Local commands
 
-## Implementation acceptance
+Run from `worker/` after installing dependencies with `npm ci` (Node 22 or later):
 
-- Publish the initial ten programs with complete text prescriptions and no required videos.
-- Add a program and make it selectable/restorable in the app without an app release or manual database/configuration edits.
-- Edit a rep range and shared exercise instructions; the preview identifies affected programs and the app receives the published change.
-- Remove and restore a program explicitly; it disappears from new selections while existing followers and history remain supported.
-- Remove or add a workout day without rewriting completed work or reopening earlier weeks.
-- Reject invalid or accidentally omitted published content before any catalog mutation; a failed transaction leaves the previous catalog intact.
-- Reopen the app offline using saved catalog content, and preserve active-session content through a subsequent catalog update.
-- Restore earlier source files and republish without changing training records.
+```sh
+# Validate the complete authoring source and publish a fresh local fallback.
+npm run catalog -- generate-bundled
 
-## Current implementation
+# Check that the committed Swift fallback matches the YAML source.
+npm run catalog -- generate-bundled --check
 
-The app uses a bundled Swift catalog. The Worker implements account setup reads and writes; catalog endpoints and a publishing command are not implemented. The documented development database has the ten program identities, without populated workout templates. App workout and exercise identities currently depend on names, while database identities are numeric; the implementation must resolve these differences before editable content can be delivered reliably.
+# Review proposed changes against a configured backend environment.
+npm run catalog -- preview --environment development
+
+# Publish the exact source and environment captured by the last successful preview.
+npm run catalog -- publish --environment development
+```
+
+The command defaults to `worker/catalog` and writes `../OneSet/Services/Catalog/BundledProgramCatalog.swift`. Use `--source <directory>` and `--output <path>` to work with a separate catalog or output location. Preview writes `.oneset-catalog-preview.json` in the current directory; do not commit this review artifact.
+
+Configure each environment outside source control:
+
+```sh
+export ONESET_CATALOG_API_DEVELOPMENT='https://<worker-host>'
+export ONESET_CATALOG_PUBLISH_TOKEN_DEVELOPMENT='<publisher-token>'
+```
+
+Use separate API URLs and publisher tokens for development and production. The publisher token is distinct from user authentication. Preview and publish are separate operations; preview again after any source or backend catalog change. The publisher applies the reviewed catalog transactionally and retries are idempotent.
+
+## Adding or editing content
+
+1. Read the approved program library and content review register.
+2. Edit the relevant YAML, preserving stable keys and explicit workout/slot positions. A new movement needs shared text guidance, a rest duration from the applicable source band, and a default rep target.
+3. Run `npm run catalog -- generate-bundled`, inspect the generated diff, then run the full Worker catalog tests and typecheck.
+4. Configure the intended backend environment and run `preview`. Review additions, edits, removals, restorations, and all affected programs.
+5. Run `publish` for that environment. Do not change files between preview and publish.
+
+To remove published content, keep the item in YAML and set `removed: true`; omission is rejected by backend preview. To restore it, remove the marker and preview/publish again. Do not delete or recreate program identities: existing account setup and cycles refer to them. Text catalog publication has no video upload requirement.

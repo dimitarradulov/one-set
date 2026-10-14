@@ -1,0 +1,95 @@
+key: push-pull-legs
+name: Push / Pull / Legs
+recommended_weeks: 8
+training_days_per_week: 3
+format: "Push / Pull / Legs"
+emphasis: "Lifters who like classic movement-based training and can recover from training each major muscle group hard once per week."
+workouts:
+  - key: push-pull-legs-push
+    name: Push
+    position: 1
+    exercises:
+      - key: push-pull-legs-push-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-push-weighted-dip
+        exercise: weighted-dip
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-push-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-push-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: push-pull-legs-push-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: push-pull-legs-push-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 6
+        reps: { minimum: 10, maximum: 15 }
+  - key: push-pull-legs-pull
+    name: Pull
+    position: 2
+    exercises:
+      - key: push-pull-legs-pull-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-pull-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-pull-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: push-pull-legs-pull-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 4
+        reps: { minimum: 12, maximum: 20 }
+      - key: push-pull-legs-pull-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: push-pull-legs-pull-barbell-curl
+        exercise: barbell-curl
+        position: 6
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-pull-hammer-curl
+        exercise: hammer-curl
+        position: 7
+        reps: { minimum: 8, maximum: 12 }
+  - key: push-pull-legs-legs
+    name: Legs
+    position: 3
+    exercises:
+      - key: push-pull-legs-legs-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-legs-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: push-pull-legs-legs-leg-press
+        exercise: leg-press
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: push-pull-legs-legs-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: push-pull-legs-legs-leg-extension
+        exercise: leg-extension
+        position: 5
+        reps: { minimum: 10, maximum: 15 }
+      - key: push-pull-legs-legs-cable-crunch
+        exercise: cable-crunch
+        position: 6
+        reps: { minimum: 10, maximum: 15 }

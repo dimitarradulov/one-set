@@ -1,0 +1,103 @@
+key: full-body
+name: Full Body
+recommended_weeks: 8
+training_days_per_week: 3
+format: "A / B / C"
+emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy coverage without high per-session volume."
+workouts:
+  - key: full-body-workout-a-vertical-pull-upper-chest
+    name: Workout A — Vertical Pull + Upper Chest
+    position: 1
+    exercises:
+      - key: full-body-workout-a-vertical-pull-upper-chest-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-leg-press
+        exercise: leg-press
+        position: 3
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 5
+        reps: { minimum: 12, maximum: 20 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-barbell-curl
+        exercise: barbell-curl
+        position: 6
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-a-vertical-pull-upper-chest-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 7
+        reps: { minimum: 8, maximum: 12 }
+  - key: full-body-workout-b-horizontal-pull-chest
+    name: Workout B — Horizontal Pull + Chest
+    position: 2
+    exercises:
+      - key: full-body-workout-b-horizontal-pull-chest-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-b-horizontal-pull-chest-weighted-dip
+        exercise: weighted-dip
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-b-horizontal-pull-chest-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-b-horizontal-pull-chest-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 4
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-b-horizontal-pull-chest-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 5
+        reps: { minimum: 12, maximum: 20 }
+      - key: full-body-workout-b-horizontal-pull-chest-incline-dumbbell-curl
+        exercise: incline-dumbbell-curl
+        position: 6
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-b-horizontal-pull-chest-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 7
+        reps: { minimum: 10, maximum: 15 }
+  - key: full-body-workout-c-shoulder-girdle-balanced-lower-body
+    name: Workout C — Shoulder Girdle + Balanced Lower Body
+    position: 3
+    exercises:
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-machine-shoulder-press
+        exercise: machine-shoulder-press
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-neutral-grip-lat-pulldown
+        exercise: neutral-grip-lat-pulldown
+        position: 2
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-leg-extension
+        exercise: leg-extension
+        position: 3
+        reps: { minimum: 10, maximum: 15 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-lying-leg-curl
+        exercise: lying-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-machine-chest-press
+        exercise: machine-chest-press
+        position: 5
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-dumbbell-shrug
+        exercise: dumbbell-shrug
+        position: 6
+        reps: { minimum: 8, maximum: 12 }
+      - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-cable-crunch
+        exercise: cable-crunch
+        position: 7
+        reps: { minimum: 10, maximum: 15 }

@@ -1,0 +1,63 @@
+key: minimalist-full-body
+name: Minimalist Full Body
+recommended_weeks: 8
+training_days_per_week: 2
+format: "A / B"
+emphasis: "People who want the smallest practical weekly gym commitment while still training the major muscle groups hard."
+workouts:
+  - key: minimalist-full-body-workout-a
+    name: Workout A
+    position: 1
+    exercises:
+      - key: minimalist-full-body-workout-a-leg-press
+        exercise: leg-press
+        position: 1
+        reps: { minimum: 8, maximum: 12 }
+      - key: minimalist-full-body-workout-a-weighted-chin-up
+        exercise: weighted-chin-up
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-a-incline-smith-machine-press
+        exercise: incline-smith-machine-press
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-a-seated-leg-curl
+        exercise: seated-leg-curl
+        position: 4
+        reps: { minimum: 8, maximum: 12 }
+      - key: minimalist-full-body-workout-a-machine-lateral-raise
+        exercise: machine-lateral-raise
+        position: 5
+        reps: { minimum: 12, maximum: 20 }
+      - key: minimalist-full-body-workout-a-barbell-curl
+        exercise: barbell-curl
+        position: 6
+        reps: { minimum: 6, maximum: 10 }
+  - key: minimalist-full-body-workout-b
+    name: Workout B
+    position: 2
+    exercises:
+      - key: minimalist-full-body-workout-b-hack-squat-machine
+        exercise: hack-squat-machine
+        position: 1
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-b-smith-machine-barbell-row
+        exercise: smith-machine-barbell-row
+        position: 2
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-b-weighted-dip
+        exercise: weighted-dip
+        position: 3
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-b-romanian-deadlift
+        exercise: romanian-deadlift
+        position: 4
+        reps: { minimum: 6, maximum: 10 }
+      - key: minimalist-full-body-workout-b-reverse-pec-deck
+        exercise: reverse-pec-deck
+        position: 5
+        reps: { minimum: 12, maximum: 20 }
+      - key: minimalist-full-body-workout-b-overhead-cable-triceps-extension
+        exercise: overhead-cable-triceps-extension
+        position: 6
+        reps: { minimum: 10, maximum: 15 }
