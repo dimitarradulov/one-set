@@ -5,6 +5,7 @@ import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { handleCatalogRequest, type CatalogDatabase } from '../src/catalog.ts';
+import { validateCatalogSource, type CatalogSource } from '../src/catalog-validation.ts';
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -83,6 +84,7 @@ await databaseEngine.exec(`
   SELECT setval(pg_get_serial_sequence('workout_programs', 'id'), 10);
 `);
 await databaseEngine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await databaseEngine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 
 function request(path: string, bearer?: string, method = 'GET', body?: unknown): Request {
   return new Request(`https://api.oneset.test${path}`, {
@@ -96,6 +98,29 @@ function request(path: string, bearer?: string, method = 'GET', body?: unknown):
 }
 
 after(async () => { await databaseEngine.close(); });
+
+test('a published program cannot be omitted but an explicit removal marker is valid', () => {
+  const original = source.programs[0]!;
+  const secondProgram = {
+    ...structuredClone(original),
+    key: 'second-program',
+    name: 'Second Program',
+    workouts: original.workouts.map(workout => ({
+      ...structuredClone(workout),
+      key: 'second-program-a',
+      exercises: workout.exercises.map(slot => ({ ...structuredClone(slot), key: 'second-program-a-slot' })),
+    })),
+  } as CatalogSource['programs'][number];
+  const previous = { ...structuredClone(source), programs: [structuredClone(original), secondProgram] } as CatalogSource;
+  const omitted = validateCatalogSource({ ...previous, programs: [previous.programs[0]] }, previous);
+  assert.ok(omitted.errors.includes('previously published program second-program is missing; mark it removed explicitly'));
+
+  const explicitlyRemoved = validateCatalogSource({
+    ...previous,
+    programs: [previous.programs[0], { ...secondProgram, removed: true }],
+  }, previous);
+  assert.deepEqual(explicitlyRemoved.errors, []);
+});
 
 test('publisher preview and publish expose the reviewed program to authenticated catalog reads', async () => {
   const userBearer = await userToken('follower');

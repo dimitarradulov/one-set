@@ -112,7 +112,11 @@ The `catalog_publications` row and `catalog_state` pointer store a complete auth
 
 The founder's readable source lives in [`worker/catalog`](../../worker/catalog/). `npm run catalog -- preview --environment development --source catalog` validates and writes a local review file; `npm run catalog -- publish --environment development --source catalog` publishes only that reviewed source. See [Worker configuration and commands](../../worker/README.md) for the separate maintenance credential. Migration 003 must be rehearsed on an isolated Neon branch before it is applied to a shared development database.
 
-The Worker tests load migration 003 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, and verify that the original active cycle still refers to program ID 10. These checks do not replace a Neon branch rehearsal.
+Migration 004 replaces `complete_onboarding()` with an atomic offered-program check. It locks the account, preserves any existing setup unchanged, and only creates a first cycle when the selected program is currently offered. It returns a rejected result for a removed or concurrently withdrawn program, closing the stale-client race between catalog publication and onboarding.
+
+Apply migration 004 before deploying the Worker handler that reads its boolean result. This migration is additive and has only been loaded into disposable PGlite by this implementation; rehearse it on an isolated Neon branch before applying it to a shared environment.
+
+The Worker tests load migrations 001–004 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, reject new selection of a removed program, restore the same program identity, and verify that the original active cycle and completion mark remain intact. These checks do not replace a Neon branch rehearsal.
 
 ## Verification and migration
 
@@ -126,6 +130,6 @@ Before applying migration 001, the ten original live tables were inspected and e
 
 Enrollment remains the lasting relationship between user and program; this milestone creates its first cycle in `user_programs`, without introducing a second enrollment record. Remembered preferences and future cycle management retain their documented design.
 
-The API tests load migrations 001 and 002 into disposable PGlite and check persistence via lookup, concurrent completion, interrupted acknowledgments, preservation of established setup, invalid identities and rollback on cycle collisions. Migration 002 was applied on 2026-10-06 to the `oneset` database on `oneset-development` (`br-autumn-term-b1pjy8wc`). It remains unapplied on `production`.
+The API tests load migrations 001–004 into disposable PGlite and check persistence via lookup, concurrent completion, interrupted acknowledgments, preservation of established setup, invalid identities and rollback on cycle collisions. Migration 002 was applied on 2026-10-06 to the `oneset` database on `oneset-development` (`br-autumn-term-b1pjy8wc`). It remains unapplied on `production`; migration 004 is not applied to any shared database by this implementation task.
 
 Before application, it was rehearsed on a temporary child of the development branch. Live PostgreSQL checks verified first completion, retry identity, one cycle per account and preservation of existing account/cycle/session records. After application, the function signature was verified and development row counts remained two users, one cycle and zero sessions. The temporary branch was deleted. The Worker PUT handler was subsequently deployed to `oneset-api-development` on 2026-10-06 as version `d0770628-d587-464d-a497-b5ad88578db2`.

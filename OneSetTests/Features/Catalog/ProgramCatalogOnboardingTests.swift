@@ -175,6 +175,65 @@ struct ProgramCatalogOnboardingTests {
     #expect(model.path == [.programOverview(added.id)])
   }
 
+  @Test
+  func removedProgramStaysAvailableToExistingFollowersButNotNewSelections() async {
+    let removed = replacing(
+      program(id: "founder-authored-plan", name: "Founder Authored Plan"), offered: false
+    )
+    let persistence = MemoryProgramCatalogPersistence()
+    let completeCatalog = ProgramCatalog.bundled.programs + [removed]
+    let catalog = ProgramCatalog(
+      programs: ProgramCatalog.bundled.programs,
+      service: StubProgramCatalogService(result: .snapshot(.init(
+        publicationID: "publication-removed", entityTag: "\"catalog-removed\"", programs: completeCatalog
+      ))),
+      persistence: persistence
+    )
+    await catalog.refresh()
+    let restoredCatalog = ProgramCatalog(programs: ProgramCatalog.bundled.programs, persistence: persistence)
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3, programID: removed.id,
+      cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+    )
+    let model = OnboardingModel(catalog: restoredCatalog, setupService: StubAccountSetupService(setup: setup))
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+
+    await model.resolveAccountSetup(using: authentication)
+
+    #expect(restoredCatalog.program(id: removed.id) == removed)
+    #expect(!restoredCatalog.offeredPrograms.contains(where: { $0.id == removed.id }))
+    #expect(!model.programs.contains(where: { $0.id == removed.id }))
+    #expect(model.selectedProgramID == removed.id)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(model.path == [.programOverview(removed.id)])
+
+    model.path = [.preferences, .programs, .programDetail(removed.id)]
+    model.selectProgram(removed.id)
+    #expect(model.path.last == .programDetail(removed.id))
+  }
+
+  @Test
+  func removedProgramPendingUploadOffersSelectionOfAnAvailableProgram() async {
+    let catalog = ProgramCatalog(programs: ProgramCatalog.bundled.programs)
+    let setupService = StubAccountSetupService(setup: nil, saveError: .programUnavailable)
+    let model = OnboardingModel(catalog: catalog, setupService: setupService)
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+
+    await model.resolveAccountSetup(using: authentication)
+    model.path = [.preferences, .programs, .programDetail("machine-full-body")]
+    model.selectProgram("machine-full-body")
+    model.continueWithoutTrial()
+
+    #expect(model.hasPendingSetup)
+    await model.uploadCompletedSetup(using: authentication)
+
+    #expect(!model.hasPendingSetup)
+    #expect(model.selectedProgramID == nil)
+    #expect(model.path == [.preferences, .programs])
+    #expect(model.programSelectionMessage?.contains("no longer available") == true)
+    #expect(!model.hasCompletedSetup)
+  }
+
   private func temporaryDirectory() throws -> URL {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -264,8 +323,12 @@ private final class GatedProgramCatalogService: ProgramCatalogService {
 
 @MainActor
 private struct StubAccountSetupService: AccountSetupService {
-  let setup: AccountSetup
+  let setup: AccountSetup?
+  var saveError: AccountSetupError? = nil
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? { setup }
-  func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup { setup }
+  func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup {
+    if let saveError { throw saveError }
+    return setup
+  }
 }
