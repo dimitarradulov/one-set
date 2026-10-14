@@ -53,6 +53,7 @@ await engine.exec(`
 `);
 await engine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
+await engine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
 
 after(async () => { await engine.close(); });
 
@@ -86,7 +87,6 @@ test('founder preview and publish command persists the YAML catalog for authenti
   await writeFile(join(sourceDirectory, 'programs', 'z-founder-authored-plan.yaml'), `key: founder-authored-plan
 name: Founder Authored Plan
 recommended_weeks: 6
-training_days_per_week: 3
 format: A / B / C
 emphasis: A new plan added without an app or Worker configuration change.
 workouts:
@@ -130,7 +130,8 @@ workouts:
     assert.equal(response.status, 200);
     const result = await response.json() as {
       catalog: {
-        programs: Array<{ key: string; recommended_weeks: number; workouts: Array<{ key: string }> }>;
+        programs: Array<{ key: string; recommended_weeks: number; training_days_per_week: number;
+          workouts: Array<{ key: string }> }>;
         exercises: Array<{ key: string; instructions: string; stopping_guidance: string; warmup_guidance: string }>;
       };
     };
@@ -139,8 +140,12 @@ workouts:
       .filter(file => file.endsWith('.yaml')).sort();
     const expectedCatalog = {
       exercises: sourceExercises.exercises,
-      programs: await Promise.all(sourcePrograms.map(async file =>
-        parse(await readFile(join(sourceDirectory, 'programs', file), 'utf8')))),
+      programs: await Promise.all(sourcePrograms.map(async file => {
+        const program = parse(await readFile(join(sourceDirectory, 'programs', file), 'utf8')) as {
+          workouts: Array<unknown>;
+        };
+        return { ...program, training_days_per_week: program.workouts.length };
+      })),
     };
     assert.deepEqual(result.catalog, expectedCatalog);
     assert.equal(result.catalog.programs.length, 11);

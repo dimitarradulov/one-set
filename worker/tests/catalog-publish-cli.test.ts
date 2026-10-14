@@ -27,7 +27,6 @@ test('preview validates authored YAML and prints the backend change for its expl
   await writeFile(join(source, 'programs', 'machine-full-body.yaml'), `key: machine-full-body
 name: Machine Full Body
 recommended_weeks: 8
-training_days_per_week: 3
 format: A / B / C
 emphasis: Maximum stability, simple progression, and a low-skill environment for high effort.
 workouts:

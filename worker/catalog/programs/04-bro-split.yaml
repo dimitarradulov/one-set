@@ -1,7 +1,6 @@
 key: bro-split
 name: Bro Split
 recommended_weeks: 8
-training_days_per_week: 5
 format: "Chest / Back / Legs / Shoulders / Arms"
 emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts."
 workouts:

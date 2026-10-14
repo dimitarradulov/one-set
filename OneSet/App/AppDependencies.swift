@@ -48,7 +48,7 @@ struct AppDependencies {
       let bundledPrograms = ProgramCatalog.bundled.programs.map { program in
         guard removedProgramPreview, program.id == "machine-full-body" else { return program }
         return TrainingProgram(
-          id: program.id, name: program.name, trainingDaysPerWeek: program.trainingDaysPerWeek,
+          id: program.id, name: program.name,
           format: program.format, emphasis: program.emphasis, workouts: program.workouts,
           recommendedWeeks: program.recommendedWeeks, isOffered: false
         )
@@ -119,13 +119,13 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
        let index = programs.firstIndex(where: { $0.id == "push-pull-legs" }) {
       let current = programs[index]
       programs[index] = TrainingProgram(
-        id: current.id, name: "Push Pull Legs Updated", trainingDaysPerWeek: current.trainingDaysPerWeek,
+        id: current.id, name: "Push Pull Legs Updated",
         format: current.format, emphasis: "Updated publication for refresh continuity.",
         workouts: current.workouts, recommendedWeeks: current.recommendedWeeks, isOffered: current.isOffered
       )
     }
     programs.append(TrainingProgram(
-      id: "founder-authored-plan", name: "Founder Authored Plan", trainingDaysPerWeek: 3,
+      id: "founder-authored-plan", name: "Founder Authored Plan",
       format: "A / B / C", emphasis: "A newly published plan.",
       workouts: [WorkoutTemplate(id: "founder-authored-plan-day-a", name: "Day A", exercises: [
         WorkoutExercise(

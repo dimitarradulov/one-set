@@ -28,7 +28,6 @@ export interface CatalogProgram extends JsonObject {
   key: string;
   name: string;
   recommended_weeks: number;
-  training_days_per_week: number;
   format: string;
   emphasis: string;
   workouts: CatalogWorkout[];
@@ -155,8 +154,6 @@ export function validateCatalogSource(
       if (!isNonEmpty(program[field])) errors.push(`${label} needs ${field}`);
     }
     if (!isPositiveInteger(program.recommended_weeks)) errors.push(`${label} needs positive recommended_weeks`);
-    if (!isPositiveInteger(program.training_days_per_week) || program.training_days_per_week < 2
-        || program.training_days_per_week > 5) errors.push(`${label} training_days_per_week must be 2–5`);
     if (program.removed !== undefined && typeof program.removed !== 'boolean') {
       errors.push(`${label} removed must be true or false`);
     }
@@ -201,6 +198,10 @@ export function validateCatalogSource(
       workouts.push({ ...workout, exercises: slots } as unknown as CatalogWorkout);
       workoutRows.push(workout);
       slotRows.push(...rawSlots);
+    }
+    const activeWorkoutCount = workouts.filter(workout => workout.removed !== true).length;
+    if (program.removed !== true && (activeWorkoutCount < 1 || activeWorkoutCount > 5)) {
+      errors.push(`${label} must have between one and five active workouts`);
     }
     programs.push({ ...program, workouts } as unknown as CatalogProgram);
   }

@@ -1,6 +1,6 @@
 # Database design
 
-The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002 and 003 add setup completion and stable catalog publication without replacing existing program, cycle or history IDs. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
+The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002–005 add setup completion, stable catalog publication, offered-program onboarding and cycle-scoped workout boundaries without replacing existing program, cycle or history IDs. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
 
 ## Tables and their purpose
 
@@ -12,7 +12,8 @@ The [DBML](oneset.dbml) documents the baseline training schema plus completed-wo
 | `exercises` | Stable key, name, instructions, private video key, default rep range, rest and warmup guidance. Defaults support user-selected replacements. Instructions include when to stop the set and total-load/per-side conventions. |
 | `workout_exercises` | Stable slot key, exercise, order, workout-specific rep bounds and rep scope (`reps`, `each_leg` or `each_side`). An exercise can have different targets in different workouts. |
 | `users` | Clerk identity link, kg/lb preference, training-day preference and active program run. No name/email copies, access timestamps or settings revision. |
-| `user_programs` | One run through a program, with owner, program and start time. A new cycle is another row. |
+| `user_programs` | One run through a program, with owner, program, start time and monotonic current training week. A new cycle is another row. |
+| `user_program_workout_periods` | Per-cycle workout membership intervals. Added and removed workout days take effect at that cycle's current-week boundary while prior completion marks remain intact. |
 | `user_workout_exercises` | Remembered replacement, note and rest preference for a run's original exercise slot. Missing row means use defaults. |
 | `workout_sessions` | One attempt at a run/week/workout, copied workout name, start/finish times, optional note and upload revision. Ownership comes through `user_programs`; no duplicate user ID. |
 | `workout_session_sets` | One row per original slot, including unfinished work. Stores actual exercise, copied order/guidance/note, weight, entered unit, reps and completion time. |
@@ -28,6 +29,7 @@ flowchart LR
   WE --> E[exercises]
   U[users] --> R[user_programs]
   R --> P
+  R --> PERIODS[user_program_workout_periods]
   R --> PREF[user_workout_exercises]
   R --> S[workout_sessions]
   S --> SET[workout_session_sets]
@@ -40,13 +42,15 @@ Switching back to a program resumes its latest run, ordered by `started_at DESC,
 
 Copy remembered preferences once when creating a new run, matching `workout_exercise_id` still present in the current program template. On the device, copy from its current source run, including locally saved preferences; upload that initial preference copy with the new run. The server validates ownership/slot membership and inserts both and selects the new run atomically on first creation. A retried creation returns the existing run and never recopies preferences or replays activation. Later preference changes use the latest saved values; no run revision or preference conflict workflow is needed.
 
-An occurrence is `(user_program_id, week_number, workout_id)`. Finish inserts its completion mark with `ON CONFLICT DO NOTHING`. The next workout is the first missing mark in week/day order. Deleting/editing history does not remove marks; a new run starts with none. Weeks may continue beyond the recommended eight.
+An occurrence is `(user_program_id, week_number, workout_id)`. Finish inserts its completion mark with `ON CONFLICT DO NOTHING`. The next workout is the first missing mark in week/day order among the workouts required for that cycle and week. Deleting/editing history does not remove marks; a new run starts with none. Weeks may continue beyond the recommended eight.
+
+`user_programs.current_training_week` is the explicit, monotonic boundary for the cycle. Migration 005 initializes it to the first incomplete week using the template that existed before structural edits and the existing completion marks. New cycles start at week 1. `user_program_workout_periods` records each workout's required week interval for that cycle; `required_workouts_for_cycle_week()` returns the currently required, currently ordered workouts for a week at or after its boundary. Publication snapshots each cycle's week before changing membership, closes removed workouts at the preceding week and opens added workouts at the stored current week. A later session-finish command advances `current_training_week` only after all workouts required in that week are complete. Catalog refreshes and republication of old content never lower or recalculate this boundary. Completed marks, session snapshots and remembered replacements are untouched by publication.
 
 ## Current templates and historical sessions
 
 Edit templates in place. Future sessions use the latest downloaded content, including within an existing run. Offline starts use the cached template. Copy workout name, exercise order and effective guidance at session start; subsequent template changes do not rewrite that session.
 
-A catalog entry already referenced by history cannot be deleted or reassigned to an unrelated workout/movement. To remove a workout or exercise slot from a current template, set its join-row `position` to null. Current template queries use `position IS NOT NULL`; history still references the original IDs. Positive positions remain unique within their parent. This permits normal content removal without breaking foreign keys or adding archive tables/flags. Repurposed slots get new IDs and do not inherit old replacements.
+A catalog entry already referenced by history cannot be deleted or reassigned to an unrelated workout/movement. To remove a workout or exercise slot from a current template, set its join-row `position` to null. Current template queries use `position IS NOT NULL`; history still references the original IDs. Positive positions remain unique within their parent. This permits normal content removal without breaking foreign keys or adding archive tables/flags. Repurposed slots get new IDs and do not inherit old replacements. Per-cycle workout periods preserve the current-week boundary: added days apply from that cycle's stored current week, and removed days are no longer required from that week onward.
 
 The exercise library supplies shared instructions, media, rest and warmup guidance. Workout slots store only their own rep targets. For a replacement, use the selected exercise's defaults. Retain the original slot ID alongside the actual exercise ID so previous performance never mixes different movements.
 
@@ -116,11 +120,11 @@ Migration 004 replaces `complete_onboarding()` with an atomic offered-program ch
 
 Apply migration 004 before deploying the Worker handler that reads its boolean result. This migration is additive and has only been loaded into disposable PGlite by this implementation; rehearse it on an isolated Neon branch before applying it to a shared environment.
 
-The Worker tests load migrations 001–004 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, reject new selection of a removed program, restore the same program identity, and verify that the original active cycle and completion mark remain intact. These checks do not replace a Neon branch rehearsal.
+The Worker tests load migrations 001–005 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, reject new selection of a removed program, restore the same program identity, and verify that the original active cycle and completion mark remain intact. Migration 005 fixtures also exercise add, reorder, replacement and removal while preserving earlier completion marks, remembered replacements, and captured session prescriptions. These checks do not replace a Neon branch rehearsal.
 
 ## Verification and migration
 
-The original schema from migration 001 contains 11 tables and 58 columns; the existing 29 SQL/query checks cover rep ranges, JSON object checks, duplicate sets/positions, fractional/bodyweight loads, finish/retry constraints, template removal without history loss, replacement identity, retained units, ownership queries through runs, latest-run selection and cascading deletion with completion marks retained. DBML parsing and PostgreSQL export validate the schema artifacts, while the Worker tests load migrations 001–003 into disposable PGlite and exercise the catalog publication tables and function. Application ownership, local persistence, retry ordering and provider integrations still need their own tests; SQL checks do not prove those workflows.
+The original schema from migration 001 contains 11 tables and 58 columns; the existing 29 SQL/query checks cover rep ranges, JSON object checks, duplicate sets/positions, fractional/bodyweight loads, finish/retry constraints, template removal without history loss, replacement identity, retained units, ownership queries through runs, latest-run selection and cascading deletion with completion marks retained. DBML parsing and PostgreSQL export validate the schema artifacts, while the Worker tests load migrations 001–005 into disposable PGlite and exercise catalog publication, structural boundaries and setup. Application ownership, local persistence, retry ordering and provider integrations still need their own tests; SQL checks do not prove those workflows.
 
 Before applying migration 001, the ten original live tables were inspected and each had zero rows. The migration refuses to replace them if any has gained rows. It was rehearsed on a temporary Neon branch, then applied to `production`. Live verification found 11 tables, 58 columns, 17 foreign keys and 11 primary keys; `completed_workouts` exists and the old `workout_sessions_sets` table is absent. The temporary branch was deleted by Neon's migration workflow.
 

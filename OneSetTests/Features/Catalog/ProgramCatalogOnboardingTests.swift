@@ -24,6 +24,7 @@ struct ProgramCatalogOnboardingTests {
 
     #expect(firstCatalog.immutableSnapshot == backendPrograms)
     #expect(firstCatalog.program(id: added.id) == added)
+    #expect(added.trainingDaysPerWeek == added.workouts.count)
     #expect(firstCatalog.offeredPrograms.contains(where: { $0.id == removed.id }) == false)
 
     let offlineRestart = ProgramCatalog(programs: bundled, persistence: persistence)
@@ -92,7 +93,7 @@ struct ProgramCatalogOnboardingTests {
     let saved = snapshot("publication-1", "\"catalog-1\"", [program(id: "backend-plan", name: "Backend Plan")])
     try persistence.save(saved)
     let malformed = TrainingProgram(
-      id: "incomplete-plan", name: "Incomplete Plan", trainingDaysPerWeek: 3,
+      id: "incomplete-plan", name: "Incomplete Plan",
       format: "A / B", emphasis: "Incomplete", workouts: [], recommendedWeeks: 8
     )
     let catalog = ProgramCatalog(
@@ -252,7 +253,7 @@ struct ProgramCatalogOnboardingTests {
 
   private func program(id: String, name: String) -> TrainingProgram {
     TrainingProgram(
-      id: id, name: name, trainingDaysPerWeek: 3, format: "A / B / C", emphasis: "A published plan.",
+      id: id, name: name, format: "A / B / C", emphasis: "A published plan.",
       workouts: [WorkoutTemplate(id: "\(id)-day-a", name: "Day A", exercises: [
         WorkoutExercise(
           id: "\(id)-slot-a", exerciseKey: "barbell-row", name: "Barbell Row",
@@ -270,7 +271,7 @@ struct ProgramCatalogOnboardingTests {
     offered: Bool? = nil
   ) -> TrainingProgram {
     TrainingProgram(
-      id: program.id, name: name ?? program.name, trainingDaysPerWeek: program.trainingDaysPerWeek,
+      id: program.id, name: name ?? program.name,
       format: program.format, emphasis: program.emphasis, workouts: program.workouts,
       recommendedWeeks: program.recommendedWeeks, isOffered: offered ?? program.isOffered
     )

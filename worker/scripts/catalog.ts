@@ -114,7 +114,7 @@ function generateBundledSwift(catalog: CatalogSource): string {
     return [
       '    TrainingProgram(',
       `      id: ${swiftString(program.key)}, name: ${swiftString(program.name)},`,
-      `      trainingDaysPerWeek: ${program.training_days_per_week}, format: ${swiftString(program.format)},`,
+      `      format: ${swiftString(program.format)},`,
       `      emphasis: ${swiftString(program.emphasis)},`,
       '      workouts: [', workouts.map(workout => workout.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
       `      ], recommendedWeeks: ${program.recommended_weeks}, isOffered: ${program.removed !== true}`,

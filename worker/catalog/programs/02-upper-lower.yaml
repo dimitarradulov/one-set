@@ -1,7 +1,6 @@
 key: upper-lower
 name: Upper / Lower
 recommended_weeks: 8
-training_days_per_week: 4
 format: "Upper A / Lower A / Upper B / Lower B"
 emphasis: "Lifters who prefer shorter sessions and want more recovery between upper- and lower-body work."
 workouts:

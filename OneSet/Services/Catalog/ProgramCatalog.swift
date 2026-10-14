@@ -92,7 +92,7 @@ final class ProgramCatalog {
     var slotIDs = Set<String>()
     for program in programs {
       guard Self.isStableKey(program.id), !program.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-            (2...5).contains(program.trainingDaysPerWeek), program.recommendedWeeks > 0,
+            (1...5).contains(program.trainingDaysPerWeek), program.recommendedWeeks > 0,
             !program.format.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.emphasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.workouts.isEmpty else { return false }

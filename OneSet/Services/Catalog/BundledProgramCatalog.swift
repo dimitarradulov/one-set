@@ -4,7 +4,7 @@ extension ProgramCatalog {
   static var bundled: ProgramCatalog { ProgramCatalog(programs: [
       TrainingProgram(
         id: "full-body", name: "Full Body",
-        trainingDaysPerWeek: 3, format: "A / B / C",
+        format: "A / B / C",
         emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy coverage without high per-session volume.",
         workouts: [
             WorkoutTemplate(
@@ -215,7 +215,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "upper-lower", name: "Upper / Lower",
-        trainingDaysPerWeek: 4, format: "Upper A / Lower A / Upper B / Lower B",
+        format: "Upper A / Lower A / Upper B / Lower B",
         emphasis: "Lifters who prefer shorter sessions and want more recovery between upper- and lower-body work.",
         workouts: [
             WorkoutTemplate(
@@ -440,7 +440,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "push-pull-legs", name: "Push / Pull / Legs",
-        trainingDaysPerWeek: 3, format: "Push / Pull / Legs",
+        format: "Push / Pull / Legs",
         emphasis: "Lifters who like classic movement-based training and can recover from training each major muscle group hard once per week.",
         workouts: [
             WorkoutTemplate(
@@ -633,7 +633,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "bro-split", name: "Bro Split",
-        trainingDaysPerWeek: 5, format: "Chest / Back / Legs / Shoulders / Arms",
+        format: "Chest / Back / Legs / Shoulders / Arms",
         emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts.",
         workouts: [
             WorkoutTemplate(
@@ -890,7 +890,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "minimalist-full-body", name: "Minimalist Full Body",
-        trainingDaysPerWeek: 2, format: "A / B",
+        format: "A / B",
         emphasis: "People who want the smallest practical weekly gym commitment while still training the major muscle groups hard.",
         workouts: [
             WorkoutTemplate(
@@ -1015,7 +1015,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "v-taper", name: "V-Taper",
-        trainingDaysPerWeek: 3, format: "Lats + Upper Chest / Lower Body + Delts / Back + Shoulder Width",
+        format: "Lats + Upper Chest / Lower Body + Delts / Back + Shoulder Width",
         emphasis: "Greater shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced lower-body development.",
         workouts: [
             WorkoutTemplate(
@@ -1208,7 +1208,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "powerhouse", name: "Powerhouse",
-        trainingDaysPerWeek: 3, format: "Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle",
+        format: "Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle",
         emphasis: "A dense, powerful wrestler-like build — thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.",
         workouts: [
             WorkoutTemplate(
@@ -1419,7 +1419,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "classic-physique", name: "Classic Physique",
-        trainingDaysPerWeek: 3, format: "Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body",
+        format: "Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body",
         emphasis: "Balanced old-school proportions — broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.",
         workouts: [
             WorkoutTemplate(
@@ -1612,7 +1612,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "free-weight-full-body", name: "Free-Weight Full Body",
-        trainingDaysPerWeek: 3, format: "A / B / C",
+        format: "A / B / C",
         emphasis: "Gyms with limited machines or lifters who strongly prefer barbells, dumbbells, and bodyweight loading.",
         workouts: [
             WorkoutTemplate(
@@ -1796,7 +1796,7 @@ extension ProgramCatalog {
       ),
       TrainingProgram(
         id: "machine-full-body", name: "Machine Full Body",
-        trainingDaysPerWeek: 3, format: "A / B / C",
+        format: "A / B / C",
         emphasis: "Lifters who want maximum stability, simple progression, and a low-skill environment for high-effort training.",
         workouts: [
             WorkoutTemplate(
