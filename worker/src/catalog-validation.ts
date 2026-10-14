@@ -250,16 +250,19 @@ export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSo
   const before = previousEntries(previous);
   const after = previousEntries(next);
   const changes: Array<{ kind: string; program_key?: string; name?: string }> = [];
-  const affected = new Set<string>();
+  const affected = new Map<string, string>();
+  const includeAffected = (program: CatalogProgram) => {
+    affected.set(program.key, `${program.name} (${program.key})`);
+  };
 
   for (const program of next.programs) {
     const oldProgram = before.programs.get(program.key);
     if (!oldProgram) {
       changes.push({ kind: 'add', program_key: program.key, name: program.name });
-      affected.add(program.name);
+      includeAffected(program);
     } else if (canonicalJSON(oldProgram) !== canonicalJSON(program)) {
       changes.push({ kind: program.removed ? 'remove' : 'update', program_key: program.key, name: program.name });
-      affected.add(program.name);
+      includeAffected(program);
     }
   }
 
@@ -268,15 +271,18 @@ export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSo
     if (oldExercise && canonicalJSON(oldExercise) !== canonicalJSON(exercise)) {
       changes.push({ kind: 'update exercise', name: exercise.name });
       for (const program of [...(previous?.programs ?? []), ...next.programs]) {
-        if (program.workouts.some(workout => workout.exercises.some(slot => slot.exercise === exercise.key))) {
-          affected.add(program.name);
+        const currentUse = program.removed !== true && program.workouts.some(workout =>
+          workout.removed !== true && workout.exercises.some(slot =>
+            slot.removed !== true && slot.exercise === exercise.key));
+        if (currentUse) {
+          includeAffected(program);
         }
       }
     }
   }
 
   for (const [key, oldProgram] of before.programs) {
-    if (!after.programs.has(key)) affected.add(oldProgram.name);
+    if (!after.programs.has(key)) includeAffected(oldProgram);
   }
-  return { changes, affectedPrograms: [...affected].sort() };
+  return { changes, affectedPrograms: [...affected.values()].sort() };
 }

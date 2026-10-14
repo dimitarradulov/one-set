@@ -1,6 +1,6 @@
 # Catalog publishing
 
-The founder maintains the text catalog in `worker/catalog/`. The ten program identities match the existing app and database authoring keys. Keep the numbered program filenames in the intended catalog order and keep program, workout, and slot keys stable when editing names or prescriptions.
+The catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16), and compatible editing and correction behavior in [issue #18](https://github.com/dimitarradulov/one-set/issues/18). The founder maintains the text catalog in `worker/catalog/`; structural changes and whole-program removal use the separate catalog maintenance workflow.
 
 ## Files and source of truth
 
@@ -9,45 +9,48 @@ The founder maintains the text catalog in `worker/catalog/`. The ten program ide
 - `OneSet/Services/Catalog/BundledProgramCatalog.swift` is generated from these YAML files. Do not edit it by hand.
 - `docs/HIT_Workout_Program_Library.md` is the approved content source. Read [the content review register](catalog-content-review.md) for movements without a dedicated technique cue in that source.
 
-The YAML preserves one definitive exercise per slot. A slot's `reps` value is its prescribed target. `scope: each_leg` or `scope: each_side` preserves unilateral interpretation; omit `scope` for ordinary repetitions. Each shared exercise has `default_reps` for use when that exercise is selected as a replacement. The current seed defaults are retained; defaults added for newly represented exercises use the most common rep range assigned to that exercise in the ten programs, breaking a tie by the lower minimum.
+Keep program, workout, exercise, and slot keys stable when editing names or compatible prescriptions. A slot's `reps` value is its prescribed target. `scope: each_leg` or `scope: each_side` preserves unilateral interpretation; omit `scope` for ordinary repetitions. Each shared exercise has `default_reps` for use when it is selected as a replacement. Seed defaults are retained; defaults added for newly represented exercises use the most common rep range assigned to that exercise in the ten programs, breaking a tie by the lower minimum.
 
 Rest durations use the source library's rest bands: large compounds use 150–240 seconds, moderate compounds use 120–180 seconds, and isolation exercises use 90–150 seconds. `rest_seconds` selects a value in the appropriate band; the source does not specify per-exercise durations. Global technique, stopping, and warmup language must remain consistent with the approved library. Do not add exercise-specific advice without a reviewed source.
 
 ## Local commands
 
-Run from `worker/` after installing dependencies with `npm ci` (Node 22 or later):
+Run commands from `worker/` after installing dependencies with `npm ci` (Node 22 or later):
 
 ```sh
-# Validate the complete authoring source and publish a fresh local fallback.
+# Generate and validate the bundled offline fallback.
 npm run catalog -- generate-bundled
 
 # Check that the committed Swift fallback matches the YAML source.
 npm run catalog -- generate-bundled --check
 
-# Review proposed changes against a configured backend environment.
-npm run catalog -- preview --environment development
-
-# Publish the exact source and environment captured by the last successful preview.
-npm run catalog -- publish --environment development
+# Review and publish against the configured development Worker.
+npm run catalog -- preview --environment development --source catalog
+npm run catalog -- publish --environment development --source catalog
 ```
 
-The command defaults to `worker/catalog` and writes `../OneSet/Services/Catalog/BundledProgramCatalog.swift`. Use `--source <directory>` and `--output <path>` to work with a separate catalog or output location. Preview writes `.oneset-catalog-preview.json` in the current directory; do not commit this review artifact.
+The generator defaults to `worker/catalog` and writes `../OneSet/Services/Catalog/BundledProgramCatalog.swift`. Use `--source <directory>` and `--output <path>` to work with a separate catalog or output location. The preview file `.oneset-catalog-preview.json` is private to the local working tree and should not be committed.
 
-Configure each environment outside source control:
+Configure the catalog publisher outside source control, using the publisher secret set on the matching Worker environment:
 
 ```sh
 export ONESET_CATALOG_API_DEVELOPMENT='https://<worker-host>'
 export ONESET_CATALOG_PUBLISH_TOKEN_DEVELOPMENT='<publisher-token>'
 ```
 
-Use separate API URLs and publisher tokens for development and production. The publisher token is distinct from user authentication. Preview and publish are separate operations; preview again after any source or backend catalog change. The publisher applies the reviewed catalog transactionally and retries are idempotent.
+The publisher token is distinct from user authentication. Preview and publish are separate operations; rerun preview after any source or backend catalog change. Publish only the source captured by the last successful preview. The Worker applies the reviewed catalog transactionally and retries are idempotent. See [Worker commands](../worker/README.md) for environment and credential setup.
 
-## Adding or editing content
+## Authoring and correction
 
-1. Read the approved program library and content review register.
-2. Edit the relevant YAML, preserving stable keys and explicit workout/slot positions. A new movement needs shared text guidance, a rest duration from the applicable source band, and a default rep target.
-3. Run `npm run catalog -- generate-bundled`, inspect the generated diff, then run the full Worker catalog tests and typecheck.
-4. Configure the intended backend environment and run `preview`. Review additions, edits, removals, restorations, and all affected programs.
-5. Run `publish` for that environment. Do not change files between preview and publish.
+Edit YAML while preserving stable keys and explicit workout/slot order. A new movement needs shared text guidance, a rest duration from the applicable source band, and a default rep target. Run `npm run catalog -- generate-bundled`, inspect the generated diff, and run the Worker catalog tests and typecheck before previewing. Review additions, edits, removals, restorations, and every affected program before publishing.
 
-To remove published content, keep the item in YAML and set `removed: true`; omission is rejected by backend preview. To restore it, remove the marker and preview/publish again. Do not delete or recreate program identities: existing account setup and cycles refer to them. Text catalog publication has no video upload requirement.
+To correct an earlier publication, restore the desired catalog files from Git and publish them as a new publication:
+
+```sh
+git restore --source <commit-with-correct-content> -- catalog
+npm run catalog -- preview --environment development --source catalog
+# Review the preview, then:
+npm run catalog -- publish --environment development --source catalog
+```
+
+Restoring catalog files changes catalog text only. It does not rewind cycles, preferences, completion records, or prescriptions already captured by sessions. Existing app installs receive published snapshots on their normal refresh and retain their cached copy while offline. Text catalog publication has no video upload requirement.

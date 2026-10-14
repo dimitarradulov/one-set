@@ -44,6 +44,18 @@ const source = {
       exercises: [{ key: 'machine-full-body-a-chest-press', exercise: 'machine_chest_press',
         position: 1, reps: { minimum: 6, maximum: 10 }, scope: 'each_side' }],
     }],
+  }, {
+    key: 'machine-upper-body',
+    name: 'Machine Upper Body',
+    recommended_weeks: 8,
+    training_days_per_week: 2,
+    format: 'A / B',
+    emphasis: 'A second program sharing the same authored exercise guidance.',
+    workouts: [{
+      key: 'machine-upper-body-a', name: 'Upper Body A', position: 1,
+      exercises: [{ key: 'machine-upper-body-a-chest-press', exercise: 'machine_chest_press',
+        position: 1, reps: { minimum: 8, maximum: 12 } }],
+    }],
   }],
 };
 
@@ -120,6 +132,7 @@ test('publisher preview and publish expose the reviewed program to authenticated
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.key, 'machine-full-body-a');
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.exercises[0]?.scope, 'each_side');
   assert.equal(delivered.catalog.exercises[0]?.stopping_guidance, source.exercises[0]?.stopping_guidance);
+  assert.deepEqual(delivered.catalog.programs.map(program => program.key), ['machine-full-body', 'machine-upper-body']);
 
   const repeated = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
     environment.CATALOG_PUBLISH_TOKEN, 'POST', publishBody), environment, database);
@@ -141,7 +154,7 @@ test('publisher preview and publish expose the reviewed program to authenticated
     active_user_program_id: '11111111-1111-4111-8111-111111111111', workout_program_id: 10 }]);
 });
 
-test('catalog preview rejects invalid input and stale review without changing the published snapshot', async () => {
+test('shared guidance edits preview every program and restoring an earlier source preserves training records', async () => {
   const userBearer = await userToken('follower');
   const invalid = structuredClone(source);
   invalid.programs[0]!.workouts[0]!.exercises[0]!.reps.minimum = 0;
@@ -156,12 +169,29 @@ test('catalog preview rejects invalid input and stale review without changing th
   const staleReview = await staleReviewResponse.json() as { preview_id: string; backend_fingerprint: string };
 
   const changed = structuredClone(source);
-  changed.programs[0]!.emphasis = 'Updated authored emphasis for the next publication.';
+  changed.exercises[0]!.name = 'Machine Chest Press Revised';
+  changed.exercises[0]!.instructions = 'Updated shared instructions for the next publication.';
+  changed.exercises[0]!.stopping_guidance = 'Stop at technical failure using the revised movement standard.';
+  changed.exercises[0]!.warmup_guidance = 'Use the revised warm-up sequence before the working set.';
+  changed.exercises[0]!.rest_seconds = 210;
+  changed.exercises[0]!.default_reps = { minimum: 8, maximum: 12 };
+  changed.programs[0]!.name = 'Machine Full Body Revised';
+  changed.programs[0]!.recommended_weeks = 10;
+  changed.programs[0]!.format = 'A / B / C (revised)';
+  changed.programs[0]!.emphasis = 'Updated presentation text for the next publication.';
+  changed.programs[0]!.workouts[0]!.name = 'Workout A Revised';
+  changed.programs[0]!.workouts[0]!.exercises[0]!.reps = { minimum: 8, maximum: 12 };
   const changedFingerprint = createHash('sha256').update(JSON.stringify(changed)).digest('hex');
   const reviewedResponse = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
     environment.CATALOG_PUBLISH_TOKEN, 'POST', { source: changed, source_fingerprint: changedFingerprint }), environment, database);
   assert.equal(reviewedResponse.status, 200);
-  const reviewed = await reviewedResponse.json() as { preview_id: string; backend_fingerprint: string };
+  const reviewed = await reviewedResponse.json() as {
+    preview_id: string; backend_fingerprint: string; affected_programs: string[];
+  };
+  const impact = reviewed;
+  assert.deepEqual(impact.affected_programs, [
+    'Machine Full Body Revised (machine-full-body)', 'Machine Upper Body (machine-upper-body)',
+  ]);
 
   const mismatch = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
     environment.CATALOG_PUBLISH_TOKEN, 'POST', {
@@ -183,8 +213,77 @@ test('catalog preview rejects invalid input and stale review without changing th
   assert.equal(stalePublish.status, 409);
 
   const catalogResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
-  const delivered = await catalogResponse.json() as { catalog: { programs: Array<{ emphasis: string }> } };
+  const delivered = await catalogResponse.json() as { catalog: {
+    programs: Array<{ key: string; name: string; recommended_weeks: number; format: string; emphasis: string;
+      workouts: Array<{ name: string; exercises: Array<{ reps: { minimum: number; maximum: number } }> }> }>;
+    exercises: Array<{ name: string; instructions: string; stopping_guidance: string; warmup_guidance: string;
+      rest_seconds: number; default_reps: { minimum: number; maximum: number } }>;
+  } };
+  assert.equal(delivered.catalog.exercises[0]?.instructions, changed.exercises[0]?.instructions);
+  assert.equal(delivered.catalog.exercises[0]?.name, changed.exercises[0]?.name);
+  assert.equal(delivered.catalog.exercises[0]?.stopping_guidance, changed.exercises[0]?.stopping_guidance);
+  assert.equal(delivered.catalog.exercises[0]?.warmup_guidance, changed.exercises[0]?.warmup_guidance);
+  assert.equal(delivered.catalog.exercises[0]?.rest_seconds, changed.exercises[0]?.rest_seconds);
+  assert.deepEqual(delivered.catalog.exercises[0]?.default_reps, changed.exercises[0]?.default_reps);
+  assert.equal(delivered.catalog.programs[0]?.name, changed.programs[0]?.name);
+  assert.equal(delivered.catalog.programs[0]?.recommended_weeks, changed.programs[0]?.recommended_weeks);
+  assert.equal(delivered.catalog.programs[0]?.format, changed.programs[0]?.format);
   assert.equal(delivered.catalog.programs[0]?.emphasis, changed.programs[0]?.emphasis);
+  assert.equal(delivered.catalog.programs[0]?.workouts[0]?.name, changed.programs[0]?.workouts[0]?.name);
+  assert.deepEqual(delivered.catalog.programs[0]?.workouts[0]?.exercises[0]?.reps,
+    changed.programs[0]?.workouts[0]?.exercises[0]?.reps);
+  assert.deepEqual(delivered.catalog.programs.map(program => program.key), ['machine-full-body', 'machine-upper-body']);
+
+  await database.query(`INSERT INTO workout_sessions (
+      id, user_program_id, workout_id, week_number, workout_name, started_at, completed_at
+    ) SELECT '22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111',
+      workouts.id, 1, 'Workout A at the time', now(), now()
+    FROM workouts WHERE authoring_key = 'machine-full-body-a'`);
+  await database.query(`INSERT INTO workout_session_sets (
+      workout_session_id, position, workout_exercise_id, exercise_id, prescription, weight, unit, reps, completed_at
+    ) SELECT '22222222-2222-4222-8222-222222222222', 1, slots.id, exercises.id,
+      '{"name":"Machine Chest Press","instructions":"Captured instructions before correction","reps_min":6,"reps_max":10}'::jsonb,
+      40, 'kg', 8, now()
+    FROM workout_exercises slots
+    JOIN workouts ON workouts.id = slots.workout_id
+    JOIN exercises ON exercises.id = slots.exercise_id
+    WHERE slots.authoring_key = 'machine-full-body-a-chest-press'`);
+  await database.query(`INSERT INTO completed_workouts (user_program_id, week_number, workout_id)
+    SELECT '11111111-1111-4111-8111-111111111111', 1, id FROM workouts WHERE authoring_key = 'machine-full-body-a'`);
+
+  const restoreFingerprint = createHash('sha256').update(JSON.stringify(source)).digest('hex');
+  const restorePreviewResponse = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source, source_fingerprint: restoreFingerprint }), environment, database);
+  assert.equal(restorePreviewResponse.status, 200);
+  const restorePreview = await restorePreviewResponse.json() as { preview_id: string; backend_fingerprint: string };
+  const restorePublish = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', {
+      source, source_fingerprint: restoreFingerprint, ...restorePreview,
+    }), environment, database);
+  assert.equal(restorePublish.status, 200);
+
+  const restoredCatalogResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
+  const restoredCatalog = await restoredCatalogResponse.json() as { catalog: { exercises: Array<{ instructions: string }> } };
+  assert.equal(restoredCatalog.catalog.exercises[0]?.instructions, source.exercises[0]?.instructions);
+  const preservedTraining = await database.query(`SELECT
+      programs.id AS program_id, sets.workout_exercise_id AS slot_id, sets.exercise_id,
+      users.preferred_unit, users.training_days,
+      sessions.completed_at IS NOT NULL AS session_completed, sessions.workout_name,
+      sets.prescription, sets.weight, sets.unit, sets.reps, marks.week_number
+    FROM workout_programs programs
+    JOIN user_programs cycles ON cycles.workout_program_id = programs.id
+    JOIN users ON users.id = cycles.user_id
+    JOIN workout_sessions sessions ON sessions.user_program_id = cycles.id
+    JOIN workout_session_sets sets ON sets.workout_session_id = sessions.id
+    JOIN completed_workouts marks ON marks.user_program_id = cycles.id
+    WHERE programs.authoring_key = 'machine-full-body'`);
+  assert.deepEqual(preservedTraining, [{
+    program_id: 10, slot_id: 1, exercise_id: 1, preferred_unit: 'kg', training_days: 3,
+    session_completed: true, workout_name: 'Workout A at the time',
+    prescription: { name: 'Machine Chest Press', instructions: 'Captured instructions before correction',
+      reps_min: 6, reps_max: 10 },
+    weight: '40.000', unit: 'kg', reps: 8, week_number: 1,
+  }]);
 });
 
 test('failed publication preserves the last complete catalog', async () => {
