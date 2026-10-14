@@ -11,6 +11,9 @@ Use a local macOS host with full Xcode and an installed iOS simulator runtime. S
 # Build and run the scheme's UI tests, plus simulator regression tests.
 ./scripts/validate.sh
 
+# Build and run the affected test for a localized iOS change.
+./scripts/validate.sh --focused OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome
+
 # Launch an existing preview route and save its screenshot.
 ./scripts/validate-ui.sh --ui-program-overview
 
@@ -22,7 +25,7 @@ ONESET_CONTENT_SIZE=accessibility-extra-extra-extra-large \
   ./scripts/validate-ui.sh --ui-program-overview
 ```
 
-The scripts can run from any working directory. Preview routes are defined in [AppLaunchConfiguration.swift](../OneSet/App/AppLaunchConfiguration.swift); unknown routes fail before building. Screenshots include the device family and requested content size in their filename.
+Choose full or focused validation using the [validation guidance](agents/validation.md). The scripts can run from any working directory. Preview routes are defined in [AppLaunchConfiguration.swift](../OneSet/App/AppLaunchConfiguration.swift); unknown routes fail before building. Screenshots include the device family and requested content size in their filename.
 
 | Optional variable | Behavior |
 | --- | --- |

@@ -65,6 +65,48 @@ class ValidationCommandsTests(unittest.TestCase):
         self.assertIn("existing route", result.stderr)
         self.assertNotIn("==> Xcode", result.stderr)
 
+    def test_focused_validation_requires_valid_selectors_before_xcode(self):
+        for arguments in (["--focused"], ["--focused", "OtherTarget/Test"], ["--unknown"]):
+            with self.subTest(arguments=arguments):
+                result = subprocess.run(["bash", str(ROOT / "scripts/validate.sh"), *arguments],
+                                        cwd="/tmp", capture_output=True, text=True, timeout=10)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("==> Xcode", result.stderr)
+
+    def test_validation_scope_forwards_filters_and_keeps_full_checks(self):
+        script = (ROOT / "scripts/validate.sh").read_text()
+        harness = script.replace('source "$(dirname "$0")/validation-common.sh"', '''
+oneset_toolchain() { :; }
+oneset_artifacts() { ONESET_ARTIFACTS_DIR="$ONESET_TEST_ARTIFACTS"; }
+oneset_with_simulator() { SIMULATOR_UDID=test-device; "$@"; }
+oneset_xcodebuild() { printf 'xcodebuild'; printf ' <%s>' "$@"; printf '\\n'; }
+python3() { echo python-checks; }
+npm() { echo "npm $*"; }
+''')
+        with tempfile.TemporaryDirectory() as path:
+            environment = os.environ.copy()
+            environment["ONESET_TEST_ARTIFACTS"] = path
+            selectors = ["OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome",
+                         "OneSetUITests/OnboardingJourneyTests/testContinueWithEmailSignsInAnExistingAccount"]
+            for arguments in ([], ["--focused", *selectors]):
+                with self.subTest(arguments=arguments):
+                    result = subprocess.run(["bash", "-c", harness, "validate.sh", *arguments],
+                                            env=environment, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn("<build>", result.stdout)
+                    self.assertIn("<test>", result.stdout)
+                    if arguments:
+                        for selector in selectors:
+                            self.assertIn(f"<-only-testing:{selector}>", result.stdout)
+                        self.assertIn("/build/focused/test-device>", result.stdout)
+                        self.assertNotIn("python-checks", result.stdout)
+                        self.assertNotIn("npm ", result.stdout)
+                    else:
+                        self.assertIn("python-checks", result.stdout)
+                        self.assertIn("npm --prefix worker run typecheck", result.stdout)
+                        self.assertIn("npm --prefix worker test", result.stdout)
+                        self.assertNotIn("-only-testing:", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

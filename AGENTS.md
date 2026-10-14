@@ -12,8 +12,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project OneSet.xcodeproj -scheme OneSet \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
-# Required before finishing tasks that change code; see validation guidance below.
+# Full validation; choose the scope using docs/agents/validation.md.
 ./scripts/validate.sh
+
+# Focused validation for a small iOS change.
+./scripts/validate.sh --focused OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome
 ```
 
 ## Task guidance
