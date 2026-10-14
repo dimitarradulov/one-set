@@ -25,7 +25,13 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
     guard response.statusCode == 200 else { throw ProgramCatalogServiceError.unavailable }
 
     let envelope = try JSONDecoder.catalogDecoder.decode(CatalogEnvelope.self, from: data)
-    guard let document = envelope.catalog else { return .notModified }
+    guard let document = envelope.catalog,
+          let publicationID = envelope.publicationId, !publicationID.isEmpty,
+          let entityTag = response.value(forHTTPHeaderField: "ETag"),
+          !entityTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !document.exercises.isEmpty, !document.programs.isEmpty else {
+      throw ProgramCatalogServiceError.invalidResponse
+    }
     let exerciseKeys = document.exercises.map(\.key)
     let programKeys = document.programs.map(\.key)
     let workoutKeys = document.programs.flatMap { $0.workouts.map(\.key) }
@@ -38,12 +44,11 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
     }
     let exercises = Dictionary(uniqueKeysWithValues: document.exercises.map { ($0.key, $0) })
     let programs = try document.programs.map { try $0.model(exercises: exercises) }
-    guard !programs.isEmpty,
-          let entityTag = response.value(forHTTPHeaderField: "ETag") else {
+    guard !programs.isEmpty else {
       throw ProgramCatalogServiceError.invalidResponse
     }
     return .snapshot(PublishedProgramCatalogSnapshot(
-      publicationID: envelope.publicationId, entityTag: entityTag, programs: programs
+      publicationID: publicationID, entityTag: entityTag, programs: programs
     ))
   }
 }
@@ -85,20 +90,27 @@ private struct CatalogProgramDocument: Decodable, Sendable {
   let workouts: [CatalogWorkoutDocument]
 
   func model(exercises: [String: CatalogExerciseDocument]) throws -> TrainingProgram {
-    guard !key.isEmpty, !name.isEmpty,
+    guard Self.isStableKey(key), !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
           recommendedWeeks > 0, (2...5).contains(trainingDaysPerWeek),
-          !format.isEmpty, !emphasis.isEmpty else {
+          !format.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !emphasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !workouts.isEmpty else {
       throw ProgramCatalogServiceError.invalidResponse
     }
     let visibleWorkouts = try workouts.filter { $0.removed != true }.map { workout in
-      guard !workout.key.isEmpty, !workout.name.isEmpty else {
+      guard Self.isStableKey(workout.key), !workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            !workout.exercises.isEmpty else {
         throw ProgramCatalogServiceError.invalidResponse
       }
       let slots = try workout.exercises.filter { $0.removed != true }.map { slot in
-        guard !slot.key.isEmpty, let exercise = exercises[slot.exercise],
-              !exercise.name.isEmpty, !exercise.instructions.isEmpty,
-              !exercise.stoppingGuidance.isEmpty, !exercise.warmupGuidance.isEmpty,
+        guard Self.isStableKey(slot.key), let exercise = exercises[slot.exercise],
+              Self.isStableKey(exercise.key),
+              !exercise.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !exercise.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !exercise.stoppingGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !exercise.warmupGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               exercise.restSeconds > 0,
+              exercise.videoKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != true,
               Self.valid(exercise.defaultReps), Self.valid(slot.reps) else {
           throw ProgramCatalogServiceError.invalidResponse
         }
@@ -142,6 +154,10 @@ private struct CatalogProgramDocument: Decodable, Sendable {
 
   private static func valid(_ range: CatalogRepRange) -> Bool {
     range.minimum > 0 && range.maximum >= range.minimum && range.maximum <= 100
+  }
+
+  private static func isStableKey(_ value: String) -> Bool {
+    !value.isEmpty && value.range(of: #"^[a-z0-9][a-z0-9_-]*$"#, options: .regularExpression) != nil
   }
 }
 
