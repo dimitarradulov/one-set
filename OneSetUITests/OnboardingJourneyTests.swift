@@ -462,12 +462,57 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(secondMovement.exists)
     XCTAssertLessThan(firstMovement.frame.minY, secondMovement.frame.minY)
 
+    let firstExercise = app.buttons["workoutPreview.exercise.full-body-workout-a-vertical-pull-upper-chest-weighted-chin-up.open"]
+    let previewRowPosition = firstExercise.frame.minY
+    firstExercise.tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["exerciseDetail.title"].label, "Weighted Chin-Up")
+    XCTAssertTrue(app.staticTexts["exerciseDetail.videoPlaceholder"].label.contains("Exercise video coming soon"))
+    XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'play'")).firstMatch.exists)
+    XCTAssertFalse(app.staticTexts["Workout A"].exists)
+    XCTAssertFalse(app.staticTexts["6–10 reps"].exists)
+
+    let techniqueDisclosure = app.buttons["exerciseDetail.techniqueDisclosure"]
+    XCTAssertTrue(techniqueDisclosure.waitForExistence(timeout: 3))
+    techniqueDisclosure.tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("controlled eccentric"))
+    app.buttons["exerciseDetail.warmupDisclosure"].tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.warmupGuidance"].waitForExistence(timeout: 3))
+
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(firstExercise.frame.minY, previewRowPosition, accuracy: 2)
+    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+
+    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.week.4"].isSelected)
     XCTAssertTrue(app.buttons["overview.day.1.preview"].exists)
     XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Not started"))
+  }
+
+  func testWorkoutPreviewOpensDifferentExerciseGuidanceWithoutStartingWorkout() {
+    relaunch(with: ["--ui-workout-preview"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let chestPress = app.buttons["workoutPreview.exercise.machine-full-body-workout-a-machine-chest-press.open"]
+    XCTAssertTrue(chestPress.waitForExistence(timeout: 3))
+    chestPress.tap()
+
+    XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["exerciseDetail.title"].label, "Machine Chest Press")
+    XCTAssertTrue(app.staticTexts["exerciseDetail.videoPlaceholder"].label.contains("Exercise video coming soon"))
+    app.buttons["exerciseDetail.techniqueDisclosure"].tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("handles start around mid-chest"))
+
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
   }
 
   func testCompletedAccountRestoresOverviewFromEmail() {

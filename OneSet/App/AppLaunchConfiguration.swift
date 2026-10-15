@@ -53,6 +53,22 @@ struct AppLaunchConfiguration {
         .programOverview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
+    } else if arguments.contains("--ui-exercise-detail") || arguments.contains("--ui-exercise-detail-expanded") {
+      onboardingPath = [
+        .preferences,
+        .programs,
+        .programDetail("machine-full-body"),
+        .trialPreview("machine-full-body"),
+        .programOverview("machine-full-body"),
+        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a"),
+        .exerciseDetail(
+          programID: "machine-full-body",
+          workoutID: "machine-full-body-workout-a",
+          exerciseID: "machine-full-body-workout-a-hack-squat-machine",
+          guidanceExpanded: arguments.contains("--ui-exercise-detail-expanded")
+        )
+      ]
+      selectedProgramID = "machine-full-body"
     } else if arguments.contains("--ui-workout-preview") {
       onboardingPath = [
         .preferences,
