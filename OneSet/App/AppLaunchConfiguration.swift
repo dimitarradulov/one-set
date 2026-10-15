@@ -53,7 +53,8 @@ struct AppLaunchConfiguration {
         .programOverview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
-    } else if arguments.contains("--ui-exercise-detail") || arguments.contains("--ui-exercise-detail-expanded") {
+    } else if arguments.contains("--ui-exercise-detail") || arguments.contains("--ui-exercise-detail-expanded")
+      || arguments.contains("--ui-exercise-history") {
       onboardingPath = [
         .preferences,
         .programs,
@@ -65,7 +66,8 @@ struct AppLaunchConfiguration {
           programID: "machine-full-body",
           workoutID: "machine-full-body-workout-a",
           exerciseID: "machine-full-body-workout-a-hack-squat-machine",
-          guidanceExpanded: arguments.contains("--ui-exercise-detail-expanded")
+          guidanceExpanded: arguments.contains("--ui-exercise-detail-expanded"),
+          initiallyShowingHistory: arguments.contains("--ui-exercise-history")
         )
       ]
       selectedProgramID = "machine-full-body"

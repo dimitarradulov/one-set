@@ -3,11 +3,12 @@ import SwiftUI
 struct ExerciseDetailScreen: View {
   let exercise: WorkoutExercise
   var initiallyExpanded = false
+  var initiallyShowingHistory = false
 
   @State private var guidanceExpanded: Bool
   @State private var warmupExpanded: Bool
 
-  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false) {
+  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false) {
     self.exercise = exercise
     self.initiallyExpanded = initiallyExpanded
     _guidanceExpanded = State(initialValue: initiallyExpanded)
@@ -76,6 +77,8 @@ struct ExerciseDetailScreen: View {
           RoundedRectangle(cornerRadius: 12)
             .strokeBorder(OneSetColors.border, lineWidth: 1)
         }
+
+        ExercisePerformanceSection(initiallyShowingHistory: initiallyShowingHistory)
       }
       .frame(maxWidth: 720, alignment: .leading)
       .padding(.horizontal, 20)
