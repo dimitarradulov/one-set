@@ -11,6 +11,7 @@ struct ExerciseDetailScreen: View {
   init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false) {
     self.exercise = exercise
     self.initiallyExpanded = initiallyExpanded
+    self.initiallyShowingHistory = initiallyShowingHistory
     _guidanceExpanded = State(initialValue: initiallyExpanded)
     _warmupExpanded = State(initialValue: false)
   }
