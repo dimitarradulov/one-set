@@ -22,6 +22,8 @@ _Avoid_: Calendar week
 **Workout template**: The ordered exercises and instructions prescribed for a workout day.
 _Avoid_: Session
 
+**Exercise**: A distinct movement in the curated catalog, shared across programs. Its recorded results belong to that movement; different variations have separate results.
+
 **Workout occurrence**: A particular workout day within a particular training week and cycle.
 
 **Session**: An actual attempt to perform a workout occurrence, including its recorded performance.

@@ -67,14 +67,8 @@ struct TrialPreviewScreen: View {
         }
         .scrollIndicators(.hidden)
 
-        Button("Continue with trial preview", action: onContinueWithoutTrial)
-          .font(OneSetTypography.button)
-          .frame(maxWidth: 560, minHeight: 52)
-          .accessibilityIdentifier("trial.continuePreview")
-          .padding(.horizontal, 20)
-
         Button(action: onContinueWithoutTrial) {
-          Text("Continue without trial")
+          Text("Continue with trial preview")
             .font(OneSetTypography.button)
             .foregroundStyle(Color.black)
             .frame(maxWidth: 560, minHeight: 52)
@@ -82,8 +76,15 @@ struct TrialPreviewScreen: View {
             .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("trial.continueWithoutTrial")
+        .accessibilityIdentifier("trial.continuePreview")
         .padding(.horizontal, 20)
+
+        Button("Continue without trial", action: onContinueWithoutTrial)
+          .font(OneSetTypography.button)
+          .foregroundStyle(OneSetColors.textSecondary)
+          .frame(maxWidth: 560, minHeight: 52)
+          .accessibilityIdentifier("trial.continueWithoutTrial")
+          .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, max(geometry.safeAreaInsets.bottom, 12))
         .frame(maxWidth: .infinity)

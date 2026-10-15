@@ -46,7 +46,7 @@ struct ProgramDetailScreen: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-              Text("Workout templates")
+              Text("Workout split")
                 .font(OneSetTypography.h2)
                 .foregroundStyle(OneSetColors.textPrimary)
                 .accessibilityAddTraits(.isHeader)

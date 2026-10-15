@@ -301,6 +301,21 @@ Show exercise order and rep targets first. Video availability, guidance, and war
 
 Primary action: `Start workout`.
 
+### Exercise detail
+
+Approved through the exercise-screen prototype: Variant C, with heaviest weight as the main statistic. [Issue #23](https://github.com/dimitarradulov/one-set/issues/23) tracks implementation and links the archived prototype variants and verdict.
+
+- Open by tapping an exercise in the workout preview. Standard back navigation returns to the same preview position; no next/previous exercise controls.
+- Show the exercise name, video area, expandable technique/stopping instructions and warmup guidance, then personal performance.
+- Omit the program/day subtitle and workout prescription block (working-set count, rep target, and rest summary). Rep targets remain in the workout preview.
+- Use `Records` and `History` tabs below the guidance. Records emphasizes **Heaviest weight** as the large primary value, with estimated one-rep max and the most recent result as smaller summaries. Include supporting reps/dates and clearly label the estimate. History shows dated past results, newest first, with program/workout context.
+- Personal performance combines the same exercise across programs; different exercise variations retain separate results. Use completed working sets from finished sessions, excluding drafts and warmups. Historical edits and deletions update the statistics.
+- Tapping a past result opens its session detail for review or correction. This screen provides guidance and performance review; logging stays in the session flow. Notes belong to completed sessions; there is no exercise notes section.
+- Until videos are supplied, show a static “Exercise video coming soon” placeholder without an inactive play button.
+- Until recorded results are available, show empty values and “No recorded sets yet.” Prototype sample results are fictional and must not appear as personal performance in the app. Charts remain deferred.
+
+The estimated-max calculation and eligibility rules remain to be specified before real statistics are implemented.
+
 ### Active workout
 
 This is the design system's most important pattern.
@@ -313,7 +328,7 @@ Each compact exercise row should contain:
 - weight input;
 - reps input;
 - explicit completion control;
-- expand/disclosure control for guidance, warmups, video, note, and replacement.
+- expand/disclosure control for guidance, warmups, video, and replacement.
 
 Recommended hierarchy inside a row:
 

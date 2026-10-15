@@ -17,7 +17,7 @@ Warmups are recommendations, not extra log entries. Users can replace an exercis
 
 ## Launch scope
 
-All ten gym-only programs in the [program library](docs/HIT_Workout_Program_Library.md) ship with a recommended eight training weeks; continuing afterward is allowed. Workout and exercise history, editable performance, exercise notes, optional session notes, and subscription management are included.
+All ten gym-only programs in the [program library](docs/HIT_Workout_Program_Library.md) ship with a recommended eight training weeks; continuing afterward is allowed. Workout and exercise history, editable performance, optional notes on completed sessions, and subscription management are included.
 
 Use one training device at a time; synced history can be restored on a replacement device. Current templates are editable and started/completed sessions keep their recorded content.
 

@@ -5,6 +5,11 @@ struct OnboardingFlowView: View {
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
 
+  #if DEBUG
+  var onDevelopmentSignIn: (() -> Void)?
+  var onDevelopmentSignOut: (() -> Void)?
+  #endif
+
   var body: some View {
     Group {
       switch model.setupResolution {
@@ -26,6 +31,13 @@ struct OnboardingFlowView: View {
       #endif
       await model.retryCompletedUploads(using: authentication)
     }
+    #if DEBUG
+    .onChange(of: authentication.signedInUser) { oldUser, newUser in
+      if oldUser != nil, newUser == nil {
+        onDevelopmentSignOut?()
+      }
+    }
+    #endif
     .onChange(of: scenePhase) { _, phase in
       if phase == .active {
         Task { await model.refreshCatalog() }
@@ -51,20 +63,28 @@ struct OnboardingFlowView: View {
     .preferredColorScheme(.dark)
   }
 
+  private var welcomeScreen: WelcomeScreen {
+    var screen = WelcomeScreen(
+      isAuthenticating: authentication.isWorking,
+      authenticationError: authentication.errorMessage,
+      onContinueWithApple: { Task { await authentication.signInWithApple() } },
+      onContinueWithGoogle: {
+        Task { await model.continueWithGoogle(using: authentication) }
+      },
+      onContinueWithEmail: {
+        authentication.begin()
+        model.showEmailAuthentication()
+      }
+    )
+    #if DEBUG
+    screen.onDevelopmentSignIn = onDevelopmentSignIn
+    #endif
+    return screen
+  }
+
   private var journey: some View {
     NavigationStack(path: $model.path) {
-      WelcomeScreen(
-        isAuthenticating: authentication.isWorking,
-        authenticationError: authentication.errorMessage,
-        onContinueWithApple: { Task { await authentication.signInWithApple() } },
-        onContinueWithGoogle: {
-          Task { await model.continueWithGoogle(using: authentication) }
-        },
-        onContinueWithEmail: {
-          authentication.begin()
-          model.showEmailAuthentication()
-        }
-      )
+      welcomeScreen
       .navigationTitle("Welcome")
       .toolbar(.hidden, for: .navigationBar)
       .navigationDestination(for: OnboardingRoute.self) { route in

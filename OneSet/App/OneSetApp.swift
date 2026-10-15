@@ -6,6 +6,10 @@ struct OneSetApp: App {
   @State private var onboarding: OnboardingModel
   @State private var authentication: AuthenticationModel
 
+  #if DEBUG
+  @State private var isDevelopmentSession = false
+  #endif
+
   init() {
     Clerk.configure(publishableKey: "pk_test_ZXhhY3QtbGlnZXItMzM1Ni5jbGVyay5hY2NvdW50cy5kZXYk")
 
@@ -26,9 +30,38 @@ struct OneSetApp: App {
     ))
   }
 
+  private var onboardingFlow: OnboardingFlowView {
+    var flow = OnboardingFlowView(model: onboarding, authentication: authentication)
+    #if DEBUG
+    flow.onDevelopmentSignIn = {
+      let dependencies = AppDependencies.development()
+      onboarding = OnboardingModel(
+        catalog: dependencies.catalog,
+        setupService: dependencies.accountSetup,
+        progressStore: dependencies.onboardingProgress
+      )
+      authentication = AuthenticationModel(service: dependencies.authentication)
+      isDevelopmentSession = true
+    }
+    flow.onDevelopmentSignOut = {
+      guard isDevelopmentSession else { return }
+      let dependencies = AppDependencies.live(arguments: ProcessInfo.processInfo.arguments)
+      onboarding = OnboardingModel(
+        catalog: dependencies.catalog,
+        setupService: dependencies.accountSetup,
+        progressStore: dependencies.onboardingProgress
+      )
+      authentication = AuthenticationModel(service: dependencies.authentication)
+      isDevelopmentSession = false
+    }
+    #endif
+    return flow
+  }
+
   var body: some Scene {
     WindowGroup {
-      OnboardingFlowView(model: onboarding, authentication: authentication)
+      onboardingFlow
+        .id(ObjectIdentifier(authentication))
         .tint(OneSetColors.accent)
         .environment(Clerk.shared)
         #if DEBUG

@@ -7,6 +7,10 @@ struct WelcomeScreen: View {
   let onContinueWithGoogle: () -> Void
   let onContinueWithEmail: () -> Void
 
+  #if DEBUG
+  var onDevelopmentSignIn: (() -> Void)?
+  #endif
+
   var body: some View {
     GeometryReader { geometry in
       ZStack {
@@ -77,6 +81,16 @@ struct WelcomeScreen: View {
                   showsDemo: false,
                   action: onContinueWithEmail
                 )
+                #if DEBUG
+                if let onDevelopmentSignIn {
+                  Button("Dev: sign in instantly", systemImage: "hammer", action: onDevelopmentSignIn)
+                    .font(OneSetTypography.caption)
+                    .foregroundStyle(.white)
+                    .frame(minHeight: 44)
+                    .accessibilityHint("Uses a local test account without connecting to providers or the server")
+                    .accessibilityIdentifier("continue.development")
+                }
+                #endif
               }
               .padding(.horizontal, 8)
               .disabled(isAuthenticating)

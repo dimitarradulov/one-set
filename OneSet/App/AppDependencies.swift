@@ -7,6 +7,19 @@ struct AppDependencies {
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
 
+  #if DEBUG
+  static func development() -> AppDependencies {
+    AppDependencies(
+      catalog: .bundled,
+      authentication: PreviewAuthenticationService(startsSignedIn: true),
+      onboardingProgress: FileOnboardingProgressStore(
+        fileURL: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+      ),
+      accountSetup: PreviewAccountSetupService()
+    )
+  }
+  #endif
+
   static func live(arguments: [String]) -> AppDependencies {
     let directory = URL.applicationSupportDirectory.appending(path: "Onboarding")
     #if DEBUG

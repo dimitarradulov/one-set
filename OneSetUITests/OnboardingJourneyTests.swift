@@ -14,6 +14,37 @@ final class OnboardingJourneyTests: XCTestCase {
     app.launch()
   }
 
+  func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
+    let shortcut = app.buttons["continue.development"]
+    XCTAssertTrue(shortcut.waitForExistence(timeout: 3))
+    shortcut.tap()
+    XCTAssertTrue(app.buttons["account.signOut"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.textFields["login.email"].exists)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["continue.development"].waitForExistence(timeout: 5))
+    // Returning to the original injected service must preserve its provider behavior.
+    app.buttons["continue.apple"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 5))
+    app.buttons["account.signOut"].tap()
+  }
+
+  func testDevelopmentSignInKeepsLocalProgressAcrossRelaunch() {
+    app.buttons["continue.development"].tap()
+    XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 5))
+    app.buttons["preferences.unit.lb"].tap()
+    app.buttons["preferences.days.5"].tap()
+    app.buttons["preferences.continue"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
+    relaunch(with: [])
+    app.buttons["continue.development"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
+    XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["continue.development"].waitForExistence(timeout: 5))
+  }
+
   func testAppleCancellationStaysOnWelcomeWithoutAnError() {
     relaunch(with: ["--ui-apple-cancel"])
     app.buttons["continue.apple"].tap()
@@ -386,7 +417,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["program.detail.format"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["program.detail.emphasis"].exists)
-    XCTAssertTrue(app.staticTexts["Workout templates"].exists)
+    XCTAssertTrue(app.staticTexts["Workout split"].exists)
     app.buttons["program.detail.select"].tap()
 
     XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))

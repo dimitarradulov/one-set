@@ -4,6 +4,12 @@ OneSet uses the native ClerkKit SDK for Apple, Google OAuth, and email-code sign
 
 The resolved `clerk-ios` 1.5.8 package supports iOS 17 and newer and requires Xcode 26 / Swift 6.2. OneSet's iOS target and current Xcode toolchain meet those requirements. The app links only the `ClerkKit` product, which provides the custom native flow.
 
+## Instant local sign-in
+
+In Debug builds, tap **Dev: sign in instantly** on Welcome to use a local test account. This skips all providers and uses the bundled catalog and simulated account setup, with progress stored separately from real accounts and automated preview data. It does not create a Clerk session or exercise backend authentication, sync, or subscriptions.
+
+After relaunching, tap the shortcut again to resume saved local onboarding. **Sign out** clears unfinished local progress and returns to the normal sign-in flow. The shortcut is excluded from Release builds.
+
 ## Development instance
 
 In the Clerk Dashboard, select the development instance and configure:
