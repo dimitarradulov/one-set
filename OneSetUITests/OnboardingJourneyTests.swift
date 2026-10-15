@@ -479,6 +479,36 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("controlled eccentric"))
     app.buttons["exerciseDetail.warmupDisclosure"].tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.warmupGuidance"].waitForExistence(timeout: 3))
+    app.scrollViews.firstMatch.swipeUp()
+
+    let recordsTab = app.buttons["exerciseDetail.recordsTab"]
+    let historyTab = app.buttons["exerciseDetail.historyTab"]
+    XCTAssertTrue(recordsTab.waitForExistence(timeout: 3))
+    XCTAssertTrue(recordsTab.isSelected)
+    XCTAssertFalse(historyTab.isSelected)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.performanceScope"].label.contains("Across programs"))
+    XCTAssertTrue(app.staticTexts["exerciseDetail.heaviestWeight"].exists)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.estimatedOneRepMax"].exists)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.mostRecentResult"].exists)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.noRecords"].label.contains("No recorded sets yet"))
+    XCTAssertTrue(app.staticTexts["exerciseDetail.noRecordsExplanation"].label.contains("after recording this exercise"))
+    XCTAssertEqual(app.staticTexts["exerciseDetail.heaviestWeightValue"].label, "—")
+    XCTAssertEqual(app.staticTexts["exerciseDetail.estimatedOneRepMaxValue"].label, "—")
+    XCTAssertEqual(app.staticTexts["exerciseDetail.mostRecentResultValue"].label, "—")
+    attachScreenshot(named: "exercise-records-performance")
+
+    historyTab.tap()
+    XCTAssertTrue(historyTab.isSelected)
+    XCTAssertFalse(recordsTab.isSelected)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.emptyHistory"].label.contains("No recorded sets yet"))
+    XCTAssertTrue(app.staticTexts["exerciseDetail.emptyHistoryExplanation"].label.contains("after recording this exercise"))
+    app.scrollViews.firstMatch.swipeUp()
+    XCTAssertFalse(app.staticTexts["101.3 kg"].exists)
+    attachScreenshot(named: "exercise-history-empty")
+
+    recordsTab.tap()
+    XCTAssertTrue(recordsTab.isSelected)
+    XCTAssertTrue(app.staticTexts["exerciseDetail.heaviestWeightValue"].exists)
 
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
@@ -493,6 +523,31 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["overview.day.1.preview"].exists)
     XCTAssertTrue(app.staticTexts["overview.selectedWeek"].label.contains("Week 4"))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Not started"))
+  }
+
+  func testExerciseDetailPerformanceSupportsAccessibilityDynamicType() {
+    app.terminate()
+    app.launchArguments = [
+      "--ui-exercise-detail",
+      "-UIPreferredContentSizeCategoryName",
+      "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"
+    ]
+    app.launch()
+
+    XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
+    app.scrollViews.firstMatch.swipeUp()
+    let recordsTab = app.buttons["exerciseDetail.recordsTab"]
+    XCTAssertTrue(recordsTab.waitForExistence(timeout: 3))
+    recordsTab.tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.estimatedOneRepMaxValue"].waitForExistence(timeout: 3))
+    attachScreenshot(named: "exercise-records-performance-accessibility")
+
+    app.buttons["exerciseDetail.historyTab"].tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.emptyHistory"].waitForExistence(timeout: 3))
+    for _ in 0..<3 {
+      app.scrollViews.firstMatch.swipeUp()
+    }
+    attachScreenshot(named: "exercise-history-empty-accessibility")
   }
 
   func testWorkoutPreviewOpensDifferentExerciseGuidanceWithoutStartingWorkout() {
@@ -825,6 +880,13 @@ final class OnboardingJourneyTests: XCTestCase {
     app.terminate()
     app.launchArguments = ["--ui-auth-test"] + additionalArguments
     app.launch()
+  }
+
+  private func attachScreenshot(named name: String) {
+    let attachment = XCTAttachment(screenshot: app.screenshot())
+    attachment.name = name
+    attachment.lifetime = .keepAlways
+    add(attachment)
   }
 
   private func firstProgramCardID() -> String? {

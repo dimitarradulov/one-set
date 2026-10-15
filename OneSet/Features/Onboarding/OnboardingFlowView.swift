@@ -173,13 +173,14 @@ struct OnboardingFlowView: View {
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
             }
-          case .exerciseDetail(let programID, let workoutID, let exerciseID, let guidanceExpanded):
+          case .exerciseDetail(let programID, let workoutID, let exerciseID, let guidanceExpanded, let initiallyShowingHistory):
             if let program = model.program(id: programID),
                let workout = program.workouts.first(where: { $0.id == workoutID }) {
               ExerciseDetailRouteView(
                 workout: workout,
                 exerciseID: exerciseID,
-                initiallyExpanded: guidanceExpanded
+                initiallyExpanded: guidanceExpanded,
+                initiallyShowingHistory: initiallyShowingHistory
               )
             } else {
               ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")

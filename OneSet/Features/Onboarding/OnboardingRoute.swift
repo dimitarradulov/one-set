@@ -5,6 +5,12 @@ enum OnboardingRoute: Hashable {
   case trialPreview(String)
   case programOverview(String)
   case workoutPreview(programID: String, workoutID: String)
-  case exerciseDetail(programID: String, workoutID: String, exerciseID: String, guidanceExpanded: Bool = false)
+  case exerciseDetail(
+    programID: String,
+    workoutID: String,
+    exerciseID: String,
+    guidanceExpanded: Bool = false,
+    initiallyShowingHistory: Bool = false
+  )
   case emailAuthentication
 }
