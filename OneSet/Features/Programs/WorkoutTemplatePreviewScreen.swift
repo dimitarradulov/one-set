@@ -47,7 +47,17 @@ struct WorkoutTemplatePreviewScreen: View {
             .accessibilityAddTraits(.isHeader)
 
           ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-            exerciseRow(exercise, order: index + 1)
+            NavigationLink(value: OnboardingRoute.exerciseDetail(
+              programID: program.id,
+              workoutID: workout.id,
+              exerciseID: exercise.id
+            )) {
+              exerciseRow(exercise, order: index + 1)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+            .accessibilityHint("Opens exercise instructions and warmup guidance.")
+            .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
           }
         }
 
@@ -96,6 +106,5 @@ struct WorkoutTemplatePreviewScreen: View {
         .accessibilityHidden(true)
     }
     .accessibilityElement(children: .contain)
-    .accessibilityIdentifier("workoutPreview.exercise.\(order)")
   }
 }
