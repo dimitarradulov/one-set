@@ -4,7 +4,6 @@ struct LoginScreen: View {
   @Bindable var model: AuthenticationModel
   var onContinueAfterAuthentication: (() -> Void)?
 
-  @Environment(\.dismiss) private var dismiss
   @FocusState private var focusedField: Field?
 
   private enum Field {
@@ -17,17 +16,7 @@ struct LoginScreen: View {
       if let user = model.signedInUser {
         signedInContent(user)
       } else {
-        if model.entryPoint == .logIn {
-          Button("Back to Welcome") {
-            model.cancel()
-            dismiss()
-          }
-          .font(OneSetTypography.label)
-          .foregroundStyle(OneSetColors.textPrimary)
-          .accessibilityIdentifier("login.backToWelcome")
-        }
-
-        Text(model.entryPoint.title)
+        Text("Continue with email")
           .font(OneSetTypography.h1)
           .foregroundStyle(OneSetColors.textPrimary)
           .accessibilityAddTraits(.isHeader)
@@ -63,9 +52,7 @@ struct LoginScreen: View {
 
   private var emailEntry: some View {
     VStack(alignment: .leading, spacing: 20) {
-      Text(model.entryPoint == .continueWithEmail
-        ? "Enter your email and we’ll send a verification code."
-        : "Enter your email and we’ll send a code to log in.")
+      Text("Enter your email and we’ll send a verification code.")
         .font(OneSetTypography.body)
         .foregroundStyle(OneSetColors.textSecondary)
         .fixedSize(horizontal: false, vertical: true)

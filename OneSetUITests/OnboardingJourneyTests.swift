@@ -17,7 +17,7 @@ final class OnboardingJourneyTests: XCTestCase {
   func testAppleCancellationStaysOnWelcomeWithoutAnError() {
     relaunch(with: ["--ui-apple-cancel"])
     app.buttons["continue.apple"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
     XCTAssertFalse(app.staticTexts["welcome.authError"].exists)
   }
@@ -28,7 +28,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
 
   func testAppleExistingAccountRestoresSetupAfterLookupRetry() {
@@ -67,7 +67,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep"])
     XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
     app.buttons["continue.apple"].tap()
@@ -83,7 +83,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
 
   func testGoogleExistingAccountRestoresSetupAfterLookupRetry() {
@@ -112,7 +112,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep"])
     XCTAssertTrue(app.buttons["continue.google"].waitForExistence(timeout: 3))
     app.buttons["continue.google"].tap()
@@ -125,7 +125,7 @@ final class OnboardingJourneyTests: XCTestCase {
   func testGoogleCancellationStaysOnWelcomeWithoutAnError() {
     relaunch(with: ["--ui-google-cancel"])
     app.buttons["continue.google"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
     XCTAssertFalse(app.staticTexts["welcome.authError"].exists)
   }
@@ -184,8 +184,8 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.secureTextFields.count, 0)
   }
 
-  func testLoginWithUnknownEmailRequiresExplicitAccountCreation() {
-    app.buttons["welcome.login"].tap()
+  func testEmailWithUnknownAccountRequiresExplicitAccountCreation() {
+    app.buttons["continue.email"].tap()
     app.textFields["login.email"].tap()
     app.textFields["login.email"].typeText("new@example.com")
     app.buttons["login.sendCode"].tap()
@@ -206,7 +206,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
   func testIncorrectCodeShowsErrorAndResendKeepsVerificationAvailable() {
     relaunch(with: ["--ui-auth-existing"])
-    app.buttons["welcome.login"].tap()
+    app.buttons["continue.email"].tap()
     app.textFields["login.email"].tap()
     app.textFields["login.email"].typeText("existing@example.com")
     app.buttons["login.sendCode"].tap()
@@ -230,7 +230,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
 
   func testAuthenticatedSessionRestoresAfterRelaunchWithoutCompletingOnboarding() {
@@ -251,20 +251,19 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
+    XCTAssertFalse(app.buttons["welcome.login"].exists)
+    XCTAssertFalse(app.staticTexts["Already have an account?"].exists)
     app.buttons["continue.email"].tap()
-    XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
-    XCTAssertFalse(app.buttons["login.backToWelcome"].exists)
-    app.navigationBars.buttons.firstMatch.tap()
-    app.buttons["welcome.login"].tap()
-
     XCTAssertTrue(app.staticTexts["login.title"].waitForExistence(timeout: 3))
-    XCTAssertEqual(app.staticTexts["login.title"].label, "Log in")
+    XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
     XCTAssertTrue(app.textFields["login.email"].exists)
     XCTAssertTrue(app.buttons["login.sendCode"].exists)
     XCTAssertEqual(app.secureTextFields.count, 0)
 
-    app.buttons["login.backToWelcome"].tap()
+    app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.google"].exists)
+    XCTAssertTrue(app.buttons["continue.email"].exists)
   }
 
   func testPreferencesRetainChoicesOnBackAndResetAfterRelaunch() {
@@ -471,17 +470,15 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Not started"))
   }
 
-  func testCompletedAccountRestoresOverviewFromBothEmailEntryPoints() {
-    for action in ["continue.email", "welcome.login"] {
-      relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
-      authenticateExistingEmail(using: action)
-      XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
-      XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
-      XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
-      XCTAssertFalse(app.staticTexts["preferences.title"].exists)
-      app.buttons["account.signOut"].tap()
-      XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
-    }
+  func testCompletedAccountRestoresOverviewFromEmail() {
+    relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
+    authenticateExistingEmail(using: "continue.email")
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
+    XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
+    XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
 
   func testFailedLookupRequiresRetryBeforeRestoringTheProgram() {
@@ -505,8 +502,8 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-delayed", "--ui-auth-existing"])
     XCTAssertTrue(app.descendants(matching: .any)["setup.loading"].waitForExistence(timeout: 3))
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
-    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
+    authenticateExistingEmail(using: "continue.email", email: "other@example.com")
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 12))
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.3"].isSelected)
@@ -526,7 +523,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     app.navigationBars.buttons.firstMatch.tap()
-    app.buttons["welcome.login"].tap()
+    app.buttons["continue.email"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
   }
@@ -587,10 +584,10 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
     app.alerts.buttons["Sign out and discard"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
 
     relaunch(with: ["--ui-auth-existing", "--ui-progress-keep"])
-    authenticateExistingEmail(using: "welcome.login")
+    authenticateExistingEmail(using: "continue.email")
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
     app.buttons["account.signOut"].tap()
@@ -623,7 +620,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["preferences.continue"].tap()
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
     relaunch(with: ["--ui-auth-existing", "--ui-progress-keep", "--ui-setup-offline"])
-    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    authenticateExistingEmail(using: "continue.email", email: "other@example.com")
     XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
     XCTAssertFalse(programCard("bro-split").exists)
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
@@ -658,7 +655,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["overview.title"].exists)
     app.buttons["account.signOut"].tap()
     app.alerts.buttons["Sign out and discard"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     relaunch(with: ["--ui-auth-restored", "--ui-progress-keep"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
   }
@@ -683,7 +680,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
     XCTAssertTrue(app.staticTexts["overview.preferences"].label.contains("lb"))
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.alerts["Discard setup awaiting upload?"].exists)
   }
 
@@ -697,7 +694,7 @@ final class OnboardingJourneyTests: XCTestCase {
     expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["setup.uploadStatus"])
     waitForExpectations(timeout: 5)
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.alerts["Discard setup awaiting upload?"].exists)
   }
 
@@ -717,8 +714,8 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
     app.alerts.buttons["Sign out and discard"].tap()
-    XCTAssertTrue(app.buttons["welcome.login"].waitForExistence(timeout: 3))
-    authenticateExistingEmail(using: "welcome.login", email: "other@example.com")
+    XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
+    authenticateExistingEmail(using: "continue.email", email: "other@example.com")
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     let changedAccount = expectation(for: NSPredicate(format: "exists == false"),
                                     evaluatedWith: app.staticTexts["preferences.title"])

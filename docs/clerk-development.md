@@ -19,7 +19,7 @@ The current development instance reports Native API enabled, email verification 
 ## Verify the email sign-in round trip
 
 1. Run OneSet on an iOS simulator or device.
-2. Select **Log in**, enter an email belonging to a user in the selected Clerk development instance, and select **Send code**. For a new account, select **Continue with email**, submit an unregistered email, then explicitly choose **Create an account**.
+2. Select **Continue with email**, enter an email belonging to a user in the selected Clerk development instance, and select **Send code**. For a new account, select **Continue with email**, submit an unregistered email, then explicitly choose **Create an account**.
 3. Retrieve the email code, enter it, and select **Verify code**.
 4. Confirm the signed-in account appears. Force-quit and relaunch the app to confirm Clerk restores the session.
 5. Select **Sign out** and confirm the app returns to the email-code form.

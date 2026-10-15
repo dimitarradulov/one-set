@@ -6,7 +6,7 @@ The initial audience already knows basic gym movements. OneSet supplies curated 
 
 ## The experience
 
-1. Create an account with Apple, Google, or email from the welcome screen, or log in to an existing account.
+1. Continue with Apple, Google, or email from the welcome screen to create an account or sign in.
 2. Choose kg/lb and training frequency, then select one of ten programs.
 3. Start a seven-day trial; intended price afterward is $4.89/month, subject to actual storefront pricing.
 4. Open the program overview, organized by training week and Day 1/Day 2 rather than weekdays.

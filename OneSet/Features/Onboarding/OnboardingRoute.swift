@@ -6,5 +6,4 @@ enum OnboardingRoute: Hashable {
   case programOverview(String)
   case workoutPreview(programID: String, workoutID: String)
   case emailAuthentication
-  case login
 }

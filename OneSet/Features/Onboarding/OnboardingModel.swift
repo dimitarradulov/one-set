@@ -188,17 +188,9 @@ final class OnboardingModel {
     }
   }
 
-  func showLogin() {
-    showAccountEntry(.login)
-  }
-
   func showEmailAuthentication() {
-    showAccountEntry(.emailAuthentication)
-  }
-
-  private func showAccountEntry(_ route: OnboardingRoute) {
     guard resolvedAccountID != nil else {
-      path.append(route)
+      path.append(.emailAuthentication)
       return
     }
     if let selectedProgramID, hasCompletedSetup {

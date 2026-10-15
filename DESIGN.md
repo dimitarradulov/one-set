@@ -377,7 +377,7 @@ Do not preselect the broader persistent option in a way that can silently change
 
 Use focused sequential screens with a visible but quiet progress indicator.
 
-Welcome combines the product introduction with Continue with Apple, Continue with Google, and Continue with email actions. Place Log in below them for returning users. The Continue with actions lead directly to training preferences; there is no separate account-choice screen.
+Welcome combines the product introduction with Continue with Apple, Continue with Google, and Continue with email actions. These actions serve both new and returning users. After authentication, restore existing account state or open training preferences for a new account; there is no separate account-choice screen.
 
 Visual hierarchy per step:
 

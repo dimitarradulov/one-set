@@ -6,7 +6,6 @@ struct WelcomeScreen: View {
   let onContinueWithApple: () -> Void
   let onContinueWithGoogle: () -> Void
   let onContinueWithEmail: () -> Void
-  let onLogIn: () -> Void
 
   var body: some View {
     GeometryReader { geometry in
@@ -94,20 +93,6 @@ struct WelcomeScreen: View {
                   .multilineTextAlignment(.center)
                   .accessibilityIdentifier("welcome.authError")
               }
-
-              HStack(spacing: 5) {
-                Text("Already have an account?")
-                  .foregroundStyle(.white.opacity(0.85))
-                Button("Log in", action: onLogIn)
-                  .disabled(isAuthenticating)
-                  .font(OneSetTypography.label)
-                  .foregroundStyle(OneSetColors.accent)
-                  .underline()
-                  .frame(minWidth: 44, minHeight: 44)
-                  .accessibilityIdentifier("welcome.login")
-              }
-              .font(OneSetTypography.caption)
-
             }
           }
           .frame(maxWidth: 500, minHeight: geometry.size.height)

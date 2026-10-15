@@ -22,8 +22,7 @@ struct OneSetApp: App {
     model.trainingDays = launch.trainingDays
     _onboarding = State(initialValue: model)
     _authentication = State(initialValue: AuthenticationModel(
-      service: dependencies.authentication,
-      entryPoint: launch.authenticationEntryPoint ?? .logIn
+      service: dependencies.authentication
     ))
   }
 

@@ -4,18 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class AuthenticationModel {
-  enum EntryPoint: Equatable {
-    case continueWithEmail
-    case logIn
-
-    var title: String {
-      switch self {
-      case .continueWithEmail: "Continue with email"
-      case .logIn: "Log in"
-      }
-    }
-  }
-
   enum Step: Equatable {
     case email
     case accountCreationOffer
@@ -24,7 +12,6 @@ final class AuthenticationModel {
 
   var emailAddress = ""
   var verificationCode = ""
-  private(set) var entryPoint: EntryPoint
   private(set) var step: Step = .email
   private(set) var isWorking = false
   private(set) var errorMessage: String?
@@ -35,9 +22,8 @@ final class AuthenticationModel {
 
   var signedInUser: AuthenticatedUser? { service.signedInUser }
 
-  init(service: any AuthenticationService, entryPoint: EntryPoint = .logIn) {
+  init(service: any AuthenticationService) {
     self.service = service
-    self.entryPoint = entryPoint
   }
 
   func signInWithApple() async {
@@ -71,9 +57,8 @@ final class AuthenticationModel {
     }
   }
 
-  func begin(_ entryPoint: EntryPoint) {
+  func begin() {
     service.cancelPendingEmailFlow()
-    self.entryPoint = entryPoint
     emailAddress = ""
     verificationCode = ""
     step = .email

@@ -61,12 +61,8 @@ struct OnboardingFlowView: View {
           Task { await model.continueWithGoogle(using: authentication) }
         },
         onContinueWithEmail: {
-          authentication.begin(.continueWithEmail)
+          authentication.begin()
           model.showEmailAuthentication()
-        },
-        onLogIn: {
-          authentication.begin(.logIn)
-          model.showLogin()
         }
       )
       .navigationTitle("Welcome")
@@ -177,9 +173,6 @@ struct OnboardingFlowView: View {
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
             }
-          case .login:
-            LoginScreen(model: authentication)
-              .toolbar(.hidden, for: .navigationBar)
           case .emailAuthentication:
             LoginScreen(model: authentication)
             .toolbar(.hidden, for: .navigationBar)
