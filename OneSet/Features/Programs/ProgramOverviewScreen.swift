@@ -143,7 +143,7 @@ struct ProgramOverviewScreen: View {
             .font(OneSetTypography.caption)
             .foregroundStyle(OneSetColors.textSecondary)
 
-          Label("Preview workout template", systemImage: "arrow.right")
+          Label("View workout", systemImage: "arrow.right")
             .font(OneSetTypography.label)
             .foregroundStyle(OneSetColors.textPrimary)
             .labelStyle(.titleAndIcon)
@@ -161,8 +161,8 @@ struct ProgramOverviewScreen: View {
       .contentShape(RoundedRectangle(cornerRadius: 12))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("Preview Day \(day), \(workout.name), \(workout.movements.count) exercises, Not started")
-    .accessibilityHint("Shows the exercise order and rep targets in a read-only preview.")
+    .accessibilityLabel("View workout, Day \(day), \(workout.name), \(workout.movements.count) exercises, Not started")
+    .accessibilityHint("Shows the exercises and rep targets without starting a workout.")
     .accessibilityIdentifier("overview.day.\(day).preview")
   }
 }
