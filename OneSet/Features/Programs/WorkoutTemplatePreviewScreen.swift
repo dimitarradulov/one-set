@@ -61,10 +61,10 @@ struct WorkoutTemplatePreviewScreen: View {
           }
         }
 
-        Text(isDetailPresented ? "Opening \(selectedExerciseID ?? "exercise")" : "No workout has started.")
+        Text("No workout has started.")
           .font(OneSetTypography.body)
           .foregroundStyle(OneSetColors.textSecondary)
-          .accessibilityIdentifier(isDetailPresented ? "workoutPreview.openingExercise" : "workoutPreview.notStarted")
+          .accessibilityIdentifier("workoutPreview.notStarted")
       }
       .frame(maxWidth: 720, alignment: .leading)
       .padding(.horizontal, 20)
