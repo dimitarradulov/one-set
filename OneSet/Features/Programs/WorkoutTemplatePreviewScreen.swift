@@ -74,6 +74,25 @@ struct WorkoutTemplatePreviewScreen: View {
     }
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      Button {
+        // Session creation and navigation will be wired in a later step.
+      } label: {
+        Text("Start workout")
+          .font(OneSetTypography.button)
+          .foregroundStyle(Color.black)
+          .frame(maxWidth: .infinity, minHeight: 52)
+          .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+          .contentShape(RoundedRectangle(cornerRadius: 12))
+      }
+      .buttonStyle(.plain)
+      .accessibilityIdentifier("workoutPreview.start")
+      .frame(maxWidth: 720)
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
+      .frame(maxWidth: .infinity)
+      .background(OneSetColors.background)
+    }
   }
 
   private func exerciseRow(_ exercise: WorkoutExercise, order: Int) -> some View {

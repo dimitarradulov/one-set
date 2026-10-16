@@ -435,7 +435,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.name"].label, "Hack Squat Machine")
     XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.reps"].label, "6–10 reps")
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
-    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     app.terminate()
@@ -482,7 +482,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["workoutPreview.program"].label.contains("Full Body"))
     XCTAssertTrue(app.staticTexts["workoutPreview.readOnly"].label.contains("Read-only"))
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
-    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
     let firstMovement = app.staticTexts["workoutPreview.exercise.1.name"]
     let secondMovement = app.staticTexts["workoutPreview.exercise.2.name"]
     XCTAssertTrue(firstMovement.waitForExistence(timeout: 3))
@@ -546,7 +546,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(firstExercise.frame.minY, previewRowPosition, accuracy: 2)
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
 
-    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
 
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
@@ -598,7 +598,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
-    XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Start workout'")).count, 0)
+    XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
   }
 
   func testCompletedAccountRestoresOverviewFromEmail() {

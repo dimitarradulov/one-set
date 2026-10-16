@@ -299,7 +299,7 @@ Workout card content should prioritize: day/workout name â†’ completion state â†
 
 Show exercise order and rep targets first. Video availability, guidance, and warmups are supporting information. **Preview must look distinct from an active workout** so users do not mistake browsing for recording.
 
-Primary action: `Start workout`.
+Primary action: `Start workout`, shown as a full-width button pinned above the bottom safe area while preview content scrolls.
 
 ### Exercise detail
 
