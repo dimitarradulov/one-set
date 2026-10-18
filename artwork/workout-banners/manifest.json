@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "generated_on": "2026-10-18",
+  "issue": "https://github.com/dimitarradulov/one-set/issues/28",
+  "banner_dimensions_px": [
+    1179,
+    852
+  ],
+  "display_reference_pt": [
+    393,
+    284
+  ],
+  "processing": {
+    "tool": "Pillow",
+    "version": "11.3.0",
+    "resize_filter": "LANCZOS",
+    "format": "JPEG",
+    "quality": 86,
+    "subsampling": 2,
+    "optimize": true,
+    "progressive": true,
+    "color_profile": "sRGB",
+    "embedded_text_or_fade": false
+  },
+  "crop_convention": "Source pixel bounds [left, top, right, bottom]; float coordinates; origin at top left. Cover-fit at 393:284; CSS object-position fractions shown per source.",
+  "images": [
+    {
+      "theme": "general-gym",
+      "label": "General gym",
+      "source": "sources/general-gym.png",
+      "banner": "banners/general-gym.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        273.2834507042254,
+        0,
+        1500.7165492957747,
+        887
+      ],
+      "source_object_position": [
+        0.5,
+        0.48
+      ],
+      "source_bytes": 2263113,
+      "banner_bytes": 169754,
+      "source_sha256": "14abc8979fa366ad43ad4e344383ecee12001084549e2675568a7f4a17cd7d0c",
+      "banner_sha256": "890ef76967fa9fb518dc2613ac4f42a85abd9cc92b33b94f6f31adbd68b93895"
+    },
+    {
+      "theme": "upper-body",
+      "label": "Upper body",
+      "source": "sources/upper-body.png",
+      "banner": "banners/upper-body.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        327.94014084507046,
+        0,
+        1555.3732394366198,
+        887
+      ],
+      "source_object_position": [
+        0.6,
+        0.48
+      ],
+      "source_bytes": 1977652,
+      "banner_bytes": 117799,
+      "source_sha256": "03f3e31b046a0080bdf46ed4f266d21f59584c119cb0cae001deedbebbd3301f",
+      "banner_sha256": "608cf4c58d10d5846520e54ac2d36205b29d351db99f3a9dc362e53dd1e7cda0"
+    },
+    {
+      "theme": "lower-body",
+      "label": "Lower body",
+      "source": "sources/lower-body.png",
+      "banner": "banners/lower-body.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        327.94014084507046,
+        0,
+        1555.3732394366198,
+        887
+      ],
+      "source_object_position": [
+        0.6,
+        0.48
+      ],
+      "source_bytes": 2066129,
+      "banner_bytes": 123859,
+      "source_sha256": "880942c3c7ecca8470bc8c65e3606961c8f6f371f090990bfc5b98cdfea456cf",
+      "banner_sha256": "6529c0d1ad499ceba109a9e39546c2563ed5d6358bb40a8cf50ddb6016dbb0f1"
+    },
+    {
+      "theme": "chest-push",
+      "label": "Chest / Push",
+      "source": "sources/chest-push.png",
+      "banner": "banners/chest-push.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        355.26848591549305,
+        0,
+        1582.7015845070423,
+        887
+      ],
+      "source_object_position": [
+        0.65,
+        0.48
+      ],
+      "source_bytes": 2011779,
+      "banner_bytes": 126659,
+      "source_sha256": "f530f79139ebfb68e2a720c292ac4144ad931c7634b452de5be91b593c7382f8",
+      "banner_sha256": "b2355ceebf7dee2c4d2d04ce588185eebf235e8f465122980ba20ff3a4c8bae0"
+    },
+    {
+      "theme": "back-pull",
+      "label": "Back / Pull",
+      "source": "sources/back-pull.png",
+      "banner": "banners/back-pull.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        262.3521126760564,
+        0,
+        1489.7852112676055,
+        887
+      ],
+      "source_object_position": [
+        0.48,
+        0.48
+      ],
+      "source_bytes": 2146443,
+      "banner_bytes": 144030,
+      "source_sha256": "57a31daf873348a847cee8e2d43ee2436220b06c6816d09f0fd533f0908b8654",
+      "banner_sha256": "b8b061a0a054e64a700b3295181f53dd56e27dcc02dff77a090f5be507e74630"
+    },
+    {
+      "theme": "shoulders",
+      "label": "Shoulders",
+      "source": "sources/shoulders.png",
+      "banner": "banners/shoulders.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        355.26848591549305,
+        0,
+        1582.7015845070423,
+        887
+      ],
+      "source_object_position": [
+        0.65,
+        0.48
+      ],
+      "source_bytes": 1997489,
+      "banner_bytes": 124481,
+      "source_sha256": "8105a13e6b6428c970cf8c52d7cf29a6c2cbe6871892c935df3cf86f9099fd74",
+      "banner_sha256": "513f5e59e77bdbfbb6c0477ba3081b9160eae8a0f471831dcebbf0b6efece8b5"
+    },
+    {
+      "theme": "arms",
+      "label": "Arms",
+      "source": "sources/arms.png",
+      "banner": "banners/arms.jpg",
+      "source_dimensions_px": [
+        1774,
+        887
+      ],
+      "source_crop_bounds_px": [
+        327.94014084507046,
+        0,
+        1555.3732394366198,
+        887
+      ],
+      "source_object_position": [
+        0.6,
+        0.48
+      ],
+      "source_bytes": 1839964,
+      "banner_bytes": 104250,
+      "source_sha256": "d8d475f21cf3d0a3a4592637b633896025d57425abb56d1fad19f775cfc507f9",
+      "banner_sha256": "1cbcc86d8fcf5acfc784f749e576c964e85a09f9dff08529ff5d42c3003b0f6f"
+    }
+  ],
+  "total_banner_bytes": 910832,
+  "total_source_bytes": 14302569
+}
