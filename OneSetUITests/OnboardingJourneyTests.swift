@@ -618,6 +618,45 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["workoutPreview.summary"].label, "6 exercises · 1 working set each")
   }
 
+  func testWorkoutBannerScreenshotsShowSharedAndDifferentFocusArtwork() {
+    relaunch(with: ["--ui-workout-banner-lower-body"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let lowerA = renderedBannerArtwork(named: "banner-lower-a")
+
+    relaunch(with: ["--ui-workout-banner-lower-body-shared"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let lowerB = renderedBannerArtwork(named: "banner-lower-b")
+    XCTAssertEqual(lowerA, lowerB, "Related lower-body templates should render the same banner artwork.")
+
+    relaunch(with: ["--ui-workout-banner-upper-body"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let upper = renderedBannerArtwork(named: "banner-upper-body")
+    XCTAssertNotEqual(lowerA, upper, "A different focus should render different banner pixels.")
+  }
+
+  func testWorkoutBannerMissingAndUnknownAssignmentsRenderGeneralGymFallback() {
+    relaunch(with: ["--ui-workout-banner-fallback"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let unknown = renderedBannerArtwork(named: "banner-unknown-assignment")
+
+    relaunch(with: ["--ui-workout-banner-legacy"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    let missing = renderedBannerArtwork(named: "banner-missing-assignment")
+    XCTAssertEqual(unknown, missing, "Unknown and omitted assignments should render identical fallback pixels.")
+  }
+
+  func testPublishedWorkoutBannerIsAvailableAfterOfflineRelaunch() {
+    relaunch(with: ["--ui-catalog-seed", "--ui-workout-banner-offline"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 5))
+    let published = renderedBannerArtwork(named: "banner-published-before-offline-relaunch")
+
+    relaunch(with: ["--ui-catalog-offline", "--ui-workout-banner-offline"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 5))
+    let restored = renderedBannerArtwork(named: "banner-published-after-offline-relaunch")
+    XCTAssertEqual(published, restored, "The published banner should render from the persisted offline catalog.")
+    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+  }
+
   func testCompletedAccountRestoresOverviewFromEmail() {
     relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
     authenticateExistingEmail(using: "continue.email")
@@ -935,6 +974,31 @@ final class OnboardingJourneyTests: XCTestCase {
     attachment.name = name
     attachment.lifetime = .keepAlways
     add(attachment)
+  }
+
+  private func renderedBannerArtwork(named name: String) -> Data? {
+    let banner = app.descendants(matching: .any).matching(identifier: "workoutPreview.banner").firstMatch
+    XCTAssertTrue(banner.waitForExistence(timeout: 3))
+    attachScreenshot(named: name)
+
+    guard let screenshot = app.screenshot().image.cgImage else {
+      XCTFail("Expected a rendered simulator screenshot.")
+      return nil
+    }
+    let scale = CGFloat(screenshot.width) / app.frame.width
+    let frame = banner.frame
+    let photoStripHeight = frame.height * 0.12 * scale
+    let artworkCrop = CGRect(
+      x: frame.minX * scale,
+      y: (frame.minY + frame.height * 0.12) * scale,
+      width: frame.width * scale,
+      height: photoStripHeight
+    ).integral
+    guard let crop = screenshot.cropping(to: artworkCrop) else {
+      XCTFail("Expected the banner artwork region to be inside the screenshot.")
+      return nil
+    }
+    return UIImage(cgImage: crop).pngData()
   }
 
   private func firstProgramCardID() -> String? {
