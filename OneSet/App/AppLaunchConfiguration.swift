@@ -71,6 +71,16 @@ struct AppLaunchConfiguration {
         )
       ]
       selectedProgramID = "machine-full-body"
+    } else if arguments.contains("--ui-workout-preview-minimalist") {
+      onboardingPath = [
+        .preferences,
+        .programs,
+        .programDetail("minimalist-full-body"),
+        .trialPreview("minimalist-full-body"),
+        .programOverview("minimalist-full-body"),
+        .workoutPreview(programID: "minimalist-full-body", workoutID: "minimalist-full-body-workout-a")
+      ]
+      selectedProgramID = "minimalist-full-body"
     } else if arguments.contains("--ui-workout-preview") {
       onboardingPath = [
         .preferences,
