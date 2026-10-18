@@ -1,13 +1,15 @@
 import SwiftUI
 
 struct WorkoutTemplatePreviewScreen: View {
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
   let program: TrainingProgram
   let workout: WorkoutTemplate
   let day: Int
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 24) {
+      VStack(alignment: .leading, spacing: 20) {
         VStack(alignment: .leading, spacing: 8) {
           Text("Day \(day)")
             .font(OneSetTypography.label)
@@ -27,24 +29,34 @@ struct WorkoutTemplatePreviewScreen: View {
             .accessibilityIdentifier("workoutPreview.program")
         }
 
-        Label("Read-only template preview", systemImage: "doc.text.magnifyingglass")
-          .font(OneSetTypography.bodyStrong)
-          .foregroundStyle(OneSetColors.textPrimary)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(16)
-          .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
-          .overlay {
-            RoundedRectangle(cornerRadius: 12)
-              .strokeBorder(OneSetColors.border, lineWidth: 1)
+        VStack(alignment: .leading, spacing: 8) {
+          Label {
+            Text("\(workout.exercises.count) exercises · 1 working set each")
+          } icon: {
+            Image(systemName: "list.number")
+              .accessibilityHidden(true)
           }
-          .accessibilityLabel("Read-only template preview. No workout has started.")
-          .accessibilityIdentifier("workoutPreview.readOnly")
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textPrimary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("workoutPreview.summary")
+
+          Label("Read-only template preview", systemImage: "doc.text.magnifyingglass")
+            .font(OneSetTypography.label)
+            .foregroundStyle(OneSetColors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay {
+              RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(OneSetColors.border, lineWidth: 1)
+            }
+            .accessibilityLabel("Read-only template preview. No workout has started.")
+            .accessibilityIdentifier("workoutPreview.readOnly")
+        }
 
         VStack(alignment: .leading, spacing: 12) {
-          Text("Exercise order and rep targets")
-            .font(OneSetTypography.h2)
-            .foregroundStyle(OneSetColors.textPrimary)
-            .accessibilityAddTraits(.isHeader)
+          sectionHeading
 
           ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
             NavigationLink(value: OnboardingRoute.exerciseDetail(
@@ -95,6 +107,42 @@ struct WorkoutTemplatePreviewScreen: View {
     }
   }
 
+  private var sectionHeading: some View {
+    Group {
+      if dynamicTypeSize.isAccessibilitySize {
+        VStack(alignment: .leading, spacing: 2) {
+          exerciseOrderHeading
+          repTargetsHeading
+        }
+      } else {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          exerciseOrderHeading
+          Spacer(minLength: 4)
+          repTargetsHeading
+            .multilineTextAlignment(.trailing)
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var exerciseOrderHeading: some View {
+    Text("Exercise order")
+      .font(OneSetTypography.h2)
+      .foregroundStyle(OneSetColors.textPrimary)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityAddTraits(.isHeader)
+      .accessibilityIdentifier("workoutPreview.exerciseOrderHeading")
+  }
+
+  private var repTargetsHeading: some View {
+    Text("Rep targets")
+      .font(OneSetTypography.caption)
+      .foregroundStyle(OneSetColors.textSecondary)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityIdentifier("workoutPreview.repTargetsHeading")
+  }
+
   private func exerciseRow(_ exercise: WorkoutExercise, order: Int) -> some View {
     HStack(alignment: .top, spacing: 12) {
       Text(String(format: "%02d", order))
@@ -115,6 +163,12 @@ struct WorkoutTemplatePreviewScreen: View {
           .accessibilityIdentifier("workoutPreview.exercise.\(order).reps")
       }
       .frame(maxWidth: .infinity, alignment: .leading)
+
+      Image(systemName: "chevron.right")
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(OneSetColors.textSecondary)
+        .frame(minWidth: 44, minHeight: 44, alignment: .center)
+        .accessibilityHidden(true)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.vertical, 12)
