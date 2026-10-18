@@ -23,7 +23,9 @@ Real catalog fixtures come from `worker/catalog/programs/10-machine-full-body.ya
 
 Browser blur and vector symbols approximate native iOS controls. They are not evidence of the final Liquid Glass rendering; the production implementation must use standard SwiftUI navigation and tab controls. The preview is restricted to local hosts and is not part of production navigation.
 
-Verdict: pending user review. No layout has been selected for implementation.
+Verdict: the user selected **Variant A — grouped Settings sections** after reviewing the prototype. Training contains Units, Training frequency, and Rest alerts; Downloads contains Downloaded videos; Account contains Subscription, Account deletion, and Sign out. Headings group directly reachable rows without adding navigation depth. Variants B and C remain archived alternatives and are not selected for implementation. The selection settles the Settings hierarchy within the previously agreed Program + History navigation.
+
+[Issue #31](https://github.com/dimitarradulov/one-set/issues/31) records the implementation spec. Preserve this throwaway prototype on its branch; implement the selected behavior using native SwiftUI controls rather than promoting the browser demo into the app.
 
 Browser previews: [A](screenshots/settings-a.png), [B](screenshots/settings-b.png), [C](screenshots/settings-c.png).
 
