@@ -5,6 +5,67 @@ import Testing
 @MainActor
 struct ProgramCatalogOnboardingTests {
   @Test
+  func legacyWorkoutAndUnknownBannerRemainUsableAndResolveToGeneralGym() throws {
+    let decoder = JSONDecoder()
+    let legacy = try decoder.decode(
+      WorkoutTemplate.self,
+      from: Data(#"{"id":"legacy","name":"Legacy workout","exercises":[]}"#.utf8)
+    )
+    #expect(legacy.banner == nil)
+    #expect(WorkoutBannerAsset.assetName(for: legacy.banner) == "WorkoutBannerGeneralGym")
+
+    let newer = try decoder.decode(
+      WorkoutTemplate.self,
+      from: Data(#"{"id":"newer","name":"New workout","banner":"future-theme","exercises":[]}"#.utf8)
+    )
+    #expect(newer.banner == "future-theme")
+    #expect(WorkoutBannerAsset.assetName(for: newer.banner) == "WorkoutBannerGeneralGym")
+    let themes = [
+      "general-gym", "upper-body", "lower-body", "chest-push", "back-pull", "shoulders", "arms"
+    ]
+    #expect(themes.map { WorkoutBannerAsset.assetName(for: $0) } == [
+      "WorkoutBannerGeneralGym", "WorkoutBannerUpperBody", "WorkoutBannerLowerBody",
+      "WorkoutBannerChestPush", "WorkoutBannerBackPull", "WorkoutBannerShoulders", "WorkoutBannerArms"
+    ])
+
+    let legacyDocument = try decoder.decode(
+      CatalogWorkoutDocument.self,
+      from: Data(#"{"key":"legacy","name":"Legacy workout","exercises":[]}"#.utf8)
+    )
+    let newerDocument = try decoder.decode(
+      CatalogWorkoutDocument.self,
+      from: Data(#"{"key":"newer","name":"New workout","banner":"future-theme","exercises":[]}"#.utf8)
+    )
+    #expect(legacyDocument.banner == nil)
+    #expect(newerDocument.banner == "future-theme")
+
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let fileURL = directory.appending(path: "catalog.json")
+    let legacySnapshot = snapshot("legacy-publication", "legacy-tag", [program(id: "legacy", name: "Legacy")])
+    var savedDocument = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(legacySnapshot)) as? [String: Any])
+    var savedPrograms = try #require(savedDocument["programs"] as? [[String: Any]])
+    var savedProgram = try #require(savedPrograms.first)
+    var savedWorkouts = try #require(savedProgram["workouts"] as? [[String: Any]])
+    var savedWorkout = try #require(savedWorkouts.first)
+    savedWorkout.removeValue(forKey: "banner")
+    savedWorkouts[0] = savedWorkout
+    savedProgram["workouts"] = savedWorkouts
+    savedPrograms[0] = savedProgram
+    savedDocument["programs"] = savedPrograms
+    try JSONSerialization.data(withJSONObject: savedDocument).write(to: fileURL)
+    let persistence = FileProgramCatalogPersistence(fileURL: fileURL)
+    let loadedLegacy = try #require(try persistence.load())
+    #expect(loadedLegacy.programs.first?.workouts.first?.banner == nil)
+    #expect(loadedLegacy.programs.first?.workouts.first?.exercises.count == 1)
+
+    let future = program(id: "future", name: "Future Theme", banner: "future-theme")
+    try persistence.save(snapshot("future-publication", "future-tag", [future]))
+    let loadedFuture = try #require(try persistence.load())
+    #expect(loadedFuture.programs.first?.workouts.first?.banner == "future-theme")
+  }
+
+  @Test
   func backendPublicationSurvivesOfflineRestartAndRestoresSyntheticChanges() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -251,10 +312,10 @@ struct ProgramCatalogOnboardingTests {
     PublishedProgramCatalogSnapshot(publicationID: publicationID, entityTag: entityTag, programs: programs)
   }
 
-  private func program(id: String, name: String) -> TrainingProgram {
+  private func program(id: String, name: String, banner: String? = nil) -> TrainingProgram {
     TrainingProgram(
       id: id, name: name, format: "A / B / C", emphasis: "A published plan.",
-      workouts: [WorkoutTemplate(id: "\(id)-day-a", name: "Day A", exercises: [
+      workouts: [WorkoutTemplate(id: "\(id)-day-a", name: "Day A", banner: banner, exercises: [
         WorkoutExercise(
           id: "\(id)-slot-a", exerciseKey: "barbell-row", name: "Barbell Row",
           repTarget: RepTarget(minimum: 8, maximum: 12), instructions: "Row with control.",

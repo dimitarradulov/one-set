@@ -71,6 +71,16 @@ struct AppLaunchConfiguration {
         )
       ]
       selectedProgramID = "machine-full-body"
+    } else if let (programID, workoutID) = Self.workoutBannerPreview(arguments: arguments) {
+      onboardingPath = [
+        .preferences,
+        .programs,
+        .programDetail(programID),
+        .trialPreview(programID),
+        .programOverview(programID),
+        .workoutPreview(programID: programID, workoutID: workoutID)
+      ]
+      selectedProgramID = programID
     } else if arguments.contains("--ui-workout-preview") {
       onboardingPath = [
         .preferences,
@@ -90,5 +100,20 @@ struct AppLaunchConfiguration {
     onboardingPath = []
     selectedProgramID = nil
     #endif
+  }
+
+  private static func workoutBannerPreview(arguments: [String]) -> (String, String)? {
+    let routes = [
+      "--ui-workout-banner-fallback": ("upper-lower", "upper-lower-lower-a"),
+      "--ui-workout-banner-legacy": ("upper-lower", "upper-lower-lower-a"),
+      "--ui-workout-banner-general-gym": ("machine-full-body", "machine-full-body-workout-a"),
+      "--ui-workout-banner-upper-body": ("upper-lower", "upper-lower-upper-a"),
+      "--ui-workout-banner-lower-body": ("upper-lower", "upper-lower-lower-a"),
+      "--ui-workout-banner-chest-push": ("bro-split", "bro-split-day-1-chest"),
+      "--ui-workout-banner-back-pull": ("bro-split", "bro-split-day-2-back"),
+      "--ui-workout-banner-shoulders": ("bro-split", "bro-split-day-4-shoulders"),
+      "--ui-workout-banner-arms": ("bro-split", "bro-split-day-5-arms"),
+    ]
+    return routes.first(where: { arguments.contains($0.key) })?.value
   }
 }

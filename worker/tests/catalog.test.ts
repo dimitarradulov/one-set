@@ -123,19 +123,23 @@ test('a published program cannot be omitted but an explicit removal marker is va
 
 test('publisher preview and publish expose the reviewed program to authenticated catalog reads', async () => {
   const userBearer = await userToken('follower');
+  const authored = structuredClone(source) as CatalogSource;
+  authored.programs[0]!.workouts[0]!.banner = 'general-gym';
+  authored.programs[1]!.workouts[0]!.banner = 'general-gym';
+  const authoredFingerprint = createHash('sha256').update(JSON.stringify(authored)).digest('hex');
   const blocked = await handleCatalogRequest(request('/v1/maintenance/catalog/preview', userBearer, 'POST', {
-    source, source_fingerprint: sourceFingerprint,
+    source: authored, source_fingerprint: authoredFingerprint,
   }), environment, database);
   assert.equal(blocked.status, 403);
   assert.deepEqual(await blocked.json(), { error: { code: 'FORBIDDEN' } });
 
   const preview = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
-    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source, source_fingerprint: sourceFingerprint }), environment, database);
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source: authored, source_fingerprint: authoredFingerprint }), environment, database);
   assert.equal(preview.status, 200);
   const reviewed = await preview.json() as { preview_id: string; backend_fingerprint: string };
   assert.ok(reviewed.preview_id);
 
-  const publishBody = { source, source_fingerprint: sourceFingerprint, ...reviewed };
+  const publishBody = { source: authored, source_fingerprint: authoredFingerprint, ...reviewed };
   const published = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
     environment.CATALOG_PUBLISH_TOKEN, 'POST', publishBody), environment, database);
   assert.equal(published.status, 200);
@@ -147,7 +151,7 @@ test('publisher preview and publish expose the reviewed program to authenticated
   const delivered = await catalogResponse.json() as {
     publication_id: string;
     catalog: { programs: Array<{ key: string; name: string; training_days_per_week: number; workouts: Array<{
-      key: string; exercises: Array<{ scope: string }>;
+      key: string; banner?: string; exercises: Array<{ scope: string }>;
     }> }>;
       exercises: Array<{ key: string; stopping_guidance: string }> };
   };
@@ -156,6 +160,8 @@ test('publisher preview and publish expose the reviewed program to authenticated
   assert.equal(delivered.catalog.programs[0]?.training_days_per_week,
     delivered.catalog.programs[0]?.workouts.length);
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.key, 'machine-full-body-a');
+  assert.equal(delivered.catalog.programs[0]?.workouts[0]?.banner, 'general-gym');
+  assert.equal(delivered.catalog.programs[1]?.workouts[0]?.banner, 'general-gym');
   assert.equal(delivered.catalog.programs[0]?.workouts[0]?.exercises[0]?.scope, 'each_side');
   assert.equal(delivered.catalog.exercises[0]?.stopping_guidance, source.exercises[0]?.stopping_guidance);
   assert.deepEqual(delivered.catalog.programs.map(program => program.key), ['machine-full-body', 'machine-upper-body']);
@@ -165,12 +171,44 @@ test('publisher preview and publish expose the reviewed program to authenticated
   assert.equal(repeated.status, 200);
   assert.deepEqual(await repeated.json(), acknowledgement);
   const noChange = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
-    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source, source_fingerprint: sourceFingerprint }), environment, database);
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source: authored, source_fingerprint: authoredFingerprint }), environment, database);
   assert.equal(noChange.status, 200);
   assert.deepEqual(await noChange.json().then((body: unknown) => {
     const preview = body as { changes: unknown[]; affected_programs: unknown[] };
     return { changes: preview.changes, affected_programs: preview.affected_programs };
   }), { changes: [], affected_programs: [] });
+
+  authored.programs[0]!.workouts[0]!.banner = 'future-theme-v2';
+  delete authored.programs[1]!.workouts[0]!.banner;
+  const futureFingerprint = createHash('sha256').update(JSON.stringify(authored)).digest('hex');
+  const futurePreviewResponse = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', {
+      source: authored, source_fingerprint: futureFingerprint,
+    }), environment, database);
+  assert.equal(futurePreviewResponse.status, 200);
+  const futureReview = await futurePreviewResponse.json() as {
+    preview_id: string; backend_fingerprint: string;
+  };
+  const futurePublished = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', {
+      source: authored, source_fingerprint: futureFingerprint, ...futureReview,
+    }), environment, database);
+  assert.equal(futurePublished.status, 200);
+  const futureResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
+  assert.equal(futureResponse.status, 200);
+  const futureDelivered = await futureResponse.json() as typeof delivered;
+  assert.equal(futureDelivered.catalog.programs[0]?.workouts[0]?.banner, 'future-theme-v2');
+  assert.equal(futureDelivered.catalog.programs[1]?.workouts[0]?.banner, undefined);
+
+  const restored = await handleCatalogRequest(request('/v1/maintenance/catalog/preview',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', { source, source_fingerprint: sourceFingerprint }), environment, database);
+  assert.equal(restored.status, 200);
+  const restoreReview = await restored.json() as { preview_id: string; backend_fingerprint: string };
+  const restorePublication = await handleCatalogRequest(request('/v1/maintenance/catalog/publish',
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', {
+      source, source_fingerprint: sourceFingerprint, ...restoreReview,
+    }), environment, database);
+  assert.equal(restorePublication.status, 200);
   const rows = await database.query(`SELECT p.id, p.authoring_key, u.active_user_program_id, r.workout_program_id
     FROM workout_programs p
     JOIN user_programs r ON r.workout_program_id = p.id

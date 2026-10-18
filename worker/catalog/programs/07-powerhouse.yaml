@@ -6,6 +6,7 @@ emphasis: "A dense, powerful wrestler-like build — thick torso, substantial up
 workouts:
   - key: powerhouse-day-1-torso-density-arms
     name: Day 1 — Torso Density + Arms
+    banner: upper-body
     position: 1
     exercises:
       - key: powerhouse-day-1-torso-density-arms-smith-machine-barbell-row
@@ -38,6 +39,7 @@ workouts:
         reps: { minimum: 12, maximum: 20 }
   - key: powerhouse-day-2-thighs-posterior-chain-traps
     name: Day 2 — Thighs + Posterior Chain + Traps
+    banner: lower-body
     position: 2
     exercises:
       - key: powerhouse-day-2-thighs-posterior-chain-traps-hack-squat-machine
@@ -70,6 +72,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: powerhouse-day-3-upper-back-shoulder-girdle-traps
     name: Day 3 — Upper Back + Shoulder Girdle + Traps
+    banner: back-pull
     position: 3
     exercises:
       - key: powerhouse-day-3-upper-back-shoulder-girdle-traps-chest-supported-machine-row

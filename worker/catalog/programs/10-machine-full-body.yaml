@@ -6,6 +6,7 @@ emphasis: "Lifters who want maximum stability, simple progression, and a low-ski
 workouts:
   - key: machine-full-body-workout-a
     name: Workout A
+    banner: general-gym
     position: 1
     exercises:
       - key: machine-full-body-workout-a-hack-squat-machine
@@ -38,6 +39,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: machine-full-body-workout-b
     name: Workout B
+    banner: general-gym
     position: 2
     exercises:
       - key: machine-full-body-workout-b-leg-press
@@ -70,6 +72,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: machine-full-body-workout-c
     name: Workout C
+    banner: general-gym
     position: 3
     exercises:
       - key: machine-full-body-workout-c-leg-extension

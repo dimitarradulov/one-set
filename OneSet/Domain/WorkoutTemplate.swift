@@ -1,11 +1,13 @@
 struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
   let id: String
   let name: String
+  let banner: String?
   let exercises: [WorkoutExercise]
 
-  init(id: String? = nil, name: String, exercises: [WorkoutExercise]) {
+  init(id: String? = nil, name: String, banner: String? = nil, exercises: [WorkoutExercise]) {
     self.id = id ?? name
     self.name = name
+    self.banner = banner
     self.exercises = exercises
   }
 

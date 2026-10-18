@@ -33,7 +33,8 @@ struct AppDependencies {
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || arguments.contains("--ui-google-auth-error")
       || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
-      || arguments.contains("--ui-catalog-offline")
+      || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
+      || arguments.contains("--ui-workout-banner-legacy")
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
@@ -59,6 +60,18 @@ struct AppDependencies {
     #if DEBUG
     if preview {
       let bundledPrograms = ProgramCatalog.bundled.programs.map { program in
+        if program.id == "upper-lower",
+           arguments.contains("--ui-workout-banner-fallback") || arguments.contains("--ui-workout-banner-legacy") {
+          let workouts = program.workouts.map { workout in
+            guard workout.id == "upper-lower-lower-a" else { return workout }
+            let banner = arguments.contains("--ui-workout-banner-legacy") ? nil : "future-theme-v2"
+            return WorkoutTemplate(id: workout.id, name: workout.name, banner: banner, exercises: workout.exercises)
+          }
+          return TrainingProgram(
+            id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,
+            workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
+          )
+        }
         guard removedProgramPreview, program.id == "machine-full-body" else { return program }
         return TrainingProgram(
           id: program.id, name: program.name,

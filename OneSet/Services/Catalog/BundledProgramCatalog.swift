@@ -9,6 +9,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "full-body-workout-a-vertical-pull-upper-chest", name: "Workout A — Vertical Pull + Upper Chest",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "full-body-workout-a-vertical-pull-upper-chest-weighted-chin-up", exerciseKey: "weighted-chin-up",
@@ -77,6 +78,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "full-body-workout-b-horizontal-pull-chest", name: "Workout B — Horizontal Pull + Chest",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "full-body-workout-b-horizontal-pull-chest-smith-machine-barbell-row", exerciseKey: "smith-machine-barbell-row",
@@ -145,6 +147,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "full-body-workout-c-shoulder-girdle-balanced-lower-body", name: "Workout C — Shoulder Girdle + Balanced Lower Body",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "full-body-workout-c-shoulder-girdle-balanced-lower-body-machine-shoulder-press", exerciseKey: "machine-shoulder-press",
@@ -220,6 +223,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "upper-lower-upper-a", name: "Upper A",
+              banner: "upper-body",
               exercises: [
                   WorkoutExercise(
                     id: "upper-lower-upper-a-weighted-chin-up", exerciseKey: "weighted-chin-up",
@@ -279,6 +283,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "upper-lower-lower-a", name: "Lower A",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "upper-lower-lower-a-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -329,6 +334,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "upper-lower-upper-b", name: "Upper B",
+              banner: "upper-body",
               exercises: [
                   WorkoutExercise(
                     id: "upper-lower-upper-b-weighted-dip", exerciseKey: "weighted-dip",
@@ -388,6 +394,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "upper-lower-lower-b", name: "Lower B",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "upper-lower-lower-b-leg-press", exerciseKey: "leg-press",
@@ -445,6 +452,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "push-pull-legs-push", name: "Push",
+              banner: "chest-push",
               exercises: [
                   WorkoutExercise(
                     id: "push-pull-legs-push-incline-smith-machine-press", exerciseKey: "incline-smith-machine-press",
@@ -504,6 +512,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "push-pull-legs-pull", name: "Pull",
+              banner: "back-pull",
               exercises: [
                   WorkoutExercise(
                     id: "push-pull-legs-pull-weighted-chin-up", exerciseKey: "weighted-chin-up",
@@ -572,6 +581,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "push-pull-legs-legs", name: "Legs",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "push-pull-legs-legs-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -638,6 +648,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "bro-split-day-1-chest", name: "Day 1 — Chest",
+              banner: "chest-push",
               exercises: [
                   WorkoutExercise(
                     id: "bro-split-day-1-chest-incline-smith-machine-press", exerciseKey: "incline-smith-machine-press",
@@ -679,6 +690,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "bro-split-day-2-back", name: "Day 2 — Back",
+              banner: "back-pull",
               exercises: [
                   WorkoutExercise(
                     id: "bro-split-day-2-back-weighted-chin-up", exerciseKey: "weighted-chin-up",
@@ -729,6 +741,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "bro-split-day-3-legs", name: "Day 3 — Legs",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "bro-split-day-3-legs-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -779,6 +792,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "bro-split-day-4-shoulders", name: "Day 4 — Shoulders",
+              banner: "shoulders",
               exercises: [
                   WorkoutExercise(
                     id: "bro-split-day-4-shoulders-machine-shoulder-press", exerciseKey: "machine-shoulder-press",
@@ -829,6 +843,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "bro-split-day-5-arms", name: "Day 5 — Arms",
+              banner: "arms",
               exercises: [
                   WorkoutExercise(
                     id: "bro-split-day-5-arms-barbell-curl", exerciseKey: "barbell-curl",
@@ -895,6 +910,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "minimalist-full-body-workout-a", name: "Workout A",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "minimalist-full-body-workout-a-leg-press", exerciseKey: "leg-press",
@@ -954,6 +970,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "minimalist-full-body-workout-b", name: "Workout B",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "minimalist-full-body-workout-b-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -1020,6 +1037,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "v-taper-day-1-lats-upper-chest", name: "Day 1 — Lats + Upper Chest",
+              banner: "upper-body",
               exercises: [
                   WorkoutExercise(
                     id: "v-taper-day-1-lats-upper-chest-weighted-chin-up", exerciseKey: "weighted-chin-up",
@@ -1079,6 +1097,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "v-taper-day-2-lower-body-delts", name: "Day 2 — Lower Body + Delts",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "v-taper-day-2-lower-body-delts-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -1138,6 +1157,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "v-taper-day-3-back-width-shoulder-width", name: "Day 3 — Back Width + Shoulder Width",
+              banner: "back-pull",
               exercises: [
                   WorkoutExercise(
                     id: "v-taper-day-3-back-width-shoulder-width-neutral-grip-lat-pulldown", exerciseKey: "neutral-grip-lat-pulldown",
@@ -1213,6 +1233,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "powerhouse-day-1-torso-density-arms", name: "Day 1 — Torso Density + Arms",
+              banner: "upper-body",
               exercises: [
                   WorkoutExercise(
                     id: "powerhouse-day-1-torso-density-arms-smith-machine-barbell-row", exerciseKey: "smith-machine-barbell-row",
@@ -1281,6 +1302,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Day 2 — Thighs + Posterior Chain + Traps",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "powerhouse-day-2-thighs-posterior-chain-traps-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -1349,6 +1371,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "powerhouse-day-3-upper-back-shoulder-girdle-traps", name: "Day 3 — Upper Back + Shoulder Girdle + Traps",
+              banner: "back-pull",
               exercises: [
                   WorkoutExercise(
                     id: "powerhouse-day-3-upper-back-shoulder-girdle-traps-chest-supported-machine-row", exerciseKey: "chest-supported-machine-row",
@@ -1424,6 +1447,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "classic-physique-day-1-upper-chest-back-width", name: "Day 1 — Upper Chest + Back Width",
+              banner: "back-pull",
               exercises: [
                   WorkoutExercise(
                     id: "classic-physique-day-1-upper-chest-back-width-incline-smith-machine-press", exerciseKey: "incline-smith-machine-press",
@@ -1483,6 +1507,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "classic-physique-day-2-legs-torso", name: "Day 2 — Legs + Torso",
+              banner: "lower-body",
               exercises: [
                   WorkoutExercise(
                     id: "classic-physique-day-2-legs-torso-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -1542,6 +1567,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "classic-physique-day-3-delts-balanced-upper-body", name: "Day 3 — Delts + Balanced Upper Body",
+              banner: "shoulders",
               exercises: [
                   WorkoutExercise(
                     id: "classic-physique-day-3-delts-balanced-upper-body-machine-shoulder-press", exerciseKey: "machine-shoulder-press",
@@ -1617,6 +1643,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "free-weight-full-body-workout-a", name: "Workout A",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "free-weight-full-body-workout-a-front-squat", exerciseKey: "front-squat",
@@ -1676,6 +1703,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "free-weight-full-body-workout-b", name: "Workout B",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "free-weight-full-body-workout-b-conventional-deadlift", exerciseKey: "conventional-deadlift",
@@ -1735,6 +1763,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "free-weight-full-body-workout-c", name: "Workout C",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "free-weight-full-body-workout-c-goblet-squat", exerciseKey: "goblet-squat",
@@ -1801,6 +1830,7 @@ extension ProgramCatalog {
         workouts: [
             WorkoutTemplate(
               id: "machine-full-body-workout-a", name: "Workout A",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "machine-full-body-workout-a-hack-squat-machine", exerciseKey: "hack-squat-machine",
@@ -1869,6 +1899,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "machine-full-body-workout-b", name: "Workout B",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "machine-full-body-workout-b-leg-press", exerciseKey: "leg-press",
@@ -1937,6 +1968,7 @@ extension ProgramCatalog {
             ),
             WorkoutTemplate(
               id: "machine-full-body-workout-c", name: "Workout C",
+              banner: "general-gym",
               exercises: [
                   WorkoutExercise(
                     id: "machine-full-body-workout-c-leg-extension", exerciseKey: "leg-extension",

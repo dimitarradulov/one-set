@@ -6,6 +6,7 @@ emphasis: "Lifters who prefer shorter sessions and want more recovery between up
 workouts:
   - key: upper-lower-upper-a
     name: Upper A
+    banner: upper-body
     position: 1
     exercises:
       - key: upper-lower-upper-a-weighted-chin-up
@@ -34,6 +35,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: upper-lower-lower-a
     name: Lower A
+    banner: lower-body
     position: 2
     exercises:
       - key: upper-lower-lower-a-hack-squat-machine
@@ -58,6 +60,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: upper-lower-upper-b
     name: Upper B
+    banner: upper-body
     position: 3
     exercises:
       - key: upper-lower-upper-b-weighted-dip
@@ -86,6 +89,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: upper-lower-lower-b
     name: Lower B
+    banner: lower-body
     position: 4
     exercises:
       - key: upper-lower-lower-b-leg-press

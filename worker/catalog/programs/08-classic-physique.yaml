@@ -6,6 +6,7 @@ emphasis: "Balanced old-school proportions — broad shoulders, upper chest, lat
 workouts:
   - key: classic-physique-day-1-upper-chest-back-width
     name: Day 1 — Upper Chest + Back Width
+    banner: back-pull
     position: 1
     exercises:
       - key: classic-physique-day-1-upper-chest-back-width-incline-smith-machine-press
@@ -34,6 +35,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: classic-physique-day-2-legs-torso
     name: Day 2 — Legs + Torso
+    banner: lower-body
     position: 2
     exercises:
       - key: classic-physique-day-2-legs-torso-hack-squat-machine
@@ -62,6 +64,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: classic-physique-day-3-delts-balanced-upper-body
     name: Day 3 — Delts + Balanced Upper Body
+    banner: shoulders
     position: 3
     exercises:
       - key: classic-physique-day-3-delts-balanced-upper-body-machine-shoulder-press

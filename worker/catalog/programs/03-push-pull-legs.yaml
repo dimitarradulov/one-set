@@ -6,6 +6,7 @@ emphasis: "Lifters who like classic movement-based training and can recover from
 workouts:
   - key: push-pull-legs-push
     name: Push
+    banner: chest-push
     position: 1
     exercises:
       - key: push-pull-legs-push-incline-smith-machine-press
@@ -34,6 +35,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: push-pull-legs-pull
     name: Pull
+    banner: back-pull
     position: 2
     exercises:
       - key: push-pull-legs-pull-weighted-chin-up
@@ -66,6 +68,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: push-pull-legs-legs
     name: Legs
+    banner: lower-body
     position: 3
     exercises:
       - key: push-pull-legs-legs-hack-squat-machine

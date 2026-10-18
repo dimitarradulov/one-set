@@ -6,6 +6,7 @@ emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy c
 workouts:
   - key: full-body-workout-a-vertical-pull-upper-chest
     name: Workout A — Vertical Pull + Upper Chest
+    banner: general-gym
     position: 1
     exercises:
       - key: full-body-workout-a-vertical-pull-upper-chest-weighted-chin-up
@@ -38,6 +39,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: full-body-workout-b-horizontal-pull-chest
     name: Workout B — Horizontal Pull + Chest
+    banner: general-gym
     position: 2
     exercises:
       - key: full-body-workout-b-horizontal-pull-chest-smith-machine-barbell-row
@@ -70,6 +72,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: full-body-workout-c-shoulder-girdle-balanced-lower-body
     name: Workout C — Shoulder Girdle + Balanced Lower Body
+    banner: general-gym
     position: 3
     exercises:
       - key: full-body-workout-c-shoulder-girdle-balanced-lower-body-machine-shoulder-press

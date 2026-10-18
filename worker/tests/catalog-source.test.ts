@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { parse } from 'yaml';
+import { validateCatalogSource } from '../src/catalog-validation.js';
 
 const execute = promisify(execFile);
 
@@ -34,12 +35,18 @@ test('the ten authored programs generate the bundled catalog without losing pres
     assert.equal(programFiles.length, 10);
     const programs = await Promise.all(programFiles.map(async file => parse(
       await readFile(join('catalog/programs', file), 'utf8'),
-    ) as { key: string; recommended_weeks: number; workouts: Array<{ exercises: unknown[] }> }));
+    ) as { key: string; recommended_weeks: number; workouts: Array<{ banner?: string; exercises: unknown[] }> }));
     assert.deepEqual(programs.map(program => program.key), Object.keys(expectedCounts));
     for (const program of programs) {
       assert.equal(program.recommended_weeks, 8);
       assert.equal(program.workouts.flatMap(workout => workout.exercises).length, expectedCounts[program.key]);
     }
+    const workouts = programs.flatMap(program => program.workouts);
+    assert.equal(workouts.length, 32);
+    assert.ok(workouts.every(workout => typeof workout.banner === 'string'));
+    assert.deepEqual([...new Set(workouts.map(workout => workout.banner))].sort(), [
+      'arms', 'back-pull', 'chest-push', 'general-gym', 'lower-body', 'shoulders', 'upper-body',
+    ]);
     const exerciseDocument = parse(await readFile('catalog/exercises.yaml', 'utf8')) as {
       exercises: Array<Record<string, unknown>>;
     };
@@ -59,10 +66,24 @@ test('the ten authored programs generate the bundled catalog without losing pres
     assert.match(generated, /id: "full-body"/);
     assert.match(generated, /id: "machine-full-body"/);
     assert.match(generated, /stoppingGuidance:/);
+    assert.ok(generated.includes('banner: "lower-body"'));
     assert.equal(generated, checkedIn);
   } finally {
     await rm(output, { recursive: true, force: true });
   }
+});
+
+test('catalog validation preserves a valid banner identifier unknown to this app release', async () => {
+  const programFiles = (await readdir('catalog/programs')).filter(file => file.endsWith('.yaml')).sort();
+  const programs = await Promise.all(programFiles.map(async file => parse(
+    await readFile(join('catalog/programs', file), 'utf8'),
+  ) as Record<string, unknown>));
+  const workout = (programs[0]!.workouts as Array<Record<string, unknown>>)[0]!;
+  workout.banner = 'future-theme-v2';
+  const exercises = parse(await readFile('catalog/exercises.yaml', 'utf8')) as Record<string, unknown>;
+  const result = validateCatalogSource({ exercises: exercises.exercises, programs });
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.catalog?.programs[0]?.workouts[0]?.banner, 'future-theme-v2');
 });
 
 test('program metadata, workout order, slot order, rep ranges, and unilateral scope match the library', async () => {

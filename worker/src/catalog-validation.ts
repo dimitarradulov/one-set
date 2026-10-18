@@ -20,6 +20,7 @@ export interface CatalogSlot extends JsonObject {
 export interface CatalogWorkout extends JsonObject {
   key: string;
   name: string;
+  banner?: string;
   position: number;
   exercises: CatalogSlot[];
   removed?: boolean;
@@ -185,6 +186,9 @@ export function validateCatalogSource(
       const workoutLabel = `workout ${String(workout.key ?? '<missing>')}`;
       if (!isKey(workout.key)) errors.push(`${workoutLabel} needs a stable lowercase key`);
       if (!isNonEmpty(workout.name)) errors.push(`${workoutLabel} needs a name`);
+      if (workout.banner !== undefined && !isKey(workout.banner)) {
+        errors.push(`${workoutLabel} banner must be a stable lowercase key when supplied`);
+      }
       if (workout.removed !== undefined && typeof workout.removed !== 'boolean') {
         errors.push(`${workoutLabel} removed must be true or false`);
       }

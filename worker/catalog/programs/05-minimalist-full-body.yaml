@@ -6,6 +6,7 @@ emphasis: "People who want the smallest practical weekly gym commitment while st
 workouts:
   - key: minimalist-full-body-workout-a
     name: Workout A
+    banner: general-gym
     position: 1
     exercises:
       - key: minimalist-full-body-workout-a-leg-press
@@ -34,6 +35,7 @@ workouts:
         reps: { minimum: 6, maximum: 10 }
   - key: minimalist-full-body-workout-b
     name: Workout B
+    banner: general-gym
     position: 2
     exercises:
       - key: minimalist-full-body-workout-b-hack-squat-machine

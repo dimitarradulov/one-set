@@ -6,6 +6,7 @@ emphasis: "Gyms with limited machines or lifters who strongly prefer barbells, d
 workouts:
   - key: free-weight-full-body-workout-a
     name: Workout A
+    banner: general-gym
     position: 1
     exercises:
       - key: free-weight-full-body-workout-a-front-squat
@@ -34,6 +35,7 @@ workouts:
         reps: { minimum: 6, maximum: 10 }
   - key: free-weight-full-body-workout-b
     name: Workout B
+    banner: general-gym
     position: 2
     exercises:
       - key: free-weight-full-body-workout-b-conventional-deadlift
@@ -63,6 +65,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: free-weight-full-body-workout-c
     name: Workout C
+    banner: general-gym
     position: 3
     exercises:
       - key: free-weight-full-body-workout-c-goblet-squat

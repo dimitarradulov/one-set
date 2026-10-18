@@ -6,6 +6,7 @@ emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low
 workouts:
   - key: bro-split-day-1-chest
     name: Day 1 — Chest
+    banner: chest-push
     position: 1
     exercises:
       - key: bro-split-day-1-chest-incline-smith-machine-press
@@ -26,6 +27,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-2-back
     name: Day 2 — Back
+    banner: back-pull
     position: 2
     exercises:
       - key: bro-split-day-2-back-weighted-chin-up
@@ -50,6 +52,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-3-legs
     name: Day 3 — Legs
+    banner: lower-body
     position: 3
     exercises:
       - key: bro-split-day-3-legs-hack-squat-machine
@@ -74,6 +77,7 @@ workouts:
         reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-4-shoulders
     name: Day 4 — Shoulders
+    banner: shoulders
     position: 4
     exercises:
       - key: bro-split-day-4-shoulders-machine-shoulder-press
@@ -98,6 +102,7 @@ workouts:
         reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-5-arms
     name: Day 5 — Arms
+    banner: arms
     position: 5
     exercises:
       - key: bro-split-day-5-arms-barbell-curl

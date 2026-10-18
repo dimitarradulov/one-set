@@ -61,7 +61,7 @@ struct CatalogProgramDocument: Decodable, Sendable {
           videoKey: exercise.videoKey
         )
       }
-      return WorkoutTemplate(id: workout.key, name: workout.name, exercises: slots)
+      return WorkoutTemplate(id: workout.key, name: workout.name, banner: workout.banner, exercises: slots)
     }
     guard (1...5).contains(visibleWorkouts.count) else {
       throw ProgramCatalogServiceError.invalidResponse

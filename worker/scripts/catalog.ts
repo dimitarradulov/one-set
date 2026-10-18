@@ -115,6 +115,7 @@ function generateBundledSwift(catalog: CatalogSource): string {
       return [
         '        WorkoutTemplate(',
         `          id: ${swiftString(workout.key)}, name: ${swiftString(workout.name)},`,
+        ...(typeof workout.banner === 'string' ? [`          banner: ${swiftString(workout.banner)},`] : []),
         '          exercises: [', slots.map(slot => slot.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
         '          ]', '        )',
       ].join('\n');

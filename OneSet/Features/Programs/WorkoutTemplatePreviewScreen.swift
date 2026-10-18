@@ -7,70 +7,55 @@ struct WorkoutTemplatePreviewScreen: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 24) {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Day \(day)")
-            .font(OneSetTypography.label)
-            .foregroundStyle(OneSetColors.textSecondary)
+      VStack(spacing: 24) {
+        WorkoutBanner(program: program, workout: workout, day: day)
 
-          Text(workout.name)
-            .font(OneSetTypography.h1)
+        VStack(alignment: .leading, spacing: 24) {
+          Label("Read-only template preview", systemImage: "doc.text.magnifyingglass")
+            .font(OneSetTypography.bodyStrong)
             .foregroundStyle(OneSetColors.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier("workoutPreview.title")
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay {
+              RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(OneSetColors.border, lineWidth: 1)
+            }
+            .accessibilityLabel("Read-only template preview. No workout has started.")
+            .accessibilityIdentifier("workoutPreview.readOnly")
 
-          Text(program.name)
+          VStack(alignment: .leading, spacing: 12) {
+            Text("Exercise order and rep targets")
+              .font(OneSetTypography.h2)
+              .foregroundStyle(OneSetColors.textPrimary)
+              .accessibilityAddTraits(.isHeader)
+
+            ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
+              NavigationLink(value: OnboardingRoute.exerciseDetail(
+                programID: program.id,
+                workoutID: workout.id,
+                exerciseID: exercise.id
+              )) {
+                exerciseRow(exercise, order: index + 1)
+              }
+              .buttonStyle(.plain)
+              .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+              .accessibilityHint("Opens exercise instructions and warmup guidance.")
+              .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+            }
+          }
+
+          Text("No workout has started.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityIdentifier("workoutPreview.program")
+            .accessibilityIdentifier("workoutPreview.notStarted")
         }
-
-        Label("Read-only template preview", systemImage: "doc.text.magnifyingglass")
-          .font(OneSetTypography.bodyStrong)
-          .foregroundStyle(OneSetColors.textPrimary)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(16)
-          .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
-          .overlay {
-            RoundedRectangle(cornerRadius: 12)
-              .strokeBorder(OneSetColors.border, lineWidth: 1)
-          }
-          .accessibilityLabel("Read-only template preview. No workout has started.")
-          .accessibilityIdentifier("workoutPreview.readOnly")
-
-        VStack(alignment: .leading, spacing: 12) {
-          Text("Exercise order and rep targets")
-            .font(OneSetTypography.h2)
-            .foregroundStyle(OneSetColors.textPrimary)
-            .accessibilityAddTraits(.isHeader)
-
-          ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-            NavigationLink(value: OnboardingRoute.exerciseDetail(
-              programID: program.id,
-              workoutID: workout.id,
-              exerciseID: exercise.id
-            )) {
-              exerciseRow(exercise, order: index + 1)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-            .accessibilityHint("Opens exercise instructions and warmup guidance.")
-            .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
-          }
-        }
-
-        Text("No workout has started.")
-          .font(OneSetTypography.body)
-          .foregroundStyle(OneSetColors.textSecondary)
-          .accessibilityIdentifier("workoutPreview.notStarted")
+        .frame(maxWidth: 720, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 32)
+        .frame(maxWidth: .infinity, alignment: .top)
       }
-      .frame(maxWidth: 720, alignment: .leading)
-      .padding(.horizontal, 20)
-      .padding(.top, 24)
-      .padding(.bottom, 32)
-      .frame(maxWidth: .infinity, alignment: .top)
     }
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
