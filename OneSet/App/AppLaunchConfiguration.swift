@@ -116,9 +116,11 @@ struct AppLaunchConfiguration {
     let routes = [
       "--ui-workout-banner-fallback": ("upper-lower", "upper-lower-lower-a"),
       "--ui-workout-banner-legacy": ("upper-lower", "upper-lower-lower-a"),
+      "--ui-workout-banner-offline": ("founder-authored-plan", "founder-authored-plan-day-a"),
       "--ui-workout-banner-general-gym": ("machine-full-body", "machine-full-body-workout-a"),
       "--ui-workout-banner-upper-body": ("upper-lower", "upper-lower-upper-a"),
       "--ui-workout-banner-lower-body": ("upper-lower", "upper-lower-lower-a"),
+      "--ui-workout-banner-lower-body-shared": ("upper-lower", "upper-lower-lower-b"),
       "--ui-workout-banner-chest-push": ("bro-split", "bro-split-day-1-chest"),
       "--ui-workout-banner-back-pull": ("bro-split", "bro-split-day-2-back"),
       "--ui-workout-banner-shoulders": ("bro-split", "bro-split-day-4-shoulders"),

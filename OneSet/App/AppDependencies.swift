@@ -153,7 +153,7 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
     programs.append(TrainingProgram(
       id: "founder-authored-plan", name: "Founder Authored Plan",
       format: "A / B / C", emphasis: "A newly published plan.",
-      workouts: [WorkoutTemplate(id: "founder-authored-plan-day-a", name: "Day A", exercises: [
+      workouts: [WorkoutTemplate(id: "founder-authored-plan-day-a", name: "Day A", banner: "lower-body", exercises: [
         WorkoutExercise(
           id: "founder-authored-plan-slot-a", exerciseKey: "barbell-row", name: "Barbell Row",
           repTarget: RepTarget(minimum: 8, maximum: 12), instructions: "Row with control.",
