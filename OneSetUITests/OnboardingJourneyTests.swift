@@ -481,6 +481,9 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["workoutPreview.program"].label.contains("Full Body"))
     XCTAssertTrue(app.staticTexts["workoutPreview.readOnly"].label.contains("Read-only"))
+    XCTAssertEqual(app.staticTexts["workoutPreview.summary"].label, "7 exercises · 1 working set each")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exerciseOrderHeading"].label, "Exercise order")
+    XCTAssertEqual(app.staticTexts["workoutPreview.repTargetsHeading"].label, "Rep targets")
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
     let firstMovement = app.staticTexts["workoutPreview.exercise.1.name"]
@@ -494,6 +497,10 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertLessThan(firstMovement.frame.minY, secondMovement.frame.minY)
 
     let firstExercise = app.buttons["workoutPreview.exercise.full-body-workout-a-vertical-pull-upper-chest-weighted-chin-up.open"]
+    for _ in 0..<5 where !firstExercise.isHittable {
+      app.scrollViews.firstMatch.swipeUp()
+    }
+    XCTAssertTrue(firstExercise.isHittable)
     let previewRowPosition = firstExercise.frame.minY
     firstExercise.tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
@@ -584,6 +591,9 @@ final class OnboardingJourneyTests: XCTestCase {
   func testWorkoutPreviewOpensDifferentExerciseGuidanceWithoutStartingWorkout() {
     relaunch(with: ["--ui-workout-preview"])
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["workoutPreview.summary"].label, "7 exercises · 1 working set each")
+    XCTAssertEqual(app.staticTexts["workoutPreview.exerciseOrderHeading"].label, "Exercise order")
+    XCTAssertEqual(app.staticTexts["workoutPreview.repTargetsHeading"].label, "Rep targets")
     let chestPress = app.buttons["workoutPreview.exercise.machine-full-body-workout-a-machine-chest-press.open"]
     XCTAssertTrue(chestPress.waitForExistence(timeout: 3))
     chestPress.tap()
@@ -599,6 +609,13 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
+  }
+
+  func testWorkoutPreviewSummaryReflectsDifferentExerciseCount() {
+    relaunch(with: ["--ui-workout-preview-minimalist"])
+
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["workoutPreview.summary"].label, "6 exercises · 1 working set each")
   }
 
   func testCompletedAccountRestoresOverviewFromEmail() {
