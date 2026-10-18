@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- THROWAWAY: Does Program + History stay understandable on nested screens, and
+<!-- THROWAWAY: Do Program + History + Settings stay understandable on nested screens, and
      which Settings hierarchy fits OneSet? Three variants on the Program host,
      selected with ?variant=A|B|C. Run: python3 OneSet/App/MenuPrototype/serve.py
      Browser materials approximate iOS; production must use native SwiftUI controls.
@@ -30,7 +30,7 @@ button{border:0}a{color:var(--ink);text-underline-offset:4px}p,h1,h2,h3{margin:0
 .weeks{display:flex;gap:8px;overflow-x:auto;margin-top:16px;padding:1px 1px 5px;scrollbar-width:none}.weeks button{min-width:48px;height:48px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}.weeks button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#141414}.week-label{margin-top:10px;font-size:14px}
 .workout-card{padding:16px;display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-top:12px}.day-tag{min-width:48px;font-size:14px;color:var(--muted)}.workout-info strong{font-size:16px;display:block}.workout-info .status-label{margin-top:9px;display:flex;align-items:center;gap:6px;font-size:14px}.status-label .icon{width:17px;height:17px}.workout-info .caption{margin-top:6px}.workout-info .open-label{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:8px;font-size:14px}.open-label .icon{width:20px}
 .upload{margin-top:20px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}.upload button{background:none;color:var(--ink);display:block;padding:5px 0;text-decoration:underline;text-underline-offset:4px}
-.bottom-shade{position:absolute;bottom:0;left:0;right:0;height:108px;pointer-events:none;background:linear-gradient(transparent,#1a1a1ac9 65%,#1a1a1a);z-index:3}.tabbar{position:absolute;z-index:4;bottom:27px;left:20px;right:20px;height:66px;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:35px;background:linear-gradient(135deg,#414141b8,#282828bf 60%,#393939b0);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:inset 0 1px 1px #ffffff35,inset 0 -1px 1px #ffffff0b,0 7px 25px #0006}
+.bottom-shade{position:absolute;bottom:0;left:0;right:0;height:108px;pointer-events:none;background:linear-gradient(transparent,#1a1a1ac9 65%,#1a1a1a);z-index:3}.tabbar{position:absolute;z-index:4;bottom:27px;left:20px;right:20px;height:66px;padding:5px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;border-radius:35px;background:linear-gradient(135deg,#414141b8,#282828bf 60%,#393939b0);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:inset 0 1px 1px #ffffff35,inset 0 -1px 1px #ffffff0b,0 7px 25px #0006}
 .tabbar button{background:none;min-height:54px;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:500 11px/1.15 var(--system);color:#b8b8b8}.tabbar .icon{width:25px;height:25px;stroke-width:1.9}.tabbar button[aria-selected=true]{background:#ffffff10;color:#ee941e}.tabbar button[aria-selected=true] .program-symbol{stroke-width:2.7}.home-indicator{position:absolute;z-index:6;bottom:8px;width:130px;height:5px;left:50%;transform:translateX(-50%);border-radius:3px;background:#e5e5e5}
 .settings-content{padding-top:20px}.settings-title{margin-bottom:24px}.settings-group{margin-top:22px}.settings-group:first-child{margin-top:0}.group-label{color:var(--muted);font:400 12px/1.4 Montserrat,var(--system);padding:0 14px;margin-bottom:9px}.settings-list{background:var(--surface);border-radius:13px;overflow:hidden}.settings-row{width:100%;display:flex;align-items:center;gap:12px;padding:0 14px;min-height:54px;text-align:left;background:transparent;color:var(--ink);font-size:14px;position:relative}.settings-row+.settings-row:before{content:'';height:1px;background:#ffffff0d;position:absolute;top:0;left:48px;right:0}.settings-row .row-label{flex:1}.settings-row .icon{width:20px;height:20px;color:#b9b9b9}.settings-row .chevron{width:14px;height:14px;color:#777}.settings-row.destructive{color:#ff7777}.settings-row.destructive>.icon{color:#ff7777}.settings-row:hover,.category-row:hover{background:#ffffff05}
 .flat-settings{padding:4px 20px 24px}.flat-settings .settings-row{padding:0;min-height:66px;font-size:15px;border-bottom:1px solid var(--line)}.flat-settings .settings-row:before{display:none}.flat-settings .settings-row .icon:first-child{width:22px;height:22px}.flat-settings .destructive{margin-top:12px}
@@ -75,7 +75,7 @@ button{border:0}a{color:var(--ink);text-underline-offset:4px}p,h1,h2,h3{margin:0
  <aside class="brief">
   <div class="brand">ONESET</div>
   <h1>One menu.<br>Three ways to arrange it.</h1>
-  <p class="intro">Try the two-tab navigation on real program content. Open an exercise, visit History, then come back. Your place stays put.</p>
+  <p class="intro">Try Program, History, and Settings as three independent tabs. Open an exercise, visit History, then come back. Your place stays put.</p>
   <p class="recommend" id="variant-description"></p>
   <div class="scene-tools">
    <h2>Jump to a screen</h2>
@@ -121,6 +121,7 @@ const params = new URLSearchParams(location.search);
 let variant = variants[params.get('variant')] ? params.get('variant') : 'A';
 let selectedTab = 'program';
 let programPath = [];
+let settingsPath = [];
 let selectedWeek = 1;
 let workout = 'A';
 let selectedExercise = 1;
@@ -129,13 +130,15 @@ let pendingUpload = params.get('upload') === 'pending';
 let dialog = '';
 const scrollPositions = new Map();
 const svg = (name,classes='') => `<svg class="icon ${classes}" aria-hidden="true"><use href="#${name}"/></svg>`;
-const pathName = () => selectedTab === 'history' ? 'history' : (programPath.at(-1) || 'program');
-function captureScroll(){ const el=document.querySelector('#screen-scroll');if(el)scrollPositions.set(`${selectedTab}/${programPath.join('/')}`,el.scrollTop); }
+const activePath = () => selectedTab === 'settings' ? settingsPath : selectedTab === 'program' ? programPath : [];
+const scrollKey = () => `${selectedTab}/${activePath().join('/')}`;
+const pathName = () => activePath().at(-1) || selectedTab;
+function captureScroll(){ const el=document.querySelector('#screen-scroll');if(el)scrollPositions.set(scrollKey(),el.scrollTop); }
 function titleFor(page){return ({program:'Program',settings:'Settings',workout:'Workout preview',exercise:'Exercise',history:'History',training:'Training',account:'Account'})[page] || destinations[page]?.title;}
-function push(page){captureScroll();programPath.push(page);selectedTab='program';dialog='';render();}
-function pop(){captureScroll();programPath.pop();dialog='';render();}
+function push(page){captureScroll();activePath().push(page);dialog='';render();}
+function pop(){captureScroll();activePath().pop();dialog='';render();}
 function switchTab(tab){captureScroll();selectedTab=tab;dialog='';render();}
-function jump(scene){captureScroll();selectedTab=scene==='history'?'history':'program';programPath=({program:[],settings:['settings'],workout:['workout'],exercise:['workout','exercise'],history:[]})[scene];dialog='';render();}
+function jump(scene){captureScroll();selectedTab=['history','settings'].includes(scene)?scene:'program';if(selectedTab==='program')programPath=({program:[],workout:['workout'],exercise:['workout','exercise']})[scene];if(scene==='settings')settingsPath=[];dialog='';render();}
 function settingsRow(key){
  const out=key==='signout';const d=out?{title:'Sign out',icon:'out'}:destinations[key];
  return `<button class="settings-row ${key==='deletion'||out?'destructive':''}" data-${out?'signout':'route'}="${key}">${svg(d.icon)}<span class="row-label">${d.title}</span>${out?'':svg('chevron','chevron')}</button>`;
@@ -175,10 +178,10 @@ function render(){
  document.querySelector('#variant-description').textContent=variants[variant].description;
  document.querySelector('#upload-fixture').value=pendingUpload?'pending':'complete';
  document.querySelectorAll('[data-scene]').forEach(el=>el.setAttribute('aria-pressed',el.dataset.scene===page));
- document.querySelector('#inspector').innerHTML=[['Layout',`${variant} · ${variants[variant].name}`],['Active tab',selectedTab==='program'?'Program':'History'],['Program path',['Program',...programPath.map(titleFor)].join(' → ')],['Week',selectedWeek],['Workout',`Workout ${workout}`],['Exercise',exercises[workout][selectedExercise][0]],['Exercise panel',performanceSection],['Setup upload',pendingUpload?'Pending · sample state':'Complete · sample state'],['Tab bar','Visible · expanded'],['Dialog',dialog||'None'],['Data','In memory · no account or API']].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+ document.querySelector('#inspector').innerHTML=[['Layout',`${variant} · ${variants[variant].name}`],['Active tab',titleFor(selectedTab)],['Program path',['Program',...programPath.map(titleFor)].join(' → ')],['Settings path',['Settings',...settingsPath.map(titleFor)].join(' → ')],['Week',selectedWeek],['Workout',`Workout ${workout}`],['Exercise',exercises[workout][selectedExercise][0]],['Exercise panel',performanceSection],['Setup upload',pendingUpload?'Pending · sample state':'Complete · sample state'],['Tab bar','Visible · expanded'],['Dialog',dialog||'None'],['Data','In memory · no account or API']].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
  document.querySelector('#mobile-inspector').innerHTML=document.querySelector('#inspector').innerHTML;
- document.querySelector('#app').innerHTML=`<header class="topbar"><div class="nav-side">${selectedTab==='program'&&programPath.length?`<button class="glass-button back-button" data-back aria-label="Back to ${titleFor(programPath.at(-2)||'program')}">${svg('back')}</button>`:''}</div><div class="nav-title">${titleFor(page)}</div><div class="nav-side right">${page==='program'?`<button class="glass-button" data-route="settings" aria-label="Open Settings">${svg('gear')}</button>`:''}</div></header><div class="scroll ${page==='workout'?'has-start':''}" id="screen-scroll">${screen(page)}</div>${page==='workout'?'<div class="start-workout"><button class="primary" data-start>Start workout</button></div>':''}<div class="bottom-shade"></div><nav class="tabbar" aria-label="Main navigation" role="tablist"><button role="tab" data-tab="program" aria-selected="${selectedTab==='program'}">${svg('program','program-symbol')}<span>Program</span></button><button role="tab" data-tab="history" aria-selected="${selectedTab==='history'}">${svg('history')}<span>History</span></button></nav>${dialog?`<div class="dialog-cover"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">${dialog==='signout'?'Sign out preview':'Workout recording'}</h2><p>${dialog==='signout'?(pendingUpload?'In the app, signing out now would ask whether to discard setup waiting to upload. This prototype keeps your account untouched.':'This preview does not sign you out of your account.'):'Recording is outside this menu prototype. No workout has started.'}</p><button data-close>Return to preview</button></section></div>`:''}`;
- document.querySelector('#screen-scroll').scrollTop=scrollPositions.get(`${selectedTab}/${programPath.join('/')}`)||0;
+ document.querySelector('#app').innerHTML=`<header class="topbar"><div class="nav-side">${activePath().length?`<button class="glass-button back-button" data-back aria-label="Back to ${titleFor(activePath().at(-2)||selectedTab)}">${svg('back')}</button>`:''}</div><div class="nav-title">${titleFor(page)}</div><div class="nav-side right"></div></header><div class="scroll ${page==='workout'?'has-start':''}" id="screen-scroll">${screen(page)}</div>${page==='workout'?'<div class="start-workout"><button class="primary" data-start>Start workout</button></div>':''}<div class="bottom-shade"></div><nav class="tabbar" aria-label="Main navigation" role="tablist"><button role="tab" data-tab="program" aria-selected="${selectedTab==='program'}">${svg('program','program-symbol')}<span>Program</span></button><button role="tab" data-tab="history" aria-selected="${selectedTab==='history'}">${svg('history')}<span>History</span></button><button role="tab" data-tab="settings" aria-selected="${selectedTab==='settings'}">${svg('gear')}<span>Settings</span></button></nav>${dialog?`<div class="dialog-cover"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">${dialog==='signout'?'Sign out preview':'Workout recording'}</h2><p>${dialog==='signout'?(pendingUpload?'In the app, signing out now would ask whether to discard setup waiting to upload. This prototype keeps your account untouched.':'This preview does not sign you out of your account.'):'Recording is outside this menu prototype. No workout has started.'}</p><button data-close>Return to preview</button></section></div>`:''}`;
+ document.querySelector('#screen-scroll').scrollTop=scrollPositions.get(scrollKey())||0;
  bind();
  if(dialog)document.querySelector('[data-close]').focus();
 }
@@ -196,13 +199,13 @@ function bind(){
  document.querySelector('[data-start]')?.addEventListener('click',()=>{captureScroll();dialog='start';render();});
  document.querySelector('[data-close]')?.addEventListener('click',()=>{dialog='';render();});
 }
-function cycle(delta){captureScroll();const keys=Object.keys(variants);variant=keys[(keys.indexOf(variant)+delta+keys.length)%keys.length];selectedTab='program';programPath=['settings'];dialog='';render();}
+function cycle(delta){captureScroll();const keys=Object.keys(variants);variant=keys[(keys.indexOf(variant)+delta+keys.length)%keys.length];selectedTab='settings';settingsPath=[];dialog='';render();}
 document.querySelector('#previous').addEventListener('click',()=>cycle(-1));document.querySelector('#next').addEventListener('click',()=>cycle(1));
 document.querySelectorAll('[data-scene]').forEach(el=>el.addEventListener('click',()=>jump(el.dataset.scene)));
 document.querySelector('#upload-fixture').addEventListener('change',e=>{captureScroll();pendingUpload=e.target.value==='pending';render();});
 document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select,[contenteditable]')||dialog)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();cycle(e.key==='ArrowLeft'?-1:1);}});
 const initialPage=params.get('page');
-if(['program','settings','workout','exercise','history'].includes(initialPage)){selectedTab=initialPage==='history'?'history':'program';programPath=({program:[],settings:['settings'],workout:['workout'],exercise:['workout','exercise'],history:[]})[initialPage];}
+if(['program','settings','workout','exercise','history'].includes(initialPage)){selectedTab=['history','settings'].includes(initialPage)?initialPage:'program';if(selectedTab==='program')programPath=({program:[],workout:['workout'],exercise:['workout','exercise']})[initialPage];}
 render();
 </script>
 </body>
