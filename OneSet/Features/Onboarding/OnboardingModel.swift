@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class OnboardingModel {
   var path: [OnboardingRoute]
+  var programPath: [OnboardingRoute] = []
   var weightUnit: WeightUnit = .kilograms
   var trainingDays = 3
   private(set) var selectedProgramID: TrainingProgram.ID?
@@ -163,6 +164,7 @@ final class OnboardingModel {
     trainingDays = 3
     selectedProgramID = nil
     path = []
+    programPath = []
   }
 
   var programs: [TrainingProgram] {
@@ -379,11 +381,15 @@ final class OnboardingModel {
 
   func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
     guard selectedProgramID == programID,
-          path.last == .programOverview(programID),
           let program = catalog.program(id: programID),
           program.workouts.contains(where: { $0.id == workoutID })
     else { return }
 
-    path.append(.workoutPreview(programID: programID, workoutID: workoutID))
+    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID)
+    if hasCompletedSetup {
+      programPath.append(route)
+    } else if path.last == .programOverview(programID) {
+      path.append(route)
+    }
   }
 }

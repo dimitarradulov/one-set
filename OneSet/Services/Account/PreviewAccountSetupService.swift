@@ -25,6 +25,9 @@ final class PreviewAccountSetupService: AccountSetupService {
       try? FileManager.default.removeItem(at: backendURL)
     }
     completed = arguments.contains("--ui-setup-completed") || arguments.contains("--ui-setup-removed-follower")
+      || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
+      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || arguments.contains("--ui-main-exercise-detail")
     delayed = arguments.contains("--ui-setup-delayed")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
     removedProgramUpload = arguments.contains("--ui-setup-upload-removed")

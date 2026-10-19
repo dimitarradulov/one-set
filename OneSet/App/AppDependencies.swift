@@ -28,7 +28,10 @@ struct AppDependencies {
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
-    let preview = completionSaveError || uploadPreview || removedProgramPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
+    let mainTabsPreview = arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
+      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || arguments.contains("--ui-main-exercise-detail")
+    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || arguments.contains("--ui-google-auth-error")
@@ -98,7 +101,7 @@ struct AppDependencies {
         ),
         authentication: PreviewAuthenticationService(
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
-          startsSignedIn: uploadPreview || arguments.contains("--ui-auth-restored")
+          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-auth-restored")
             || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
             || arguments.contains("--ui-progress-save-error"),
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
