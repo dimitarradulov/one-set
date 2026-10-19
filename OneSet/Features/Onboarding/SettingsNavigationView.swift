@@ -3,10 +3,9 @@ import SwiftUI
 struct SettingsNavigationView: View {
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
-  @State private var path: [SettingsDestination] = []
 
   var body: some View {
-    NavigationStack(path: $path) {
+    NavigationStack(path: $model.settingsPath) {
       Form {
         Section {
           destinationLink(.units)
@@ -44,7 +43,6 @@ struct SettingsNavigationView: View {
       .navigationDestination(for: SettingsDestination.self) { destination in
         SettingsDestinationScreen(destination: destination)
       }
-      .onAppear(perform: configureDevelopmentRoute)
     }
   }
 
@@ -53,60 +51,6 @@ struct SettingsNavigationView: View {
       Label(destination.title, systemImage: destination.symbol)
     }
     .accessibilityIdentifier(destination.accessibilityIdentifier)
-  }
-
-  private func configureDevelopmentRoute() {
-    #if DEBUG
-    if ProcessInfo.processInfo.arguments.contains("--ui-main-settings-units") {
-      path = [.units]
-    }
-    #endif
-  }
-}
-
-private enum SettingsDestination: String, Hashable {
-  case units
-  case trainingFrequency
-  case restAlerts
-  case downloadedVideos
-  case subscription
-  case accountDeletion
-
-  var title: String {
-    switch self {
-    case .units: "Units"
-    case .trainingFrequency: "Training frequency"
-    case .restAlerts: "Rest alerts"
-    case .downloadedVideos: "Downloaded videos"
-    case .subscription: "Subscription"
-    case .accountDeletion: "Account deletion"
-    }
-  }
-
-  var explanation: String {
-    switch self {
-    case .units: "Unit preferences are coming soon."
-    case .trainingFrequency: "Training frequency settings are coming soon."
-    case .restAlerts: "Rest alert settings are coming soon."
-    case .downloadedVideos: "Video downloads are coming soon."
-    case .subscription: "Subscription management is coming soon."
-    case .accountDeletion: "Account deletion is coming soon."
-    }
-  }
-
-  var symbol: String {
-    switch self {
-    case .units: "scalemass"
-    case .trainingFrequency: "calendar"
-    case .restAlerts: "timer"
-    case .downloadedVideos: "arrow.down.circle"
-    case .subscription: "creditcard"
-    case .accountDeletion: "person.crop.circle.badge.xmark"
-    }
-  }
-
-  var accessibilityIdentifier: String {
-    "settings.row.\(rawValue)"
   }
 }
 

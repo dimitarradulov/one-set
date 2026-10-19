@@ -2,13 +2,54 @@ struct AppLaunchConfiguration {
   let onboardingPath: [OnboardingRoute]
   let selectedProgramID: TrainingProgram.ID?
   let trainingDays: Int
+  let selectedMainTab: MainTab
+  let settingsPath: [SettingsDestination]
+  let programPath: [OnboardingRoute]
+  let includesMainTabsPreview: Bool
+
+  static func usesMainTabsPreview(arguments: [String]) -> Bool {
+    #if DEBUG
+    return arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
+      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
+    #else
+    return false
+    #endif
+  }
 
   init(arguments: [String]) {
+    includesMainTabsPreview = Self.usesMainTabsPreview(arguments: arguments)
+    #if DEBUG
+    if arguments.contains("--ui-main-history") {
+      selectedMainTab = .history
+    } else if arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units") {
+      selectedMainTab = .settings
+    } else {
+      selectedMainTab = .program
+    }
+    settingsPath = arguments.contains("--ui-main-settings-units") ? [.units] : []
+    if arguments.contains("--ui-main-workout-preview") {
+      programPath = [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
+    } else if arguments.contains("--ui-main-exercise-detail") {
+      programPath = [
+        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a"),
+        .exerciseDetail(
+          programID: "machine-full-body",
+          workoutID: "machine-full-body-workout-a",
+          exerciseID: "machine-full-body-workout-a-hack-squat-machine"
+        )
+      ]
+    } else {
+      programPath = []
+    }
+    #else
+    selectedMainTab = .program
+    settingsPath = []
+    programPath = []
+    #endif
     #if DEBUG
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
-    if arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
-      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
-      || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail") {
+    if Self.usesMainTabsPreview(arguments: arguments) {
       onboardingPath = []
       selectedProgramID = nil
     } else if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")

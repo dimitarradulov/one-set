@@ -23,14 +23,13 @@ struct AppDependencies {
   static func live(arguments: [String]) -> AppDependencies {
     let directory = URL.applicationSupportDirectory.appending(path: "Onboarding")
     #if DEBUG
+    let launch = AppLaunchConfiguration(arguments: arguments)
     let uploadPreview = arguments.contains("--ui-setup-upload-pending")
       || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
-    let mainTabsPreview = arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
-      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
-      || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
+    let mainTabsPreview = launch.includesMainTabsPreview
     let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
@@ -114,7 +113,10 @@ struct AppDependencies {
           appleFails: arguments.contains("--ui-apple-error") || arguments.contains("--ui-apple-auth-error")
         ),
         onboardingProgress: progress,
-        accountSetup: PreviewAccountSetupService(arguments: arguments)
+        accountSetup: PreviewAccountSetupService(
+          arguments: arguments,
+          includesMainTabsPreview: launch.includesMainTabsPreview
+        )
       )
     }
     #endif

@@ -3,11 +3,9 @@ import SwiftUI
 struct CompletedSetupTabsView: View {
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
-  @State private var selectedTab: MainTab = .program
-  @State private var didConfigureDevelopmentRoute = false
 
   var body: some View {
-    TabView(selection: $selectedTab) {
+    TabView(selection: $model.selectedMainTab) {
       programTab
         .tabItem { Label("Program", systemImage: "dumbbell") }
         .tag(MainTab.program)
@@ -33,36 +31,6 @@ struct CompletedSetupTabsView: View {
     }
     .tint(OneSetColors.accent)
     .preferredColorScheme(.dark)
-    .onAppear(perform: configureDevelopmentRoute)
-  }
-
-  private func configureDevelopmentRoute() {
-    #if DEBUG
-    guard !didConfigureDevelopmentRoute else { return }
-    didConfigureDevelopmentRoute = true
-    let arguments = ProcessInfo.processInfo.arguments
-    if arguments.contains("--ui-main-history") {
-      selectedTab = .history
-    } else if arguments.contains("--ui-main-settings") {
-      selectedTab = .settings
-    } else if arguments.contains("--ui-main-settings-units") {
-      selectedTab = .settings
-    }
-    if arguments.contains("--ui-main-workout-preview") {
-      model.programPath = [.workoutPreview(
-        programID: "machine-full-body", workoutID: "machine-full-body-workout-a"
-      )]
-    } else if arguments.contains("--ui-main-exercise-detail") {
-      model.programPath = [
-        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a"),
-        .exerciseDetail(
-          programID: "machine-full-body",
-          workoutID: "machine-full-body-workout-a",
-          exerciseID: "machine-full-body-workout-a-hack-squat-machine"
-        )
-      ]
-    }
-    #endif
   }
 
   @ViewBuilder
@@ -122,12 +90,6 @@ struct CompletedSetupTabsView: View {
       ContentUnavailableView("Page unavailable", systemImage: "dumbbell")
     }
   }
-}
-
-private enum MainTab: Hashable {
-  case program
-  case history
-  case settings
 }
 
 private struct ComingSoonScreen: View {

@@ -21,7 +21,10 @@ struct OneSetApp: App {
       setupService: dependencies.accountSetup,
       progressStore: dependencies.onboardingProgress,
       initialPath: launch.onboardingPath,
-      initialSelectedProgramID: launch.selectedProgramID
+      initialSelectedProgramID: launch.selectedProgramID,
+      initialProgramPath: launch.programPath,
+      initialSettingsPath: launch.settingsPath,
+      initialMainTab: launch.selectedMainTab
     )
     model.trainingDays = launch.trainingDays
     _onboarding = State(initialValue: model)

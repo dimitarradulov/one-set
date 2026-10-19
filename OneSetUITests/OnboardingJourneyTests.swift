@@ -730,6 +730,21 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
 
+  func testCompletedSetupDevelopmentRoutesSelectTabsAndDestinations() {
+    relaunch(with: ["--ui-main-history"])
+    XCTAssertTrue(app.staticTexts["history.comingSoon"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.tabBars.buttons["History"].isSelected)
+
+    relaunch(with: ["--ui-main-settings-units"])
+    XCTAssertTrue(app.staticTexts["settings.destination.comingSoon"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.navigationBars["Units"].exists)
+    XCTAssertTrue(app.tabBars.buttons["Settings"].isSelected)
+
+    relaunch(with: ["--ui-main-workout-preview"])
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+  }
+
   func testProgramBrowsingStackAndSelectedWeekSurviveTabSwitching() {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))

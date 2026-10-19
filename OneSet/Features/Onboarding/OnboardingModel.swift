@@ -5,7 +5,9 @@ import Observation
 @Observable
 final class OnboardingModel {
   var path: [OnboardingRoute]
-  var programPath: [OnboardingRoute] = []
+  var programPath: [OnboardingRoute]
+  var settingsPath: [SettingsDestination]
+  var selectedMainTab: MainTab
   var weightUnit: WeightUnit = .kilograms
   var trainingDays = 3
   private(set) var selectedProgramID: TrainingProgram.ID?
@@ -31,6 +33,7 @@ final class OnboardingModel {
   private let progressStore: (any OnboardingProgressStore)?
   private var savedProgress: OnboardingProgress?
   private var isSigningOut = false
+  private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
@@ -41,13 +44,19 @@ final class OnboardingModel {
     setupService: (any AccountSetupService)? = nil,
     progressStore: (any OnboardingProgressStore)? = nil,
     initialPath: [OnboardingRoute] = [],
-    initialSelectedProgramID: TrainingProgram.ID? = nil
+    initialSelectedProgramID: TrainingProgram.ID? = nil,
+    initialProgramPath: [OnboardingRoute] = [],
+    initialSettingsPath: [SettingsDestination] = [],
+    initialMainTab: MainTab = .program
   ) {
     self.catalog = catalog
     self.setupService = setupService
     self.progressStore = progressStore
     path = initialPath
     selectedProgramID = initialSelectedProgramID
+    programPath = initialProgramPath
+    settingsPath = initialSettingsPath
+    selectedMainTab = initialMainTab
   }
 
   func resolveAccountSetup(using authentication: AuthenticationModel) async {
@@ -56,7 +65,8 @@ final class OnboardingModel {
       return
     }
     guard !isSigningOut, resolvedAccountID != user.id, let setupService else { return }
-    resetAccount()
+    resetAccount(preservingNavigation: !didResolveInitialAccount)
+    didResolveInitialAccount = true
     lookupGeneration += 1
     let generation = lookupGeneration
     setupResolution = .loading
@@ -149,6 +159,10 @@ final class OnboardingModel {
   }
 
   func resetAccount() {
+    resetAccount(preservingNavigation: false)
+  }
+
+  private func resetAccount(preservingNavigation: Bool) {
     lookupGeneration += 1
     resolvedAccountID = nil
     setupResolution = .idle
@@ -163,8 +177,12 @@ final class OnboardingModel {
     weightUnit = .kilograms
     trainingDays = 3
     selectedProgramID = nil
-    path = []
-    programPath = []
+    if !preservingNavigation {
+      path = []
+      programPath = []
+      settingsPath = []
+      selectedMainTab = .program
+    }
   }
 
   var programs: [TrainingProgram] {
