@@ -26,15 +26,7 @@ struct CompletedSetupTabsView: View {
       .tag(MainTab.history)
       .accessibilityIdentifier("tab.history")
 
-      NavigationStack {
-        ComingSoonScreen(
-          title: "Settings",
-          explanation: "Settings are coming soon.",
-          identifier: "settings"
-        )
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
-      }
+      SettingsNavigationView(model: model, authentication: authentication)
       .tabItem { Label("Settings", systemImage: "gearshape") }
       .tag(MainTab.settings)
       .accessibilityIdentifier("tab.settings")
@@ -52,6 +44,8 @@ struct CompletedSetupTabsView: View {
     if arguments.contains("--ui-main-history") {
       selectedTab = .history
     } else if arguments.contains("--ui-main-settings") {
+      selectedTab = .settings
+    } else if arguments.contains("--ui-main-settings-units") {
       selectedTab = .settings
     }
     if arguments.contains("--ui-main-workout-preview") {
@@ -87,15 +81,6 @@ struct CompletedSetupTabsView: View {
           )
           .navigationTitle("Program")
           .navigationBarTitleDisplayMode(.large)
-          .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-              Button("Sign out") {
-                Task { await model.signOut(using: authentication) }
-              }
-              .disabled(authentication.isWorking)
-              .accessibilityIdentifier("account.signOut")
-            }
-          }
         } else {
           ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
             .navigationTitle("Program")

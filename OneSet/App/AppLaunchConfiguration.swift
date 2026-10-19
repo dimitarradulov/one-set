@@ -8,7 +8,7 @@ struct AppLaunchConfiguration {
     trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
     if arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
-      || arguments.contains("--ui-main-exercise-detail") {
+      || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail") {
       onboardingPath = []
       selectedProgramID = nil
     } else if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")

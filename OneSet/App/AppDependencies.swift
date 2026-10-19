@@ -30,7 +30,7 @@ struct AppDependencies {
     let completionSaveError = arguments.contains("--ui-completion-save-error")
     let mainTabsPreview = arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
-      || arguments.contains("--ui-main-exercise-detail")
+      || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
     let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
