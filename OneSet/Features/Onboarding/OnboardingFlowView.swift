@@ -16,7 +16,11 @@ struct OnboardingFlowView: View {
       case .loading, .failed:
         AccountSetupScreen(model: model, authentication: authentication)
       case .idle:
-        journey
+        if model.hasCompletedSetup {
+          CompletedSetupTabsView(model: model, authentication: authentication)
+        } else {
+          journey
+        }
       }
     }
     .task {

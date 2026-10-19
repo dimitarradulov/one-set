@@ -461,6 +461,9 @@ final class OnboardingJourneyTests: XCTestCase {
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
+    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+    XCTAssertTrue(app.tabBars.buttons["History"].exists)
+    XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
     XCTAssertTrue(app.staticTexts["overview.frequency"].label.contains("3 days per week"))
     XCTAssertTrue(app.staticTexts["Recommended training weeks"].exists)
     XCTAssertTrue(app.buttons["overview.week.1"].exists)
@@ -664,8 +667,45 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
     XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+    XCTAssertTrue(app.tabBars.buttons["History"].exists)
+    XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+    XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'step 4 of 4'")).firstMatch.exists)
+
+    app.tabBars.buttons["History"].tap()
+    XCTAssertTrue(app.navigationBars["History"].exists)
+    XCTAssertTrue(app.staticTexts["history.comingSoon"].exists)
+    XCTAssertTrue(app.staticTexts["Chronological session history is coming soon."].exists)
+
+    app.tabBars.buttons["Settings"].tap()
+    XCTAssertTrue(app.navigationBars["Settings"].exists)
+    XCTAssertTrue(app.staticTexts["settings.comingSoon"].exists)
+    XCTAssertTrue(app.staticTexts["Settings are coming soon."].exists)
+
+    app.tabBars.buttons["Program"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].exists)
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
+  }
+
+  func testProgramBrowsingStackAndSelectedWeekSurviveTabSwitching() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+
+    app.buttons["overview.week.4"].tap()
+    let preview = app.buttons["overview.day.1.preview"]
+    XCTAssertTrue(preview.waitForExistence(timeout: 3))
+    preview.tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+
+    app.tabBars.buttons["History"].tap()
+    XCTAssertTrue(app.staticTexts["history.comingSoon"].waitForExistence(timeout: 3))
+    app.tabBars.buttons["Program"].tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["overview.selectedWeek"].label, "Week 4")
   }
 
   func testFailedLookupRequiresRetryBeforeRestoringTheProgram() {
