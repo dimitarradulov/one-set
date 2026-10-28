@@ -10,7 +10,7 @@ struct ExercisePerformanceEmptyStateView: View {
         .font(OneSetTypography.bodyStrong)
         .foregroundStyle(OneSetColors.textPrimary)
         .accessibilityIdentifier(titleIdentifier)
-      Text("Your results will appear here after recording this exercise.")
+      Text("Record this exercise to see your results here.")
         .font(OneSetTypography.body)
         .foregroundStyle(OneSetColors.textSecondary)
         .fixedSize(horizontal: false, vertical: true)

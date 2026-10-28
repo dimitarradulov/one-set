@@ -18,7 +18,7 @@ struct TrainingPreferencesScreen: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("preferences.title")
 
-              Text("These help us recommend the best programs for your goals. You can change them later in settings.")
+              Text("We’ll show programs that match your schedule first. You can change these choices later in Settings.")
                 .font(OneSetTypography.body)
                 .foregroundStyle(OneSetColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

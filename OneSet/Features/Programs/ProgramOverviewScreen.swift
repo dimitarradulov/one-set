@@ -68,7 +68,7 @@ struct ProgramOverviewScreen: View {
             .foregroundStyle(OneSetColors.textPrimary)
             .accessibilityAddTraits(.isHeader)
 
-          Text("A training week is one rotation through these days, not a calendar week.")
+          Text("A training week covers each day in this program once. It may span more than one calendar week.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)

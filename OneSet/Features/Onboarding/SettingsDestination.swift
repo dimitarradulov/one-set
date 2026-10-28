@@ -8,12 +8,12 @@ enum SettingsDestination: String, Hashable {
 
   private var presentation: (title: String, explanation: String, symbol: String) {
     switch self {
-    case .units: ("Units", "Unit preferences are coming soon.", "scalemass")
-    case .trainingFrequency: ("Training frequency", "Training frequency settings are coming soon.", "calendar")
-    case .restAlerts: ("Rest alerts", "Rest alert settings are coming soon.", "timer")
-    case .downloadedVideos: ("Downloaded videos", "Video downloads are coming soon.", "arrow.down.circle")
-    case .subscription: ("Subscription", "Subscription management is coming soon.", "creditcard")
-    case .accountDeletion: ("Account deletion", "Account deletion is coming soon.", "person.crop.circle.badge.xmark")
+    case .units: ("Units", "Change between kilograms and pounds here.", "scalemass")
+    case .trainingFrequency: ("Training frequency", "Change how many days you plan to train each week.", "calendar")
+    case .restAlerts: ("Rest alerts", "Choose whether to get a notification when rest ends.", "timer")
+    case .downloadedVideos: ("Downloaded videos", "Manage exercise videos saved on this device.", "arrow.down.circle")
+    case .subscription: ("Subscription", "Manage your subscription and restore purchases.", "creditcard")
+    case .accountDeletion: ("Account deletion", "Delete your OneSet account and its data.", "person.crop.circle.badge.xmark")
     }
   }
 

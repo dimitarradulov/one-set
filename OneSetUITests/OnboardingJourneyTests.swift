@@ -10,8 +10,7 @@ final class OnboardingJourneyTests: XCTestCase {
     if app.state != .notRunning {
       app.terminate()
     }
-    app.launchArguments = ["--ui-auth-test"]
-    app.launch()
+    // Each test launches once with its initial arguments.
   }
 
   func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
@@ -56,6 +55,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testAppleNewAccountOpensPreferencesAndSupportsSharedSignOut() {
+    relaunch(with: [])
     app.buttons["continue.apple"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
@@ -111,6 +111,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testGoogleNewAccountOpensPreferencesAndSupportsSharedSignOut() {
+    relaunch(with: [])
     app.buttons["continue.google"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["preferences.unit.kg"].isSelected)
@@ -182,6 +183,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testContinueWithEmailAsksBeforeCreatingAnAccountThenOpensPreferences() {
+    relaunch(with: [])
     app.buttons["continue.email"].tap()
     XCTAssertEqual(app.staticTexts["login.title"].label, "Continue with email")
     app.textFields["login.email"].tap()
@@ -218,6 +220,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testEmailWithUnknownAccountRequiresExplicitAccountCreation() {
+    relaunch(with: [])
     app.buttons["continue.email"].tap()
     app.textFields["login.email"].tap()
     app.textFields["login.email"].typeText("new@example.com")
@@ -284,6 +287,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testLoginOffersEmailCodeFlowAndReturnsToWelcome() {
+    relaunch(with: [])
     XCTAssertFalse(app.buttons["welcome.login"].exists)
     XCTAssertFalse(app.staticTexts["Already have an account?"].exists)
     app.buttons["continue.email"].tap()
@@ -300,6 +304,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testPreferencesRetainChoicesOnBackAndResetAfterRelaunch() {
+    relaunch(with: [])
     openPreferences(using: "continue.google")
 
     for dayCount in 2...5 {
@@ -333,6 +338,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testProgramMatchesAreFirstForTwoAndFiveDayPreferencesAndAllProgramsStayAvailable() {
+    relaunch(with: [])
     openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()
     app.buttons["preferences.continue"].tap()
@@ -403,6 +409,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testNonMatchingProgramCanBeSelectedAndSelectionSurvivesBackNavigation() {
+    relaunch(with: [])
     openPreferences(using: "continue.google")
     app.buttons["preferences.days.2"].tap()
     app.buttons["preferences.continue"].tap()
@@ -449,6 +456,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testTrialBypassOpensSelectedProgramOverviewAndSwitchesRotationWeeks() {
+    relaunch(with: [])
     openPreferences(using: "continue.google")
     app.buttons["preferences.continue"].tap()
     programCard("full-body").tap()
@@ -682,12 +690,22 @@ final class OnboardingJourneyTests: XCTestCase {
         reps.tap()
         reps.typeText("10")
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
-        let guidance = app.buttons["recording.guidance.machine-full-body-workout-a-hack-squat-machine"]
-        XCTAssertTrue(guidance.waitForExistence(timeout: 3))
-        guidance.tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Set the machine so your back remains supported'")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["recording.guidance.machine-full-body-workout-a-hack-squat-machine"].exists)
+        let exercise = app.buttons["recording.exercise.machine-full-body-workout-a-hack-squat-machine.open"]
+        XCTAssertTrue(exercise.waitForExistence(timeout: 3))
+        exercise.tap()
+        XCTAssertEqual(app.staticTexts["exerciseDetail.title"].label, "Hack Squat Machine")
+        XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("Set the machine so your back remains supported"))
+        XCTAssertTrue(app.staticTexts["exerciseDetail.videoPlaceholder"].exists)
+        attachScreenshot(named: "recording-exercise-instructions")
+        app.buttons["exerciseDetail.warmupDisclosure"].tap()
+        app.swipeUp()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Approximate warm-up loads'")).firstMatch.exists)
-        attachScreenshot(named: "recording-guidance-expanded")
+        attachScreenshot(named: "recording-exercise-detail")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertEqual(firstRecordingField(suffix: ".weight").value as? String, "100")
+        XCTAssertEqual(firstRecordingField(suffix: ".reps").value as? String, "10")
+        XCTAssertTrue(app.buttons["recording.set.toggle.machine-full-body-workout-a-hack-squat-machine"].label.contains("Undo"))
       } else {
         let weightField = firstRecordingField(suffix: ".weight")
         weightField.tap()
@@ -698,6 +716,11 @@ final class OnboardingJourneyTests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
       }
       app.swipeUp()
+      if day == 1 {
+        app.swipeUp()
+        app.swipeUp()
+        attachScreenshot(named: "recording-bottom-spacing")
+      }
       app.buttons["recording.finish"].tap()
       XCTAssertTrue(app.buttons["finish.confirm"].waitForExistence(timeout: 3))
       app.buttons["finish.confirm"].tap()
@@ -1241,7 +1264,9 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   private func relaunch(with additionalArguments: [String]) {
-    app.terminate()
+    if app.state != .notRunning {
+      app.terminate()
+    }
     app.launchArguments = ["--ui-auth-test"] + additionalArguments
     app.launch()
   }

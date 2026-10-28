@@ -17,7 +17,7 @@ struct ProgramSelectionScreen: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("programs.title")
 
-          Text("\(trainingDays)-day matches come first. Every offered program stays available.")
+          Text("Programs for your \(trainingDays)-day schedule appear first. You can choose any program.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -45,7 +45,7 @@ struct ProgramSelectionScreen: View {
           }
         }
 
-        Text("Training frequency is a guide. Every program remains open to you.")
+        Text("Your schedule helps sort the list. It does not limit your choices.")
           .font(OneSetTypography.caption)
           .foregroundStyle(OneSetColors.textSecondary)
           .fixedSize(horizontal: false, vertical: true)

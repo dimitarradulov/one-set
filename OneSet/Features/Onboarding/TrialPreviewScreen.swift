@@ -17,7 +17,7 @@ struct TrialPreviewScreen: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("trial.title")
 
-              Text("Review the intended offer before continuing.")
+              Text("This screen previews the planned trial offer.")
                 .font(OneSetTypography.body)
                 .foregroundStyle(OneSetColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -51,7 +51,7 @@ struct TrialPreviewScreen: View {
                 .font(OneSetTypography.bodyStrong)
                 .foregroundStyle(OneSetColors.textPrimary)
 
-              Text("This is a preview. It does not check eligibility, enroll you, grant access, start a trial, or make a purchase. No trial has started.")
+              Text("This preview does not check eligibility, start a trial, grant access, or make a purchase.")
                 .font(OneSetTypography.body)
                 .foregroundStyle(OneSetColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
