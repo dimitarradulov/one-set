@@ -260,7 +260,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testRestoredSessionResolvesSetupAndCanSignOut() {
-    relaunch(with: ["--ui-auth-restored"])
+    relaunch(with: ["--ui-auth-restored", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
@@ -387,7 +387,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(programCard("full-body").waitForExistence(timeout: 3))
     XCTAssertFalse(programCard("machine-full-body").exists)
 
-    relaunch(with: ["--ui-setup-removed-follower"])
+    relaunch(with: ["--ui-setup-removed-follower", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
   }
