@@ -35,7 +35,7 @@ fi
 oneset_run() {
   DESTINATION="platform=iOS Simulator,id=$SIMULATOR_UDID"
   RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/$(date +%Y%m%d-%H%M%S)-$$"
-  BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/validation/$(basename "$RUN_DIR")"
+  BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/validation/$SIMULATOR_UDID"
   if [[ "$VALIDATION_MODE" == focused ]]; then
     BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/focused/$SIMULATOR_UDID"
   fi

@@ -12,7 +12,7 @@ Choose validation by the affected behavior before finishing a code change. Size 
 
 For a localized iOS change without a relevant existing test, build and exercise the affected behavior in the simulator; add a test when it protects meaningful behavior. Use the full suite when the affected workflows cannot be bounded confidently. Follow the UI verification requirements below when appearance or navigation changes.
 
-Focused validation builds the app and runs only the supplied iOS test selectors. It skips Worker and simulator-tooling tests, reuses `.codex/build/focused/` for incremental builds, and retains each run's logs and `.xcresult`. The default invocation still runs the full suite.
+Focused validation builds the app and runs only the supplied iOS test selectors. It skips Worker and simulator-tooling tests, reuses `.codex/build/focused/` for incremental builds, and retains each run's logs and `.xcresult`. The default invocation still runs the full suite and reuses `.codex/build/validation/<simulator-UUID>/` for incremental builds. Logs and `.xcresult` results remain separate for each run.
 
 For tasks limited to documentation, agent instructions, configuration examples, or other non-code files that do not affect compilation or execution, review the changed files and any relevant links or examples. Skip build/test scripts and simulator validation for these tasks. For mixed tasks, apply validation to the code or UI changes they include.
 

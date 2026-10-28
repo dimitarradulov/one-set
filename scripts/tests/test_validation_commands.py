@@ -102,6 +102,7 @@ npm() { echo "npm $*"; }
                         self.assertNotIn("python-checks", result.stdout)
                         self.assertNotIn("npm ", result.stdout)
                     else:
+                        self.assertIn("/build/validation/test-device>", result.stdout)
                         self.assertIn("python-checks", result.stdout)
                         self.assertIn("npm --prefix worker run typecheck", result.stdout)
                         self.assertIn("npm --prefix worker test", result.stdout)
