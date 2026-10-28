@@ -515,6 +515,32 @@ final class OnboardingModel {
     }
   }
 
+  func adjustWorkoutRest(by seconds: Int) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.adjustRest(
+        sessionID: session.id, accountID: session.accountID, by: seconds
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  func skipWorkoutRest() -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.skipRest(
+        sessionID: session.id, accountID: session.accountID
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
   private func showWorkoutSaveError(_ error: Error) {
     workoutErrorMessage = error.localizedDescription
     workoutErrorPresented = true

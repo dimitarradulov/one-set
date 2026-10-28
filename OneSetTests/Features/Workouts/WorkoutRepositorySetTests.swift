@@ -31,7 +31,7 @@ struct WorkoutRepositorySetTests {
     ).restDeadline == completedAt.addingTimeInterval(120))
 
     let reopened = try WorkoutRepository(databaseURL: databaseURL)
-    let restored = try #require(reopened.activeSession(accountID: session.accountID))
+    let restored = try #require(try reopened.activeSession(accountID: session.accountID))
     #expect(restored.setEntries["slot-a"]?.weightInput == "72.5")
     #expect(restored.setEntries["slot-a"]?.repsInput == "10")
     #expect(restored.setEntries["slot-a"]?.completedAt == completedAt)
@@ -61,6 +61,54 @@ struct WorkoutRepositorySetTests {
       try repository.completeSet(sessionID: session.id, accountID: "another-account", slotID: "slot-a")
     }
     #expect(try repository.activeSession(accountID: session.accountID)?.setEntries["slot-a"]?.completedAt == nil)
+  }
+
+  @Test
+  func restCanBeReplacedAdjustedSkippedAndRecoveredFromItsDeadline() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-a", weightInput: "40", repsInput: "8")
+    let first = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                          slotID: "slot-a", restSeconds: 120, at: now)
+    #expect(first.restDeadline == now.addingTimeInterval(120))
+
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-b", weightInput: "30", repsInput: "9")
+    let second = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                           slotID: "slot-b", restSeconds: 180, at: now.addingTimeInterval(30))
+    #expect(second.restDeadline == now.addingTimeInterval(210))
+
+    let adjusted = try repository.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                            by: 15, at: now.addingTimeInterval(60))
+    #expect(adjusted.restDeadline == now.addingTimeInterval(225))
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.activeSession(accountID: session.accountID)?.restDeadline == now.addingTimeInterval(225))
+    let reduced = try reopened.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                          by: -15, at: now.addingTimeInterval(200))
+    #expect(reduced.restDeadline == now.addingTimeInterval(210))
+    #expect(try reopened.skipRest(sessionID: session.id, accountID: session.accountID).restDeadline == nil)
+  }
+
+  @Test
+  func restAdjustmentsCannotResurrectAnExpiredCountdown() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let session = makeSession()
+    _ = try repository.start(session)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-a", weightInput: "40", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                  slotID: "slot-a", restSeconds: 5, at: now)
+    #expect(try repository.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                      by: 15, at: now.addingTimeInterval(10)).restDeadline == nil)
   }
 
   private func makeSession() -> WorkoutSession {
