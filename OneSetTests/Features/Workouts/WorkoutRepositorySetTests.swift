@@ -63,6 +63,49 @@ struct WorkoutRepositorySetTests {
     #expect(try repository.activeSession(accountID: session.accountID)?.setEntries["slot-a"]?.completedAt == nil)
   }
 
+  @Test
+  func finishingPartialWorkPersistsNoteAndAdvancesOnlyAfterRequiredDays() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let first = makeSession()
+    let occurrence = try repository.nextOccurrence(accountID: first.accountID, cycleID: first.cycleID,
+      programID: first.programID, workoutIDs: ["day-a", "day-b"])
+    #expect(occurrence.week == 1)
+    #expect(occurrence.day == 1)
+    _ = try repository.start(first)
+    _ = try repository.saveDraft(sessionID: first.id, accountID: first.accountID,
+      slotID: "slot-a", weightInput: "50", repsInput: "8")
+    _ = try repository.completeSet(sessionID: first.id, accountID: first.accountID, slotID: "slot-a")
+
+    let finished = try repository.finish(sessionID: first.id, accountID: first.accountID, note: "Felt strong")
+    #expect(finished.finishedAt != nil)
+    #expect(finished.note == "Felt strong")
+    #expect(finished.setEntries["slot-a"]?.completedAt != nil)
+    #expect(try repository.activeSession(accountID: first.accountID) == nil)
+    #expect(try repository.completedOccurrenceIDs(accountID: first.accountID, cycleID: first.cycleID, week: 1) == ["day-a"])
+    #expect(try repository.nextOccurrence(accountID: first.accountID, cycleID: first.cycleID,
+      programID: first.programID, workoutIDs: ["day-a", "day-b"]) == (week: 1, day: 2, workoutID: "day-b"))
+
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.completedOccurrenceIDs(accountID: first.accountID, cycleID: first.cycleID, week: 1) == ["day-a"])
+    #expect(try reopened.finish(sessionID: first.id, accountID: first.accountID, note: "ignored").note == "Felt strong")
+  }
+
+  @Test
+  func anEmptySessionCannotBeFinishedAsACompletedWorkout() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let session = makeSession()
+    _ = try repository.start(session)
+    #expect(throws: WorkoutRepositoryError.noCompletedSets) {
+      try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil)
+    }
+    #expect(try repository.activeSession(accountID: session.accountID)?.id == session.id)
+  }
+
   private func makeSession() -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",

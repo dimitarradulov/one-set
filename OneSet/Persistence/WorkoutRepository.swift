@@ -8,6 +8,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
   case invalidWeight
   case invalidReps
   case sessionNotFound
+  case noCompletedSets
 
   var errorDescription: String? {
     switch self {
@@ -17,6 +18,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
     case .invalidWeight: "Enter a valid weight of zero or more."
     case .invalidReps: "Enter a positive whole number of repetitions."
     case .sessionNotFound: "This workout could not be found. Reopen it and try again."
+    case .noCompletedSets: "Complete at least one set before finishing this workout."
     }
   }
 }
@@ -45,6 +47,16 @@ final class WorkoutRepository {
         table.column("finished_at", .double)
       }
     }
+    migrator.registerMigration("workout-week-membership-v2") { db in
+      try db.create(table: "workout_week_membership") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("program_id", .text).notNull()
+        table.column("week", .integer).notNull()
+        table.column("workout_id", .text).notNull()
+        table.primaryKey(["account_id", "cycle_id", "week", "workout_id"])
+      }
+    }
     try migrator.migrate(database)
   }
 
@@ -70,6 +82,56 @@ final class WorkoutRepository {
   func discard(sessionID: UUID, accountID: String) throws {
     try database.write { db in
       try db.execute(sql: "DELETE FROM workout_sessions WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [sessionID.uuidString, accountID])
+    }
+  }
+
+  func nextOccurrence(accountID: String, cycleID: UUID, programID: String,
+                      workoutIDs: [String]) throws -> (week: Int, day: Int, workoutID: String) {
+    try database.write { db in
+      var week = 1
+      while true {
+        var members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
+        if members.isEmpty {
+          members = workoutIDs
+          for workoutID in members {
+            try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [accountID, cycleID.uuidString, programID, week, workoutID])
+          }
+        }
+        for (index, workoutID) in members.enumerated() {
+          let completed = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week, workoutID]) ?? 0
+          if completed == 0 { return (week, index + 1, workoutID) }
+        }
+        week += 1
+      }
+    }
+  }
+
+  @discardableResult
+  func finish(sessionID: UUID, accountID: String, note: String?, at date: Date = .now) throws -> WorkoutSession {
+    try database.write { db in
+      guard let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [sessionID.uuidString, accountID]) else {
+        if let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE id = ? AND account_id = ? AND finished_at IS NOT NULL", arguments: [sessionID.uuidString, accountID]) {
+          return try JSONDecoder().decode(WorkoutSession.self, from: payload)
+        }
+        throw WorkoutRepositoryError.sessionNotFound
+      }
+      var session = try JSONDecoder().decode(WorkoutSession.self, from: payload)
+      guard session.setEntries.values.contains(where: { $0.completedAt != nil }) else {
+        throw WorkoutRepositoryError.noCompletedSets
+      }
+      let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+      session.note = trimmedNote?.isEmpty == true ? nil : trimmedNote
+      session.finishedAt = date
+      session.restDeadline = nil
+      let updatedPayload = try JSONEncoder().encode(session)
+      try db.execute(sql: "UPDATE workout_sessions SET payload = ?, finished_at = ? WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [updatedPayload, date.timeIntervalSince1970, sessionID.uuidString, accountID])
+      return session
+    }
+  }
+
+  func completedOccurrenceIDs(accountID: String, cycleID: UUID, week: Int) throws -> Set<String> {
+    try database.read { db in
+      Set(try String.fetchAll(db, sql: "SELECT workout_id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week]))
     }
   }
 

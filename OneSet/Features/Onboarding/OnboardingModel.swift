@@ -436,8 +436,15 @@ final class OnboardingModel {
       return
     }
     do {
+      let next = try workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
+        programID: programID, workoutIDs: program.workouts.map(\.id))
+      guard next.workoutID == workoutID else {
+        workoutErrorMessage = "Complete the earlier workout day before starting this one."
+        workoutErrorPresented = true
+        return
+      }
       let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
-        workout: program.workouts[index], week: 1, day: index + 1, weightUnit: weightUnit)
+        workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit)
       activeWorkoutSession = try workoutRepository.start(session)
       let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)
       if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
@@ -508,6 +515,33 @@ final class OnboardingModel {
       activeWorkoutSession = try workoutRepository.unmarkSet(
         sessionID: session.id, accountID: session.accountID, slotID: slotID
       )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  func completedWorkoutIDs(programID: String, week: Int) -> Set<String> {
+    guard let workoutRepository, let cycleID = restoredCycleID,
+          let accountID = resolvedAccountID else { return [] }
+    return (try? workoutRepository.completedOccurrenceIDs(accountID: accountID, cycleID: cycleID, week: week)) ?? []
+  }
+
+  func currentWorkoutWeek(programID: String) -> Int {
+    guard let workoutRepository, let cycleID = restoredCycleID,
+          let accountID = resolvedAccountID, let program = catalog.program(id: programID) else { return 1 }
+    return (try? workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
+      programID: programID, workoutIDs: program.workouts.map(\.id)).week) ?? 1
+  }
+
+  func finishActiveWorkout(note: String?) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      _ = try workoutRepository.finish(sessionID: session.id, accountID: session.accountID, note: note)
+      activeWorkoutSession = nil
+      if path.last == .workoutRecording(session.id) { path.removeLast() }
+      if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }
       return true
     } catch {
       showWorkoutSaveError(error)
