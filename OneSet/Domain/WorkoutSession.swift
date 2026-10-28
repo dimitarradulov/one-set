@@ -44,9 +44,9 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     func progressionGuidance(for repsInput: String) -> String? {
       guard let reps = Int(repsInput), reps > 0 else { return nil }
       if reps >= repTarget.maximum {
-        return "If those reps were clean, try the smallest practical load increase next time."
+        return "If you completed all reps with good form, add a small amount of weight next time."
       }
-      return "Keep the same load and aim for more clean reps within \(repTarget.minimum)–\(repTarget.maximum)."
+      return "Keep the same weight and aim for more reps with good form. Target: \(repTarget.minimum)–\(repTarget.maximum)."
     }
 
     func warmupRanges(for workingWeightInput: String) -> [WarmupRange] {

@@ -2,14 +2,16 @@ import SwiftUI
 
 struct ExerciseDetailScreen: View {
   let exercise: WorkoutExercise
+  let warmupLoads: [String]
   var initiallyExpanded = false
   var initiallyShowingHistory = false
 
   @State private var guidanceExpanded: Bool
   @State private var warmupExpanded: Bool
 
-  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false) {
+  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false, warmupLoads: [String] = []) {
     self.exercise = exercise
+    self.warmupLoads = warmupLoads
     self.initiallyExpanded = initiallyExpanded
     self.initiallyShowingHistory = initiallyShowingHistory
     _guidanceExpanded = State(initialValue: initiallyExpanded)
@@ -57,12 +59,27 @@ struct ExerciseDetailScreen: View {
           }
 
           DisclosureGroup(isExpanded: $warmupExpanded) {
-            Text(exercise.warmupGuidance)
-              .font(OneSetTypography.body)
-              .foregroundStyle(OneSetColors.textPrimary)
-              .fixedSize(horizontal: false, vertical: true)
-              .padding(.top, 12)
-              .accessibilityIdentifier("exerciseDetail.warmupGuidance")
+            VStack(alignment: .leading, spacing: 12) {
+              Text(exercise.warmupGuidance)
+                .font(OneSetTypography.body)
+                .foregroundStyle(OneSetColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("exerciseDetail.warmupGuidance")
+              if !warmupLoads.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text("Approximate warm-up loads · not logged")
+                    .font(OneSetTypography.label)
+                    .foregroundStyle(OneSetColors.textSecondary)
+                  ForEach(warmupLoads, id: \.self) { load in
+                    Text(load)
+                      .font(OneSetTypography.body)
+                      .foregroundStyle(OneSetColors.textPrimary)
+                  }
+                }
+                .accessibilityIdentifier("exerciseDetail.warmupLoads")
+              }
+            }
+            .padding(.top, 12)
           } label: {
             Text("Warmup guidance")
               .font(OneSetTypography.bodyStrong)
@@ -96,7 +113,7 @@ struct ExerciseDetailScreen: View {
       Image(systemName: "video.slash")
         .font(.system(size: 28, weight: .regular))
         .accessibilityHidden(true)
-      Text("Exercise video coming soon")
+      Text("No exercise video yet")
         .font(OneSetTypography.bodyStrong)
         .multilineTextAlignment(.center)
         .fixedSize(horizontal: false, vertical: true)

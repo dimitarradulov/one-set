@@ -16,7 +16,6 @@ struct WorkoutRecordingScreen: View {
   @State private var confirmsEmptyDiscard = false
   @State private var noteExpanded = false
   @State private var note = ""
-  @State private var expandedGuidance: Set<String> = []
   @State private var inputs: [String: WorkoutSession.SetEntry]
   @State private var failedSaves: [String: FailedSave] = [:]
   @FocusState private var focusedField: Field?
@@ -83,7 +82,6 @@ struct WorkoutRecordingScreen: View {
       }
       .frame(maxWidth: 720, alignment: .leading)
       .padding(20)
-      .padding(.bottom, 100)
       .frame(maxWidth: .infinity, alignment: .top)
     }
     .scrollDismissesKeyboard(.interactively)
@@ -155,23 +153,35 @@ struct WorkoutRecordingScreen: View {
     let entry = inputs[exercise.slotID] ?? .init()
     let isComplete = entry.completedAt != nil
     return VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        Text(String(format: "%02d", exercise.order + 1))
-          .font(OneSetTypography.caption)
-          .foregroundStyle(OneSetColors.textSecondary)
-        VStack(alignment: .leading, spacing: 4) {
-          Text(exercise.name).font(OneSetTypography.bodyStrong).foregroundStyle(OneSetColors.textPrimary)
-          Text("Target: \(exercise.repTarget.label)")
-            .font(OneSetTypography.label).foregroundStyle(OneSetColors.textSecondary)
-        }
-        Spacer()
-        if isComplete {
-          Label("Set complete", systemImage: "checkmark.circle.fill")
+      NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
+        HStack(alignment: .top, spacing: 12) {
+          Text(String(format: "%02d", exercise.order + 1))
             .font(OneSetTypography.caption)
-            .foregroundStyle(OneSetColors.accent)
-            .accessibilityIdentifier("recording.set.complete.\(exercise.slotID)")
+            .foregroundStyle(OneSetColors.textSecondary)
+          VStack(alignment: .leading, spacing: 4) {
+            Text(exercise.name).font(OneSetTypography.bodyStrong).foregroundStyle(OneSetColors.textPrimary)
+            Text("Target: \(exercise.repTarget.label)")
+              .font(OneSetTypography.label).foregroundStyle(OneSetColors.textSecondary)
+          }
+          Spacer()
+          if isComplete {
+            Label("Set complete", systemImage: "checkmark.circle.fill")
+              .font(OneSetTypography.caption)
+              .foregroundStyle(OneSetColors.accent)
+              .accessibilityIdentifier("recording.set.complete.\(exercise.slotID)")
+          }
+          Image(systemName: "chevron.right")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(OneSetColors.textSecondary)
+            .accessibilityHidden(true)
         }
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
       }
+      .buttonStyle(.plain)
+      .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+      .accessibilityHint("Opens exercise instructions, video, and warm-up guidance.")
+      .accessibilityIdentifier("recording.exercise.\(exercise.slotID).open")
       HStack(spacing: 10) {
         input(title: "Weight (\(session.weightUnit.rawValue))", text: weightBinding(exercise.slotID),
               field: .init(slotID: exercise.slotID, name: .weight), keyboard: .decimalPad)
@@ -223,31 +233,6 @@ struct WorkoutRecordingScreen: View {
           .fixedSize(horizontal: false, vertical: true)
           .accessibilityIdentifier("recording.progression.\(exercise.slotID)")
       }
-      DisclosureGroup("Exercise guidance", isExpanded: guidanceBinding(exercise.slotID)) {
-        VStack(alignment: .leading, spacing: 12) {
-          guidanceSection("Technique", text: exercise.instructions)
-          guidanceSection("Stopping", text: exercise.stoppingGuidance)
-          guidanceSection("Warm-up", text: exercise.warmupGuidance)
-          let ranges = exercise.warmupRanges(for: entry.weightInput)
-          if !ranges.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Approximate warm-up loads · not logged")
-                .font(OneSetTypography.caption)
-                .foregroundStyle(OneSetColors.textSecondary)
-              ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
-                Text("\(range.reps.lowerBound)–\(range.reps.upperBound) reps · \(formatted(range.minimumLoad))–\(formatted(range.maximumLoad)) \(session.weightUnit.rawValue)")
-                  .font(OneSetTypography.caption)
-                  .foregroundStyle(OneSetColors.textPrimary)
-              }
-            }
-            .accessibilityIdentifier("recording.warmup.loads.\(exercise.slotID)")
-          }
-        }
-        .padding(.top, 8)
-      }
-      .font(OneSetTypography.label)
-      .tint(OneSetColors.accent)
-      .accessibilityIdentifier("recording.guidance.\(exercise.slotID)")
     }
     .padding(.vertical, 14)
     .overlay(alignment: .bottom) { Rectangle().fill(OneSetColors.border).frame(height: 1) }
@@ -277,30 +262,6 @@ struct WorkoutRecordingScreen: View {
         .foregroundStyle(OneSetColors.textSecondary)
         .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
     }
-  }
-
-  @ViewBuilder
-  private func guidanceSection(_ title: String, text: String) -> some View {
-    if !text.isEmpty {
-      VStack(alignment: .leading, spacing: 3) {
-        Text(title).font(OneSetTypography.label).foregroundStyle(OneSetColors.textPrimary)
-        Text(text).font(OneSetTypography.caption).foregroundStyle(OneSetColors.textSecondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-  }
-
-  private func guidanceBinding(_ slotID: String) -> Binding<Bool> {
-    Binding(get: { expandedGuidance.contains(slotID) }, set: { isExpanded in
-      if isExpanded { expandedGuidance.insert(slotID) }
-      else { expandedGuidance.remove(slotID) }
-    })
-  }
-
-  private func formatted(_ value: Double) -> String {
-    let rounded = (value * 10).rounded() / 10
-    return rounded.rounded(.towardZero) == rounded && rounded.truncatingRemainder(dividingBy: 1) == 0
-      ? String(Int(rounded)) : String(format: "%.1f", rounded)
   }
 
   private func input(title: String, text: Binding<String>, field: Field,

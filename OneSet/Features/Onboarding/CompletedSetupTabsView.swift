@@ -14,7 +14,7 @@ struct CompletedSetupTabsView: View {
       NavigationStack {
         ComingSoonScreen(
           title: "History",
-          explanation: "Chronological session history is coming soon.",
+          explanation: "Your completed workouts will appear here.",
           identifier: "history"
         )
         .navigationTitle("History")
@@ -29,6 +29,14 @@ struct CompletedSetupTabsView: View {
       .tag(MainTab.settings)
       .accessibilityIdentifier("tab.settings")
     }
+    #if DEBUG
+    .task {
+      if ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording"),
+         model.activeWorkoutSession == nil, let accountID = authentication.signedInUser?.id {
+        model.startWorkout(programID: "machine-full-body", workoutID: "machine-full-body-workout-a", accountID: accountID)
+      }
+    }
+    #endif
     .tint(OneSetColors.accent)
     .preferredColorScheme(.dark)
   }
@@ -107,6 +115,12 @@ struct CompletedSetupTabsView: View {
         }
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+      }
+    case .recordingExerciseDetail(let sessionID, let slotID):
+      if let session = model.activeWorkoutSession, session.id == sessionID {
+        RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+      } else {
+        ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
       }
     case .exerciseDetail(let programID, let workoutID, let exerciseID, let guidanceExpanded, let initiallyShowingHistory):
       if let program = model.program(id: programID),

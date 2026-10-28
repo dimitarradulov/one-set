@@ -54,7 +54,7 @@ struct OnboardingFlowView: View {
         Task { await model.signOut(using: authentication, discardPending: true) }
       }
     } message: {
-      Text("Your completed setup has not reached your account yet. Signing out will discard this device’s setup and its pending upload.")
+      Text("Your setup has not been saved to your account. If you sign out, this device’s setup and pending upload will be deleted.")
     }
     .alert("Couldn’t sign out", isPresented: $model.signOutErrorPresented) {
       Button("OK", role: .cancel) { }
@@ -233,6 +233,12 @@ struct OnboardingFlowView: View {
               }
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+            }
+          case .recordingExerciseDetail(let sessionID, let slotID):
+            if let session = model.activeWorkoutSession, session.id == sessionID {
+              RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+            } else {
+              ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
             }
           case .exerciseDetail(let programID, let workoutID, let exerciseID, let guidanceExpanded, let initiallyShowingHistory):
             if let program = model.program(id: programID),

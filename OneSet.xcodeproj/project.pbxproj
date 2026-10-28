@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B447421930926D7F00EA6D5D /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = D00000000000000000000002 /* GRDB */; };
 		B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC1306FCC5700D6A32F /* ClerkKit */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B447421930926D7F00EA6D5D /* GRDB in Frameworks */,
 				B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -182,7 +184,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B488DEC0306FCC5700D6A32F /* XCRemoteSwiftPackageReference "clerk-ios" */,
-				D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
 			productRefGroup = A10000000000000000000004 /* Products */;
 			projectDirPath = "";
@@ -436,7 +438,7 @@
 				minimumVersion = 1.5.8;
 			};
 		};
-		D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+		D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -454,7 +456,7 @@
 		};
 		D00000000000000000000002 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = D00000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
