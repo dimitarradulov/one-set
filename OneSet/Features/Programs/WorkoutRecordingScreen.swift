@@ -90,7 +90,7 @@ struct WorkoutRecordingScreen: View {
     .background(OneSetColors.background)
     .navigationTitle(session.workoutName)
     .navigationBarTitleDisplayMode(.inline)
-    .confirmationDialog("Discard this unfinished workout?", isPresented: $confirmsDiscard, titleVisibility: .visible) {
+    .alert("Discard this unfinished workout?", isPresented: $confirmsDiscard) {
       Button("Discard workout", role: .destructive, action: onDiscard)
       Button("Keep workout", role: .cancel) {}
     } message: {
@@ -101,7 +101,7 @@ struct WorkoutRecordingScreen: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
-    .confirmationDialog("No sets are complete", isPresented: $confirmsEmptyDiscard, titleVisibility: .visible) {
+    .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
       Button("Discard workout", role: .destructive, action: onDiscard)
       Button("Keep recording", role: .cancel) {}
     } message: {

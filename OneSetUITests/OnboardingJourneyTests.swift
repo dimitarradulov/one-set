@@ -720,7 +720,8 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(alert.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'saved workouts are still on this device'")).firstMatch.exists)
     XCTAssertTrue(alert.buttons["Retry storage"].exists)
     alert.buttons["Retry storage"].tap()
-    XCTAssertTrue(alert.waitForExistence(timeout: 3))
+    XCTAssertFalse(alert.waitForExistence(timeout: 1))
+    XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
   }
 
   func testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery() {
@@ -732,28 +733,29 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.tabBars.buttons["Settings"].tap()
     app.buttons["account.signOut"].tap()
-    XCTAssertTrue(app.alerts["Workout unavailable"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.alerts["Workout unavailable"].staticTexts.containing(
+    XCTAssertTrue(app.alerts["Couldn’t sign out"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.alerts["Couldn’t sign out"].staticTexts.containing(
       NSPredicate(format: "label CONTAINS[c] 'finish or discard'")
     ).firstMatch.exists)
-    app.alerts.buttons["OK"].tap()
+    app.alerts["Couldn’t sign out"].buttons["OK"].tap()
     app.tabBars.buttons["Program"].tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
     app.buttons["recording.discard"].tap()
-    XCTAssertTrue(app.buttons["Keep workout"].waitForExistence(timeout: 3))
-    app.buttons["Keep workout"].tap()
+    let keepWorkout = app.alerts.buttons.matching(
+      NSPredicate(format: "label CONTAINS[c] 'Keep'")
+    ).firstMatch
+    XCTAssertTrue(keepWorkout.waitForExistence(timeout: 3), app.debugDescription)
+    keepWorkout.tap()
     XCTAssertTrue(app.buttons["recording.finish"].exists)
     app.buttons["recording.finish"].tap()
     app.buttons["finish.confirm"].tap()
-    XCTAssertTrue(app.buttons["Keep recording"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.alerts.buttons["Keep recording"].waitForExistence(timeout: 3))
     attachScreenshot(named: "recording-finish-empty-discard")
-    app.buttons["Keep recording"].tap()
+    app.alerts.buttons["Keep recording"].tap()
     app.buttons["recording.discard"].tap()
-    app.buttons["Discard workout"].tap()
-    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
-
-    app.buttons["overview.day.1.preview"].tap()
+    app.alerts.buttons["Discard workout"].tap()
+    XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     app.buttons["workoutPreview.start"].tap()
     let weight = firstRecordingField(suffix: ".weight")
     XCTAssertTrue(weight.waitForExistence(timeout: 3))
@@ -769,8 +771,9 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
     XCTAssertTrue(app.otherElements["recording.rest.countdown"].waitForExistence(timeout: 5))
     app.buttons["recording.discard"].tap()
-    app.buttons["Discard workout"].tap()
+    app.alerts.buttons["Discard workout"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].waitForExistence(timeout: 3))
   }
 
   private func firstRecordingField(suffix: String) -> XCUIElement {

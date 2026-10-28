@@ -88,28 +88,10 @@ final class WorkoutRepository {
       if let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE account_id = ? AND finished_at IS NULL ORDER BY started_at LIMIT 1", arguments: [session.accountID]) {
         return try JSONDecoder().decode(WorkoutSession.self, from: payload)
       }
-      var expectedWeek = 1
-      while true {
-        var members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [session.accountID, session.cycleID.uuidString, expectedWeek])
-        if members.isEmpty {
-          members = session.requiredWorkoutIDs
-          for workoutID in members {
-            try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [session.accountID, session.cycleID.uuidString, session.programID, expectedWeek, workoutID])
-          }
-        }
-        var expectedDay: Int?
-        for (index, workoutID) in members.enumerated() {
-          let completed = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL", arguments: [session.accountID, session.cycleID.uuidString, expectedWeek, workoutID]) ?? 0
-          if completed == 0 { expectedDay = index + 1; break }
-        }
-        if let expectedDay {
-          guard session.week == expectedWeek, session.day == expectedDay,
-                members[expectedDay - 1] == session.workoutID else {
-            throw WorkoutRepositoryError.occurrenceUnavailable
-          }
-          break
-        }
-        expectedWeek += 1
+      let next = try nextOccurrence(in: db, accountID: session.accountID, cycleID: session.cycleID,
+        programID: session.programID, workoutIDs: session.requiredWorkoutIDs)
+      guard session.week == next.week, session.day == next.day, session.workoutID == next.workoutID else {
+        throw WorkoutRepositoryError.occurrenceUnavailable
       }
       let payload = try JSONEncoder().encode(session)
       try db.execute(sql: "INSERT INTO workout_sessions (id, account_id, cycle_id, program_id, week, workout_id, day, started_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", arguments: [session.id.uuidString, session.accountID, session.cycleID.uuidString, session.programID, session.week, session.workoutID, session.day, session.startedAt.timeIntervalSince1970, payload])
@@ -126,21 +108,28 @@ final class WorkoutRepository {
   func nextOccurrence(accountID: String, cycleID: UUID, programID: String,
                       workoutIDs: [String]) throws -> (week: Int, day: Int, workoutID: String) {
     try database.write { db in
-      var week = 1
-      while true {
-        var members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
-        if members.isEmpty {
-          members = workoutIDs
-          for workoutID in members {
-            try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [accountID, cycleID.uuidString, programID, week, workoutID])
-          }
+      try nextOccurrence(in: db, accountID: accountID, cycleID: cycleID,
+        programID: programID, workoutIDs: workoutIDs)
+    }
+  }
+
+  private func nextOccurrence(in db: Database, accountID: String, cycleID: UUID,
+                              programID: String, workoutIDs: [String]) throws
+    -> (week: Int, day: Int, workoutID: String) {
+    var week = 1
+    while true {
+      var members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
+      if members.isEmpty {
+        members = workoutIDs
+        for workoutID in members {
+          try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [accountID, cycleID.uuidString, programID, week, workoutID])
         }
-        for (index, workoutID) in members.enumerated() {
-          let completed = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week, workoutID]) ?? 0
-          if completed == 0 { return (week, index + 1, workoutID) }
-        }
-        week += 1
       }
+      for (index, workoutID) in members.enumerated() {
+        let completed = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week, workoutID]) ?? 0
+        if completed == 0 { return (week, index + 1, workoutID) }
+      }
+      week += 1
     }
   }
 
