@@ -110,6 +110,27 @@ struct WorkoutRepositorySetTests {
   }
 
   @Test
+  func recommendedEightWeeksDoNotBlockStartingWeekNine() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let cycleID = UUID()
+    for week in 1...8 {
+      let session = makeSession(cycleID: cycleID, week: week)
+      _ = try repository.start(session)
+      _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+        slotID: "slot-a", weightInput: "50", repsInput: "8")
+      _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+      _ = try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil)
+    }
+    let weekNine = try repository.nextOccurrence(accountID: "account", cycleID: cycleID,
+      programID: "program", workoutIDs: ["day-a"])
+    #expect(weekNine.week == 9)
+    _ = try repository.start(makeSession(cycleID: cycleID, week: 9))
+    #expect(try repository.activeSession(accountID: "account")?.week == 9)
+  }
+
+  @Test
   func restCanBeReplacedAdjustedSkippedAndRecoveredFromItsDeadline() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -239,7 +260,7 @@ struct WorkoutRepositorySetTests {
     #expect(exercise.warmupRanges(for: "0").isEmpty)
   }
 
-  private func makeSession() -> WorkoutSession {
+  private func makeSession(cycleID: UUID = UUID(), week: Int = 1) -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",
                       repTarget: RepTarget(minimum: 8, maximum: 12), restSeconds: 120),
@@ -247,7 +268,7 @@ struct WorkoutRepositorySetTests {
                       repTarget: RepTarget(minimum: 8, maximum: 12))
     ])
     let program = TrainingProgram(id: "program", name: "Program", format: "A/B", emphasis: "Strength", workouts: [workout])
-    return WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
-                          workout: workout, week: 1, day: 1, weightUnit: .pounds)
+    return WorkoutSession(accountID: "account", cycleID: cycleID, program: program,
+                          workout: workout, week: week, day: 1, weightUnit: .pounds)
   }
 }

@@ -38,16 +38,19 @@ final class OnboardingModel {
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
-  private let workoutRepository: WorkoutRepository?
+  private var workoutRepository: WorkoutRepository?
+  private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
   private(set) var activeWorkoutSession: WorkoutSession?
   var workoutErrorPresented = false
   private(set) var workoutErrorMessage = ""
+  private(set) var workoutStorageOpenFailed = false
 
   init(
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
     progressStore: (any OnboardingProgressStore)? = nil,
     workoutRepository: WorkoutRepository? = nil,
+    workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)? = nil,
     initialPath: [OnboardingRoute] = [],
     initialSelectedProgramID: TrainingProgram.ID? = nil,
     initialProgramPath: [OnboardingRoute] = [],
@@ -57,7 +60,15 @@ final class OnboardingModel {
     self.catalog = catalog
     self.setupService = setupService
     self.progressStore = progressStore
-    self.workoutRepository = workoutRepository
+    self.workoutRepositoryFactory = workoutRepositoryFactory
+    do {
+      self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
+    } catch {
+      self.workoutRepository = nil
+      workoutStorageOpenFailed = true
+      workoutErrorMessage = "Workout storage couldn’t be opened. Your saved workouts are still on this device. Try opening storage again.\n\(error.localizedDescription)"
+      workoutErrorPresented = true
+    }
     path = initialPath
     selectedProgramID = initialSelectedProgramID
     programPath = initialProgramPath
@@ -428,7 +439,7 @@ final class OnboardingModel {
   }
 
   func startWorkout(programID: String, workoutID: String, accountID: String) {
-    guard let workoutRepository, let cycleID = restoredCycleID,
+    guard let workoutRepository = ensureWorkoutRepository(), let cycleID = restoredCycleID,
           let program = catalog.program(id: programID),
           let index = program.workouts.firstIndex(where: { $0.id == workoutID }) else {
       workoutErrorMessage = "Your workout could not be started. Please try again."
@@ -452,6 +463,28 @@ final class OnboardingModel {
       workoutErrorMessage = error.localizedDescription
       workoutErrorPresented = true
     }
+  }
+
+  func retryWorkoutStorage() {
+    guard let workoutRepositoryFactory else { return }
+    do {
+      workoutRepository = try workoutRepositoryFactory()
+      workoutStorageOpenFailed = false
+      workoutErrorPresented = false
+      if let resolvedAccountID {
+        activeWorkoutSession = try workoutRepository?.activeSession(accountID: resolvedAccountID)
+      }
+    } catch {
+      workoutStorageOpenFailed = true
+      workoutErrorMessage = "Workout storage couldn’t be opened. Your saved workouts are still on this device. Try opening storage again.\n\(error.localizedDescription)"
+      workoutErrorPresented = true
+    }
+  }
+
+  private func ensureWorkoutRepository() -> WorkoutRepository? {
+    if let workoutRepository { return workoutRepository }
+    retryWorkoutStorage()
+    return workoutRepository
   }
 
   func discardActiveWorkout(accountID: String) {

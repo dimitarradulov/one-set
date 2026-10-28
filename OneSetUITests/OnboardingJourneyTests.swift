@@ -713,6 +713,66 @@ final class OnboardingJourneyTests: XCTestCase {
     attachScreenshot(named: "recording-previous-performance")
   }
 
+  func testWorkoutStorageOpenFailureExplainsRecoveryAndOffersRetry() {
+    relaunch(with: ["--ui-workout-storage-error"])
+    let alert = app.alerts["Workout unavailable"]
+    XCTAssertTrue(alert.waitForExistence(timeout: 5))
+    XCTAssertTrue(alert.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'saved workouts are still on this device'")).firstMatch.exists)
+    XCTAssertTrue(alert.buttons["Retry storage"].exists)
+    alert.buttons["Retry storage"].tap()
+    XCTAssertTrue(alert.waitForExistence(timeout: 3))
+  }
+
+  func testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.start"].tap()
+    XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
+
+    app.tabBars.buttons["Settings"].tap()
+    app.buttons["account.signOut"].tap()
+    XCTAssertTrue(app.alerts["Workout unavailable"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.alerts["Workout unavailable"].staticTexts.containing(
+      NSPredicate(format: "label CONTAINS[c] 'finish or discard'")
+    ).firstMatch.exists)
+    app.alerts.buttons["OK"].tap()
+    app.tabBars.buttons["Program"].tap()
+    XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
+
+    app.buttons["recording.discard"].tap()
+    XCTAssertTrue(app.buttons["Keep workout"].waitForExistence(timeout: 3))
+    app.buttons["Keep workout"].tap()
+    XCTAssertTrue(app.buttons["recording.finish"].exists)
+    app.buttons["recording.finish"].tap()
+    app.buttons["finish.confirm"].tap()
+    XCTAssertTrue(app.buttons["Keep recording"].waitForExistence(timeout: 3))
+    attachScreenshot(named: "recording-finish-empty-discard")
+    app.buttons["Keep recording"].tap()
+    app.buttons["recording.discard"].tap()
+    app.buttons["Discard workout"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+
+    app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.start"].tap()
+    let weight = firstRecordingField(suffix: ".weight")
+    XCTAssertTrue(weight.waitForExistence(timeout: 3))
+    weight.tap()
+    weight.typeText("100")
+    let reps = firstRecordingField(suffix: ".reps")
+    reps.tap()
+    reps.typeText("10")
+    app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
+    XCTAssertTrue(app.otherElements["recording.rest.countdown"].waitForExistence(timeout: 3))
+    attachScreenshot(named: "recording-rest-active")
+
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    XCTAssertTrue(app.otherElements["recording.rest.countdown"].waitForExistence(timeout: 5))
+    app.buttons["recording.discard"].tap()
+    app.buttons["Discard workout"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+  }
+
   private func firstRecordingField(suffix: String) -> XCUIElement {
     app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'recording.input.' AND identifier ENDSWITH %@", suffix)).firstMatch
   }
@@ -803,7 +863,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testProgramBrowsingStackAndSelectedWeekSurviveTabSwitching() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
 
     app.buttons["overview.week.4"].tap()
@@ -844,7 +904,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testAccountChangeResetsBothTabStacksAndSelectsProgram() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
 
     app.buttons["overview.week.4"].tap()
@@ -871,7 +931,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testFailedLookupRequiresRetryBeforeRestoringTheProgram() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-retry"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-retry", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
     XCTAssertFalse(app.staticTexts["overview.title"].exists)
@@ -881,14 +941,14 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testUnavailableSavedProgramRequiresRetryInsteadOfResettingSetup() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-invalid-program"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-invalid-program", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["setup.error"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
     XCTAssertTrue(app.buttons["setup.retry"].exists)
   }
 
   func testSignOutDuringLookupPreventsLateAccountSetupFromAffectingAnotherAccount() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-delayed", "--ui-auth-existing"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-delayed", "--ui-auth-existing", "--ui-workouts-reset"])
     XCTAssertTrue(app.descendants(matching: .any)["setup.loading"].waitForExistence(timeout: 3))
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
@@ -900,7 +960,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testFailedSignOutExplainsFailureAndKeepsTheCurrentProgram() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-auth-signout-error"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-auth-signout-error", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     app.tabBars.buttons["Settings"].tap()
     app.buttons["account.signOut"].tap()
@@ -1093,7 +1153,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testAutomaticUploadRetryRecoversInTheRunningApp() {
-    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry"])
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry", "--ui-workouts-reset"])
     completeSetupFromPreferences()
     XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
     expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["setup.uploadStatus"])

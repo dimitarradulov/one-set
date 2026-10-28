@@ -18,12 +18,20 @@ struct WorkoutRecordingScreen: View {
   @State private var note = ""
   @State private var expandedGuidance: Set<String> = []
   @State private var inputs: [String: WorkoutSession.SetEntry]
+  @State private var failedSaves: [String: FailedSave] = [:]
   @FocusState private var focusedField: Field?
 
   private struct Field: Hashable {
     let slotID: String
     let name: Name
     enum Name { case weight, reps }
+  }
+
+  private enum FailedSave: Equatable {
+    case draft
+    case complete
+    case update
+    case unmark
   }
 
   init(session: WorkoutSession, previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:],
@@ -170,19 +178,28 @@ struct WorkoutRecordingScreen: View {
         input(title: "Reps", text: repsBinding(exercise.slotID),
               field: .init(slotID: exercise.slotID, name: .reps), keyboard: .numberPad)
         Button {
+          if failedSaves[exercise.slotID] != nil {
+            retrySave(for: exercise.slotID)
+            return
+          }
           if isComplete {
-            guard onUnmark(exercise.slotID) else { return }
+            guard onUnmark(exercise.slotID) else { failedSaves[exercise.slotID] = .unmark; return }
             var updated = inputs[exercise.slotID] ?? .init()
             updated.completedAt = nil
             inputs[exercise.slotID] = updated
+            failedSaves[exercise.slotID] = nil
           } else if onComplete(exercise.slotID) {
             var updated = inputs[exercise.slotID] ?? .init()
             updated.completedAt = .now
             inputs[exercise.slotID] = updated
+            failedSaves[exercise.slotID] = nil
             focusedField = nil
+          } else {
+            failedSaves[exercise.slotID] = .complete
           }
         } label: {
-          Label(isComplete ? "Undo" : "Complete", systemImage: isComplete ? "arrow.uturn.backward" : "checkmark")
+          Label(failedSaves[exercise.slotID] == nil ? (isComplete ? "Undo" : "Complete") : "Retry",
+                systemImage: failedSaves[exercise.slotID] == nil ? (isComplete ? "arrow.uturn.backward" : "checkmark") : "arrow.clockwise")
             .labelStyle(.iconOnly)
             .font(.system(size: 18, weight: .semibold))
             .frame(width: 48, height: 48)
@@ -191,6 +208,12 @@ struct WorkoutRecordingScreen: View {
         }
         .accessibilityLabel(isComplete ? "Undo completion for \(exercise.name)" : "Complete set for \(exercise.name)")
         .accessibilityIdentifier("recording.set.toggle.\(exercise.slotID)")
+      }
+      if failedSaves[exercise.slotID] != nil {
+        Button("Retry saving this set") { retrySave(for: exercise.slotID) }
+          .font(OneSetTypography.label)
+          .frame(minHeight: 44)
+          .accessibilityIdentifier("recording.set.retry.\(exercise.slotID)")
       }
       previousPerformanceView(for: exercise)
       if let guidance = exercise.progressionGuidance(for: entry.repsInput) {
@@ -307,7 +330,37 @@ struct WorkoutRecordingScreen: View {
     if let weight { entry.weightInput = weight }
     if let reps { entry.repsInput = reps }
     inputs[slotID] = entry
-    _ = onSaveDraft(slotID, entry.weightInput, entry.repsInput)
+    let didSave = entry.completedAt == nil
+      ? onSaveDraft(slotID, entry.weightInput, entry.repsInput)
+      : onUpdate(slotID, entry.weightInput, entry.repsInput)
+    failedSaves[slotID] = didSave ? nil : (entry.completedAt == nil ? .draft : .update)
+  }
+
+  private func retrySave(for slotID: String) {
+    guard let entry = inputs[slotID], let failure = failedSaves[slotID] else { return }
+    let didSave: Bool
+    switch failure {
+    case .draft:
+      didSave = onSaveDraft(slotID, entry.weightInput, entry.repsInput)
+    case .complete:
+      didSave = onComplete(slotID)
+    case .update:
+      didSave = onUpdate(slotID, entry.weightInput, entry.repsInput)
+    case .unmark:
+      didSave = onUnmark(slotID)
+    }
+    if didSave {
+      failedSaves[slotID] = nil
+      if failure == .complete {
+        var updated = entry
+        updated.completedAt = .now
+        inputs[slotID] = updated
+      } else if failure == .unmark {
+        var updated = entry
+        updated.completedAt = nil
+        inputs[slotID] = updated
+      }
+    }
   }
 }
 
