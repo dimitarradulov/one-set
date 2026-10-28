@@ -43,6 +43,12 @@ struct AppDependencies {
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
     }
+      let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite")
+      if arguments.contains("--ui-workouts-reset") {
+        for suffix in ["", "-wal", "-shm"] {
+          try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
+        }
+      }
     #else
     let progressURL = directory.appending(path: "progress.json")
     #endif
@@ -119,7 +125,7 @@ struct AppDependencies {
           arguments: arguments,
           includesMainTabsPreview: launch.includesMainTabsPreview
         ),
-        workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite"))
+        workouts: try? WorkoutRepository(databaseURL: previewWorkoutURL)
       )
     }
     #endif
