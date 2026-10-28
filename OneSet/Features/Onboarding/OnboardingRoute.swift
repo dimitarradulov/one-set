@@ -1,3 +1,5 @@
+import Foundation
+
 enum OnboardingRoute: Hashable {
   case preferences
   case programs
@@ -5,6 +7,7 @@ enum OnboardingRoute: Hashable {
   case trialPreview(String)
   case programOverview(String)
   case workoutPreview(programID: String, workoutID: String)
+  case workoutRecording(UUID)
   case exerciseDetail(
     programID: String,
     workoutID: String,

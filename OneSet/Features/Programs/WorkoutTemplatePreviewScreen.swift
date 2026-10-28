@@ -6,6 +6,7 @@ struct WorkoutTemplatePreviewScreen: View {
   let program: TrainingProgram
   let workout: WorkoutTemplate
   let day: Int
+  let onStartWorkout: () -> Void
 
   var body: some View {
     ScrollView {
@@ -73,7 +74,7 @@ struct WorkoutTemplatePreviewScreen: View {
     .background(OneSetColors.background)
     .safeAreaInset(edge: .bottom, spacing: 0) {
       Button {
-        // Session creation and navigation will be wired in a later step.
+        onStartWorkout()
       } label: {
         Text("Start workout")
           .font(OneSetTypography.button)

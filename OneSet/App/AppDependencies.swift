@@ -6,6 +6,7 @@ struct AppDependencies {
   let authentication: any AuthenticationService
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
+  let workouts: WorkoutRepository?
 
   #if DEBUG
   static func development() -> AppDependencies {
@@ -15,7 +16,8 @@ struct AppDependencies {
       onboardingProgress: FileOnboardingProgressStore(
         fileURL: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
       ),
-      accountSetup: PreviewAccountSetupService()
+      accountSetup: PreviewAccountSetupService(),
+      workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite"))
     )
   }
   #endif
@@ -116,7 +118,8 @@ struct AppDependencies {
         accountSetup: PreviewAccountSetupService(
           arguments: arguments,
           includesMainTabsPreview: launch.includesMainTabsPreview
-        )
+        ),
+        workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite"))
       )
     }
     #endif
@@ -134,7 +137,8 @@ struct AppDependencies {
       catalog: catalog,
       authentication: authentication,
       onboardingProgress: progress,
-      accountSetup: HTTPAccountSetupService(authentication: authentication)
+      accountSetup: HTTPAccountSetupService(authentication: authentication),
+      workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Workouts/workouts.sqlite"))
     )
   }
 }

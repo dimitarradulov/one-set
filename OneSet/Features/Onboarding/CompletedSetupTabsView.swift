@@ -43,6 +43,11 @@ struct CompletedSetupTabsView: View {
             uploadMessage: model.uploadMessage,
             onRetryUpload: { Task { await model.uploadCompletedSetup(using: authentication) } },
             preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
+            activeSession: model.activeWorkoutSession,
+            onResumeWorkout: {
+              guard let session = model.activeWorkoutSession else { return }
+              model.programPath.append(.workoutRecording(session.id))
+            },
             onPreviewWorkout: { workout in
               model.previewWorkout(programID: programID, workoutID: workout.id)
             }
@@ -67,10 +72,23 @@ struct CompletedSetupTabsView: View {
         WorkoutTemplatePreviewScreen(
           program: program,
           workout: program.workouts[workoutIndex],
-          day: workoutIndex + 1
+          day: workoutIndex + 1,
+          onStartWorkout: {
+            guard let accountID = authentication.signedInUser?.id else { return }
+            model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
+          }
         )
         .navigationTitle("Workout preview")
         .navigationBarTitleDisplayMode(.inline)
+      } else {
+        ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+      }
+    case .workoutRecording(let sessionID):
+      if let session = model.activeWorkoutSession, session.id == sessionID,
+         let accountID = authentication.signedInUser?.id {
+        WorkoutRecordingScreen(session: session) {
+          model.discardActiveWorkout(accountID: accountID)
+        }
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
