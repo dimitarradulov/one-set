@@ -31,7 +31,7 @@ struct WorkoutRepositorySetTests {
     ).restDeadline == completedAt.addingTimeInterval(120))
 
     let reopened = try WorkoutRepository(databaseURL: databaseURL)
-    let restored = try #require(reopened.activeSession(accountID: session.accountID))
+    let restored = try #require(try reopened.activeSession(accountID: session.accountID))
     #expect(restored.setEntries["slot-a"]?.weightInput == "72.5")
     #expect(restored.setEntries["slot-a"]?.repsInput == "10")
     #expect(restored.setEntries["slot-a"]?.completedAt == completedAt)
