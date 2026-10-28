@@ -15,6 +15,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
+    relaunch(with: ["--ui-workouts-reset", "--ui-development-progress-reset"])
     let shortcut = app.buttons["continue.development"]
     XCTAssertTrue(shortcut.waitForExistence(timeout: 3))
     shortcut.tap()
@@ -29,6 +30,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testDevelopmentSignInKeepsLocalProgressAcrossRelaunch() {
+    relaunch(with: ["--ui-workouts-reset", "--ui-development-progress-reset"])
     app.buttons["continue.development"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 5))
     app.buttons["preferences.unit.lb"].tap()
