@@ -1,330 +1,330 @@
 exercises:
   - key: 45-degree-back-extension
     name: "45-Degree Back Extension"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: barbell-curl
     name: "Barbell Curl"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 6, maximum: 10 }
   - key: barbell-row
     name: "Barbell Row"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: bulgarian-split-squat
     name: "Bulgarian Split Squat"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 8, maximum: 12 }
   - key: cable-crunch
     name: "Cable Crunch"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: cable-curl
     name: "Cable Curl"
     instructions: "Keep your elbows close to your sides and shoulders still. Curl the handle smoothly and lower it under control without leaning back."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: cable-lateral-raise
     name: "Cable Lateral Raise"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: cable-triceps-pressdown
     name: "Cable Triceps Pressdown"
     instructions: "Keep your elbows near your sides and shoulders steady. Extend your elbows smoothly, then let the cable return under control."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: chest-supported-machine-row
     name: "Chest-Supported Machine Row"
     instructions: "Set the seat so you can reach the handles without losing chest support. Row by moving your elbows back, pause briefly, and return without lifting your chest."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 8, maximum: 12 }
   - key: close-grip-smith-machine-bench-press
     name: "Close-Grip Smith-Machine Bench Press"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: conventional-deadlift
     name: "Conventional Deadlift"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 5, maximum: 8 }
   - key: dumbbell-lateral-raise
     name: "Dumbbell Lateral Raise"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: dumbbell-overhead-triceps-extension
     name: "Dumbbell Overhead Triceps Extension"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: dumbbell-rear-delt-raise
     name: "Dumbbell Rear-Delt Raise"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: dumbbell-romanian-deadlift
     name: "Dumbbell Romanian Deadlift"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 8, maximum: 12 }
   - key: dumbbell-shrug
     name: "Dumbbell Shrug"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: dumbbell-wrist-curl
     name: "Dumbbell Wrist Curl"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: front-squat
     name: "Front Squat"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 5, maximum: 8 }
   - key: goblet-squat
     name: "Goblet Squat"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 10, maximum: 15 }
   - key: hack-squat-machine
     name: "Hack Squat Machine"
     instructions: "Set the machine so your back remains supported and your knees track over your feet. Lower under control through a comfortable range, then drive through the whole foot."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 210
     default_reps: { minimum: 6, maximum: 10 }
   - key: hammer-curl
     name: "Hammer Curl"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: hanging-knee-raise
     name: "Hanging Knee Raise"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: incline-dumbbell-curl
     name: "Incline Dumbbell Curl"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: incline-dumbbell-press
     name: "Incline Dumbbell Press"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: incline-machine-chest-press
     name: "Incline Machine Chest Press"
     instructions: "Adjust the seat so the handles begin beside your upper chest. Keep your back supported and press through a controlled range without bouncing."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 8, maximum: 12 }
   - key: incline-smith-machine-press
     name: "Incline Smith-Machine Press"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: leg-extension
     name: "Leg Extension"
     instructions: "Align the machine pivot with your knee and place the roller above your ankles. Extend your knees smoothly, then lower the pad under control."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 10, maximum: 15 }
   - key: leg-press
     name: "Leg Press"
     instructions: "Place your feet in a comfortable stance and lower the platform only as far as your pelvis stays supported. Press through the whole foot without bouncing or forcefully locking your knees."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 210
     default_reps: { minimum: 8, maximum: 12 }
   - key: lying-leg-curl
     name: "Lying Leg Curl"
     instructions: "Align the machine pivot with your knees and place the roller above your heels. Curl smoothly without lifting your hips, then lower under control."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 8, maximum: 12 }
   - key: machine-chest-press
     name: "Machine Chest Press"
     instructions: "Adjust the seat so the handles start around mid-chest. Keep your back supported and press through a controlled, comfortable range without bouncing."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: machine-lateral-raise
     name: "Machine Lateral Raise"
     instructions: "Set the pads against your upper arms and raise through a comfortable arc with a slight elbow bend. Keep your torso still and avoid shrugging."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: machine-neck-extension
     name: "Machine Neck Extension"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric. Powerhouse guidance calls for conservative neck work, controlled repetitions, and modest loading."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing. Powerhouse guidance calls for conservative neck work, controlled repetitions, and modest loading."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: machine-neck-flexion
     name: "Machine Neck Flexion"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric. Powerhouse guidance calls for conservative neck work, controlled repetitions, and modest loading."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing. Powerhouse guidance calls for conservative neck work, controlled repetitions, and modest loading."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: machine-preacher-curl
     name: "Machine Preacher Curl"
     instructions: "Keep your upper arms supported by the pad and curl without lifting your shoulders. Lower the weight under control without bouncing at the bottom."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 8, maximum: 12 }
   - key: machine-shoulder-press
     name: "Machine Shoulder Press"
     instructions: "Set the handles around shoulder height and keep your back supported. Press upward smoothly without shrugging, then lower under control."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: neutral-grip-lat-pulldown
     name: "Neutral-Grip Lat Pulldown"
     instructions: "Keep your torso steady and shoulders down. Pull the handles toward your upper chest by driving your elbows down, then return under control without swinging."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 8, maximum: 12 }
   - key: one-arm-dumbbell-row
     name: "One-Arm Dumbbell Row"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 8, maximum: 12 }
   - key: overhead-cable-triceps-extension
     name: "Overhead Cable Triceps Extension"
     instructions: "Keep your upper arms steady overhead and extend your elbows through a comfortable range. Return slowly without arching your back."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: pec-deck
     name: "Pec Deck"
     instructions: "Adjust the seat so the pads are comfortable and your elbows are slightly bent. Bring your arms together smoothly, then open them under control without forcing a stretch."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 10, maximum: 15 }
   - key: reverse-pec-deck
     name: "Reverse Pec Deck"
     instructions: "Set the seat so the handles are level with your shoulders. Sweep your arms out and back while keeping your torso against the pad and your neck relaxed."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 120
     default_reps: { minimum: 12, maximum: 20 }
   - key: romanian-deadlift
     name: "Romanian Deadlift"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: seated-leg-curl
     name: "Seated Leg Curl"
     instructions: "Align your knees with the machine pivot and secure the pads comfortably. Curl the pad down without lifting your hips, then return slowly."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 8, maximum: 12 }
   - key: smith-machine-barbell-row
     name: "Smith-Machine Barbell Row"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: standing-dumbbell-shoulder-press
     name: "Standing Dumbbell Shoulder Press"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: weighted-chin-up
     name: "Weighted Chin-Up"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: weighted-dip
     name: "Weighted Dip"
-    instructions: "Use controlled repetitions: controlled eccentric, no bouncing, full practical range of motion, and a strong but controlled concentric."
-    stopping_guidance: "Technical failure: stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind."
-    warmup_guidance: "For the first heavy exercise for a movement pattern, prepare with about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. For later exercises that train already-warm muscles, use only the warm-up sets needed to feel technically ready. Warm-up sets are not working sets and are not taken to failure."
+    instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing."
+    stopping_guidance: "Stop when you cannot complete another rep without losing position or changing your form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 180
     default_reps: { minimum: 6, maximum: 10 }
   - key: wide-grip-lat-pulldown
     name: "Wide-Grip Lat Pulldown"
     instructions: "Keep your torso steady and shoulders down. Pull the bar toward your upper chest by driving your elbows down, then return under control without swinging."
-    stopping_guidance: "Momentary muscular failure: continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique."
-    warmup_guidance: "For the first heavy movement pattern in a workout, use about 40–50% of working load for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps when the working load is heavy. Later exercises need only the preparation required to feel technically ready. Do not take warm-up sets to failure."
+    stopping_guidance: "Continue until you cannot complete another full rep through the planned range with controlled form."
+    warmup_guidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure."
     rest_seconds: 150
     default_reps: { minimum: 8, maximum: 12 }
