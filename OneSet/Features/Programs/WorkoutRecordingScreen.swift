@@ -7,6 +7,8 @@ struct WorkoutRecordingScreen: View {
   let onComplete: (String) -> Bool
   let onUpdate: (String, String, String) -> Bool
   let onUnmark: (String) -> Bool
+  let onAdjustRest: (Int) -> Bool
+  let onSkipRest: () -> Bool
   @State private var confirmsDiscard = false
   @State private var inputs: [String: WorkoutSession.SetEntry]
   @FocusState private var focusedField: Field?
@@ -21,13 +23,17 @@ struct WorkoutRecordingScreen: View {
        onSaveDraft: @escaping (String, String, String) -> Bool = { _, _, _ in true },
        onComplete: @escaping (String) -> Bool = { _ in true },
        onUpdate: @escaping (String, String, String) -> Bool = { _, _, _ in true },
-       onUnmark: @escaping (String) -> Bool = { _ in true }) {
+       onUnmark: @escaping (String) -> Bool = { _ in true },
+       onAdjustRest: @escaping (Int) -> Bool = { _ in true },
+       onSkipRest: @escaping () -> Bool = { true }) {
     self.session = session
     self.onDiscard = onDiscard
     self.onSaveDraft = onSaveDraft
     self.onComplete = onComplete
     self.onUpdate = onUpdate
     self.onUnmark = onUnmark
+    self.onAdjustRest = onAdjustRest
+    self.onSkipRest = onSkipRest
     _inputs = State(initialValue: session.setEntries)
   }
 
@@ -40,6 +46,9 @@ struct WorkoutRecordingScreen: View {
         Text("Your workout is saved on this device. You can leave and resume it later.")
           .font(OneSetTypography.body)
           .foregroundStyle(OneSetColors.textSecondary)
+        if let deadline = session.restDeadline {
+          RestCountdownView(deadline: deadline, onAdjust: onAdjustRest, onSkip: onSkipRest)
+        }
         ForEach(session.exercises, id: \.slotID) { exercise in
           exerciseRow(exercise)
         }
@@ -148,5 +157,56 @@ struct WorkoutRecordingScreen: View {
     if let reps { entry.repsInput = reps }
     inputs[slotID] = entry
     _ = onSaveDraft(slotID, entry.weightInput, entry.repsInput)
+  }
+}
+
+private struct RestCountdownView: View {
+  let deadline: Date
+  let onAdjust: (Int) -> Bool
+  let onSkip: () -> Bool
+
+  var body: some View {
+    TimelineView(.periodic(from: .now, by: 1)) { context in
+      let remaining = max(0, Int(ceil(deadline.timeIntervalSince(context.date))))
+      if remaining > 0 {
+        HStack(spacing: 12) {
+          Image(systemName: "timer")
+            .font(.system(size: 20, weight: .semibold))
+            .accessibilityHidden(true)
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Rest")
+              .font(OneSetTypography.caption)
+              .foregroundStyle(OneSetColors.textSecondary)
+            Text(remaining.formattedRestTime)
+              .font(OneSetTypography.metric)
+              .monospacedDigit()
+              .foregroundStyle(OneSetColors.textPrimary)
+              .accessibilityLabel("Rest remaining, \(remaining.formattedRestTime)")
+          }
+          Spacer(minLength: 8)
+          Button("−15s") { _ = onAdjust(-15) }
+            .accessibilityLabel("Reduce rest by 15 seconds")
+            .accessibilityIdentifier("recording.rest.reduce")
+          Button("+15s") { _ = onAdjust(15) }
+            .accessibilityLabel("Add 15 seconds of rest")
+            .accessibilityIdentifier("recording.rest.add")
+          Button("Skip") { _ = onSkip() }
+            .accessibilityIdentifier("recording.rest.skip")
+        }
+        .font(OneSetTypography.label)
+        .buttonStyle(.bordered)
+        .tint(OneSetColors.accent)
+        .padding(12)
+        .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recording.rest.countdown")
+      }
+    }
+  }
+}
+
+private extension Int {
+  var formattedRestTime: String {
+    String(format: "%d:%02d", self / 60, self % 60)
   }
 }

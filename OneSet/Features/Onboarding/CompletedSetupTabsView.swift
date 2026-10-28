@@ -96,6 +96,10 @@ struct CompletedSetupTabsView: View {
           model.updateWorkoutSet(slotID: slotID, weightInput: weight, repsInput: reps)
         } onUnmark: { slotID in
           model.unmarkWorkoutSet(slotID: slotID)
+        } onAdjustRest: { seconds in
+          model.adjustWorkoutRest(by: seconds)
+        } onSkipRest: {
+          model.skipWorkoutRest()
         }
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
