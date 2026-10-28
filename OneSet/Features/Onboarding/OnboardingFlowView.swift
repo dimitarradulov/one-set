@@ -65,6 +65,9 @@ struct OnboardingFlowView: View {
       Text(model.progressErrorMessage)
     }
     .alert("Workout unavailable", isPresented: $model.workoutErrorPresented) {
+      if model.workoutStorageOpenFailed {
+        Button("Retry storage") { model.retryWorkoutStorage() }
+      }
       Button("OK", role: .cancel) {}
     } message: {
       Text(model.workoutErrorMessage)
