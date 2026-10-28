@@ -1,0 +1,77 @@
+import Foundation
+import Testing
+@testable import OneSet
+
+@MainActor
+struct WorkoutRepositorySetTests {
+  @Test
+  func draftsAndCompletedSetsSurviveRepositoryReopenAndCanBeCorrectedOrUndone() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let session = makeSession()
+    let first = try WorkoutRepository(databaseURL: databaseURL)
+    _ = try first.start(session)
+
+    _ = try first.saveDraft(sessionID: session.id, accountID: session.accountID,
+                            slotID: "slot-a", weightInput: "72.5", repsInput: "")
+    #expect(throws: WorkoutRepositoryError.invalidReps) {
+      try first.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    }
+    _ = try first.saveDraft(sessionID: session.id, accountID: session.accountID,
+                            slotID: "slot-a", weightInput: "72.5", repsInput: "10")
+    let completedAt = Date(timeIntervalSince1970: 1_800_000_000)
+    let completed = try first.completeSet(
+      sessionID: session.id, accountID: session.accountID, slotID: "slot-a", restSeconds: 120, at: completedAt
+    )
+    #expect(completed.setEntries["slot-a"]?.completedAt == completedAt)
+    #expect(completed.restDeadline == completedAt.addingTimeInterval(120))
+    #expect(try first.completeSet(
+      sessionID: session.id, accountID: session.accountID, slotID: "slot-a", restSeconds: 300, at: completedAt.addingTimeInterval(10)
+    ).restDeadline == completedAt.addingTimeInterval(120))
+
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let restored = try #require(reopened.activeSession(accountID: session.accountID))
+    #expect(restored.setEntries["slot-a"]?.weightInput == "72.5")
+    #expect(restored.setEntries["slot-a"]?.repsInput == "10")
+    #expect(restored.setEntries["slot-a"]?.completedAt == completedAt)
+
+    let corrected = try reopened.updateSet(sessionID: session.id, accountID: session.accountID,
+                                           slotID: "slot-a", weightInput: "75.25", repsInput: "11")
+    #expect(corrected.setEntries["slot-a"]?.weightInput == "75.25")
+    #expect(corrected.setEntries["slot-a"]?.completedAt == completedAt)
+    let undone = try reopened.unmarkSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    #expect(undone.setEntries["slot-a"]?.completedAt == nil)
+    #expect(undone.setEntries["slot-a"]?.weightInput == "75.25")
+  }
+
+  @Test
+  func invalidLoadsAndOtherAccountsCannotCompleteASession() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-a", weightInput: "NaN", repsInput: "8")
+    #expect(throws: WorkoutRepositoryError.invalidWeight) {
+      try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    }
+    #expect(throws: WorkoutRepositoryError.sessionNotFound) {
+      try repository.completeSet(sessionID: session.id, accountID: "another-account", slotID: "slot-a")
+    }
+    #expect(try repository.activeSession(accountID: session.accountID)?.setEntries["slot-a"]?.completedAt == nil)
+  }
+
+  private func makeSession() -> WorkoutSession {
+    let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
+      WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",
+                      repTarget: RepTarget(minimum: 8, maximum: 12), restSeconds: 120),
+      WorkoutExercise(id: "slot-b", exerciseKey: "press", name: "Press",
+                      repTarget: RepTarget(minimum: 8, maximum: 12))
+    ])
+    let program = TrainingProgram(id: "program", name: "Program", format: "A/B", emphasis: "Strength", workouts: [workout])
+    return WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
+                          workout: workout, week: 1, day: 1, weightUnit: .pounds)
+  }
+}

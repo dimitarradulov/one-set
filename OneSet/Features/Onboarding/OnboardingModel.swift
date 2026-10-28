@@ -437,7 +437,7 @@ final class OnboardingModel {
     }
     do {
       let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
-        workout: program.workouts[index], week: 1, day: index + 1)
+        workout: program.workouts[index], week: 1, day: index + 1, weightUnit: weightUnit)
       activeWorkoutSession = try workoutRepository.start(session)
       let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)
       if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
@@ -458,5 +458,65 @@ final class OnboardingModel {
       workoutErrorMessage = error.localizedDescription
       workoutErrorPresented = true
     }
+  }
+
+  func saveWorkoutDraft(slotID: String, weightInput: String, repsInput: String) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.saveDraft(
+        sessionID: session.id, accountID: session.accountID, slotID: slotID,
+        weightInput: weightInput, repsInput: repsInput
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  func completeWorkoutSet(slotID: String) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      let restSeconds = session.exercises.first(where: { $0.slotID == slotID })?.restSeconds
+      activeWorkoutSession = try workoutRepository.completeSet(
+        sessionID: session.id, accountID: session.accountID, slotID: slotID, restSeconds: restSeconds
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  func updateWorkoutSet(slotID: String, weightInput: String, repsInput: String) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.updateSet(
+        sessionID: session.id, accountID: session.accountID, slotID: slotID,
+        weightInput: weightInput, repsInput: repsInput
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  func unmarkWorkoutSet(slotID: String) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.unmarkSet(
+        sessionID: session.id, accountID: session.accountID, slotID: slotID
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
+  private func showWorkoutSaveError(_ error: Error) {
+    workoutErrorMessage = error.localizedDescription
+    workoutErrorPresented = true
   }
 }
