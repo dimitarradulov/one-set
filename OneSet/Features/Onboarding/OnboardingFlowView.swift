@@ -211,6 +211,14 @@ struct OnboardingFlowView: View {
               WorkoutRecordingScreen(session: session) {
                 guard let accountID = authentication.signedInUser?.id else { return }
                 model.discardActiveWorkout(accountID: accountID)
+              } onSaveDraft: { slotID, weight, reps in
+                model.saveWorkoutDraft(slotID: slotID, weightInput: weight, repsInput: reps)
+              } onComplete: { slotID in
+                model.completeWorkoutSet(slotID: slotID)
+              } onUpdate: { slotID, weight, reps in
+                model.updateWorkoutSet(slotID: slotID, weightInput: weight, repsInput: reps)
+              } onUnmark: { slotID in
+                model.unmarkWorkoutSet(slotID: slotID)
               }
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
