@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutRecordingScreen: View {
   let session: WorkoutSession
+  let previousPerformances: [String: WorkoutRepository.PreviousPerformance]
   let onDiscard: () -> Void
   let onSaveDraft: (String, String, String) -> Bool
   let onComplete: (String) -> Bool
@@ -15,6 +16,7 @@ struct WorkoutRecordingScreen: View {
   @State private var confirmsEmptyDiscard = false
   @State private var noteExpanded = false
   @State private var note = ""
+  @State private var expandedGuidance: Set<String> = []
   @State private var inputs: [String: WorkoutSession.SetEntry]
   @FocusState private var focusedField: Field?
 
@@ -24,7 +26,8 @@ struct WorkoutRecordingScreen: View {
     enum Name { case weight, reps }
   }
 
-  init(session: WorkoutSession, onDiscard: @escaping () -> Void,
+  init(session: WorkoutSession, previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:],
+       onDiscard: @escaping () -> Void,
        onSaveDraft: @escaping (String, String, String) -> Bool = { _, _, _ in true },
        onComplete: @escaping (String) -> Bool = { _ in true },
        onUpdate: @escaping (String, String, String) -> Bool = { _, _, _ in true },
@@ -33,6 +36,7 @@ struct WorkoutRecordingScreen: View {
        onSkipRest: @escaping () -> Bool = { true },
        onFinish: @escaping (String?) -> Bool = { _ in true }) {
     self.session = session
+    self.previousPerformances = previousPerformances
     self.onDiscard = onDiscard
     self.onSaveDraft = onSaveDraft
     self.onComplete = onComplete
@@ -187,12 +191,92 @@ struct WorkoutRecordingScreen: View {
         .accessibilityLabel(isComplete ? "Undo completion for \(exercise.name)" : "Complete set for \(exercise.name)")
         .accessibilityIdentifier("recording.set.toggle.\(exercise.slotID)")
       }
-      Text("No previous result yet")
-        .font(OneSetTypography.caption)
-        .foregroundStyle(OneSetColors.textSecondary)
+      previousPerformanceView(for: exercise)
+      if let guidance = exercise.progressionGuidance(for: entry.repsInput) {
+        Label(guidance, systemImage: "arrow.trend.up")
+          .font(OneSetTypography.caption)
+          .foregroundStyle(OneSetColors.textSecondary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("recording.progression.\(exercise.slotID)")
+      }
+      DisclosureGroup("Exercise guidance", isExpanded: guidanceBinding(exercise.slotID)) {
+        VStack(alignment: .leading, spacing: 12) {
+          guidanceSection("Technique", text: exercise.instructions)
+          guidanceSection("Stopping", text: exercise.stoppingGuidance)
+          guidanceSection("Warm-up", text: exercise.warmupGuidance)
+          let ranges = exercise.warmupRanges(for: entry.weightInput)
+          if !ranges.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Approximate warm-up loads · not logged")
+                .font(OneSetTypography.caption)
+                .foregroundStyle(OneSetColors.textSecondary)
+              ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
+                Text("\(range.reps.lowerBound)–\(range.reps.upperBound) reps · \(formatted(range.minimumLoad))–\(formatted(range.maximumLoad)) \(session.weightUnit.rawValue)")
+                  .font(OneSetTypography.caption)
+                  .foregroundStyle(OneSetColors.textPrimary)
+              }
+            }
+            .accessibilityIdentifier("recording.warmup.loads.\(exercise.slotID)")
+          }
+        }
+        .padding(.top, 8)
+      }
+      .font(OneSetTypography.label)
+      .tint(OneSetColors.accent)
+      .accessibilityIdentifier("recording.guidance.\(exercise.slotID)")
     }
     .padding(.vertical, 14)
     .overlay(alignment: .bottom) { Rectangle().fill(OneSetColors.border).frame(height: 1) }
+  }
+
+  @ViewBuilder
+  private func previousPerformanceView(for exercise: WorkoutSession.Exercise) -> some View {
+    if let result = previousPerformances[exercise.slotID] {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(result.isSameProgramWorkout ? "Previous in this workout" : "Latest elsewhere · \(result.workoutName)")
+          .font(OneSetTypography.caption)
+          .foregroundStyle(OneSetColors.textSecondary)
+        Text("\(result.weightInput) \(result.weightUnit.rawValue) × \(result.repsInput) reps")
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textPrimary)
+        if !result.isSameProgramWorkout {
+          Text("Week \(result.week) · Day \(result.day)")
+            .font(OneSetTypography.caption)
+            .foregroundStyle(OneSetColors.textSecondary)
+        }
+      }
+      .accessibilityElement(children: .combine)
+      .accessibilityIdentifier("recording.previous.\(exercise.slotID)")
+    } else {
+      Text("No previous result yet")
+        .font(OneSetTypography.caption)
+        .foregroundStyle(OneSetColors.textSecondary)
+        .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
+    }
+  }
+
+  @ViewBuilder
+  private func guidanceSection(_ title: String, text: String) -> some View {
+    if !text.isEmpty {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(title).font(OneSetTypography.label).foregroundStyle(OneSetColors.textPrimary)
+        Text(text).font(OneSetTypography.caption).foregroundStyle(OneSetColors.textSecondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+  }
+
+  private func guidanceBinding(_ slotID: String) -> Binding<Bool> {
+    Binding(get: { expandedGuidance.contains(slotID) }, set: { isExpanded in
+      if isExpanded { expandedGuidance.insert(slotID) }
+      else { expandedGuidance.remove(slotID) }
+    })
+  }
+
+  private func formatted(_ value: Double) -> String {
+    let rounded = (value * 10).rounded() / 10
+    return rounded.rounded(.towardZero) == rounded && rounded.truncatingRemainder(dividingBy: 1) == 0
+      ? String(Int(rounded)) : String(format: "%.1f", rounded)
   }
 
   private func input(title: String, text: Binding<String>, field: Field,

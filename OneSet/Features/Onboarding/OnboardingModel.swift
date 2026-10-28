@@ -575,6 +575,13 @@ final class OnboardingModel {
     }
   }
 
+  func previousPerformances(for session: WorkoutSession) -> [String: WorkoutRepository.PreviousPerformance] {
+    guard let workoutRepository else { return [:] }
+    return (try? workoutRepository.previousPerformances(accountID: session.accountID,
+      exercises: session.exercises.map { .init(slotID: $0.slotID, exerciseKey: $0.exerciseKey) },
+      programID: session.programID, workoutID: session.workoutID)) ?? [:]
+  }
+
   private func showWorkoutSaveError(_ error: Error) {
     workoutErrorMessage = error.localizedDescription
     workoutErrorPresented = true

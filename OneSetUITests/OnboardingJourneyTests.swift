@@ -660,6 +660,63 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
   }
 
+  func testRecordingShowsEmptyAndPreviousPerformanceWithCapturedGuidance() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+
+    // First use shows an honest empty result and instructions from the captured template.
+    for day in 1...3 {
+      app.buttons["overview.day.\(day).preview"].tap()
+      XCTAssertTrue(app.buttons["workoutPreview.start"].waitForExistence(timeout: 3))
+      app.buttons["workoutPreview.start"].tap()
+      let weight = firstRecordingField(suffix: ".weight")
+      XCTAssertTrue(weight.waitForExistence(timeout: 3))
+      if day == 1 {
+        let empty = app.staticTexts["recording.previous.empty.machine-full-body-workout-a-hack-squat-machine"]
+        XCTAssertTrue(empty.waitForExistence(timeout: 3))
+        weight.tap()
+        weight.typeText("100")
+        let reps = firstRecordingField(suffix: ".reps")
+        reps.tap()
+        reps.typeText("10")
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
+        let guidance = app.buttons["recording.guidance.machine-full-body-workout-a-hack-squat-machine"]
+        XCTAssertTrue(guidance.waitForExistence(timeout: 3))
+        guidance.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Set the machine so your back remains supported'")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Approximate warm-up loads'")).firstMatch.exists)
+        attachScreenshot(named: "recording-guidance-expanded")
+      } else {
+        let weightField = firstRecordingField(suffix: ".weight")
+        weightField.tap()
+        weightField.typeText("50")
+        let reps = firstRecordingField(suffix: ".reps")
+        reps.tap()
+        reps.typeText("8")
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
+      }
+      app.swipeUp()
+      app.buttons["recording.finish"].tap()
+      XCTAssertTrue(app.buttons["finish.confirm"].waitForExistence(timeout: 3))
+      app.buttons["finish.confirm"].tap()
+      XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    }
+
+    // Completing the three required days opens Week 2, where Day 1 has a useful prior set.
+    app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.start"].tap()
+    let previous = app.descendants(matching: .any)["recording.previous.machine-full-body-workout-a-hack-squat-machine"]
+    XCTAssertTrue(previous.waitForExistence(timeout: 3))
+    XCTAssertTrue(previous.label.contains("100 lb × 10 reps"))
+    XCTAssertTrue(previous.label.contains("Previous in this workout"))
+    XCTAssertTrue(firstRecordingField(suffix: ".weight").value as? String == "—")
+    attachScreenshot(named: "recording-previous-performance")
+  }
+
+  private func firstRecordingField(suffix: String) -> XCUIElement {
+    app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'recording.input.' AND identifier ENDSWITH %@", suffix)).firstMatch
+  }
+
   func testCompletedAccountRestoresOverviewFromEmail() {
     relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
     authenticateExistingEmail(using: "continue.email")
