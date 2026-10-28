@@ -38,11 +38,16 @@ final class OnboardingModel {
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
+  private let workoutRepository: WorkoutRepository?
+  private(set) var activeWorkoutSession: WorkoutSession?
+  var workoutErrorPresented = false
+  private(set) var workoutErrorMessage = ""
 
   init(
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
     progressStore: (any OnboardingProgressStore)? = nil,
+    workoutRepository: WorkoutRepository? = nil,
     initialPath: [OnboardingRoute] = [],
     initialSelectedProgramID: TrainingProgram.ID? = nil,
     initialProgramPath: [OnboardingRoute] = [],
@@ -52,6 +57,7 @@ final class OnboardingModel {
     self.catalog = catalog
     self.setupService = setupService
     self.progressStore = progressStore
+    self.workoutRepository = workoutRepository
     path = initialPath
     selectedProgramID = initialSelectedProgramID
     programPath = initialProgramPath
@@ -95,6 +101,11 @@ final class OnboardingModel {
         path = [.preferences]
       }
       resolvedAccountID = user.id
+      activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
+      if let activeWorkoutSession {
+        selectedMainTab = .program
+        programPath = [.workoutRecording(activeWorkoutSession.id)]
+      }
       setupResolution = .idle
     } catch {
       guard !Task.isCancelled, generation == lookupGeneration,
@@ -117,6 +128,11 @@ final class OnboardingModel {
   }
 
   func signOut(using authentication: AuthenticationModel, discardPending: Bool = false) async {
+    if activeWorkoutSession != nil {
+      signOutErrorMessage = "Finish or discard your current workout first."
+      signOutErrorPresented = true
+      return
+    }
     if hasPendingSetup && !discardPending {
       discardSetupPresented = true
       return
@@ -408,6 +424,39 @@ final class OnboardingModel {
       programPath.append(route)
     } else if path.last == .programOverview(programID) {
       path.append(route)
+    }
+  }
+
+  func startWorkout(programID: String, workoutID: String, accountID: String) {
+    guard let workoutRepository, let cycleID = restoredCycleID,
+          let program = catalog.program(id: programID),
+          let index = program.workouts.firstIndex(where: { $0.id == workoutID }) else {
+      workoutErrorMessage = "Your workout could not be started. Please try again."
+      workoutErrorPresented = true
+      return
+    }
+    do {
+      let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
+        workout: program.workouts[index], week: 1, day: index + 1)
+      activeWorkoutSession = try workoutRepository.start(session)
+      let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)
+      if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
+    } catch {
+      workoutErrorMessage = error.localizedDescription
+      workoutErrorPresented = true
+    }
+  }
+
+  func discardActiveWorkout(accountID: String) {
+    guard let activeWorkoutSession else { return }
+    do {
+      try workoutRepository?.discard(sessionID: activeWorkoutSession.id, accountID: accountID)
+      self.activeWorkoutSession = nil
+      if path.last == .workoutRecording(activeWorkoutSession.id) { path.removeLast() }
+      if programPath.last == .workoutRecording(activeWorkoutSession.id) { programPath.removeLast() }
+    } catch {
+      workoutErrorMessage = error.localizedDescription
+      workoutErrorPresented = true
     }
   }
 }

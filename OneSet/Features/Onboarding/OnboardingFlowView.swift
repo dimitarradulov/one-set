@@ -64,6 +64,11 @@ struct OnboardingFlowView: View {
     .alert("Couldn’t save progress", isPresented: $model.progressErrorPresented) { } message: {
       Text(model.progressErrorMessage)
     }
+    .alert("Workout unavailable", isPresented: $model.workoutErrorPresented) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(model.workoutErrorMessage)
+    }
     .preferredColorScheme(.dark)
   }
 
@@ -189,11 +194,24 @@ struct OnboardingFlowView: View {
               WorkoutTemplatePreviewScreen(
                 program: program,
                 workout: program.workouts[workoutIndex],
-                day: workoutIndex + 1
+                day: workoutIndex + 1,
+                onStartWorkout: {
+                  guard let accountID = authentication.signedInUser?.id else { return }
+                  model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
+                }
               )
               .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)
               .toolbar(.visible, for: .navigationBar)
+            } else {
+              ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+            }
+          case .workoutRecording(let sessionID):
+            if let session = model.activeWorkoutSession, session.id == sessionID {
+              WorkoutRecordingScreen(session: session) {
+                guard let accountID = authentication.signedInUser?.id else { return }
+                model.discardActiveWorkout(accountID: accountID)
+              }
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
             }

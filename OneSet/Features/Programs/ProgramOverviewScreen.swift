@@ -5,12 +5,25 @@ struct ProgramOverviewScreen: View {
   var uploadMessage: String? = nil
   var onRetryUpload: (() -> Void)? = nil
   var preferencesSummary: String? = nil
+  var activeSession: WorkoutSession? = nil
+  var onResumeWorkout: (() -> Void)? = nil
   let onPreviewWorkout: (WorkoutTemplate) -> Void
   @State private var selectedWeek = 1
 
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 24) {
+        if activeSession != nil, let onResumeWorkout {
+          Button(action: onResumeWorkout) {
+            Label("Resume workout", systemImage: "play.fill")
+              .font(OneSetTypography.button)
+              .foregroundStyle(Color.black)
+              .frame(maxWidth: .infinity, minHeight: 52)
+              .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+          }
+          .buttonStyle(.plain)
+          .accessibilityIdentifier("overview.resumeWorkout")
+        }
         VStack(alignment: .leading, spacing: 8) {
           Text(program.name)
             .font(OneSetTypography.h1)
