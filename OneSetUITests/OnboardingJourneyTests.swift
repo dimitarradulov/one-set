@@ -718,7 +718,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testCompletedAccountRestoresOverviewFromEmail() {
-    relaunch(with: ["--ui-auth-existing", "--ui-setup-completed"])
+    relaunch(with: ["--ui-auth-existing", "--ui-setup-completed", "--ui-workouts-reset"])
     authenticateExistingEmail(using: "continue.email")
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
