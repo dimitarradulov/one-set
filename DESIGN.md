@@ -261,7 +261,46 @@ Launch navigation is deliberately minimal:
 
 - **Program**
 - **History**
-- **Settings** accessed from the Program area rather than promoted to a third primary tab unless testing shows discoverability problems.
+- **Settings**
+
+The menu foundation is approved: Program, History, and Settings are three independent primary tabs. Program opens the user's current program screen; Settings opens the app-wide settings list. Existing destinations keep their implemented content; unfinished destinations open a titled placeholder with a short “Coming soon” explanation.
+
+Retain iOS 17 support. Use standard native navigation controls so iOS 26 and later provide the system Liquid Glass appearance; earlier versions use their native appearance. The menu does not require raising the deployment target.
+
+The tab interface appears after completed setup, including continuing without a trial, and when restoring an account with completed setup. Open Program by default, remove the overview's onboarding progress dots, and move its Sign out action into Settings. Unfinished onboarding retains its current flow.
+
+### Approved menu scope
+
+[Issue #31](https://github.com/dimitarradulov/one-set/issues/31) records the implementation spec and the selected Variant A from the [archived menu prototype](https://github.com/dimitarradulov/one-set/tree/prototype/menu-navigation/OneSet/App/MenuPrototype), updated to use three independent tabs after the navigation clarification.
+
+Settings uses grouped sections, with each destination directly reachable from the list:
+
+- **Training:** Units, Training frequency, Rest alerts.
+- **Downloads:** Downloaded videos.
+- **Account:** Subscription, Account deletion, Sign out.
+
+These headings group rows; they are not additional navigation destinations. Variant B's continuous list and Variant C's nested categories were not selected. Use native controls and materials in the app; the browser prototype establishes grouping and navigation, not the exact Liquid Glass rendering.
+
+| Destination | Behavior in this implementation |
+| --- | --- |
+| Program | Existing program overview, workout previews, and exercise details |
+| History | Titled “Coming soon” placeholder for chronological session history |
+| Settings | Its own primary tab containing the grouped settings list |
+| Settings → Units | Titled “Coming soon” placeholder |
+| Settings → Training frequency | Titled “Coming soon” placeholder |
+| Settings → Rest alerts | Titled “Coming soon” placeholder |
+| Settings → Downloaded videos | Titled “Coming soon” placeholder |
+| Settings → Subscription | Titled “Coming soon” placeholder |
+| Settings → Account deletion | Titled “Coming soon” placeholder |
+| Settings → Sign out | Existing sign-out behavior, including pending-setup-upload confirmation and error handling |
+
+Downloaded videos will eventually let users inspect exercise-video storage and remove downloaded copies to free space. This pass adds its destination only, without implementing video management.
+
+Sync status and retry belong beside the affected content, with no separate Settings route. Preserve the current setup-upload message and retry action; workout-sync behavior remains future work.
+
+Keep the tab bar visible while browsing Program, workout previews, exercise details, History, and Settings. Preserve each tab's navigation state when switching between them during use. Keep the bar expanded while scrolling. Focused experiences such as active workout recording or fullscreen video may hide it when implemented.
+
+This pass adds menu navigation and placeholders. Workout recording and program-management actions remain outside its scope. Global History means chronological session history; the exercise detail's existing History section continues to mean results for that exercise.
 
 Use native iOS navigation behavior and predictable back gestures. Avoid custom gesture-only navigation.
 
@@ -284,7 +323,6 @@ Hierarchy:
 2. Compact program context/frequency
 3. Week selector
 4. Day/workout cards
-5. Settings entry as secondary utility
 
 Workout card content should prioritize: day/workout name → completion state → completed/total exercises → disclosure to preview. Avoid oversized hero art; this screen is an operational dashboard.
 
@@ -297,9 +335,31 @@ Workout card content should prioritize: day/workout name → completion state �
 
 ### Workout preview
 
-Show exercise order and rep targets first. Video availability, guidance, and warmups are supporting information. **Preview must look distinct from an active workout** so users do not mistake browsing for recording.
+Keep exercise order and rep targets easy to scan. Video availability, guidance, and warmups are supporting information. **Preview must look distinct from an active workout** so users do not mistake browsing for recording.
 
 Primary action: `Start workout`, shown as a full-width button pinned above the bottom safe area while preview content scrolls.
+
+#### Banner artwork
+
+[Issue #26](https://github.com/dimitarradulov/one-set/issues/26) records the approved Variant A layout: a full-width photo beneath native navigation, with the day, workout title, and program name over its faded lower edge.
+
+- Ship banner images bundled with the iOS app. New or replacement image files arrive through app updates; artwork does not need independent remote delivery initially.
+- Workout templates with the same focus may share appropriate artwork. Each template does not need a unique image.
+- Select each template's banner explicitly in the catalog YAML, allowing multiple templates to select the same bundled image. New templates can reuse images already present in the installed app without an app update.
+- Artwork conveys workout identity rather than instructions for a specific exercise. The approved squat image represents Lower A and must not be used indiscriminately for unrelated workouts.
+- If a template has no banner assignment or its selected image is unavailable in the installed app version, use a bundled neutral gym/equipment photo behind the usual workout title overlay.
+
+The initial collection uses seven shared banners:
+
+- General gym: full-body templates and the neutral fallback.
+- Upper body: mixed upper-body templates.
+- Lower body: the approved squat image.
+- Chest / push.
+- Back / pull.
+- Shoulders.
+- Arms.
+
+Mixed-focus templates select the closest appropriate banner through their explicit catalog assignment. Review the exact photos and per-template assignments during implementation. Published programs must still be usable without an app update, as required by FR-02 in the [requirements](docs/requirements.md).
 
 ### Exercise detail
 
@@ -328,7 +388,7 @@ Each compact exercise row should contain:
 - weight input;
 - reps input;
 - explicit completion control;
-- expand/disclosure control for guidance, warmups, video, and replacement.
+- tappable exercise heading with a chevron opening instructions, video, and warmup guidance on the exercise detail screen.
 
 Recommended hierarchy inside a row:
 
