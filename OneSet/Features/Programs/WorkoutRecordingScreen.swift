@@ -75,6 +75,7 @@ struct WorkoutRecordingScreen: View {
       }
       .frame(maxWidth: 720, alignment: .leading)
       .padding(20)
+      .padding(.bottom, 100)
       .frame(maxWidth: .infinity, alignment: .top)
     }
     .scrollDismissesKeyboard(.interactively)
@@ -152,7 +153,7 @@ struct WorkoutRecordingScreen: View {
           .foregroundStyle(OneSetColors.textSecondary)
         VStack(alignment: .leading, spacing: 4) {
           Text(exercise.name).font(OneSetTypography.bodyStrong).foregroundStyle(OneSetColors.textPrimary)
-          Text("Target: \(exercise.repTarget.label) reps")
+          Text("Target: \(exercise.repTarget.label)")
             .font(OneSetTypography.label).foregroundStyle(OneSetColors.textSecondary)
         }
         Spacer()

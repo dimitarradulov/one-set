@@ -542,6 +542,8 @@ final class OnboardingModel {
       activeWorkoutSession = nil
       if path.last == .workoutRecording(session.id) { path.removeLast() }
       if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }
+      if let last = path.last, case .workoutPreview = last { path.removeLast() }
+      if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
       return true
     } catch {
       showWorkoutSaveError(error)
