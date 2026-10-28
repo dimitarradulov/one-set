@@ -156,6 +156,89 @@ struct WorkoutRepositorySetTests {
                                       by: 15, at: now.addingTimeInterval(10)).restDeadline == nil)
   }
 
+  @Test
+  func previousPerformancePrefersTheSameWorkoutAndOriginalSlot() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let repeatedWorkout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
+      WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row", repTarget: .init(minimum: 8, maximum: 12)),
+      WorkoutExercise(id: "slot-b", exerciseKey: "row", name: "Row", repTarget: .init(minimum: 8, maximum: 12))
+    ])
+    let program = TrainingProgram(id: "program", name: "Program", format: "A", emphasis: "Strength", workouts: [repeatedWorkout])
+    let session = WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
+      workout: repeatedWorkout, week: 1, day: 1, weightUnit: .pounds)
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: "account", slotID: "slot-a", weightInput: "40", repsInput: "9")
+    _ = try repository.completeSet(sessionID: session.id, accountID: "account", slotID: "slot-a", at: Date(timeIntervalSince1970: 100))
+    _ = try repository.saveDraft(sessionID: session.id, accountID: "account", slotID: "slot-b", weightInput: "80", repsInput: "10")
+    _ = try repository.completeSet(sessionID: session.id, accountID: "account", slotID: "slot-b", at: Date(timeIntervalSince1970: 200))
+    _ = try repository.finish(sessionID: session.id, accountID: "account", note: nil, at: Date(timeIntervalSince1970: 300))
+
+    let result = try #require(try repository.previousPerformance(accountID: "account", exerciseKey: "row",
+      slotID: "slot-a", programID: "program", workoutID: "day-a"))
+    #expect(result.weightInput == "40")
+    #expect(result.repsInput == "9")
+    #expect(result.weightUnit == .pounds)
+    #expect(result.isSameProgramWorkout)
+  }
+
+  @Test
+  func previousPerformanceUsesLatestCompletedFallbackAndExcludesDraftsAndOtherAccounts() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let workout = WorkoutTemplate(id: "day-b", name: "Day B", exercises: [
+      WorkoutExercise(id: "slot-row", exerciseKey: "row", name: "Row", repTarget: .init(minimum: 8, maximum: 12))
+    ])
+    let program = TrainingProgram(id: "other-program", name: "Other", format: "A", emphasis: "Strength", workouts: [workout])
+    let finished = WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1, weightUnit: .kilograms)
+    _ = try repository.start(finished)
+    _ = try repository.saveDraft(sessionID: finished.id, accountID: "account", slotID: "slot-row", weightInput: "65.5", repsInput: "11")
+    _ = try repository.completeSet(sessionID: finished.id, accountID: "account", slotID: "slot-row")
+    _ = try repository.finish(sessionID: finished.id, accountID: "account", note: nil, at: Date(timeIntervalSince1970: 500))
+
+    let latestElsewhere = WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1, weightUnit: .pounds)
+    _ = try repository.start(latestElsewhere)
+    _ = try repository.saveDraft(sessionID: latestElsewhere.id, accountID: "account", slotID: "slot-row", weightInput: "70.5", repsInput: "7")
+    _ = try repository.completeSet(sessionID: latestElsewhere.id, accountID: "account", slotID: "slot-row")
+    _ = try repository.finish(sessionID: latestElsewhere.id, accountID: "account", note: nil, at: Date(timeIntervalSince1970: 600))
+    let unfinished = WorkoutSession(accountID: "account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1)
+    _ = try repository.start(unfinished)
+    _ = try repository.saveDraft(sessionID: unfinished.id, accountID: "account", slotID: "slot-row", weightInput: "99", repsInput: "12")
+    let otherAccount = WorkoutSession(accountID: "another-account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1)
+    _ = try repository.start(otherAccount)
+    _ = try repository.saveDraft(sessionID: otherAccount.id, accountID: "another-account", slotID: "slot-row", weightInput: "120", repsInput: "12")
+    _ = try repository.completeSet(sessionID: otherAccount.id, accountID: "another-account", slotID: "slot-row")
+    _ = try repository.finish(sessionID: otherAccount.id, accountID: "another-account", note: nil, at: Date(timeIntervalSince1970: 700))
+
+    let result = try #require(try repository.previousPerformance(accountID: "account", exerciseKey: "row",
+      slotID: "slot-row", programID: "current-program", workoutID: "current-day"))
+    #expect(result.weightInput == "70.5")
+    #expect(result.repsInput == "7")
+    #expect(result.weightUnit == .pounds)
+    #expect(result.workoutName == "Day B")
+    #expect(!result.isSameProgramWorkout)
+  }
+
+  @Test
+  func capturedExerciseProvidesDoubleProgressionAndWarmupGuidanceWithoutInventingLoads() throws {
+    let exercise = try #require(makeSession().exercises.first)
+    #expect(exercise.progressionGuidance(for: "8")?.contains("aim for more clean reps") == true)
+    #expect(exercise.progressionGuidance(for: "12")?.contains("smallest practical load increase") == true)
+    #expect(exercise.progressionGuidance(for: "") == nil)
+    let ranges = exercise.warmupRanges(for: "100")
+    #expect(ranges.count == 3)
+    #expect(ranges[0].minimumLoad == 40)
+    #expect(ranges[0].maximumLoad == 50)
+    #expect(exercise.warmupRanges(for: "NaN").isEmpty)
+    #expect(exercise.warmupRanges(for: "0").isEmpty)
+  }
+
   private func makeSession() -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",

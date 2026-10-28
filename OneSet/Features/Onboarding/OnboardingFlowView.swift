@@ -210,7 +210,7 @@ struct OnboardingFlowView: View {
             }
           case .workoutRecording(let sessionID):
             if let session = model.activeWorkoutSession, session.id == sessionID {
-              WorkoutRecordingScreen(session: session) {
+              WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session)) {
                 guard let accountID = authentication.signedInUser?.id else { return }
                 model.discardActiveWorkout(accountID: accountID)
               } onSaveDraft: { slotID, weight, reps in

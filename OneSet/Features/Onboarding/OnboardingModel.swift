@@ -542,6 +542,8 @@ final class OnboardingModel {
       activeWorkoutSession = nil
       if path.last == .workoutRecording(session.id) { path.removeLast() }
       if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }
+      if let last = path.last, case .workoutPreview = last { path.removeLast() }
+      if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
       return true
     } catch {
       showWorkoutSaveError(error)
@@ -573,6 +575,13 @@ final class OnboardingModel {
       showWorkoutSaveError(error)
       return false
     }
+  }
+
+  func previousPerformances(for session: WorkoutSession) -> [String: WorkoutRepository.PreviousPerformance] {
+    guard let workoutRepository else { return [:] }
+    return (try? workoutRepository.previousPerformances(accountID: session.accountID,
+      exercises: session.exercises.map { .init(slotID: $0.slotID, exerciseKey: $0.exerciseKey) },
+      programID: session.programID, workoutID: session.workoutID)) ?? [:]
   }
 
   private func showWorkoutSaveError(_ error: Error) {

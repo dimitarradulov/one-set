@@ -13,6 +13,12 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     }
   }
   struct Exercise: Codable, Hashable, Sendable {
+    struct WarmupRange: Hashable, Sendable {
+      let minimumLoad: Double
+      let maximumLoad: Double
+      let reps: ClosedRange<Int>
+    }
+
     let slotID: String
     let exerciseKey: String
     let name: String
@@ -33,6 +39,23 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
       stoppingGuidance = slot.stoppingGuidance
       warmupGuidance = slot.warmupGuidance
       restSeconds = slot.restSeconds
+    }
+
+    func progressionGuidance(for repsInput: String) -> String? {
+      guard let reps = Int(repsInput), reps > 0 else { return nil }
+      if reps >= repTarget.maximum {
+        return "If those reps were clean, try the smallest practical load increase next time."
+      }
+      return "Keep the same load and aim for more clean reps within \(repTarget.minimum)–\(repTarget.maximum)."
+    }
+
+    func warmupRanges(for workingWeightInput: String) -> [WarmupRange] {
+      guard let weight = Double(workingWeightInput), weight.isFinite, weight > 0 else { return [] }
+      return [
+        WarmupRange(minimumLoad: weight * 0.40, maximumLoad: weight * 0.50, reps: 6...8),
+        WarmupRange(minimumLoad: weight * 0.65, maximumLoad: weight * 0.70, reps: 3...5),
+        WarmupRange(minimumLoad: weight * 0.80, maximumLoad: weight * 0.85, reps: 1...3)
+      ]
     }
   }
 

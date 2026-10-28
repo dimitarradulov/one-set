@@ -25,6 +25,21 @@ enum WorkoutRepositoryError: Error, LocalizedError {
 
 @MainActor
 final class WorkoutRepository {
+  struct PreviousPerformance: Hashable, Sendable {
+    let weightInput: String
+    let repsInput: String
+    let weightUnit: WeightUnit
+    let completedAt: Date
+    let workoutName: String
+    let week: Int
+    let day: Int
+    let isSameProgramWorkout: Bool
+  }
+  struct PreviousPerformanceRequest: Hashable, Sendable {
+    let slotID: String
+    let exerciseKey: String
+  }
+
   private let database: DatabaseQueue
 
   init(databaseURL: URL) throws {
@@ -156,6 +171,48 @@ final class WorkoutRepository {
     try database.read { db in
       Set(try String.fetchAll(db, sql: "SELECT workout_id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week]))
     }
+  }
+
+  func previousPerformance(accountID: String, exerciseKey: String, slotID: String,
+                           programID: String, workoutID: String) throws -> PreviousPerformance? {
+    let query = PreviousPerformanceRequest(slotID: slotID, exerciseKey: exerciseKey)
+    return try previousPerformances(accountID: accountID, exercises: [query], programID: programID,
+                                    workoutID: workoutID)[slotID]
+  }
+
+  func previousPerformances(accountID: String, exercises: [PreviousPerformanceRequest],
+                            programID: String, workoutID: String) throws -> [String: PreviousPerformance] {
+    let payloads = try database.read { db in
+      try Data.fetchAll(db, sql: "SELECT payload FROM workout_sessions WHERE account_id = ? AND finished_at IS NOT NULL ORDER BY finished_at DESC", arguments: [accountID])
+    }
+    let sessions = try payloads.map { try JSONDecoder().decode(WorkoutSession.self, from: $0) }
+    var previousBySlot: [String: PreviousPerformance] = [:]
+    for requested in exercises {
+      let results = sessions.flatMap { session -> [(WorkoutSession, WorkoutSession.Exercise, WorkoutSession.SetEntry)] in
+        guard session.finishedAt != nil else { return [] }
+        return session.exercises.compactMap { exercise in
+          guard exercise.exerciseKey == requested.exerciseKey,
+                let entry = session.setEntries[exercise.slotID],
+                entry.completedAt != nil,
+                let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
+                weight.isFinite, weight >= 0,
+                let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
+          return (session, exercise, entry)
+        }
+      }
+      let preferred = results.filter { $0.0.programID == programID && $0.0.workoutID == workoutID }
+      let sameSlot = preferred.filter { $0.1.slotID == requested.slotID }
+      guard let (session, _, entry) = (sameSlot.isEmpty ? preferred : sameSlot).first ?? results.first,
+            let completedAt = entry.completedAt else { continue }
+      previousBySlot[requested.slotID] = PreviousPerformance(
+        weightInput: entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines),
+        repsInput: entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines),
+        weightUnit: session.weightUnit, completedAt: completedAt, workoutName: session.workoutName,
+        week: session.week, day: session.day,
+        isSameProgramWorkout: session.programID == programID && session.workoutID == workoutID
+      )
+    }
+    return previousBySlot
   }
 
   @discardableResult
