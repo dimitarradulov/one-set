@@ -10,14 +10,22 @@ struct AppDependencies {
 
   #if DEBUG
   static func development() -> AppDependencies {
-    AppDependencies(
+    let workoutURL = URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite")
+    let arguments = ProcessInfo.processInfo.arguments
+    if arguments.contains("--ui-workouts-reset") {
+      for suffix in ["", "-wal", "-shm"] {
+        try? FileManager.default.removeItem(atPath: workoutURL.path + suffix)
+      }
+    }
+    let progressURL = URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+    return AppDependencies(
       catalog: .bundled,
       authentication: PreviewAuthenticationService(startsSignedIn: true),
       onboardingProgress: FileOnboardingProgressStore(
-        fileURL: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+        fileURL: progressURL
       ),
       accountSetup: PreviewAccountSetupService(),
-      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite")) }
+      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
   #endif
@@ -42,6 +50,11 @@ struct AppDependencies {
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
+    }
+    if arguments.contains("--ui-development-progress-reset") {
+      try? FileManager.default.removeItem(
+        at: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+      )
     }
       let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite")
       if arguments.contains("--ui-workouts-reset") {
