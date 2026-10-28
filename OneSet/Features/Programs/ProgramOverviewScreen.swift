@@ -7,6 +7,9 @@ struct ProgramOverviewScreen: View {
   var preferencesSummary: String? = nil
   var activeSession: WorkoutSession? = nil
   var onResumeWorkout: (() -> Void)? = nil
+  var currentWeek: Int = 1
+  var completedWorkoutIDs: Set<String> = []
+  var completedWorkoutsForWeek: ((Int) -> Set<String>)? = nil
   let onPreviewWorkout: (WorkoutTemplate) -> Void
   @State private var selectedWeek = 1
 
@@ -72,7 +75,7 @@ struct ProgramOverviewScreen: View {
 
           ScrollView(.horizontal) {
             HStack(spacing: 8) {
-              ForEach(1...program.recommendedWeeks, id: \.self) { week in
+              ForEach(1...max(program.recommendedWeeks, currentWeek, selectedWeek), id: \.self) { week in
                 Button {
                   selectedWeek = week
                 } label: {
@@ -129,10 +132,13 @@ struct ProgramOverviewScreen: View {
     }
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
+    .onAppear { selectedWeek = max(selectedWeek, currentWeek) }
   }
 
   private func overviewCard(_ workout: WorkoutTemplate, day: Int) -> some View {
-    Button {
+    let marks = completedWorkoutsForWeek?(selectedWeek) ?? completedWorkoutIDs
+    let isComplete = marks.contains(workout.id)
+    return Button {
       onPreviewWorkout(workout)
     } label: {
       HStack(alignment: .top, spacing: 12) {
@@ -147,9 +153,9 @@ struct ProgramOverviewScreen: View {
             .foregroundStyle(OneSetColors.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
 
-          Label("Not started", systemImage: "circle")
+          Label(isComplete ? "Completed" : "Not started", systemImage: isComplete ? "checkmark.circle.fill" : "circle")
             .font(OneSetTypography.label)
-            .foregroundStyle(OneSetColors.textPrimary)
+            .foregroundStyle(isComplete ? OneSetColors.accent : OneSetColors.textPrimary)
             .accessibilityIdentifier("overview.day.\(day).status")
 
           Text("\(workout.movements.count) exercises")
@@ -174,7 +180,7 @@ struct ProgramOverviewScreen: View {
       .contentShape(RoundedRectangle(cornerRadius: 12))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("View workout, Day \(day), \(workout.name), \(workout.movements.count) exercises, Not started")
+    .accessibilityLabel("View workout, Day \(day), \(workout.name), \(workout.movements.count) exercises, \(isComplete ? "Completed" : "Not started")")
     .accessibilityHint("Shows the exercises and rep targets without starting a workout.")
     .accessibilityIdentifier("overview.day.\(day).preview")
   }

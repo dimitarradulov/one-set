@@ -7,9 +7,14 @@ struct WorkoutRecordingScreen: View {
   let onComplete: (String) -> Bool
   let onUpdate: (String, String, String) -> Bool
   let onUnmark: (String) -> Bool
+  let onFinish: (String?) -> Bool
   let onAdjustRest: (Int) -> Bool
   let onSkipRest: () -> Bool
   @State private var confirmsDiscard = false
+  @State private var showsFinishReview = false
+  @State private var confirmsEmptyDiscard = false
+  @State private var noteExpanded = false
+  @State private var note = ""
   @State private var inputs: [String: WorkoutSession.SetEntry]
   @FocusState private var focusedField: Field?
 
@@ -25,13 +30,15 @@ struct WorkoutRecordingScreen: View {
        onUpdate: @escaping (String, String, String) -> Bool = { _, _, _ in true },
        onUnmark: @escaping (String) -> Bool = { _ in true },
        onAdjustRest: @escaping (Int) -> Bool = { _ in true },
-       onSkipRest: @escaping () -> Bool = { true }) {
+       onSkipRest: @escaping () -> Bool = { true },
+       onFinish: @escaping (String?) -> Bool = { _ in true }) {
     self.session = session
     self.onDiscard = onDiscard
     self.onSaveDraft = onSaveDraft
     self.onComplete = onComplete
     self.onUpdate = onUpdate
     self.onUnmark = onUnmark
+    self.onFinish = onFinish
     self.onAdjustRest = onAdjustRest
     self.onSkipRest = onSkipRest
     _inputs = State(initialValue: session.setEntries)
@@ -52,6 +59,12 @@ struct WorkoutRecordingScreen: View {
         ForEach(session.exercises, id: \.slotID) { exercise in
           exerciseRow(exercise)
         }
+        Button("Finish workout") { showsFinishReview = true }
+          .font(OneSetTypography.button)
+          .foregroundStyle(Color.black)
+          .frame(maxWidth: .infinity, minHeight: 52)
+          .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+          .accessibilityIdentifier("recording.finish")
         Button("Discard workout", role: .destructive) { confirmsDiscard = true }
           .frame(minHeight: 44)
           .accessibilityIdentifier("recording.discard")
@@ -70,6 +83,59 @@ struct WorkoutRecordingScreen: View {
     } message: {
       Text("Your completed program progress will not change.")
     }
+    .sheet(isPresented: $showsFinishReview) {
+      finishReview
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+    .confirmationDialog("No sets are complete", isPresented: $confirmsEmptyDiscard, titleVisibility: .visible) {
+      Button("Discard workout", role: .destructive, action: onDiscard)
+      Button("Keep recording", role: .cancel) {}
+    } message: {
+      Text("An empty workout cannot be saved as completed.")
+    }
+  }
+
+  private var finishReview: some View {
+    let completed = session.setEntries.values.filter { $0.completedAt != nil }.count
+    return VStack(alignment: .leading, spacing: 18) {
+      Text("Finish workout")
+        .font(OneSetTypography.h1)
+        .foregroundStyle(OneSetColors.textPrimary)
+      Text("\(completed) of \(session.exercises.count) exercises complete")
+        .font(OneSetTypography.bodyStrong)
+        .foregroundStyle(OneSetColors.textPrimary)
+        .accessibilityIdentifier("finish.summary.count")
+      Text("Duration · \(durationLabel)")
+        .font(OneSetTypography.label)
+        .foregroundStyle(OneSetColors.textSecondary)
+      DisclosureGroup("Add note", isExpanded: $noteExpanded) {
+        TextField("Optional workout note", text: $note, axis: .vertical)
+          .lineLimit(2...5)
+          .textFieldStyle(.roundedBorder)
+          .accessibilityIdentifier("finish.note")
+      }
+      .font(OneSetTypography.label)
+      .tint(OneSetColors.accent)
+      Button(completed == 0 ? "Discard empty workout" : "Save completed workout") {
+        if completed == 0 { confirmsEmptyDiscard = true }
+        else if onFinish(note) { showsFinishReview = false }
+      }
+      .font(OneSetTypography.button)
+      .foregroundStyle(Color.black)
+      .frame(maxWidth: .infinity, minHeight: 52)
+      .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+      .accessibilityIdentifier("finish.confirm")
+      Spacer(minLength: 0)
+    }
+    .padding(24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .background(OneSetColors.background)
+  }
+
+  private var durationLabel: String {
+    let elapsed = max(0, Int(Date.now.timeIntervalSince(session.startedAt)))
+    return String(format: "%d:%02d", elapsed / 60, elapsed % 60)
   }
 
   private func exerciseRow(_ exercise: WorkoutSession.Exercise) -> some View {

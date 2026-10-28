@@ -48,6 +48,8 @@ struct CompletedSetupTabsView: View {
               guard let session = model.activeWorkoutSession else { return }
               model.programPath.append(.workoutRecording(session.id))
             },
+            currentWeek: model.currentWorkoutWeek(programID: programID),
+            completedWorkoutsForWeek: { model.completedWorkoutIDs(programID: programID, week: $0) },
             onPreviewWorkout: { workout in
               model.previewWorkout(programID: programID, workoutID: workout.id)
             }
@@ -100,6 +102,8 @@ struct CompletedSetupTabsView: View {
           model.adjustWorkoutRest(by: seconds)
         } onSkipRest: {
           model.skipWorkoutRest()
+        } onFinish: { note in
+          model.finishActiveWorkout(note: note)
         }
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")

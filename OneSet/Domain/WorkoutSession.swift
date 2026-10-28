@@ -49,6 +49,9 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
   let exercises: [Exercise]
   var setEntries: [String: SetEntry]
   var restDeadline: Date?
+  var finishedAt: Date?
+  var note: String?
+  let requiredWorkoutIDs: [String]
 
   init(accountID: String, cycleID: UUID, program: TrainingProgram, workout: WorkoutTemplate,
        week: Int, day: Int, weightUnit: WeightUnit = .kilograms, startedAt: Date = .now, id: UUID = UUID()) {
@@ -65,11 +68,14 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     exercises = workout.exercises.enumerated().map { Exercise(slot: $0.element, order: $0.offset) }
     setEntries = [:]
     restDeadline = nil
+    finishedAt = nil
+    note = nil
+    requiredWorkoutIDs = program.workouts.map(\.id)
   }
 
   private enum CodingKeys: String, CodingKey {
     case id, accountID, cycleID, programID, week, workoutID, day, workoutName, startedAt
-    case weightUnit, exercises, setEntries, restDeadline
+    case weightUnit, exercises, setEntries, restDeadline, finishedAt, note, requiredWorkoutIDs
   }
 
   init(from decoder: Decoder) throws {
@@ -87,5 +93,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     exercises = try values.decode([Exercise].self, forKey: .exercises)
     setEntries = try values.decodeIfPresent([String: SetEntry].self, forKey: .setEntries) ?? [:]
     restDeadline = try values.decodeIfPresent(Date.self, forKey: .restDeadline)
+    finishedAt = try values.decodeIfPresent(Date.self, forKey: .finishedAt)
+    note = try values.decodeIfPresent(String.self, forKey: .note)
+    requiredWorkoutIDs = try values.decodeIfPresent([String].self, forKey: .requiredWorkoutIDs) ?? [workoutID]
   }
 }

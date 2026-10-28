@@ -172,6 +172,8 @@ struct OnboardingFlowView: View {
                 uploadMessage: model.uploadMessage,
                 onRetryUpload: { Task { await model.uploadCompletedSetup(using: authentication) } },
                 preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
+                currentWeek: model.currentWorkoutWeek(programID: programID),
+                completedWorkoutsForWeek: { model.completedWorkoutIDs(programID: programID, week: $0) },
                 onPreviewWorkout: { workout in
                   model.previewWorkout(programID: programID, workoutID: workout.id)
                 }
@@ -223,6 +225,8 @@ struct OnboardingFlowView: View {
                 model.adjustWorkoutRest(by: seconds)
               } onSkipRest: {
                 model.skipWorkoutRest()
+              } onFinish: { note in
+                model.finishActiveWorkout(note: note)
               }
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
