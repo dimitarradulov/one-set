@@ -195,6 +195,26 @@ final class WorkoutRepository {
     }
   }
 
+  @discardableResult
+  func adjustRest(sessionID: UUID, accountID: String, by seconds: Int,
+                  at date: Date = .now) throws -> WorkoutSession {
+    try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
+      guard let deadline = session.restDeadline, deadline > date else {
+        session.restDeadline = nil
+        return
+      }
+      let adjusted = deadline.addingTimeInterval(TimeInterval(seconds))
+      session.restDeadline = adjusted > date ? adjusted : nil
+    }
+  }
+
+  @discardableResult
+  func skipRest(sessionID: UUID, accountID: String) throws -> WorkoutSession {
+    try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
+      session.restDeadline = nil
+    }
+  }
+
   private func updateActiveSession(
     sessionID: UUID, accountID: String,
     change: (inout WorkoutSession) throws -> Void

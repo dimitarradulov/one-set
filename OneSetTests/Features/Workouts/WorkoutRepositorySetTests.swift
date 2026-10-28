@@ -85,8 +85,11 @@ struct WorkoutRepositorySetTests {
     #expect(finished.setEntries["slot-a"]?.completedAt != nil)
     #expect(try repository.activeSession(accountID: first.accountID) == nil)
     #expect(try repository.completedOccurrenceIDs(accountID: first.accountID, cycleID: first.cycleID, week: 1) == ["day-a"])
-    #expect(try repository.nextOccurrence(accountID: first.accountID, cycleID: first.cycleID,
-      programID: first.programID, workoutIDs: ["day-a", "day-b"]) == (week: 1, day: 2, workoutID: "day-b"))
+    let next = try repository.nextOccurrence(accountID: first.accountID, cycleID: first.cycleID,
+      programID: first.programID, workoutIDs: ["day-a", "day-b"])
+    #expect(next.week == 1)
+    #expect(next.day == 2)
+    #expect(next.workoutID == "day-b")
 
     let reopened = try WorkoutRepository(databaseURL: databaseURL)
     #expect(try reopened.completedOccurrenceIDs(accountID: first.accountID, cycleID: first.cycleID, week: 1) == ["day-a"])
@@ -104,6 +107,53 @@ struct WorkoutRepositorySetTests {
       try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil)
     }
     #expect(try repository.activeSession(accountID: session.accountID)?.id == session.id)
+  }
+
+  @Test
+  func restCanBeReplacedAdjustedSkippedAndRecoveredFromItsDeadline() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-a", weightInput: "40", repsInput: "8")
+    let first = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                          slotID: "slot-a", restSeconds: 120, at: now)
+    #expect(first.restDeadline == now.addingTimeInterval(120))
+
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-b", weightInput: "30", repsInput: "9")
+    let second = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                           slotID: "slot-b", restSeconds: 180, at: now.addingTimeInterval(30))
+    #expect(second.restDeadline == now.addingTimeInterval(210))
+    let adjusted = try repository.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                            by: 15, at: now.addingTimeInterval(60))
+    #expect(adjusted.restDeadline == now.addingTimeInterval(225))
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.activeSession(accountID: session.accountID)?.restDeadline == now.addingTimeInterval(225))
+    let reduced = try reopened.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                          by: -15, at: now.addingTimeInterval(200))
+    #expect(reduced.restDeadline == now.addingTimeInterval(210))
+    #expect(try reopened.skipRest(sessionID: session.id, accountID: session.accountID).restDeadline == nil)
+  }
+
+  @Test
+  func restAdjustmentsCannotResurrectAnExpiredCountdown() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let session = makeSession()
+    _ = try repository.start(session)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+                                 slotID: "slot-a", weightInput: "40", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+                                  slotID: "slot-a", restSeconds: 5, at: now)
+    #expect(try repository.adjustRest(sessionID: session.id, accountID: session.accountID,
+                                      by: 15, at: now.addingTimeInterval(10)).restDeadline == nil)
   }
 
   private func makeSession() -> WorkoutSession {
