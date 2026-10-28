@@ -6,7 +6,7 @@ struct AppDependencies {
   let authentication: any AuthenticationService
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
-  let workouts: WorkoutRepository?
+  let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
   static func development() -> AppDependencies {
@@ -17,7 +17,7 @@ struct AppDependencies {
         fileURL: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
       ),
       accountSetup: PreviewAccountSetupService(),
-      workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite"))
+      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite")) }
     )
   }
   #endif
@@ -32,7 +32,7 @@ struct AppDependencies {
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
     let mainTabsPreview = launch.includesMainTabsPreview
-    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
+    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || arguments.contains("--ui-google-auth-error")
@@ -125,7 +125,12 @@ struct AppDependencies {
           arguments: arguments,
           includesMainTabsPreview: launch.includesMainTabsPreview
         ),
-        workouts: try? WorkoutRepository(databaseURL: previewWorkoutURL)
+        workoutRepositoryFactory: {
+          if arguments.contains("--ui-workout-storage-error") {
+            throw CocoaError(.fileReadNoPermission)
+          }
+          return try WorkoutRepository(databaseURL: previewWorkoutURL)
+        }
       )
     }
     #endif
@@ -144,7 +149,9 @@ struct AppDependencies {
       authentication: authentication,
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication),
-      workouts: try? WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Workouts/workouts.sqlite"))
+      workoutRepositoryFactory: {
+        try WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Workouts/workouts.sqlite"))
+      }
     )
   }
 }

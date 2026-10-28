@@ -20,7 +20,7 @@ struct OneSetApp: App {
       catalog: dependencies.catalog,
       setupService: dependencies.accountSetup,
       progressStore: dependencies.onboardingProgress,
-      workoutRepository: dependencies.workouts,
+      workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
       initialPath: launch.onboardingPath,
       initialSelectedProgramID: launch.selectedProgramID,
       initialProgramPath: launch.programPath,
@@ -43,7 +43,7 @@ struct OneSetApp: App {
         catalog: dependencies.catalog,
         setupService: dependencies.accountSetup,
         progressStore: dependencies.onboardingProgress,
-        workoutRepository: dependencies.workouts
+        workoutRepositoryFactory: dependencies.workoutRepositoryFactory
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
       isDevelopmentSession = true
@@ -55,7 +55,7 @@ struct OneSetApp: App {
         catalog: dependencies.catalog,
         setupService: dependencies.accountSetup,
         progressStore: dependencies.onboardingProgress,
-        workoutRepository: dependencies.workouts
+        workoutRepositoryFactory: dependencies.workoutRepositoryFactory
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
       isDevelopmentSession = false
