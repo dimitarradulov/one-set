@@ -38,6 +38,8 @@ struct AppDependencies {
     let launch = AppLaunchConfiguration(arguments: arguments)
     let uploadPreview = arguments.contains("--ui-setup-upload-pending")
       || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
+      || arguments.contains("--ui-setup-cycle-conflict")
+    let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
@@ -59,7 +61,7 @@ struct AppDependencies {
       )
     }
       let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite")
-      if arguments.contains("--ui-workouts-reset") {
+      if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview {
         for suffix in ["", "-wal", "-shm"] {
           try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
         }
@@ -73,7 +75,10 @@ struct AppDependencies {
       var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
                                          selectedProgramID: "machine-full-body", nextStep: .overview)
       progress.completed = CompletedOnboarding(setup: AccountSetup(
-        preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body", cycleID: UUID()
+        preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
+        cycleID: setupCycleConflictPreview
+          ? UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+          : UUID()
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
     }
@@ -145,7 +150,32 @@ struct AppDependencies {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
           }
-          return try WorkoutRepository(databaseURL: previewWorkoutURL)
+          let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
+          if setupCycleConflictPreview,
+             let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
+             let workout = program.workouts.first,
+             let exercise = workout.exercises.first {
+            let session = WorkoutSession(
+              accountID: "preview-user",
+              cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+              program: program, workout: workout, week: 1, day: 1,
+              weightUnit: .pounds, startedAt: Date(timeIntervalSince1970: 1_800_000_000)
+            )
+            _ = try repository.start(session)
+            _ = try repository.saveDraft(
+              sessionID: session.id, accountID: session.accountID,
+              slotID: exercise.id, weightInput: "50", repsInput: "8"
+            )
+            _ = try repository.completeSet(
+              sessionID: session.id, accountID: session.accountID, slotID: exercise.id,
+              at: Date(timeIntervalSince1970: 1_800_000_010)
+            )
+            _ = try repository.finish(
+              sessionID: session.id, accountID: session.accountID, note: nil,
+              at: Date(timeIntervalSince1970: 1_800_000_020)
+            )
+          }
+          return repository
         }
       )
     }

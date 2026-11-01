@@ -182,6 +182,47 @@ struct WorkoutRepositorySetTests {
   }
 
   @Test
+  func setupCycleConflictMigrationRunsOnFreshAndExistingV5Stores() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let freshURL = directory.appending(path: "fresh.sqlite")
+    _ = try WorkoutRepository(databaseURL: freshURL)
+    let freshDatabase = try DatabaseQueue(path: freshURL.path)
+    let freshMigrations = try freshDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(freshMigrations.contains("backfill-completed-session-uploads-v5"))
+    #expect(freshMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
+    #expect(try freshDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+
+    let existingURL = directory.appending(path: "existing-v5.sqlite")
+    _ = try WorkoutRepository(databaseURL: existingURL)
+    let existingDatabase = try DatabaseQueue(path: existingURL.path)
+    try existingDatabase.write { db in
+      try db.execute(sql: "DROP TABLE workout_cycle_upload_blocks")
+      try db.execute(
+        sql: "DELETE FROM grdb_migrations WHERE identifier = ?",
+        arguments: ["workout-setup-cycle-upload-conflicts-v6"]
+      )
+    }
+    let beforeUpgrade = try existingDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(beforeUpgrade.contains("backfill-completed-session-uploads-v5"))
+    #expect(!beforeUpgrade.contains("workout-setup-cycle-upload-conflicts-v6"))
+
+    _ = try WorkoutRepository(databaseURL: existingURL)
+    let upgradedDatabase = try DatabaseQueue(path: existingURL.path)
+    let upgradedMigrations = try upgradedDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(upgradedMigrations.contains("backfill-completed-session-uploads-v5"))
+    #expect(upgradedMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
+    #expect(try upgradedDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+  }
+
+  @Test
   func finishingPersistsOneStableUploadWithCapturedResultsAndNullUnperformedSlots() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }

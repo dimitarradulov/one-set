@@ -16,6 +16,162 @@ struct CompletedSessionUploadTests {
   }
 
   @Test
+  func setupAcknowledgmentWithLostResponseReusesCycleBeforeDependentSessionUpload() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "onboarding.json"))
+    let localSetup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body",
+      cycleID: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!
+    )
+    var progress = OnboardingProgress(
+      weightUnit: localSetup.preferredUnit, trainingDays: localSetup.trainingDays,
+      selectedProgramID: localSetup.programID, nextStep: .overview
+    )
+    progress.completed = CompletedOnboarding(setup: localSetup, needsUpload: true)
+    try store.save(progress, accountID: "preview-user")
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let setupService = SequencedAccountSetupService(
+      lookupResult: nil, saveOutcomes: [.lostAcknowledgment, .returnSetup(localSetup)]
+    )
+    let sessionService = CompletedSessionUploadSpy()
+    let model = OnboardingModel(
+      catalog: .bundled, setupService: setupService,
+      completedSessionUploadService: sessionService,
+      progressStore: store, workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let date = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionID = try finishOneSession(repository: repository, model: model, setup: localSetup, startingAt: date)
+
+    await model.retryPendingSessionUploads(using: authentication, at: date, scheduleRetries: false)
+    #expect(sessionService.uploads.isEmpty)
+
+    await model.uploadCompletedSetup(using: authentication)
+    #expect(model.hasPendingSetup)
+    #expect(sessionService.uploads.isEmpty)
+
+    let reopenedRepository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let restoredSetupService = SequencedAccountSetupService(
+      lookupResult: nil, saveOutcomes: [.returnSetup(localSetup)]
+    )
+    let restoredSessionService = CompletedSessionUploadSpy()
+    let restoredModel = OnboardingModel(
+      catalog: .bundled, setupService: restoredSetupService,
+      completedSessionUploadService: restoredSessionService,
+      progressStore: store, workoutRepository: reopenedRepository
+    )
+    await restoredModel.resolveAccountSetup(using: authentication)
+    #expect(restoredModel.hasPendingSetup)
+    await restoredModel.retryPendingSessionUploads(using: authentication, at: date, scheduleRetries: false)
+    #expect(restoredSessionService.uploads.isEmpty)
+
+    await restoredModel.uploadCompletedSetup(using: authentication)
+
+    #expect(setupService.savedCycleIDs == [localSetup.cycleID])
+    #expect(restoredSetupService.savedCycleIDs == [localSetup.cycleID])
+    #expect(!restoredModel.hasPendingSetup)
+    #expect(restoredSessionService.uploads.map(\.sessionID) == [sessionID])
+    #expect(try reopenedRepository.pendingSessionUploads(accountID: "preview-user").isEmpty)
+  }
+
+  @Test
+  func establishedCycleConflictRetainsOnlyItsSessionsAndSurvivesRestart() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "onboarding.json"))
+    let localSetup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body",
+      cycleID: UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
+    )
+    let establishedSetup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: localSetup.programID,
+      cycleID: UUID(uuidString: "cccccccc-cccc-4ccc-8ccc-cccccccccccc")!
+    )
+    var progress = OnboardingProgress(
+      weightUnit: localSetup.preferredUnit, trainingDays: localSetup.trainingDays,
+      selectedProgramID: localSetup.programID, nextStep: .overview
+    )
+    progress.completed = CompletedOnboarding(setup: localSetup, needsUpload: true)
+    try store.save(progress, accountID: "preview-user")
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let setupService = SequencedAccountSetupService(
+      lookupResult: nil, saveOutcomes: [.returnSetup(establishedSetup)]
+    )
+    let sessionService = CompletedSessionUploadSpy()
+    let model = OnboardingModel(
+      catalog: .bundled, setupService: setupService,
+      completedSessionUploadService: sessionService,
+      progressStore: store, workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let date = Date(timeIntervalSince1970: 1_800_000_000)
+    let conflictingSessionID = try finishOneSession(
+      repository: repository, model: model, setup: localSetup, startingAt: date
+    )
+    let independentSessionID = try finishOneSession(
+      repository: repository, model: model, setup: establishedSetup, startingAt: date.addingTimeInterval(60)
+    )
+    let localProgram = try #require(model.program(id: localSetup.programID))
+    let nextLocalOccurrence = try repository.nextOccurrence(
+      accountID: "preview-user", cycleID: localSetup.cycleID,
+      programID: localProgram.id, workoutIDs: localProgram.workouts.map(\.id)
+    )
+    model.startWorkout(
+      programID: localProgram.id, workoutID: nextLocalOccurrence.workoutID, accountID: "preview-user"
+    )
+    let activeSession = try #require(model.activeWorkoutSession)
+    let activeExercise = try #require(activeSession.exercises.first)
+    #expect(model.saveWorkoutDraft(slotID: activeExercise.slotID, weightInput: "55", repsInput: "8"))
+    #expect(model.completeWorkoutSet(slotID: activeExercise.slotID))
+
+    await model.uploadCompletedSetup(using: authentication)
+
+    #expect(sessionService.uploads.map(\.sessionID) == [independentSessionID])
+    #expect(model.activeWorkoutSession?.id == activeSession.id)
+    #expect(model.activeWorkoutSession?.cycleID == localSetup.cycleID)
+    #expect(model.sessionUploadErrorPresented)
+    #expect(model.sessionUploadErrorMessage.contains("different cycle"))
+    #expect(model.restoredCycleID == establishedSetup.cycleID)
+    let retained = try #require(repository.sessionUploadQueue(accountID: "preview-user").first)
+    #expect(retained.upload.sessionID == conflictingSessionID)
+    #expect(retained.permanentFailure == .setupCycleConflict)
+    let body = try #require(JSONSerialization.jsonObject(with: retained.upload.body) as? [String: Any])
+    #expect(body["cycle_id"] as? String == localSetup.cycleID.uuidString.lowercased())
+
+    model.sessionUploadErrorPresented = false
+    #expect(model.finishActiveWorkout(note: nil, using: authentication))
+    #expect(model.activeWorkoutSession == nil)
+    #expect(model.sessionUploadErrorPresented)
+    let blockedActiveSession = try #require(
+      repository.sessionUploadQueue(accountID: "preview-user")
+        .first(where: { $0.upload.sessionID == activeSession.id })
+    )
+    #expect(blockedActiveSession.permanentFailure == .setupCycleConflict)
+
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.sessionUploadQueue(accountID: "preview-user").first?.permanentFailure == .setupCycleConflict)
+    let restoredModel = OnboardingModel(
+      catalog: .bundled, setupService: setupService,
+      completedSessionUploadService: CompletedSessionUploadSpy(),
+      progressStore: store, workoutRepository: reopened
+    )
+    await restoredModel.resolveAccountSetup(using: authentication)
+    #expect(restoredModel.sessionUploadErrorPresented)
+    await restoredModel.retryPendingSessionUploads(
+      using: authentication, at: date.addingTimeInterval(300), scheduleRetries: false
+    )
+    #expect(try reopened.sessionUploadQueue(accountID: "preview-user")
+      .contains(where: { $0.upload.sessionID == conflictingSessionID }))
+  }
+
+  @Test
   func httpFailuresSeparateAuthenticationPermanentAndTransientResponses() {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     let unauthorized = CompletedSessionUploadError.httpFailure(status: 401, retryAfter: nil, at: now)
@@ -604,5 +760,37 @@ private struct StaticAccountSetupService: AccountSetupService {
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
     setup
+  }
+}
+
+@MainActor
+private final class SequencedAccountSetupService: AccountSetupService {
+  enum SaveOutcome {
+    case lostAcknowledgment
+    case returnSetup(AccountSetup)
+  }
+
+  let lookupResult: AccountSetup?
+  private var saveOutcomes: [SaveOutcome]
+  private(set) var savedCycleIDs: [UUID] = []
+
+  init(lookupResult: AccountSetup?, saveOutcomes: [SaveOutcome]) {
+    self.lookupResult = lookupResult
+    self.saveOutcomes = saveOutcomes
+  }
+
+  func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
+    lookupResult
+  }
+
+  func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup {
+    savedCycleIDs.append(setup.cycleID)
+    guard !saveOutcomes.isEmpty else { return setup }
+    switch saveOutcomes.removeFirst() {
+    case .lostAcknowledgment:
+      throw AccountSetupError.unavailable
+    case .returnSetup(let established):
+      return established
+    }
   }
 }

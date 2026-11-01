@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { handleCompletedSessionRequest, type SessionDatabase } from '../src/sessions.ts';
+import { handleSetupRequest } from '../src/setup.ts';
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -110,6 +111,38 @@ function request(bearer: string | undefined, body: unknown, path = '/v1/sessions
     body: JSON.stringify(body),
   });
 }
+
+function setupSaveRequest(bearer: string, body: unknown) {
+  return new Request('https://api.oneset.test/v1/me/setup', {
+    method: 'PUT', headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+test('a completed session keeps its local cycle when setup returns a different established cycle', async () => {
+  const bearer = await token();
+  const localCycleID = '33333333-3333-4333-8333-333333333333';
+  const setup = await handleSetupRequest(setupSaveRequest(bearer, {
+    preferred_unit: 'lb', training_days: 5, program_id: 'machine-full-body', cycle_id: localCycleID,
+  }), env, database);
+  assert.equal(setup.status, 200);
+  assert.deepEqual(await setup.json(), { setup: {
+    preferred_unit: 'kg', training_days: 2, program_id: 'machine-full-body',
+    cycle_id: '11111111-1111-4111-8111-111111111111',
+  } });
+
+  const response = await handleCompletedSessionRequest(request(bearer, sessionBody({
+    session_id: '33333333-3333-4333-8333-333333333333', cycle_id: localCycleID,
+  })), env, database);
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), { error: { code: 'FORBIDDEN' } });
+  const retained = await database.query(`SELECT count(*)::integer AS sessions FROM workout_sessions
+    WHERE id = $1`, ['33333333-3333-4333-8333-333333333333']);
+  assert.deepEqual(retained, [{ sessions: 0 }]);
+  const cycles = await database.query(`SELECT count(*)::integer AS cycles FROM user_programs
+    WHERE user_id = (SELECT id FROM users WHERE clerk_user_id = 'session_user')`, []);
+  assert.deepEqual(cycles, [{ cycles: 1 }]);
+});
 
 test('completed session writes captured partial results and completion mark atomically', async () => {
   const response = await handleCompletedSessionRequest(request(await token(), sessionBody()), env, database);
