@@ -66,7 +66,6 @@ struct OnboardingFlowView: View {
     .onChange(of: authentication.didCompleteAuthentication) { _, didComplete in
       guard didComplete else { return }
       Task {
-        await model.resolveAccountSetup(using: authentication)
         await model.resumeDeferredSessionUploads(using: authentication)
       }
     }

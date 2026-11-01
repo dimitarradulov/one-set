@@ -388,3 +388,57 @@ test('captured slot positions must match array order without gaps', async () => 
     assert.equal(response.status, 400);
   }
 });
+
+test('week-nine sessions persist and an old retry cannot rewind later progress', async () => {
+  const cycleID = '11111111-1111-4111-8111-111111111111';
+  await database.query(`UPDATE user_programs SET current_training_week = 9 WHERE id = $1`, [cycleID]);
+
+  const weekNineDayA = sessionBody({
+    session_id: '24242424-2424-4424-8424-242424242424',
+    week_number: 9,
+  });
+  const dayAResponse = await handleCompletedSessionRequest(request(awaitToken, weekNineDayA), env, database);
+  assert.equal(dayAResponse.status, 201, JSON.stringify(await dayAResponse.clone().json()));
+  const dayAState = await database.query(`SELECT
+      session.week_number,
+      cycle.current_training_week,
+      (SELECT count(*)::integer FROM completed_workouts
+       WHERE user_program_id = cycle.id AND week_number = 9 AND workout_id = 100) AS occurrence_marks
+    FROM workout_sessions AS session
+    JOIN user_programs AS cycle ON cycle.id = session.user_program_id
+    WHERE session.id = $1`, [weekNineDayA.session_id]);
+  assert.deepEqual(dayAState, [{ week_number: 9, current_training_week: 9, occurrence_marks: 1 }]);
+
+  const weekNineDayB = sessionBody({
+    session_id: '25252525-2525-4525-8525-252525252525',
+    workout_key: 'day-b',
+    workout_name: 'Workout B',
+    week_number: 9,
+    sets: [{
+      workout_exercise_key: 'slot-c', exercise_key: 'row-c', position: 1,
+      prescription: {
+        name: 'Captured Row B', instructions: 'Guidance', stopping_guidance: 'Stop safely.',
+        warmup_guidance: { steps: [], note: 'Warmup' }, video_key: null,
+        reps_min: 8, reps_max: 12, rep_scope: 'reps', rest_seconds: 120,
+      },
+      weight: 0, unit: 'kg', reps: 8, completed_at: '2026-10-01T10:12:00.000Z',
+    }],
+  });
+  const dayBResponse = await handleCompletedSessionRequest(request(awaitToken, weekNineDayB), env, database);
+  assert.equal(dayBResponse.status, 201, JSON.stringify(await dayBResponse.clone().json()));
+  const advancedProgress = await database.query(`SELECT current_training_week FROM user_programs WHERE id = $1`, [cycleID]);
+  assert.deepEqual(advancedProgress, [{ current_training_week: 10 }]);
+
+  const retried = await handleCompletedSessionRequest(request(awaitToken, weekNineDayA), env, database);
+  assert.equal(retried.status, 200);
+  assert.deepEqual(await retried.json(), {
+    session_id: weekNineDayA.session_id, result: 'acknowledged',
+  });
+  const retriedState = await database.query(`SELECT
+      (SELECT count(*)::integer FROM workout_sessions WHERE id = $1) AS session_count,
+      (SELECT count(*)::integer FROM completed_workouts
+       WHERE user_program_id = $2 AND week_number = 9 AND workout_id = 100) AS occurrence_marks,
+      (SELECT current_training_week FROM user_programs WHERE id = $2) AS current_training_week`,
+  [weekNineDayA.session_id, cycleID]);
+  assert.deepEqual(retriedState, [{ session_count: 1, occurrence_marks: 1, current_training_week: 10 }]);
+});

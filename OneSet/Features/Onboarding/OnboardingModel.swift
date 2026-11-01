@@ -37,19 +37,13 @@ final class OnboardingModel {
   private let progressStore: (any OnboardingProgressStore)?
   private var savedProgress: OnboardingProgress?
   private var isSigningOut = false
-  private var isDrainingSessionUploads = false
-  private var queuedSessionDrain: (authentication: AuthenticationModel, date: Date)?
-  private var sessionUploadRetryTask: Task<Void, Never>?
-  private var scheduledSessionRetryAccountID: String?
-  private var scheduledSessionRetryAt: Date?
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
-  private let completedSessionUploadService: (any CompletedSessionUploadService)?
-  private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
   private var workoutRepository: WorkoutRepository?
+  private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
   private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
   private(set) var activeWorkoutSession: WorkoutSession?
   var workoutErrorPresented = false
@@ -76,8 +70,6 @@ final class OnboardingModel {
   ) {
     self.catalog = catalog
     self.setupService = setupService
-    self.completedSessionUploadService = completedSessionUploadService
-    self.waitForSessionUploadRetry = waitForSessionUploadRetry
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
     do {
@@ -93,6 +85,13 @@ final class OnboardingModel {
     programPath = initialProgramPath
     settingsPath = initialSettingsPath
     selectedMainTab = initialMainTab
+    if let repository = workoutRepository, let completedSessionUploadService {
+      completedSessionUploadCoordinator = CompletedSessionUploadCoordinator(
+        repository: repository,
+        service: completedSessionUploadService,
+        waitForRetry: waitForSessionUploadRetry
+      )
+    }
   }
 
   func resolveAccountSetup(using authentication: AuthenticationModel) async {
@@ -317,8 +316,7 @@ final class OnboardingModel {
     restoredCycleID = nil
     savedProgress = nil
     uploadingGeneration = nil
-    cancelSessionUploadRetry()
-    queuedSessionDrain = nil
+    completedSessionUploadCoordinator?.cancelPendingWork()
     uploadMessage = nil
     programSelectionMessage = nil
     discardSetupPresented = false
@@ -757,149 +755,23 @@ final class OnboardingModel {
     guard !isSigningOut, !hasPendingSetup,
           let user = authentication.signedInUser,
           resolvedAccountID == user.id,
-          let completedSessionUploadService, let workoutRepository else { return }
-    if isDrainingSessionUploads {
-      queuedSessionDrain = (authentication, date)
-      return
-    }
-
-    isDrainingSessionUploads = true
-    defer {
-      isDrainingSessionUploads = false
-      if scheduleRetries {
-        scheduleSessionUploadRetry(
-          using: authentication, accountID: user.id, after: date, repository: workoutRepository
-        )
-      }
-      if let queuedSessionDrain {
-        self.queuedSessionDrain = nil
-        Task {
-          await retryPendingSessionUploads(using: queuedSessionDrain.authentication, at: queuedSessionDrain.date)
-        }
-      }
-    }
-
+          let completedSessionUploadCoordinator else { return }
     let generation = lookupGeneration
-    guard let entries = try? workoutRepository.sessionUploadQueue(accountID: user.id) else { return }
+    let isCurrent: @MainActor () -> Bool = { [weak self] in
+      guard let self else { return false }
+      return !self.isSigningOut && generation == self.lookupGeneration
+        && authentication.signedInUser?.id == user.id
+        && self.resolvedAccountID == user.id
+    }
     presentSessionUploadErrorIfNeeded(accountID: user.id)
-    for entry in entries {
-      guard !Task.isCancelled, !isSigningOut, generation == lookupGeneration,
-            authentication.signedInUser?.id == user.id,
-            resolvedAccountID == user.id else { return }
-      guard entry.permanentFailure == nil, !entry.isAuthenticationDeferred,
-            entry.retryAfter.map({ $0 <= date }) ?? true else { continue }
-
-      do {
-        try await completedSessionUploadService.upload(entry.upload, for: user)
-      } catch let error as CompletedSessionUploadError {
-        guard !isSigningOut, generation == lookupGeneration,
-              authentication.signedInUser?.id == user.id,
-              resolvedAccountID == user.id else { return }
-        switch error {
-        case .authenticationRequired:
-          try? workoutRepository.deferUploadUntilAuthenticationRestored(
-            sessionID: entry.upload.sessionID, accountID: user.id
-          )
-          return
-        case .forbidden:
-          guard (try? workoutRepository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .forbidden
-          )) != nil else { return }
-          continue
-        case .conflict:
-          guard (try? workoutRepository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .conflict
-          )) != nil else { return }
-          continue
-        case .invalidSession:
-          guard (try? workoutRepository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .invalidSession
-          )) != nil else { return }
-          continue
-        case .temporary(let serverRetryAt):
-          recordTransientFailure(for: entry, accountID: user.id, at: date, serverRetryAt: serverRetryAt,
-            using: workoutRepository)
-          continue
-        }
-      } catch {
-        guard !isSigningOut, generation == lookupGeneration,
-              authentication.signedInUser?.id == user.id,
-              resolvedAccountID == user.id else { return }
-        recordTransientFailure(for: entry, accountID: user.id, at: date, using: workoutRepository)
-        continue
-      }
-
-      guard !isSigningOut, generation == lookupGeneration,
-            authentication.signedInUser?.id == user.id,
-            resolvedAccountID == user.id else { return }
-      do {
-        try workoutRepository.acknowledgeSessionUpload(sessionID: entry.upload.sessionID, accountID: user.id)
-      } catch {
-        recordTransientFailure(for: entry, accountID: user.id, at: date, using: workoutRepository)
-        continue
-      }
-    }
-  }
-
-  private func recordTransientFailure(
-    for entry: CompletedSessionUploadQueueEntry,
-    accountID: String,
-    at date: Date,
-    serverRetryAt: Date? = nil,
-    using workoutRepository: WorkoutRepository
-  ) {
-    let retryAt = CompletedSessionUploadRetryPolicy.retryDate(
-      afterAttempt: entry.attemptCount + 1, at: date, serverRetryAt: serverRetryAt
+    await completedSessionUploadCoordinator.drain(
+      for: user,
+      whileCurrent: isCurrent,
+      at: date,
+      scheduleRetries: scheduleRetries
     )
-    try? workoutRepository.recordTransientUploadFailure(
-      sessionID: entry.upload.sessionID, accountID: accountID, retryAt: retryAt
-    )
-  }
-
-  private func scheduleSessionUploadRetry(
-    using authentication: AuthenticationModel,
-    accountID: String,
-    after date: Date,
-    repository: WorkoutRepository
-  ) {
-    guard !isSigningOut, authentication.signedInUser?.id == accountID,
-          let entries = try? repository.sessionUploadQueue(accountID: accountID) else {
-      cancelSessionUploadRetry()
-      return
-    }
-    let nextRetry = entries
-      .filter { $0.permanentFailure == nil && !$0.isAuthenticationDeferred }
-      .compactMap(\.retryAfter)
-      .min()
-    guard let nextRetry, nextRetry > date else {
-      cancelSessionUploadRetry()
-      return
-    }
-    if scheduledSessionRetryAccountID == accountID, scheduledSessionRetryAt == nextRetry,
-       sessionUploadRetryTask != nil { return }
-
-    cancelSessionUploadRetry()
-    let delay = nextRetry.timeIntervalSince(date)
-    let wait = waitForSessionUploadRetry
-    scheduledSessionRetryAccountID = accountID
-    scheduledSessionRetryAt = nextRetry
-    sessionUploadRetryTask = Task { @MainActor [weak self] in
-      do { try await wait(delay) } catch { return }
-      guard !Task.isCancelled, let self,
-            self.scheduledSessionRetryAccountID == accountID,
-            self.scheduledSessionRetryAt == nextRetry else { return }
-      self.sessionUploadRetryTask = nil
-      self.scheduledSessionRetryAccountID = nil
-      self.scheduledSessionRetryAt = nil
-      await self.retryPendingSessionUploads(using: authentication, at: nextRetry)
-    }
-  }
-
-  private func cancelSessionUploadRetry() {
-    sessionUploadRetryTask?.cancel()
-    sessionUploadRetryTask = nil
-    scheduledSessionRetryAccountID = nil
-    scheduledSessionRetryAt = nil
+    guard isCurrent() else { return }
+    presentSessionUploadErrorIfNeeded(accountID: user.id)
   }
 
   func adjustWorkoutRest(by seconds: Int) -> Bool {

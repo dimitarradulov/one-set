@@ -170,52 +170,18 @@ struct AppDependencies {
             throw CocoaError(.fileReadNoPermission)
           }
           let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
-          if sessionSignOutPreview,
-             let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
-             let workout = program.workouts.first,
-             let exercise = workout.exercises.first {
-            let session = WorkoutSession(
-              accountID: "preview-user",
+          if sessionSignOutPreview {
+            try Self.seedCompletedPreviewSession(
+              in: repository,
               cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
-              program: program, workout: workout, week: 1, day: 1,
-              weightUnit: .pounds, startedAt: Date(timeIntervalSince1970: 1_800_000_000)
-            )
-            _ = try repository.start(session)
-            _ = try repository.saveDraft(
-              sessionID: session.id, accountID: session.accountID,
-              slotID: exercise.id, weightInput: "50", repsInput: "8"
-            )
-            _ = try repository.completeSet(
-              sessionID: session.id, accountID: session.accountID, slotID: exercise.id,
-              at: Date(timeIntervalSince1970: 1_800_000_010)
-            )
-            _ = try repository.finish(
-              sessionID: session.id, accountID: session.accountID, note: nil,
-              at: Date(timeIntervalSince1970: 1_800_000_020)
+              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
-          if setupCycleConflictPreview,
-             let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
-             let workout = program.workouts.first,
-             let exercise = workout.exercises.first {
-            let session = WorkoutSession(
-              accountID: "preview-user",
+          if setupCycleConflictPreview {
+            try Self.seedCompletedPreviewSession(
+              in: repository,
               cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
-              program: program, workout: workout, week: 1, day: 1,
-              weightUnit: .pounds, startedAt: Date(timeIntervalSince1970: 1_800_000_000)
-            )
-            _ = try repository.start(session)
-            _ = try repository.saveDraft(
-              sessionID: session.id, accountID: session.accountID,
-              slotID: exercise.id, weightInput: "50", repsInput: "8"
-            )
-            _ = try repository.completeSet(
-              sessionID: session.id, accountID: session.accountID, slotID: exercise.id,
-              at: Date(timeIntervalSince1970: 1_800_000_010)
-            )
-            _ = try repository.finish(
-              sessionID: session.id, accountID: session.accountID, note: nil,
-              at: Date(timeIntervalSince1970: 1_800_000_020)
+              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
           return repository
@@ -244,6 +210,36 @@ struct AppDependencies {
       }
     )
   }
+
+  #if DEBUG
+  private static func seedCompletedPreviewSession(
+    in repository: WorkoutRepository,
+    cycleID: UUID,
+    startedAt: Date
+  ) throws {
+    guard let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
+          let workout = program.workouts.first,
+          let exercise = workout.exercises.first else { return }
+    let session = WorkoutSession(
+      accountID: "preview-user", cycleID: cycleID,
+      program: program, workout: workout, week: 1, day: 1,
+      weightUnit: .pounds, startedAt: startedAt
+    )
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(
+      sessionID: session.id, accountID: session.accountID,
+      slotID: exercise.id, weightInput: "50", repsInput: "8"
+    )
+    _ = try repository.completeSet(
+      sessionID: session.id, accountID: session.accountID, slotID: exercise.id,
+      at: startedAt.addingTimeInterval(10)
+    )
+    _ = try repository.finish(
+      sessionID: session.id, accountID: session.accountID, note: nil,
+      at: startedAt.addingTimeInterval(20)
+    )
+  }
+  #endif
 }
 
 #if DEBUG
