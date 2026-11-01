@@ -51,4 +51,6 @@ Uploads retry immediately on completion, after authenticated restoration, on for
 
 Sign-out with pending completed setup presents Cancel or Sign out and discard. Cancel preserves the record. Confirmed sign-out removes only that account’s onboarding document, including its pending upload; workout data is outside this store. Failed sign-out attempts restore the removed record and report failures. An already-sent request may have reached the backend even if its acknowledgment was lost; discarding local state cannot undo a server commit.
 
+The [completed-session save slice](completed-session-save-plan.md) requires an exception to this implemented setup-discard behavior: when queued completed workouts depend on pending setup, sign-out must retain that setup alongside the workouts and their upload queue. Explain that upload resumes when the same account signs in again. This exception is an approved implementation requirement, not current behavior.
+
 Use `./scripts/validate-ui.sh --ui-setup-upload-pending` and `--ui-setup-upload-discard` for deterministic visible pending/retry and discard-confirmation states. These routes, shared preview backend and identity substitutes are Debug-only. Journey tests clear local data to represent another device while retaining the preview backend; API tests separately establish actual PostgreSQL save and retry behavior.
