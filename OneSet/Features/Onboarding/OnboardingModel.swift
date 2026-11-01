@@ -44,6 +44,8 @@ final class OnboardingModel {
   private let catalog: ProgramCatalog
   private var workoutRepository: WorkoutRepository?
   private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
+  private let completedSessionUploadService: (any CompletedSessionUploadService)?
+  private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
   private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
   private(set) var activeWorkoutSession: WorkoutSession?
   var workoutErrorPresented = false
@@ -72,6 +74,8 @@ final class OnboardingModel {
     self.setupService = setupService
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
+    self.completedSessionUploadService = completedSessionUploadService
+    self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
     } catch {
@@ -85,6 +89,12 @@ final class OnboardingModel {
     programPath = initialProgramPath
     settingsPath = initialSettingsPath
     selectedMainTab = initialMainTab
+    configureCompletedSessionUploads()
+  }
+
+  private func configureCompletedSessionUploads() {
+    completedSessionUploadCoordinator?.cancelPendingWork()
+    completedSessionUploadCoordinator = nil
     if let repository = workoutRepository, let completedSessionUploadService {
       completedSessionUploadCoordinator = CompletedSessionUploadCoordinator(
         repository: repository,
@@ -610,6 +620,7 @@ final class OnboardingModel {
     guard let workoutRepositoryFactory else { return }
     do {
       workoutRepository = try workoutRepositoryFactory()
+      configureCompletedSessionUploads()
       workoutStorageOpenFailed = false
       workoutErrorPresented = false
       if let resolvedAccountID {

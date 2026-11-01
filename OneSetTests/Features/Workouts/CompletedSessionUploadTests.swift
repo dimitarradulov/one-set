@@ -61,7 +61,8 @@ struct CompletedSessionUploadTests {
     let restoredModel = OnboardingModel(
       catalog: .bundled, setupService: restoredSetupService,
       completedSessionUploadService: restoredSessionService,
-      progressStore: store, workoutRepository: reopenedRepository
+      progressStore: store,
+      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")) }
     )
     await restoredModel.resolveAccountSetup(using: authentication)
     #expect(restoredModel.hasPendingSetup)
@@ -719,8 +720,8 @@ struct CompletedSessionUploadTests {
     #expect(retryWait.wasCancelled)
   }
 
-  @Test
-  func finishingSendsTheDurablePayloadAndAcknowledgesItLocally() async throws {
+  @Test(arguments: ["direct", "factory", "recoveredFactory"])
+  func finishingSendsTheDurablePayloadAndAcknowledgesItLocally(repositoryPath: String) async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     let databaseURL = directory.appending(path: "workouts.sqlite")
@@ -731,12 +732,25 @@ struct CompletedSessionUploadTests {
       preferredUnit: .pounds, trainingDays: 3,
       programID: "machine-full-body", cycleID: cycleID
     )
+    var shouldFailOpening = repositoryPath == "recoveredFactory"
     let model = OnboardingModel(
       catalog: .bundled,
       setupService: StaticAccountSetupService(setup: setup),
       completedSessionUploadService: service,
-      workoutRepository: repository
+      workoutRepository: repositoryPath == "direct" ? repository : nil,
+      workoutRepositoryFactory: {
+        if shouldFailOpening {
+          shouldFailOpening = false
+          throw CocoaError(.fileReadNoPermission)
+        }
+        return try WorkoutRepository(databaseURL: databaseURL)
+      }
     )
+    if repositoryPath == "recoveredFactory" {
+      #expect(model.workoutStorageOpenFailed)
+      model.retryWorkoutStorage()
+      #expect(!model.workoutStorageOpenFailed)
+    }
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     await model.resolveAccountSetup(using: authentication)
 
