@@ -221,7 +221,7 @@ final class OnboardingModel {
     }
     lookupGeneration += 1
     let previousResolution = setupResolution
-    var progressForFailure: OnboardingProgress? = progress
+    let progressForFailure: OnboardingProgress? = progress
     do {
       let shouldRemoveProgress = progress != nil && (!hasPendingSetupForAccount || discardPending)
       if shouldRemoveProgress { try progressStore?.remove(accountID: accountID) }
