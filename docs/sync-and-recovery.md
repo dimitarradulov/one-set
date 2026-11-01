@@ -30,6 +30,12 @@ The local queue retains an unacknowledged body if that request fails. An equal r
 
 If a locally completed setup is still pending, session uploads wait for its acknowledgment. Setup retries keep the same device-generated cycle ID, including after a lost response. If the account already has a different established cycle, the app records a durable block for the local cycle before acknowledging setup. Sessions under that original cycle remain queued with their original IDs and bodies; the Worker rejects them because the cycle is not owned by the account. Other sessions for valid owned cycles continue through the queue. An active workout on the blocked local cycle may still be finished and saved locally, but its upload remains blocked. The app explains that the completed workout is still on this device and was not moved or uploaded. It does not create a replacement cycle, rewrite the session, or show routine retry controls.
 
+### Sign-out with queued workouts
+
+Sign-out remains blocked while a workout is active. When completed sessions are still queued, ask before signing out and explain that they stay on this device and resume under the same account. Confirming sign-out stops starting new upload requests and preserves queued session IDs, bodies, retry dates, and failure metadata. Keep a pending setup if a queued session uses its cycle; discard an unrelated pending setup. Session and setup queues remain scoped to the original account, so another account cannot resume them. After the owner signs in again, resolve or upload setup first, then retry the same session requests.
+
+An HTTP request already in flight may finish at the server after sign-out starts. Its response is ignored after the request generation or account changes, so it cannot acknowledge local work for a signed-out or different account. The retained request can safely retry with its original ID and body. A cancelled confirmation leaves the account unchanged. If authentication sign-out fails, keep the same account and queue, report that the workouts remain on the device, and resume automatic retry. Local pending workouts remain dependent on this device until the server acknowledges them; they are not an independent backup.
+
 In one short server transaction:
 
 1. Authenticate and lock the user's row. Derive session ownership through `user_programs`; there is no session `user_id` field.

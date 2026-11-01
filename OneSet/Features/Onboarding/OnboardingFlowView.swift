@@ -34,6 +34,13 @@ struct OnboardingFlowView: View {
       if ProcessInfo.processInfo.arguments.contains("--ui-setup-upload-discard") {
         await model.signOut(using: authentication)
       }
+      if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-confirmation")
+        || ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
+        await model.signOut(using: authentication)
+        if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
+          await model.confirmPendingSessionSignOut(using: authentication)
+        }
+      }
       #endif
       await model.resumeDeferredSessionUploads(using: authentication)
       await model.retryCompletedUploads(using: authentication)
@@ -70,6 +77,14 @@ struct OnboardingFlowView: View {
       }
     } message: {
       Text("Your setup has not been saved to your account. If you sign out, this device’s setup and pending upload will be deleted.")
+    }
+    .alert("Keep workouts on this device?", isPresented: $model.pendingSessionSignOutPresented) {
+      Button("Cancel", role: .cancel) { }
+      Button("Sign out and keep workouts") {
+        Task { await model.confirmPendingSessionSignOut(using: authentication) }
+      }
+    } message: {
+      Text(model.pendingSessionSignOutMessage)
     }
     .alert("Couldn’t sign out", isPresented: $model.signOutErrorPresented) {
       Button("OK", role: .cancel) { }

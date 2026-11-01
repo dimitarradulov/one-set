@@ -21,6 +21,10 @@ final class OnboardingModel {
   private(set) var setupResolution: SetupResolution = .idle
   private(set) var restoredCycleID: UUID?
   var discardSetupPresented = false
+  var pendingSessionSignOutPresented = false
+  private(set) var pendingSessionSignOutMessage = ""
+  private var pendingSessionSignOutDiscardsSetup = false
+  private var pendingSessionSignOutAccountID: String?
   private(set) var uploadMessage: String?
   private(set) var programSelectionMessage: String?
   private var uploadingGeneration: Int?
@@ -160,45 +164,140 @@ final class OnboardingModel {
     return false
   }
 
-  func signOut(using authentication: AuthenticationModel, discardPending: Bool = false) async {
+  func signOut(
+    using authentication: AuthenticationModel,
+    discardPending: Bool = false,
+    retainingPendingSessions: Bool = false
+  ) async {
+    guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     if activeWorkoutSession != nil {
       signOutErrorMessage = "Finish or discard your current workout first."
       signOutErrorPresented = true
       return
     }
-    if hasPendingSetup && !discardPending {
+
+    let progress: OnboardingProgress?
+    do {
+      if let progressStore {
+        progress = try progressStore.load(accountID: accountID)
+      } else {
+        progress = savedProgress
+      }
+    } catch {
+      signOutErrorMessage = "Your workouts are still saved on this device, but OneSet couldn’t check their upload status. Please try again."
+      signOutErrorPresented = true
+      return
+    }
+    let hasPendingSessions: Bool
+    do {
+      hasPendingSessions = try workoutRepository?.hasPendingSessionUploads(accountID: accountID) ?? false
+    } catch {
+      signOutErrorMessage = "Your workouts are still saved on this device, but OneSet couldn’t check their upload status. Please try again."
+      signOutErrorPresented = true
+      return
+    }
+    let hasPendingSetupForAccount = progress?.completed?.needsUpload == true
+    if hasPendingSessions && !retainingPendingSessions {
+      presentPendingSessionSignOut(for: accountID, progress: progress)
+      return
+    }
+    if hasPendingSetupForAccount && !discardPending && !retainingPendingSessions {
       discardSetupPresented = true
       return
     }
-    guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
+
     isSigningOut = true
-    defer { isSigningOut = false }
+    var resumeUploadsAfterFailure = false
+    defer {
+      isSigningOut = false
+      if resumeUploadsAfterFailure {
+        Task { @MainActor [weak self] in
+          guard let self,
+                authentication.signedInUser?.id == accountID,
+                self.resolvedAccountID == accountID else { return }
+          await self.uploadCompletedSetup(using: authentication)
+          await self.retryPendingSessionUploads(using: authentication)
+        }
+      }
+    }
     lookupGeneration += 1
     let previousResolution = setupResolution
+    var progressForFailure: OnboardingProgress? = progress
     do {
-      // Clear before ending the session: a removal failure must not leave resumable
-      // progress behind for an account that was successfully signed out.
-      let progress = try progressStore?.load(accountID: accountID)
-      try progressStore?.remove(accountID: accountID)
+      let shouldRemoveProgress = progress != nil && (!hasPendingSetupForAccount || discardPending)
+      if shouldRemoveProgress { try progressStore?.remove(accountID: accountID) }
       await authentication.signOut()
       if authentication.signedInUser == nil {
         resetAccount()
       } else if authentication.signedInUser?.id == accountID {
-        if let progress { try progressStore?.save(progress, accountID: accountID) }
+        if shouldRemoveProgress, let progress { try progressStore?.save(progress, accountID: accountID) }
         setupResolution = previousResolution
         if case .loading = previousResolution {
           await resolveAfterFailedSignOut(using: authentication)
         }
-        signOutErrorMessage = authentication.errorMessage ?? "Please try again."
+        signOutErrorMessage = signOutFailureMessage(
+          authentication.errorMessage ?? "Please try again.", retainingPendingSessions: hasPendingSessions
+        )
         signOutErrorPresented = true
+        resumeUploadsAfterFailure = true
       }
     } catch {
+      if let progressForFailure { try? progressStore?.save(progressForFailure, accountID: accountID) }
       if case .loading = previousResolution {
         await resolveAfterFailedSignOut(using: authentication)
       }
-      signOutErrorMessage = error.localizedDescription
+      signOutErrorMessage = signOutFailureMessage(
+        error.localizedDescription, retainingPendingSessions: hasPendingSessions
+      )
       signOutErrorPresented = true
+      resumeUploadsAfterFailure = true
     }
+  }
+
+  func confirmPendingSessionSignOut(using authentication: AuthenticationModel) async {
+    guard let accountID = pendingSessionSignOutAccountID,
+          authentication.signedInUser?.id == accountID else {
+      pendingSessionSignOutPresented = false
+      pendingSessionSignOutMessage = ""
+      pendingSessionSignOutDiscardsSetup = false
+      pendingSessionSignOutAccountID = nil
+      return
+    }
+    let discardSetup = pendingSessionSignOutDiscardsSetup
+    pendingSessionSignOutPresented = false
+    pendingSessionSignOutMessage = ""
+    pendingSessionSignOutAccountID = nil
+    await signOut(using: authentication, discardPending: discardSetup, retainingPendingSessions: true)
+  }
+
+  private func presentPendingSessionSignOut(for accountID: String, progress: OnboardingProgress?) {
+    let pendingSetup = progress?.completed
+    let requiredCycleID = pendingSetup?.setup.cycleID
+    var setupIsRequired = false
+    if pendingSetup?.needsUpload == true, let requiredCycleID {
+      do {
+        setupIsRequired = try workoutRepository?.hasPendingSessionUploads(
+          accountID: accountID, cycleID: requiredCycleID
+        ) ?? true
+      } catch {
+        setupIsRequired = true
+      }
+    }
+    pendingSessionSignOutDiscardsSetup = pendingSetup?.needsUpload == true && !setupIsRequired
+    pendingSessionSignOutAccountID = accountID
+    if setupIsRequired {
+      pendingSessionSignOutMessage = "Your completed workouts and the account setup they depend on will stay on this device. Sign in again with this account to continue uploading them."
+    } else if pendingSessionSignOutDiscardsSetup {
+      pendingSessionSignOutMessage = "Your completed workouts will stay on this device. Sign in again with this account to continue uploading them. The unsaved setup is not needed for these workouts and will be discarded."
+    } else {
+      pendingSessionSignOutMessage = "Your completed workouts will stay on this device. Sign in again with this account to continue uploading them."
+    }
+    pendingSessionSignOutPresented = true
+  }
+
+  private func signOutFailureMessage(_ message: String, retainingPendingSessions: Bool) -> String {
+    guard retainingPendingSessions else { return message }
+    return "Your workouts are still saved on this device. Sign out didn’t finish. Please try again."
   }
 
   private func resolveAfterFailedSignOut(using authentication: AuthenticationModel) async {
@@ -223,6 +322,10 @@ final class OnboardingModel {
     uploadMessage = nil
     programSelectionMessage = nil
     discardSetupPresented = false
+    pendingSessionSignOutPresented = false
+    pendingSessionSignOutMessage = ""
+    pendingSessionSignOutDiscardsSetup = false
+    pendingSessionSignOutAccountID = nil
     progressErrorPresented = false
     sessionUploadErrorPresented = false
     sessionUploadErrorMessage = ""

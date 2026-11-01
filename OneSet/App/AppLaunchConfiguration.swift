@@ -13,6 +13,8 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
       || arguments.contains("--ui-setup-cycle-conflict")
+      || arguments.contains("--ui-session-signout-confirmation")
+      || arguments.contains("--ui-session-signout-error")
     #else
     return false
     #endif
@@ -23,7 +25,9 @@ struct AppLaunchConfiguration {
     #if DEBUG
     if arguments.contains("--ui-main-history") {
       selectedMainTab = .history
-    } else if arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units") {
+    } else if arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units")
+      || arguments.contains("--ui-session-signout-confirmation")
+      || arguments.contains("--ui-session-signout-error") {
       selectedMainTab = .settings
     } else {
       selectedMainTab = .program

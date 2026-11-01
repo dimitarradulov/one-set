@@ -40,6 +40,8 @@ struct AppDependencies {
       || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
       || arguments.contains("--ui-setup-cycle-conflict")
     let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
+    let sessionSignOutPreview = arguments.contains("--ui-session-signout-confirmation")
+      || arguments.contains("--ui-session-signout-error")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
@@ -51,6 +53,7 @@ struct AppDependencies {
       || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
       || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
       || arguments.contains("--ui-workout-banner-legacy")
+      || sessionSignOutPreview
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
       try? FileManager.default.removeItem(at: progressURL)
@@ -60,8 +63,9 @@ struct AppDependencies {
         at: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
       )
     }
-      let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite")
-      if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview {
+      let previewWorkoutFile = sessionSignOutPreview ? "session-signout-workouts.sqlite" : "workouts.sqlite"
+      let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/\(previewWorkoutFile)")
+      if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview {
         for suffix in ["", "-wal", "-shm"] {
           try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
         }
@@ -79,6 +83,15 @@ struct AppDependencies {
         cycleID: setupCycleConflictPreview
           ? UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
           : UUID()
+      ), needsUpload: true)
+      try? fileStore.save(progress, accountID: "preview-user")
+    }
+    if sessionSignOutPreview {
+      var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
+                                        selectedProgramID: "machine-full-body", nextStep: .overview)
+      progress.completed = CompletedOnboarding(setup: AccountSetup(
+        preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
+        cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
     }
@@ -133,7 +146,7 @@ struct AppDependencies {
             || arguments.contains("--ui-progress-save-error"),
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
           resetPersistedSession: arguments.contains("--ui-auth-reset"),
-          signOutFails: arguments.contains("--ui-auth-signout-error"),
+          signOutFails: arguments.contains("--ui-auth-signout-error") || arguments.contains("--ui-session-signout-error"),
           googleIncomplete: arguments.contains("--ui-google-incomplete"),
           googleFails: arguments.contains("--ui-google-error") || arguments.contains("--ui-google-auth-error"),
           googleCancels: arguments.contains("--ui-google-cancel"),
@@ -143,7 +156,7 @@ struct AppDependencies {
         onboardingProgress: progress,
         accountSetup: PreviewAccountSetupService(
           arguments: arguments,
-          includesMainTabsPreview: launch.includesMainTabsPreview
+          includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview
         ),
         completedSessionUpload: nil,
         workoutRepositoryFactory: {
@@ -151,6 +164,30 @@ struct AppDependencies {
             throw CocoaError(.fileReadNoPermission)
           }
           let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
+          if sessionSignOutPreview,
+             let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
+             let workout = program.workouts.first,
+             let exercise = workout.exercises.first {
+            let session = WorkoutSession(
+              accountID: "preview-user",
+              cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+              program: program, workout: workout, week: 1, day: 1,
+              weightUnit: .pounds, startedAt: Date(timeIntervalSince1970: 1_800_000_000)
+            )
+            _ = try repository.start(session)
+            _ = try repository.saveDraft(
+              sessionID: session.id, accountID: session.accountID,
+              slotID: exercise.id, weightInput: "50", repsInput: "8"
+            )
+            _ = try repository.completeSet(
+              sessionID: session.id, accountID: session.accountID, slotID: exercise.id,
+              at: Date(timeIntervalSince1970: 1_800_000_010)
+            )
+            _ = try repository.finish(
+              sessionID: session.id, accountID: session.accountID, note: nil,
+              at: Date(timeIntervalSince1970: 1_800_000_020)
+            )
+          }
           if setupCycleConflictPreview,
              let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
              let workout = program.workouts.first,

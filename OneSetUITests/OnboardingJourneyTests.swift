@@ -1043,6 +1043,43 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
   }
 
+  func testPendingSessionSignOutExplainsRetentionAndCanBeCancelled() {
+    relaunch(with: ["--ui-session-signout-confirmation"])
+    let alert = app.alerts["Keep workouts on this device?"]
+    XCTAssertTrue(alert.waitForExistence(timeout: 5))
+    XCTAssertTrue(alert.staticTexts.containing(
+      NSPredicate(format: "label CONTAINS %@", "setup they depend on")
+    ).firstMatch.exists)
+    let attachment = XCTAttachment(screenshot: app.screenshot())
+    attachment.name = "pending-session-signout-confirmation"
+    attachment.lifetime = .keepAlways
+    add(attachment)
+
+    alert.buttons["Cancel"].tap()
+
+    XCTAssertFalse(alert.exists)
+    XCTAssertTrue(app.navigationBars["Settings"].exists)
+    XCTAssertTrue(app.buttons["account.signOut"].exists)
+  }
+
+  func testFailedPendingSessionSignOutExplainsWorkRemainsOnDevice() {
+    relaunch(with: ["--ui-session-signout-error"])
+    let alert = app.alerts["Couldn’t sign out"]
+    XCTAssertTrue(alert.waitForExistence(timeout: 5))
+    XCTAssertTrue(alert.staticTexts.containing(
+      NSPredicate(format: "label CONTAINS %@", "workouts are still saved on this device")
+    ).firstMatch.exists)
+    let attachment = XCTAttachment(screenshot: app.screenshot())
+    attachment.name = "pending-session-signout-error"
+    attachment.lifetime = .keepAlways
+    add(attachment)
+
+    alert.buttons["OK"].tap()
+
+    XCTAssertTrue(app.navigationBars["Settings"].exists)
+    XCTAssertTrue(app.buttons["account.signOut"].exists)
+  }
+
   func testSignedInWelcomeEntryReturnsToResolvedPreferences() {
     relaunch(with: ["--ui-auth-restored"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))

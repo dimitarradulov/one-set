@@ -19,13 +19,17 @@ final class PreviewAccountSetupService: AccountSetupService {
     uploadDelayed = arguments.contains("--ui-upload-delayed")
     uploadOffline = arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
       || arguments.contains("--ui-upload-offline") || arguments.contains("--ui-setup-offline")
+      || arguments.contains("--ui-session-signout-confirmation")
+      || arguments.contains("--ui-session-signout-error")
     backendURL = arguments.contains("--ui-shared-backend")
       ? URL.applicationSupportDirectory.appending(path: "preview-backend.json") : nil
     if arguments.contains("--ui-backend-reset"), let backendURL {
       try? FileManager.default.removeItem(at: backendURL)
     }
     completed = arguments.contains("--ui-setup-completed") || arguments.contains("--ui-setup-removed-follower")
-      || includesMainTabsPreview
+      || (includesMainTabsPreview
+          && !arguments.contains("--ui-session-signout-confirmation")
+          && !arguments.contains("--ui-session-signout-error"))
     delayed = arguments.contains("--ui-setup-delayed")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
     removedProgramUpload = arguments.contains("--ui-setup-upload-removed")
