@@ -1,6 +1,6 @@
 # Synchronization, durability and recovery
 
-Status: proposed protocol. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. No protocol or recovery drill has been implemented.
+Status: broader protocol proposed. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. The completed-only first upload described below is implemented; refresh, edits, deletes and the broader recovery protocol remain future work.
 
 ## Save states
 
@@ -19,6 +19,12 @@ Status: proposed protocol. The user approved offline training, immediate durable
 Save session inputs, completed sets, notes and the rest countdown deadline locally before confirming success. Keep the deadline only on the device; PostgreSQL stores the training record, not the live countdown. A local transaction also queues pending server changes.
 
 Send one session update at a time. Preserve a sent body and base session revision for retries; keep newer local input separately until the earlier request is acknowledged. Session revisions protect against a delayed request overwriting a newer saved workout. They do not apply to runs, preferences or account settings.
+
+### Completed-only first upload
+
+For an authenticated account with an existing server-side cycle, finishing a full or partial workout commits the finished local session and a stable completed-session request body together before the app confirms finish. The body includes the complete captured slot list and prescription; performed results include the entered unit, load, reps and time, while unperformed slots carry null results. Draft text and the running rest countdown remain local. Drafts, discarded sessions and empty attempts are never sent. The app tries the completed-only `POST /v1/sessions/completed` request immediately after the durable local finish and shows no routine sync status or retry action.
+
+The local queue retains an unacknowledged body if that request fails. An equal retry with the same session ID and body is safe; a different body with that ID conflicts. Queue reads and acknowledgments are scoped by account. The request uses the currently authenticated account token and only records acknowledgment if the account and request generation still match after the response. Automatic relaunch/foreground retries and migration backfill are follow-on work; a retained pending body alone is not a backup until the server confirms it.
 
 In one short server transaction:
 

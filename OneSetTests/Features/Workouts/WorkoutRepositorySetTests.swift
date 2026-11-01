@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import OneSet
 
@@ -94,6 +95,131 @@ struct WorkoutRepositorySetTests {
     let reopened = try WorkoutRepository(databaseURL: databaseURL)
     #expect(try reopened.completedOccurrenceIDs(accountID: first.accountID, cycleID: first.cycleID, week: 1) == ["day-a"])
     #expect(try reopened.finish(sessionID: first.id, accountID: first.accountID, note: "ignored").note == "Felt strong")
+  }
+
+  @Test
+  func finishingPersistsOneStableUploadWithCapturedResultsAndNullUnperformedSlots() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "72.5", repsInput: "10")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", at: Date(timeIntervalSince1970: 1_800_000_060))
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-b", weightInput: "999", repsInput: "99")
+
+    let finishedAt = Date(timeIntervalSince1970: 1_800_000_120)
+    let finished = try repository.finish(sessionID: session.id, accountID: session.accountID,
+      note: "  Felt strong  ", at: finishedAt)
+    let pending = try #require(repository.pendingSessionUploads(accountID: session.accountID).first)
+    let body = try #require(JSONSerialization.jsonObject(with: pending.body) as? [String: Any])
+    let slots = try #require(body["sets"] as? [[String: Any]])
+    let completed = try #require(slots.first { $0["workout_exercise_key"] as? String == "slot-a" })
+    let unperformed = try #require(slots.first { $0["workout_exercise_key"] as? String == "slot-b" })
+
+    #expect(finished.id == session.id)
+    #expect(body["session_id"] as? String == session.id.uuidString.lowercased())
+    #expect(body["note"] as? String == "Felt strong")
+    #expect(completed["weight"] as? Double == 72.5)
+    #expect(completed["unit"] as? String == "lb")
+    #expect(completed["reps"] as? Int == 10)
+    #expect(completed["completed_at"] as? String == "2027-01-15T08:01:00.000Z")
+    #expect(unperformed["weight"] is NSNull)
+    #expect(unperformed["reps"] is NSNull)
+    #expect(unperformed["completed_at"] is NSNull)
+
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let recovered = try #require(reopened.pendingSessionUploads(accountID: session.accountID).first)
+    #expect(recovered.body == pending.body)
+    #expect(try reopened.finish(sessionID: session.id, accountID: session.accountID,
+      note: "changed", at: finishedAt).note == "Felt strong")
+    #expect(try reopened.pendingSessionUploads(accountID: session.accountID).first?.body == pending.body)
+
+    try reopened.acknowledgeSessionUpload(sessionID: session.id, accountID: session.accountID,
+      at: finishedAt.addingTimeInterval(1))
+    let acknowledged = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try acknowledged.pendingSessionUploads(accountID: session.accountID).isEmpty)
+    #expect(try acknowledged.finish(sessionID: session.id, accountID: session.accountID,
+      note: "changed again", at: finishedAt).note == "Felt strong")
+    #expect(try acknowledged.pendingSessionUploads(accountID: session.accountID).isEmpty)
+  }
+
+  @Test
+  func failedFinishTransactionRetainsActiveSessionAndDoesNotQueueAnUpload() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "50", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    let sabotage = try DatabaseQueue(path: databaseURL.path)
+    try sabotage.write { db in
+      try db.execute(sql: """
+        CREATE TRIGGER fail_session_upload BEFORE INSERT ON completed_session_uploads
+        BEGIN SELECT RAISE(ABORT, 'upload queue unavailable'); END
+        """)
+    }
+
+    #expect(throws: (any Error).self) {
+      try repository.finish(sessionID: session.id, accountID: session.accountID, note: "Kept")
+    }
+    #expect(try repository.activeSession(accountID: session.accountID)?.id == session.id)
+    #expect(try repository.pendingSessionUploads(accountID: session.accountID).isEmpty)
+    #expect(try repository.activeSession(accountID: session.accountID)?.setEntries["slot-a"]?.completedAt != nil)
+
+    try sabotage.write { db in
+      try db.execute(sql: "DROP TRIGGER fail_session_upload")
+    }
+    let finished = try repository.finish(sessionID: session.id, accountID: session.accountID, note: "Kept")
+    #expect(finished.finishedAt != nil)
+    #expect(try repository.pendingSessionUploads(accountID: session.accountID).count == 1)
+  }
+
+  @Test
+  func failedUploadAcknowledgmentRetainsTheSameSentBodyForRetry() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "50", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    _ = try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil)
+    let pending = try #require(
+      try repository.pendingSessionUpload(sessionID: session.id, accountID: session.accountID)
+    )
+    let payload = try #require(JSONSerialization.jsonObject(with: pending.body) as? [String: Any])
+    #expect(payload["note"] is NSNull)
+    let sets = try #require(payload["sets"] as? [[String: Any]])
+    let unperformed = try #require(sets.first { $0["workout_exercise_key"] as? String == "slot-b" })
+    let prescription = try #require(unperformed["prescription"] as? [String: Any])
+    #expect(prescription["video_key"] is NSNull)
+    #expect(prescription["rest_seconds"] is NSNull)
+    let sabotage = try DatabaseQueue(path: databaseURL.path)
+    try sabotage.write { db in
+      try db.execute(sql: """
+        CREATE TRIGGER fail_session_ack BEFORE UPDATE OF state ON completed_session_uploads
+        BEGIN SELECT RAISE(ABORT, 'acknowledgment storage unavailable'); END
+        """)
+    }
+
+    #expect(throws: (any Error).self) {
+      try repository.acknowledgeSessionUpload(sessionID: session.id, accountID: session.accountID)
+    }
+    let retained = try #require(
+      try repository.pendingSessionUpload(sessionID: session.id, accountID: session.accountID)
+    )
+    #expect(retained.body == pending.body)
+    #expect(retained.accountID == pending.accountID)
   }
 
   @Test
@@ -249,8 +375,8 @@ struct WorkoutRepositorySetTests {
   @Test
   func capturedExerciseProvidesDoubleProgressionAndWarmupGuidanceWithoutInventingLoads() throws {
     let exercise = try #require(makeSession().exercises.first)
-    #expect(exercise.progressionGuidance(for: "8")?.contains("aim for more clean reps") == true)
-    #expect(exercise.progressionGuidance(for: "12")?.contains("smallest practical load increase") == true)
+    #expect(exercise.progressionGuidance(for: "8")?.contains("aim for more reps with good form") == true)
+    #expect(exercise.progressionGuidance(for: "12")?.contains("add a small amount of weight next time") == true)
     #expect(exercise.progressionGuidance(for: "") == nil)
     let ranges = exercise.warmupRanges(for: "100")
     #expect(ranges.count == 3)
@@ -263,9 +389,13 @@ struct WorkoutRepositorySetTests {
   private func makeSession(cycleID: UUID = UUID(), week: Int = 1) -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",
-                      repTarget: RepTarget(minimum: 8, maximum: 12), restSeconds: 120),
+                      repTarget: RepTarget(minimum: 8, maximum: 12, scope: .eachSide),
+                      instructions: "Row with control.", stoppingGuidance: "Stop when form breaks.",
+                      warmupGuidance: "Warm up gradually.", restSeconds: 120, videoKey: "row/demo.mp4"),
       WorkoutExercise(id: "slot-b", exerciseKey: "press", name: "Press",
-                      repTarget: RepTarget(minimum: 8, maximum: 12))
+                      repTarget: RepTarget(minimum: 8, maximum: 12),
+                      instructions: "Press with control.", stoppingGuidance: "Stop when form breaks.",
+                      warmupGuidance: "Warm up gradually.")
     ])
     let program = TrainingProgram(id: "program", name: "Program", format: "A/B", emphasis: "Strength", workouts: [workout])
     return WorkoutSession(accountID: "account", cycleID: cycleID, program: program,

@@ -6,6 +6,7 @@ struct AppDependencies {
   let authentication: any AuthenticationService
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
+  let completedSessionUpload: (any CompletedSessionUploadService)?
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
@@ -25,6 +26,7 @@ struct AppDependencies {
         fileURL: progressURL
       ),
       accountSetup: PreviewAccountSetupService(),
+      completedSessionUpload: nil,
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -138,6 +140,7 @@ struct AppDependencies {
           arguments: arguments,
           includesMainTabsPreview: launch.includesMainTabsPreview
         ),
+        completedSessionUpload: nil,
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -162,6 +165,7 @@ struct AppDependencies {
       authentication: authentication,
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication),
+      completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Workouts/workouts.sqlite"))
       }

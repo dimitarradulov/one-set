@@ -28,6 +28,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     let stoppingGuidance: String
     let warmupGuidance: String
     let restSeconds: Int?
+    let videoKey: String?
 
     init(slot: WorkoutExercise, order: Int) {
       slotID = slot.id
@@ -39,6 +40,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
       stoppingGuidance = slot.stoppingGuidance
       warmupGuidance = slot.warmupGuidance
       restSeconds = slot.restSeconds
+      videoKey = slot.videoKey
     }
 
     func progressionGuidance(for repsInput: String) -> String? {

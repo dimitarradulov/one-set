@@ -111,7 +111,7 @@ struct CompletedSetupTabsView: View {
         } onSkipRest: {
           model.skipWorkoutRest()
         } onFinish: { note in
-          model.finishActiveWorkout(note: note)
+          model.finishActiveWorkout(note: note, using: authentication)
         }
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
