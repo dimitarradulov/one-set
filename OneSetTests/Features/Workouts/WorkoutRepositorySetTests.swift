@@ -6,6 +6,24 @@ import Testing
 @MainActor
 struct WorkoutRepositorySetTests {
   @Test
+  func completedUploadRetryPolicyUsesExponentialDelayAndHonorsRetryAfter() {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    #expect(CompletedSessionUploadRetryPolicy.retryDate(afterAttempt: 1, at: now)
+      == now.addingTimeInterval(15))
+    #expect(CompletedSessionUploadRetryPolicy.retryDate(afterAttempt: 2, at: now)
+      == now.addingTimeInterval(30))
+    #expect(CompletedSessionUploadRetryPolicy.retryDate(afterAttempt: 99, at: now)
+      == now.addingTimeInterval(6 * 60 * 60))
+    #expect(CompletedSessionUploadRetryPolicy.retryDate(
+      afterAttempt: 1, at: now, serverRetryAt: now.addingTimeInterval(60)
+    ) == now.addingTimeInterval(60))
+    #expect(CompletedSessionUploadRetryPolicy.retryDate(
+      afterAttempt: 1, at: now, serverRetryAt: now.addingTimeInterval(7 * 60 * 60)
+    ) == now.addingTimeInterval(7 * 60 * 60))
+  }
+
+  @Test
   func draftsAndCompletedSetsSurviveRepositoryReopenAndCanBeCorrectedOrUndone() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -220,6 +238,55 @@ struct WorkoutRepositorySetTests {
     )
     #expect(retained.body == pending.body)
     #expect(retained.accountID == pending.accountID)
+  }
+
+  @Test
+  func uploadRetryStateSurvivesRepositoryReopeningAndCanBeReleased() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "50", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", at: Date(timeIntervalSince1970: 1_800_000_010))
+    _ = try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil,
+      at: Date(timeIntervalSince1970: 1_800_000_020))
+    let original = try #require(repository.sessionUploadQueue(accountID: session.accountID).first)
+    let retryAt = Date(timeIntervalSince1970: 1_800_000_050)
+
+    try repository.recordTransientUploadFailure(
+      sessionID: session.id, accountID: session.accountID, retryAt: retryAt
+    )
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let retry = try #require(reopened.sessionUploadQueue(accountID: session.accountID).first)
+    #expect(retry.upload.body == original.upload.body)
+    #expect(retry.attemptCount == 1)
+    #expect(retry.retryAfter == retryAt)
+    #expect(retry.isAuthenticationDeferred == false)
+    #expect(retry.permanentFailure == nil)
+
+    try reopened.deferUploadUntilAuthenticationRestored(
+      sessionID: session.id, accountID: session.accountID
+    )
+    let deferred = try #require(reopened.sessionUploadQueue(accountID: session.accountID).first)
+    #expect(deferred.isAuthenticationDeferred)
+    #expect(deferred.retryAfter == nil)
+
+    try reopened.resumeAuthenticationDeferredUploads(accountID: session.accountID)
+    let resumed = try #require(reopened.sessionUploadQueue(accountID: session.accountID).first)
+    #expect(resumed.isAuthenticationDeferred == false)
+    #expect(resumed.retryAfter == nil)
+
+    try reopened.rejectSessionUpload(
+      sessionID: session.id, accountID: session.accountID, reason: .conflict
+    )
+    let rejected = try #require(reopened.sessionUploadQueue(accountID: session.accountID).first)
+    #expect(rejected.upload.body == original.upload.body)
+    #expect(rejected.permanentFailure == .conflict)
+    #expect(try reopened.pendingSessionUploads(accountID: session.accountID).map(\.sessionID) == [session.id])
   }
 
   @Test
