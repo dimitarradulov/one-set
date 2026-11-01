@@ -24,7 +24,7 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 3. Read the project's [Git workflow](../../../docs/agents/git-workflow.md), record the intended merge target, and create and switch to the integration branch before editing files. Keep all implementation work on that branch or its ticket branches. If the issue tracker closes work through PRs, or the user asks for one, open a draft PR after the first merge in step 5 (a branch with no commits ahead of main can't open one), marked as closing the spec and tickets.
 
-4. Use **implementer subagents** to implement each ticket, each in its own worktree on its own branch. Each implementer subagent:
+4. Use a fresh implementer subagent for each ticket, each in its own worktree on its own branch. Each implementer subagent:
   - confirms its worktree is based on the integration branch before starting, and resets onto it if not;
   - selects and reads the available skills whose triggers match the ticket, using `tdd` for test-driven implementation and relevant language, framework, and service skills alongside it;
   - for any UI change, always uses the `impeccable` skill/plugin when available, applying its guidance before implementation and during visual review; if unavailable, reports that and follows the project's UI guidance;
