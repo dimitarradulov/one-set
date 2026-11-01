@@ -9,6 +9,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
   case invalidReps
   case sessionNotFound
   case noCompletedSets
+  case invalidCompletedSession
 
   var errorDescription: String? {
     switch self {
@@ -19,6 +20,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
     case .invalidReps: "Enter a positive whole number of repetitions."
     case .sessionNotFound: "This workout could not be found. Reopen it and try again."
     case .noCompletedSets: "Complete at least one set before finishing this workout."
+    case .invalidCompletedSession: "This workout contains a result that can’t be saved. Your recorded work is still on this device."
     }
   }
 }
@@ -70,6 +72,18 @@ final class WorkoutRepository {
         table.column("week", .integer).notNull()
         table.column("workout_id", .text).notNull()
         table.primaryKey(["account_id", "cycle_id", "week", "workout_id"])
+      }
+    }
+    migrator.registerMigration("completed-session-uploads-v3") { db in
+      try db.create(table: "completed_session_uploads") { table in
+        table.column("session_id", .text).primaryKey()
+          .references("workout_sessions", onDelete: .cascade)
+        table.column("account_id", .text).notNull().indexed()
+        table.column("sent_body", .blob).notNull()
+        table.column("state", .text).notNull().defaults(to: "pending")
+          .check(sql: "state IN ('pending', 'acknowledged')")
+        table.column("created_at", .double).notNull()
+        table.column("acknowledged_at", .double)
       }
     }
     try migrator.migrate(database)
@@ -151,8 +165,63 @@ final class WorkoutRepository {
       session.finishedAt = date
       session.restDeadline = nil
       let updatedPayload = try JSONEncoder().encode(session)
+      let sentBody = try CompletedSessionUploadPayload(session: session).encoded()
       try db.execute(sql: "UPDATE workout_sessions SET payload = ?, finished_at = ? WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [updatedPayload, date.timeIntervalSince1970, sessionID.uuidString, accountID])
+      try db.execute(sql: """
+        INSERT INTO completed_session_uploads (session_id, account_id, sent_body, state, created_at)
+        VALUES (?, ?, ?, 'pending', ?)
+        ON CONFLICT (session_id) DO NOTHING
+        """, arguments: [sessionID.uuidString, accountID, sentBody, date.timeIntervalSince1970])
       return session
+    }
+  }
+
+  func pendingSessionUploads(accountID: String) throws -> [PendingSessionUpload] {
+    try database.read { db in
+      try Row.fetchAll(db, sql: """
+        SELECT uploads.session_id, uploads.account_id, uploads.sent_body
+        FROM completed_session_uploads AS uploads
+        JOIN workout_sessions AS sessions ON sessions.id = uploads.session_id
+        WHERE uploads.account_id = ? AND uploads.state = 'pending'
+        ORDER BY sessions.started_at, sessions.id
+        """, arguments: [accountID]).map { row in
+          guard let sessionID = UUID(uuidString: row["session_id"] as String) else {
+            throw WorkoutRepositoryError.invalidCompletedSession
+          }
+          return PendingSessionUpload(
+            sessionID: sessionID,
+            accountID: row["account_id"],
+            body: row["sent_body"]
+          )
+        }
+    }
+  }
+
+  func pendingSessionUpload(sessionID: UUID, accountID: String) throws -> PendingSessionUpload? {
+    try database.read { db in
+      guard let row = try Row.fetchOne(db, sql: """
+        SELECT session_id, account_id, sent_body
+        FROM completed_session_uploads
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+        """, arguments: [sessionID.uuidString, accountID]) else { return nil }
+      guard let storedSessionID = UUID(uuidString: row["session_id"] as String) else {
+        throw WorkoutRepositoryError.invalidCompletedSession
+      }
+      return PendingSessionUpload(
+        sessionID: storedSessionID,
+        accountID: row["account_id"],
+        body: row["sent_body"]
+      )
+    }
+  }
+
+  func acknowledgeSessionUpload(sessionID: UUID, accountID: String, at date: Date = .now) throws {
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET state = 'acknowledged', acknowledged_at = ?
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+        """, arguments: [date.timeIntervalSince1970, sessionID.uuidString, accountID])
     }
   }
 

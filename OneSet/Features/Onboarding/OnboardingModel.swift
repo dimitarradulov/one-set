@@ -35,6 +35,7 @@ final class OnboardingModel {
   private var isSigningOut = false
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
+  private let completedSessionUploadService: (any CompletedSessionUploadService)?
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
@@ -48,6 +49,7 @@ final class OnboardingModel {
   init(
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
+    completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     progressStore: (any OnboardingProgressStore)? = nil,
     workoutRepository: WorkoutRepository? = nil,
     workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)? = nil,
@@ -59,6 +61,7 @@ final class OnboardingModel {
   ) {
     self.catalog = catalog
     self.setupService = setupService
+    self.completedSessionUploadService = completedSessionUploadService
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
     do {
@@ -568,7 +571,7 @@ final class OnboardingModel {
       programID: programID, workoutIDs: program.workouts.map(\.id)).week) ?? 1
   }
 
-  func finishActiveWorkout(note: String?) -> Bool {
+  func finishActiveWorkout(note: String?, using authentication: AuthenticationModel? = nil) -> Bool {
     guard let session = activeWorkoutSession, let workoutRepository else { return false }
     do {
       _ = try workoutRepository.finish(sessionID: session.id, accountID: session.accountID, note: note)
@@ -577,10 +580,32 @@ final class OnboardingModel {
       if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }
       if let last = path.last, case .workoutPreview = last { path.removeLast() }
       if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
+      if let authentication {
+        Task { await uploadFinishedSession(sessionID: session.id, cycleID: session.cycleID, using: authentication) }
+      }
       return true
     } catch {
       showWorkoutSaveError(error)
       return false
+    }
+  }
+
+  func uploadFinishedSession(sessionID: UUID, cycleID: UUID, using authentication: AuthenticationModel) async {
+    guard !isSigningOut, !hasPendingSetup,
+          let user = authentication.signedInUser, user.id == resolvedAccountID,
+          restoredCycleID == cycleID,
+          let completedSessionUploadService, let workoutRepository,
+          let pending = try? workoutRepository.pendingSessionUpload(
+            sessionID: sessionID, accountID: user.id
+          ) else { return }
+    let generation = lookupGeneration
+    do {
+      try await completedSessionUploadService.upload(pending, for: user)
+      guard !isSigningOut, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id, resolvedAccountID == user.id else { return }
+      try workoutRepository.acknowledgeSessionUpload(sessionID: sessionID, accountID: user.id)
+    } catch {
+      // The durable sent body remains pending; routine upload failures never interrupt finishing.
     }
   }
 

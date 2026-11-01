@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { handleCatalogRequest } from './catalog';
+import { handleCompletedSessionRequest } from './sessions';
 import { handleSetupRequest } from './setup';
 
 export default {
@@ -16,6 +17,11 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
+    if (path.startsWith('/v1/sessions/')) {
+      return handleCompletedSessionRequest(request, env, {
+        query: async (query, params) => sql.query(query, params),
+      });
+    }
     return handleSetupRequest(request, env, {
       query: async (query, params) => sql.query(query, params),
     });
