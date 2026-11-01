@@ -7,6 +7,8 @@ final class OnboardingJourneyTests: XCTestCase {
   override func setUpWithError() throws {
     continueAfterFailure = false
     app = XCUIApplication()
+    // Relaunches in this journey retain storage; the next test gets a fresh identity.
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
     if app.state != .notRunning {
       app.terminate()
     }
@@ -14,7 +16,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
-    relaunch(with: ["--ui-workouts-reset", "--ui-development-progress-reset"])
+    relaunch(with: [])
     let shortcut = app.buttons["continue.development"]
     XCTAssertTrue(shortcut.waitForExistence(timeout: 3))
     shortcut.tap()
@@ -29,7 +31,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testDevelopmentSignInKeepsLocalProgressAcrossRelaunch() {
-    relaunch(with: ["--ui-workouts-reset", "--ui-development-progress-reset"])
+    relaunch(with: [])
     app.buttons["continue.development"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 5))
     app.buttons["preferences.unit.lb"].tap()
@@ -799,6 +801,27 @@ final class OnboardingJourneyTests: XCTestCase {
     app.alerts.buttons["Discard workout"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].waitForExistence(timeout: 3))
+  }
+
+  func testWorkoutStorageSurvivesRelaunchButIsIsolatedFromAnotherJourney() {
+    let arguments = ["--ui-auth-restored", "--ui-setup-completed"]
+    relaunch(with: arguments)
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.start"].tap()
+    XCTAssertTrue(app.buttons["recording.finish"].waitForExistence(timeout: 3))
+
+    relaunch(with: arguments)
+    XCTAssertTrue(app.buttons["recording.finish"].waitForExistence(timeout: 5))
+    let originalID = app.launchEnvironment["ONESET_UI_TEST_ID"]
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
+    relaunch(with: arguments)
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.buttons["recording.finish"].exists)
+
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = originalID
+    relaunch(with: arguments)
+    XCTAssertTrue(app.buttons["recording.finish"].waitForExistence(timeout: 5))
   }
 
   private func firstRecordingField(suffix: String) -> XCUIElement {

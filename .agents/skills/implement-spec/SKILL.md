@@ -8,7 +8,7 @@ You have been provided a spec. This spec should have tickets associated with it,
 
 The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
 
-The goal is the entire spec implemented on a single **integration branch**, with every ticket resolved the way the issue tracker closes work.
+The goal is the entire spec implemented, validated, and delivered to the recorded merge target, with every ticket resolved the way the issue tracker closes work. The integration branch is the working branch for that outcome. Follow [task completion](../../../docs/agents/task-completion.md) through validation and delivery; a status question does not end the implementation run.
 
 The tickets are not a list of steps. They are a **task graph** with blocking relationships between them. This means there is always a **frontier** of tickets which are ready to be grabbed.
 
@@ -29,6 +29,7 @@ Communication to and from subagents should be sparse. Communicate primarily thro
   - selects and reads the available skills whose triggers match the ticket, using `tdd` for test-driven implementation and relevant language, framework, and service skills alongside it;
   - for any UI change, always uses the `impeccable` skill/plugin when available, applying its guidance before implementation and during visual review; if unavailable, reports that and follows the project's UI guidance;
   - merges the integration branch tip into its own branch before reporting done.
+  - runs ticket-specific checks first, using the project's [validation failure-repair sequence](../../../docs/agents/validation.md) before repeating a full suite. Coordinate the required final full run on the stable integration branch rather than launching redundant full runs for each ticket.
 
 5. Once an **implementer subagent** completes, merge its work to the integration branch with a **merger subagent**.
 
@@ -36,6 +37,6 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 7. Once all tickets are complete, call the Skill tool with `code-review` on the integration branch. Fix all issues raised by the code review in a single **implementer subagent**.
 
-8. Once every ticket is implemented, all review findings are resolved, and the project's required validation passes, merge the integration branch into the recorded target, following the project's Git workflow. If a draft PR exists, mark it ready and merge it when required checks and reviews permit. Resolve each ticket the way the issue tracker closes work, and report the merge result. If a required check or review blocks merging, report the blocker and leave the branch ready for completion.
+8. Finish the required validation on the stable integration branch, waiting for the result. Once it passes and all review findings are resolved, merge into the recorded target following [Git delivery and status](../../../docs/agents/git-workflow.md#delivery-and-status). If a draft PR exists, mark it ready and merge it when required checks and reviews permit. Reconcile child tickets as their completion criteria are met, then resolve the parent when the integrated outcome is complete. If an external check, review, or permission blocks delivery, record the exact blocker and next action. Report the resulting commit, branch, validation, local/remote merge, push, and issue states.
 
 9. Clean up all **implementer subagent** worktrees.

@@ -16,7 +16,9 @@ Focused validation builds the app and runs only the supplied iOS test selectors.
 
 For tasks limited to documentation, agent instructions, configuration examples, or other non-code files that do not affect compilation or execution, review the changed files and any relevant links or examples. Skip build/test scripts and simulator validation for these tasks. For mixed tasks, apply validation to the code or UI changes they include.
 
-- Fix failures introduced by your changes and rerun validation after fixes.
+- Repair failures with the narrowest relevant check first. For a failed iOS test, use `--focused` with its selector; both `OneSetTests/Suite[/test]` and `OneSetUITests/Class[/testMethod]` are supported. Run Worker or simulator-tooling failures through their own commands. Confirm the repaired checks pass before starting another full suite.
+- Start the final full suite after integration and review fixes are stable. When a run exposes a failure, preserve its logs and result bundle, repair and verify the failure with focused checks, then run the required final scope once. Reuse a passing run when the tested source and affected behavior have not changed.
+- For a multi-ticket spec, one coordinator owns that final full run. Ticket implementers hand off passing checks for their affected behavior and identify integrated validation as pending. Apply the full-scope requirement above to the final integrated result rather than repeating the entire suite for each ticket.
 - Inspect the final diff for accidental or unrelated changes.
 - Report the chosen scope, why it fits the change, and which checks actually ran and their outcomes. Describe an interrupted run as incomplete. If validation cannot be performed, state exactly what remains unvalidated.
 
@@ -27,6 +29,10 @@ All simulator scripts select an available compatible device by UUID, wait for bo
 When simulator access or a Swift macro plugin reports a host sandbox denial, retry the same validation with permitted host execution when available. Parsing, typechecking and generic builds do not replace the required build and test run. If host execution is unavailable, report the exact blocker and the recovery steps from that guide. Do not claim that visual or accessibility checks passed unless they actually ran.
 
 Derive application workflow acceptance checks from the approved [requirements](../requirements.md). Track unfinished verification and release decisions in GitHub Issues.
+
+## UI test storage
+
+The UI test setup assigns a fresh `ONESET_UI_TEST_ID` UUID to every test. App composition uses that identity for workout databases, onboarding progress, catalog caches, mock backend files, and preview authentication preferences. App relaunches within a test keep the same identity; another test gets separate storage automatically. Set an explicit second identity only when a journey intentionally models another isolated installation. Existing reset/keep launch flags control state within one journey and are not required to isolate different tests. The environment override is active only in Debug builds.
 
 ## UI changes
 
