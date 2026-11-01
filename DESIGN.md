@@ -296,7 +296,7 @@ These headings group rows; they are not additional navigation destinations. Vari
 
 Downloaded videos will eventually let users inspect exercise-video storage and remove downloaded copies to free space. This pass adds its destination only, without implementing video management.
 
-Sync status and retry belong beside the affected content, with no separate Settings route. Preserve the current setup-upload message and retry action; workout-sync behavior remains future work.
+Sync status and retry belong beside the affected content, with no separate Settings route. Preserve the current setup-upload message and retry action. For workouts, the [completed-session save decisions](docs/completed-session-save-plan.md) supersede routine sync-status proposals elsewhere in this document: uploads and retries run automatically with no pending/synced status or Retry button. Actionable storage, authentication and conflicting-cycle failures still surface.
 
 Keep the tab bar visible while browsing Program, workout previews, exercise details, History, and Settings. Preserve each tab's navigation state when switching between them during use. Keep the bar expanded while scrolling. Focused experiences such as active workout recording or fullscreen video may hide it when implemented.
 

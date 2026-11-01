@@ -29,6 +29,8 @@ _Avoid_: Session
 **Session**: An actual attempt to perform a workout occurrence, including its recorded performance.
 _Avoid_: Workout template
 
+**Completed session**: A session explicitly finished after completing at least one working set. It may include unperformed exercises.
+
 **Exercise slot**: A prescribed place for an exercise in a workout, retained as a recognizable place when a replacement is chosen.
 
 **Prescription**: The exercise, working-set count, rep target, stopping instructions, warmup guidance, and rest guidance assigned to a slot.

@@ -15,6 +15,7 @@ final class PreviewAuthenticationService: AuthenticationService {
   private(set) var signedInUser: AuthenticatedUser?
 
   private let emailIsRegistered: Bool
+  private let defaults: UserDefaults
   private let persistsSession: Bool
   private let signOutFails: Bool
   private let googleIncomplete: Bool
@@ -26,6 +27,7 @@ final class PreviewAuthenticationService: AuthenticationService {
   private var pendingEmailAddress: String?
 
   init(
+    defaults: UserDefaults = .standard,
     emailIsRegistered: Bool = false,
     startsSignedIn: Bool = false,
     persistsSession: Bool = false,
@@ -37,6 +39,7 @@ final class PreviewAuthenticationService: AuthenticationService {
     appleCancels: Bool = false,
     appleFails: Bool = false
   ) {
+    self.defaults = defaults
     self.emailIsRegistered = emailIsRegistered || startsSignedIn
     self.persistsSession = persistsSession
     self.signOutFails = signOutFails
@@ -46,13 +49,13 @@ final class PreviewAuthenticationService: AuthenticationService {
     self.appleCancels = appleCancels
     self.appleFails = appleFails
     if resetPersistedSession {
-      Self.clearPersistedSession()
+      clearPersistedSession()
     }
     if startsSignedIn {
       signedInUser = AuthenticatedUser(id: "preview-user", emailAddress: "restored@example.com")
     } else if persistsSession,
-              let userID = UserDefaults.standard.string(forKey: Self.persistedUserIDKey),
-              let emailAddress = UserDefaults.standard.string(forKey: Self.persistedEmailAddressKey) {
+              let userID = defaults.string(forKey: Self.persistedUserIDKey),
+              let emailAddress = defaults.string(forKey: Self.persistedEmailAddressKey) {
       signedInUser = AuthenticatedUser(id: userID, emailAddress: emailAddress)
     }
   }
@@ -113,20 +116,20 @@ final class PreviewAuthenticationService: AuthenticationService {
     signedInUser = nil
     cancelPendingEmailFlow()
     if persistsSession {
-      Self.clearPersistedSession()
+      clearPersistedSession()
     }
   }
 
   private func completeAuthentication(as user: AuthenticatedUser) {
     signedInUser = user
     if persistsSession {
-      UserDefaults.standard.set(user.id, forKey: Self.persistedUserIDKey)
-      UserDefaults.standard.set(user.emailAddress, forKey: Self.persistedEmailAddressKey)
+      defaults.set(user.id, forKey: Self.persistedUserIDKey)
+      defaults.set(user.emailAddress, forKey: Self.persistedEmailAddressKey)
     }
   }
 
-  private static func clearPersistedSession() {
-    UserDefaults.standard.removeObject(forKey: persistedUserIDKey)
-    UserDefaults.standard.removeObject(forKey: persistedEmailAddressKey)
+  private func clearPersistedSession() {
+    defaults.removeObject(forKey: Self.persistedUserIDKey)
+    defaults.removeObject(forKey: Self.persistedEmailAddressKey)
   }
 }

@@ -170,7 +170,9 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
         assert.equal(slot.reps.maximum, authored.maximum);
         assert.equal(slot.scope ?? 'reps', authored.scope === 'each leg' ? 'each_leg' : authored.scope === 'each side' ? 'each_side' : 'reps');
         const stopping = exerciseDocument.exercises.find(exercise => exercise.key === slot.exercise)?.stopping_guidance ?? '';
-        assert.match(stopping, /cannot complete another (?:full )?rep/);
+        assert.equal(stopping, authored.failure === 'TF'
+          ? 'Stop when you cannot complete another rep without losing position or changing your form.'
+          : 'Continue until you cannot complete another full rep through the planned range with controlled form.');
       });
     }
   }

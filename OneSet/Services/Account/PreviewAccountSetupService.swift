@@ -14,7 +14,10 @@ final class PreviewAccountSetupService: AccountSetupService {
   private var shouldFail: Bool
   private let alwaysFails: Bool
 
-  init(arguments: [String] = [], includesMainTabsPreview: Bool = false) {
+  init(
+    arguments: [String] = [], includesMainTabsPreview: Bool = false,
+    storageDirectory: URL = .applicationSupportDirectory
+  ) {
     uploadFailsOnce = arguments.contains("--ui-upload-retry")
     uploadDelayed = arguments.contains("--ui-upload-delayed")
     uploadOffline = arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
@@ -22,7 +25,7 @@ final class PreviewAccountSetupService: AccountSetupService {
       || arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
     backendURL = arguments.contains("--ui-shared-backend")
-      ? URL.applicationSupportDirectory.appending(path: "preview-backend.json") : nil
+      ? storageDirectory.appending(path: "preview-backend.json") : nil
     if arguments.contains("--ui-backend-reset"), let backendURL {
       try? FileManager.default.removeItem(at: backendURL)
     }
@@ -68,6 +71,9 @@ final class PreviewAccountSetupService: AccountSetupService {
     if removedProgramUpload { throw AccountSetupError.programUnavailable }
     guard !uploadOffline else { throw AccountSetupError.unavailable }
     guard let backendURL else { return setup }
+    try FileManager.default.createDirectory(
+      at: backendURL.deletingLastPathComponent(), withIntermediateDirectories: true
+    )
     var accounts = (try? Data(contentsOf: backendURL)).flatMap {
       try? JSONDecoder().decode([String: AccountSetup].self, from: $0)
     } ?? [:]
