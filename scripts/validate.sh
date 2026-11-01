@@ -9,18 +9,18 @@ if [[ "${1:-}" == --focused ]]; then
   VALIDATION_MODE=focused
   shift
   if [[ "$#" -eq 0 ]]; then
-    echo "Focused validation requires at least one OneSetUITests/Class[/testMethod] selector." >&2
+      echo "Focused validation requires at least one OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] selector." >&2
     exit 1
   fi
   for selector in "$@"; do
-    if [[ ! "$selector" =~ ^OneSetUITests/[A-Za-z_][A-Za-z0-9_]*(/[A-Za-z_][A-Za-z0-9_]*)?$ ]]; then
-      echo "Invalid test selector: $selector. Use OneSetUITests/Class[/testMethod]." >&2
+    if [[ ! "$selector" =~ ^OneSet(UITests|Tests)/[A-Za-z_][A-Za-z0-9_]*(/[A-Za-z_][A-Za-z0-9_]*)?$ ]]; then
+      echo "Invalid test selector: $selector. Use OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod]." >&2
       exit 1
     fi
     TEST_FILTERS+=("-only-testing:$selector")
   done
 elif [[ "$#" -ne 0 ]]; then
-  echo "Usage: ./scripts/validate.sh [--focused OneSetUITests/Class[/testMethod] ...]" >&2
+  echo "Usage: ./scripts/validate.sh [--focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
   exit 1
 fi
 export VALIDATION_MODE
@@ -49,6 +49,7 @@ oneset_run() {
     build
 
   echo "==> Running tests"
+  local test_status=0
   oneset_xcodebuild "$RUN_DIR/test.log" \
     -project OneSet.xcodeproj \
     -scheme OneSet \
@@ -56,7 +57,13 @@ oneset_run() {
     -derivedDataPath "$BUILD_DIR" \
     -parallel-testing-enabled NO \
     -resultBundlePath "$RUN_DIR/tests.xcresult" \
-    "$@" test
+    "$@" test || test_status=$?
+
+  if [[ "$test_status" -ne 0 ]]; then
+    echo "==> Tests failed or were interrupted; results: $RUN_DIR/tests.xcresult" >&2
+    echo "Repair and rerun failed selectors with ./scripts/validate.sh --focused <selector> before repeating the full suite." >&2
+    return "$test_status"
+  fi
 
   echo "==> $VALIDATION_MODE validation passed; logs and test results: $RUN_DIR"
 }

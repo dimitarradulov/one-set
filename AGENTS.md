@@ -21,6 +21,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 ## Task guidance
 
+- Before handing back an action request, follow [task completion](docs/agents/task-completion.md).
 - Before changing product behavior or design, read [sources of truth](docs/agents/project-context.md).
 - When adding or refactoring SwiftUI features, domain models, persistence, or services, follow [iOS architecture](docs/agents/architecture.md).
 - When editing documentation or configuration examples, follow [documentation conventions](docs/agents/documentation.md).

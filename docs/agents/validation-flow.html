@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How OneSet validation works</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --paper: #1A1A1A;
+      --surface: #222222;
+      --surface-2: #2A2A2A;
+      --ink: #E5E5E5;
+      --muted: #A3A3A3;
+      --soft: #A3A3A3;
+      --border: #3A3A3A;
+      --accent: #D97706;
+      --accent-tint: rgba(217,119,6,.14);
+      --link: #8AB4F8;
+      --mono: 'Geist Mono', ui-monospace, monospace;
+      --sans: 'Montserrat', system-ui, sans-serif;
+      --display: 'Bebas Neue', Impact, sans-serif;
+      --serif: 'Instrument Serif', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 var(--sans); }
+    .page { max-width: 1320px; margin: 0 auto; padding: 64px 48px 88px; }
+    header { max-width: 900px; margin-bottom: 52px; }
+    .tag, .mono, th, .figure-meta, .legend { font-family: var(--mono); }
+    h1,h2,h3,p { margin-top: 0; }
+    h1 { font: 56px/1.02 var(--display); letter-spacing: .015em; margin: 0 0 18px; }
+    h2 { font: 36px/1.1 var(--display); letter-spacing: .015em; margin: 0 0 12px; }
+    h3 { font-size: 17px; line-height: 1.35; margin: 0 0 8px; }
+    .dek { color: var(--muted); max-width: 820px; font-size: 18px; margin: 0; }
+    section { margin: 0 0 68px; }
+    .section-intro { color: var(--muted); max-width: 900px; margin-bottom: 22px; }
+    .scope-grid { border-top: 1px solid var(--border); }
+    .scope-row { display: grid; grid-template-columns: 1.1fr 1.6fr 1.5fr; gap: 24px; padding: 17px 0; border-bottom: 1px solid var(--border); }
+    .scope-row strong { color: var(--ink); }
+    .scope-row p { margin: 0; color: var(--muted); }
+    .scope-row .command { color: var(--ink); font: 13px/1.55 var(--mono); overflow-wrap: anywhere; }
+    .callout { padding: 18px 20px; border: 1px solid var(--border); background: var(--surface); margin-top: 20px; }
+    .callout p:last-child { margin-bottom: 0; }
+    figure { margin: 26px 0 0; border: 1px solid var(--border); background: var(--surface); }
+    .figure-head { padding: 20px 24px 0; }
+    .figure-meta { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    svg { display: block; width: 100%; min-width: 1200px; }
+    .legend { padding: 14px 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); display: flex; gap: 24px; flex-wrap: wrap; }
+    .legend b { color: var(--ink); font-weight: 500; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 22px; }
+    .detail { border: 1px solid var(--border); background: var(--surface); padding: 20px; }
+    .detail p:last-child, .detail ul:last-child { margin-bottom: 0; }
+    .detail p, .detail li { color: var(--muted); }
+    .detail ul { padding-left: 20px; margin-bottom: 0; }
+    code, .code { font: .88em/1.5 var(--mono); color: var(--ink); }
+    code { background: var(--surface-2); padding: 2px 5px; border-radius: 3px; overflow-wrap: anywhere; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th,td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    td { color: var(--muted); }
+    td:first-child { color: var(--ink); font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    .tag { display: inline-block; color: var(--accent); border: 1px solid rgba(217,119,6,.55); padding: 2px 7px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+    .gaps { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .gaps > div { border-top: 2px solid var(--accent); padding-top: 14px; }
+    .gaps p { color: var(--muted); margin-bottom: 0; }
+    footer { border-top: 1px solid var(--border); padding-top: 18px; color: var(--muted); font: 13px/1.7 var(--mono); }
+    @media (max-width: 760px) {
+      .page { padding: 36px 20px 60px; }
+      h1 { font-size: 44px; }
+      h2 { font-size: 30px; }
+      .scope-row { grid-template-columns: 1fr; gap: 5px; }
+      .detail-grid,.gaps { grid-template-columns: 1fr; }
+    }
+    @media print {
+      :root { --paper: #ffffff; --surface: #ffffff; --surface-2: #f2f2f2; --ink: #111111; --muted: #555555; --soft: #555555; --border: #cccccc; --accent: #8A4B00; --link: #174EA6; }
+      body { background: white; color: #111; }
+      .page { max-width: none; padding: 20px; }
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+      figure,.detail { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <h1>How validation works</h1>
+    <p class="dek">Validation is selected by the change’s risk and affected workflow. The scripts prepare a trusted macOS/Xcode environment, reserve a compatible simulator, run the checks for that scope, and retain evidence. A screenshot still needs human inspection.</p>
+  </header>
+
+  <section aria-labelledby="scope-title">
+    <h2 id="scope-title">Start with impact</h2>
+    <p class="section-intro">The decision is about what the change can affect, not how many lines changed. Use the narrowest scope that fully covers the affected behavior; use full validation when the impact crosses boundaries or cannot be bounded confidently.</p>
+    <div class="scope-grid">
+      <div class="scope-row"><strong>Documentation or agent guidance only</strong><p>Review changed files, links, examples, and consistency. No build or simulator run.</p><p class="command">Manual changed-file review</p></div>
+      <div class="scope-row"><strong>Localized iOS behavior with a clear workflow</strong><p>Build the app and run one or more existing UI test selectors covering that behavior. If there is no relevant test, exercise it in Simulator; add a test when it protects meaningful behavior.</p><p class="command">./scripts/validate.sh --focused OneSetUITests/Class[/testMethod] ...</p></div>
+      <div class="scope-row"><strong>Appearance or navigation change needing visual verification</strong><p>Build, launch an existing preview route, capture a screenshot, then inspect spacing, clipping, typography, colors, safe areas, and the relevant state.</p><p class="command">./scripts/validate-ui.sh --ui-&lt;route&gt;</p></div>
+      <div class="scope-row"><strong>Worker-only change</strong><p>Run Worker typechecking and relevant API tests from the Worker package. Install locked dependencies first when needed.</p><p class="command">npm ci --prefix worker<br>npm --prefix worker run typecheck<br>npm --prefix worker test</p></div>
+      <div class="scope-row"><strong>Simulator or validation tooling only</strong><p>Run the relevant scripts under <code>scripts/tests</code>, then run the affected real command. This checks tooling behavior as well as its test model.</p><p class="command">python3 -m unittest discover -s scripts/tests -v</p></div>
+      <div class="scope-row"><strong>Shared or broad impact; uncertain boundary</strong><p>Shared models/services, persistence, concurrency, auth/session logic, schema, dependencies, build config, iOS plus Worker, or unclear impact all require the full suite.</p><p class="command">./scripts/validate.sh</p></div>
+    </div>
+    <div class="callout"><p><strong>Appearance and behavior can overlap.</strong> A visible behavior change uses code validation. Add UI validation when appearance, screen state, or navigation also changed. Appearance-only changes can use the UI route build without interaction tests when navigation and behavior are unchanged.</p></div>
+  </section>
+
+  <section aria-labelledby="code-flow-title">
+    <h2 id="code-flow-title">Focused and full runs share the iOS gate</h2>
+    <p class="section-intro">The default command is full. Focused mode must include at least one valid <code>OneSetUITests/Class[/testMethod]</code> selector. Both modes then build and test the OneSet scheme against the same booted simulator UUID.</p>
+    <figure>
+      <div class="figure-head"><span class="figure-meta">Flowchart · validate.sh</span></div>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="validation-flow-code-title validation-flow-code-desc">
+          <title id="validation-flow-code-title">OneSet code validation execution</title>
+          <desc id="validation-flow-code-desc">The validate script checks mode and host prerequisites. Full mode runs Python and Worker checks before both modes prepare a simulator, build the app, run Xcode UI tests, and retain logs and results.</desc>
+          <defs>
+            <marker id="v-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0 8 3 0 6" fill="#A3A3A3"/></marker>
+            <marker id="v-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0 8 3 0 6" fill="#D97706"/></marker>
+          </defs>
+          <rect width="1200" height="1120" fill="#222222"/>
+          <!-- connectors are drawn before boxes -->
+          <path d="M600 160 V204" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M600 328 V374" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M520 430 H308 Q300 430 300 438 V492 Q300 500 308 500" fill="none" stroke="#D97706" stroke-width="2" marker-end="url(#v-arrow-accent)"/>
+          <path d="M680 430 H1024 Q1032 430 1032 438 V472 Q1032 480 1024 480 H828 Q820 480 820 488 V500" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M510 572 H620" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M770 640 V700" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M770 800 V856" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <path d="M770 956 V1000" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#v-arrow)"/>
+          <!-- label masks, placed before nodes -->
+          <rect x="326" y="400" width="48" height="20" fill="#222222"/><text x="350" y="414" text-anchor="middle" fill="#D97706" font-family="'Geist Mono',monospace" font-size="12">FULL</text>
+          <rect x="888" y="400" width="80" height="20" fill="#222222"/><text x="928" y="414" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">FOCUSED</text>
+          <!-- 8 primary nodes -->
+          <rect x="360" y="64" width="480" height="96" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="101" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="20" font-weight="600">validate.sh</text>
+          <text x="600" y="132" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">default = full · --focused requires selectors</text>
+
+          <rect x="360" y="204" width="480" height="124" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="246" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Validate host + artifacts</text>
+          <text x="600" y="278" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">macOS · full Xcode · SDK · Python · sandbox probe</text>
+          <text x="600" y="302" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">writable ONESET_ARTIFACTS_DIR</text>
+
+          <polygon points="600,374 680,430 600,486 520,430" fill="#222222" stroke="#A3A3A3" stroke-width="2"/>
+          <text x="600" y="426" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="16" font-weight="600">Full?</text>
+          <text x="600" y="447" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">mode gate</text>
+
+          <rect x="90" y="500" width="420" height="144" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="300" y="542" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Full-only checks</text>
+          <text x="300" y="574" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Python scripts/tests</text>
+          <text x="300" y="598" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Worker typecheck → API tests</text>
+          <text x="300" y="622" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">sequential · before simulator reservation</text>
+
+          <rect x="620" y="500" width="300" height="140" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="770" y="544" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Prepare simulator</text>
+          <text x="770" y="576" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">compatible device UUID</text>
+          <text x="770" y="600" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">boot ready · acquire lease</text>
+
+          <rect x="620" y="700" width="300" height="100" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="770" y="741" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Build OneSet</text>
+          <text x="770" y="772" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">xcodebuild · scheme OneSet</text>
+
+          <rect x="620" y="856" width="300" height="100" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="770" y="897" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Run Xcode tests</text>
+          <text x="770" y="928" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">selector filter or full scheme tests</text>
+
+          <rect x="620" y="1000" width="300" height="88" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="770" y="1037" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Retain evidence</text>
+          <text x="770" y="1064" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">logs + tests.xcresult</text>
+          <line x1="40" y1="1120" x2="1160" y2="1120" stroke="#3A3A3A" stroke-width="1"/>
+          <text x="64" y="1160" fill="#E5E5E5" font-family="'Geist Mono',monospace" font-size="13">Orange = full-only checks</text>
+          <text x="440" y="1160" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Focused skips Python + Worker</text>
+          <text x="840" y="1160" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Both run Xcode build + test</text>
+        </svg>
+      </div>
+    </figure>
+    <div class="detail-grid">
+      <article class="detail"><h3>Argument and host gate</h3><ul>
+        <li>With no arguments, mode is <code>full</code>. Unknown arguments fail before validation work.</li>
+        <li>Focused mode requires at least one selector matching <code>OneSetUITests/Class</code> or <code>OneSetUITests/Class/testMethod</code>; each becomes an Xcode <code>-only-testing:</code> filter.</li>
+        <li>Common setup requires macOS, full Xcode, successful first-launch setup, an iOS Simulator SDK, Python 3, a startable compiler sandbox probe where available, and a writable artifact directory.</li>
+      </ul></article>
+      <article class="detail"><h3>What the full-only checks cover</h3><ul>
+        <li><code>python3 -m unittest discover -s scripts/tests -v</code> exercises validation-command behavior, simulator discovery/recovery, and simulator lease coordination.</li>
+        <li>Then Worker <code>typecheck</code> and API tests run via <code>npm --prefix worker run typecheck</code> and <code>npm --prefix worker test</code>.</li>
+        <li>Install Worker dependencies first with <code>npm ci --prefix worker</code> (Node 22+). <code>validate.sh</code> does not install them itself.</li>
+      </ul></article>
+      <article class="detail"><h3>Shared Xcode stage</h3><ul>
+        <li>One simulator UUID is passed into both build and test destinations. Build uses <code>ONLY_ACTIVE_ARCH=YES</code>.</li>
+        <li>Test disables parallel testing and writes a fresh <code>.xcresult</code> bundle. Focused reuses its own derived data; full reuses a separate derived-data path keyed by simulator UUID.</li>
+        <li>Any nonzero command stops the script. Xcode output is tee’d to a log; sandbox-like build errors get a targeted recovery hint.</li>
+      </ul></article>
+      <article class="detail"><h3>Evidence locations</h3><ul>
+        <li>Default root is repository <code>.codex</code>; override with absolute writable <code>ONESET_ARTIFACTS_DIR</code>.</li>
+        <li>Each code run uses <code>validation/&lt;timestamp-pid&gt;/build.log</code>, <code>test.log</code>, and <code>tests.xcresult</code>.</li>
+        <li>Incremental build data: <code>build/validation/&lt;simulator-UUID&gt;</code> or <code>build/focused/&lt;simulator-UUID&gt;</code>.</li>
+      </ul></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="ui-flow-title">
+    <h2 id="ui-flow-title">The script captures; a person judges</h2>
+    <p class="section-intro">UI validation is a build-and-preview pipeline. A successful script run proves that the app built, installed, launched the requested route, and produced a screenshot. It does not judge the screenshot or prove accessibility behavior.</p>
+    <figure>
+      <div class="figure-head"><span class="figure-meta">Flowchart · validate-ui.sh</span></div>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1200 884" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="validation-flow-ui-title validation-flow-ui-desc">
+          <title id="validation-flow-ui-title">OneSet UI validation and inspection</title>
+          <desc id="validation-flow-ui-desc">The UI validation script rejects unknown routes, prepares a simulator, builds and installs the app, launches the chosen preview route, waits two seconds, captures a screenshot, and leaves visual inspection to the agent or reviewer.</desc>
+          <defs><marker id="ui-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0 8 3 0 6" fill="#A3A3A3"/></marker></defs>
+          <rect width="1200" height="820" fill="#222222"/>
+          <path d="M600 144 V188 M600 280 V324 M600 416 V460 M600 552 V596 M600 688 V732" fill="none" stroke="#A3A3A3" stroke-width="2" marker-end="url(#ui-arrow)"/>
+          <!-- 6 primary nodes; actions are grouped where they form one script stage -->
+          <rect x="340" y="52" width="520" height="92" rx="6" fill="#2A2A2A" stroke="#D97706" stroke-width="2"/>
+          <text x="600" y="90" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Route gate + prerequisites</text>
+          <text x="600" y="120" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">existing --ui-* route · toolchain · writable artifacts</text>
+
+          <rect x="340" y="188" width="520" height="92" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="226" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Select, boot, and lease simulator</text>
+          <text x="600" y="256" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">family default iPhone · optional iPad / UUID overrides</text>
+
+          <rect x="340" y="324" width="520" height="92" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="362" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Build app + install</text>
+          <text x="600" y="392" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">UI-specific derived data · install OneSet.app by simctl</text>
+
+          <rect x="340" y="460" width="520" height="92" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="498" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Launch requested preview route</text>
+          <text x="600" y="528" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">terminate old app if running · launch · wait 2 seconds</text>
+
+          <rect x="340" y="596" width="520" height="92" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
+          <text x="600" y="634" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Capture screenshot</text>
+          <text x="600" y="664" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">screenshots/&lt;route&gt;-&lt;family&gt;[-&lt;content-size&gt;].png</text>
+
+          <rect x="340" y="732" width="520" height="72" rx="6" fill="rgba(217,119,6,.14)" stroke="#D97706" stroke-width="2"/>
+          <text x="600" y="762" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Human inspection required</text>
+          <text x="600" y="786" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">layout · clipping · safe areas · type · color · state</text>
+          <line x1="40" y1="820" x2="1160" y2="820" stroke="#3A3A3A" stroke-width="1"/>
+          <text x="64" y="856" fill="#E5E5E5" font-family="'Geist Mono',monospace" font-size="13">Automated: route / build / install / launch / capture</text>
+          <text x="650" y="856" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Manual: visual + relevant accessibility review</text>
+        </svg>
+      </div>
+    </figure>
+    <div class="detail-grid">
+      <article class="detail"><h3>Route and screenshot controls</h3><ul>
+        <li>Route must match an existing <code>--ui-*</code> value in <code>AppLaunchConfiguration.swift</code>; unknown routes fail before build.</li>
+        <li>App ID is <code>com.oneset.OneSet</code>. A simulator window is opened when available; CoreSimulator works headlessly too.</li>
+        <li><code>ONESET_CONTENT_SIZE</code> optionally sets Dynamic Type; the script restores the original setting on exit. Filename includes the requested size.</li>
+        <li>UI build logs go under <code>validation/ui-&lt;timestamp-pid&gt;/build.log</code>; derived data is separate under <code>build/ui/&lt;run-name&gt;</code>. Screenshots go under <code>screenshots/</code> inside the artifact root.</li>
+      </ul></article>
+      <article class="detail"><h3>What to inspect</h3><ul>
+        <li>Spacing, alignment, clipping, overlap, typography, colors, safe areas, and the intended route/state.</li>
+        <li>Compare with a reference design when one exists. Fix issues and rerun until visually correct.</li>
+        <li>A Dynamic Type screenshot does not prove VoiceOver order or Reduce Motion behavior. Exercise those interactively in Simulator when the change affects them.</li>
+      </ul></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="sim-title">
+    <h2 id="sim-title">One UUID, one lease, bounded recovery</h2>
+    <p class="section-intro">The scripts coordinate access to host-wide CoreSimulator devices, including runs started from different worktrees. They preserve existing simulator data and do not restart CoreSimulator.</p>
+    <div class="detail-grid">
+      <article class="detail"><h3>Discovery and boot</h3><ul>
+        <li>Read the app deployment target; list available iOS runtimes at or above it and try newest first.</li>
+        <li>Choose compatible devices for the requested family (iPhone by default); prefer booted devices and reusable <code>OneSet Validation</code> devices.</li>
+        <li>With automatic selection, try up to two existing candidates, then create compatible devices with at most two creation attempts per runtime. Wait up to 180 seconds per boot by default.</li>
+        <li>An explicit <code>ONESET_SIMULATOR_UDID</code> must be available and compatible; it never silently switches to another device.</li>
+      </ul></article>
+      <article class="detail"><h3>Lease and process safety</h3><ul>
+        <li>Exclusive lock files live in <code>~/Library/Caches/OneSet/simulator-locks/</code>, independent of checkout and artifact directory.</li>
+        <li>Default wait for a busy device is 900 seconds. Progress reports holder PID, command, worktree, and elapsed time.</li>
+        <li>The protected child inherits the lock descriptor; the lock remains held for build, tests, screenshots, and restoration. Kernel locks release when owning descriptors close, including on interruption.</li>
+        <li>Manual simulator use does not participate in this lock. For parallel runs, use distinct UUIDs and separate worktrees or artifact roots.</li>
+      </ul></article>
+    </div>
+    <div class="callout"><p><strong>Environment overrides:</strong> <code>DEVELOPER_DIR</code> chooses Xcode; <code>ONESET_SIMULATOR_FAMILY=ipad</code> chooses iPad; <code>ONESET_SIMULATOR_UDID</code> pins a device; <code>ONESET_SIMULATOR_LOCK_TIMEOUT</code> and <code>ONESET_SIMULATOR_BOOT_TIMEOUT</code> tune waits; <code>ONESET_ARTIFACTS_DIR</code> redirects outputs; <code>ONESET_CONTENT_SIZE</code> sets a UI screenshot text size.</p></div>
+  </section>
+
+  <section aria-labelledby="fail-title">
+    <h2 id="fail-title">Failures stop the run; recovery keeps the same scope</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Failure</th><th>What the scripts do</th><th>Recovery path</th></tr></thead>
+        <tbody>
+          <tr><td>Invalid selector / route</td><td>Reject before Xcode work; no validation evidence is produced.</td><td>Use <code>OneSetUITests/Class[/testMethod]</code> or a route currently defined in <code>AppLaunchConfiguration.swift</code>.</td></tr>
+          <tr><td>Missing Xcode setup / SDK</td><td>Preflight stops and points to Xcode setup or missing iOS components.</td><td>Open Xcode, accept license/install first-launch components, install a compatible iOS runtime.</td></tr>
+          <tr><td>No compatible booted device</td><td>Try bounded recovery; preserve existing devices; fail with setup detail.</td><td>Run <code>./scripts/setup-simulator.sh</code>; if runtime missing, explicitly run <code>./scripts/setup-simulator.sh --download-runtime</code>.</td></tr>
+          <tr><td>Simulator / compiler permission denial</td><td>Classify common CoreSimulator/service and sandbox failures; retain logs.</td><td>Retry the same command in macOS Terminal or a host execution context that permits it. Do not replace required build/tests with parsing or generic builds.</td></tr>
+          <tr><td>Artifact directory cannot be written</td><td>Fail before executing validation.</td><td>Set <code>ONESET_ARTIFACTS_DIR=/tmp/oneset-validation</code>; this only redirects files and does not grant simulator access.</td></tr>
+          <tr><td>Build or test fails</td><td>Return nonzero and retain the failing Xcode log / result bundle.</td><td>Read the exact log, fix failures introduced by the change, rerun the same scope, and report any remaining blocker as unvalidated.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="limits-title">
+    <h2 id="limits-title">Pass means these checks passed</h2>
+    <div class="gaps">
+      <div><h3><span class="tag">Code</span> Build + tests</h3><p>A successful code run means Xcode build and the selected scheme tests passed; full mode also means simulator-tooling regression tests and Worker typecheck/API tests passed. No coverage threshold is defined.</p></div>
+      <div><h3><span class="tag">UI</span> Screenshot ready</h3><p>A successful UI run means build, install, route launch, and screenshot capture completed. A person still needs to inspect the image; automated capture does not claim visual correctness.</p></div>
+      <div><h3><span class="tag">Scope</span> Deliberate omissions</h3><p>Focused validation skips Python simulator-tooling checks and Worker checks. UI-only validation does not run interaction tests. Documentation-only review does not compile or execute the app.</p></div>
+      <div><h3><span class="tag">Report</span> Required handoff</h3><p>Report the chosen scope and why it fits, list checks that actually ran and outcomes, mention fixes and reruns, and call interrupted or blocked validation incomplete. Inspect the final diff for unrelated changes.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="improve-title">
+    <h2 id="improve-title">Where process changes would have the most effect</h2>
+    <p class="section-intro">These observations follow from the current scripts and docs; they are discussion points, not behavior already implemented.</p>
+    <div class="gaps">
+      <div><h3>Make scope selection easier to audit</h3><p>Capture the change category, chosen command, and required checks in one machine-readable run summary. Today scope rationale and final outcomes are handed off in prose.</p></div>
+      <div><h3>Reduce duplicate expensive setup</h3><p>Full validation runs Python and Worker checks before simulator reservation, which avoids holding a device during them. The stages are serial; independent check groups could be parallelized only with explicit artifact and failure aggregation.</p></div>
+      <div><h3>Strengthen visual evidence</h3><p>Screenshots are captured but not compared automatically. Stable preview data plus route-specific baselines or structured screenshot review could make visual regressions easier to detect and reproduce.</p></div>
+      <div><h3>Clarify evidence boundaries</h3><p>Keep a clear distinction between script pass, manual screenshot approval, and interactive VoiceOver/Reduce Motion checks. A compact run manifest could record which of these happened and which remain unverified.</p></div>
+    </div>
+  </section>
+
+  <footer>Sources: <code>docs/agents/validation.md</code> · <code>docs/simulator-validation.md</code> · <code>scripts/validate.sh</code> · <code>scripts/validate-ui.sh</code> · <code>scripts/validation-common.sh</code> · <code>scripts/simulator.py</code> · <code>scripts/simulator_lease.py</code> · <code>worker/package.json</code></footer>
+</main>
+</body>
+</html>

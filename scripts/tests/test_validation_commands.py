@@ -66,7 +66,8 @@ class ValidationCommandsTests(unittest.TestCase):
         self.assertNotIn("==> Xcode", result.stderr)
 
     def test_focused_validation_requires_valid_selectors_before_xcode(self):
-        for arguments in (["--focused"], ["--focused", "OtherTarget/Test"], ["--unknown"]):
+        for arguments in (["--focused"], ["--focused", "OtherTarget/Test"],
+                          ["--focused", "OneSetTests/../test"], ["--unknown"]):
             with self.subTest(arguments=arguments):
                 result = subprocess.run(["bash", str(ROOT / "scripts/validate.sh"), *arguments],
                                         cwd="/tmp", capture_output=True, text=True, timeout=10)
@@ -79,7 +80,10 @@ class ValidationCommandsTests(unittest.TestCase):
 oneset_toolchain() { :; }
 oneset_artifacts() { ONESET_ARTIFACTS_DIR="$ONESET_TEST_ARTIFACTS"; }
 oneset_with_simulator() { SIMULATOR_UDID=test-device; "$@"; }
-oneset_xcodebuild() { printf 'xcodebuild'; printf ' <%s>' "$@"; printf '\\n'; }
+oneset_xcodebuild() {
+  printf 'xcodebuild'; printf ' <%s>' "$@"; printf '\\n'
+  if [[ "${!#}" == test ]]; then return "${ONESET_TEST_RESULT:-0}"; fi
+}
 python3() { echo python-checks; }
 npm() { echo "npm $*"; }
 ''')
@@ -87,7 +91,7 @@ npm() { echo "npm $*"; }
             environment = os.environ.copy()
             environment["ONESET_TEST_ARTIFACTS"] = path
             selectors = ["OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome",
-                         "OneSetUITests/OnboardingJourneyTests/testContinueWithEmailSignsInAnExistingAccount"]
+                         "OneSetTests/AppStorageTests"]
             for arguments in ([], ["--focused", *selectors]):
                 with self.subTest(arguments=arguments):
                     result = subprocess.run(["bash", "-c", harness, "validate.sh", *arguments],
@@ -107,6 +111,15 @@ npm() { echo "npm $*"; }
                         self.assertIn("npm --prefix worker run typecheck", result.stdout)
                         self.assertIn("npm --prefix worker test", result.stdout)
                         self.assertNotIn("-only-testing:", result.stdout)
+
+            environment["ONESET_TEST_RESULT"] = "65"
+            result = subprocess.run(["bash", "-c", harness, "validate.sh"],
+                                    env=environment, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 65)
+            self.assertIn("--focused <selector>", result.stderr)
+            self.assertIn("tests.xcresult", result.stderr)
+            self.assertNotIn("validation passed", result.stdout)
+            self.assertEqual(result.stdout.count("<test>"), 1)
 
 
 if __name__ == "__main__":

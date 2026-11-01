@@ -10,15 +10,16 @@ struct AppDependencies {
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
-  static func development() -> AppDependencies {
-    let workoutURL = URL.applicationSupportDirectory.appending(path: "Development/workouts.sqlite")
+  static func development(environment: [String: String] = ProcessInfo.processInfo.environment) -> AppDependencies {
+    let storage = AppStorage(environment: environment)
+    let workoutURL = storage.directory.appending(path: "Development/workouts.sqlite")
     let arguments = ProcessInfo.processInfo.arguments
     if arguments.contains("--ui-workouts-reset") {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: workoutURL.path + suffix)
       }
     }
-    let progressURL = URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+    let progressURL = storage.directory.appending(path: "Development/onboarding.json")
     return AppDependencies(
       catalog: .bundled,
       authentication: PreviewAuthenticationService(startsSignedIn: true),
@@ -32,8 +33,11 @@ struct AppDependencies {
   }
   #endif
 
-  static func live(arguments: [String]) -> AppDependencies {
-    let directory = URL.applicationSupportDirectory.appending(path: "Onboarding")
+  static func live(
+    arguments: [String], environment: [String: String] = ProcessInfo.processInfo.environment
+  ) -> AppDependencies {
+    let storage = AppStorage(environment: environment)
+    let directory = storage.directory.appending(path: "Onboarding")
     #if DEBUG
     let launch = AppLaunchConfiguration(arguments: arguments)
     let uploadPreview = arguments.contains("--ui-setup-upload-pending")
@@ -57,15 +61,15 @@ struct AppDependencies {
     }
     if arguments.contains("--ui-development-progress-reset") {
       try? FileManager.default.removeItem(
-        at: URL.applicationSupportDirectory.appending(path: "Development/onboarding.json")
+        at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-      let previewWorkoutURL = URL.applicationSupportDirectory.appending(path: "Preview/workouts.sqlite")
-      if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview {
-        for suffix in ["", "-wal", "-shm"] {
-          try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
-        }
+    let previewWorkoutURL = storage.directory.appending(path: "Preview/workouts.sqlite")
+    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview {
+      for suffix in ["", "-wal", "-shm"] {
+        try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
+    }
     #else
     let progressURL = directory.appending(path: "progress.json")
     #endif
@@ -109,7 +113,7 @@ struct AppDependencies {
           recommendedWeeks: program.recommendedWeeks, isOffered: false
         )
       }
-      let catalogURL = URL.applicationSupportDirectory
+      let catalogURL = storage.directory
         .appending(path: "Catalog", directoryHint: .isDirectory)
         .appending(path: "preview-catalog.json")
       let catalogSeed = arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
@@ -127,6 +131,7 @@ struct AppDependencies {
             ? FileProgramCatalogPersistence(fileURL: catalogURL) : nil
         ),
         authentication: PreviewAuthenticationService(
+          defaults: storage.authenticationDefaults,
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
           startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-auth-restored")
             || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
@@ -143,7 +148,8 @@ struct AppDependencies {
         onboardingProgress: progress,
         accountSetup: PreviewAccountSetupService(
           arguments: arguments,
-          includesMainTabsPreview: launch.includesMainTabsPreview
+          includesMainTabsPreview: launch.includesMainTabsPreview,
+          storageDirectory: storage.directory
         ),
         completedSessionUpload: nil,
         workoutRepositoryFactory: {
@@ -182,7 +188,7 @@ struct AppDependencies {
     #endif
 
     let authentication = ClerkAuthenticationService()
-    let catalogDirectory = URL.applicationSupportDirectory.appending(path: "Catalog")
+    let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
       service: HTTPProgramCatalogService(authentication: authentication),
@@ -197,7 +203,7 @@ struct AppDependencies {
       accountSetup: HTTPAccountSetupService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       workoutRepositoryFactory: {
-        try WorkoutRepository(databaseURL: URL.applicationSupportDirectory.appending(path: "Workouts/workouts.sqlite"))
+        try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
     )
   }
