@@ -249,8 +249,8 @@ struct WorkoutRepositorySetTests {
   @Test
   func capturedExerciseProvidesDoubleProgressionAndWarmupGuidanceWithoutInventingLoads() throws {
     let exercise = try #require(makeSession().exercises.first)
-    #expect(exercise.progressionGuidance(for: "8")?.contains("aim for more clean reps") == true)
-    #expect(exercise.progressionGuidance(for: "12")?.contains("smallest practical load increase") == true)
+    #expect(exercise.progressionGuidance(for: "8")?.contains("aim for more reps with good form") == true)
+    #expect(exercise.progressionGuidance(for: "12")?.contains("add a small amount of weight") == true)
     #expect(exercise.progressionGuidance(for: "") == nil)
     let ranges = exercise.warmupRanges(for: "100")
     #expect(ranges.count == 3)
