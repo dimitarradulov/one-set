@@ -94,7 +94,43 @@ final class WorkoutRepository {
         table.add(column: "permanent_failure", .text)
       }
     }
+    migrator.registerMigration("backfill-completed-session-uploads-v5") { db in
+      try Self.backfillCompletedSessionUploads(in: db)
+    }
     try migrator.migrate(database)
+  }
+
+  nonisolated static func backfillCompletedSessionUploads(in db: Database) throws {
+    let rows = try Row.fetchAll(db, sql: """
+      SELECT id, account_id, payload, finished_at
+      FROM workout_sessions
+      WHERE finished_at IS NOT NULL
+      ORDER BY started_at, id
+      """)
+    let decoder = JSONDecoder()
+    for row in rows {
+      let storedID: String = row["id"]
+      let storedAccountID: String = row["account_id"]
+      let payload: Data = row["payload"]
+      guard let sessionID = UUID(uuidString: storedID) else { continue }
+      let session = try decoder.decode(WorkoutSession.self, from: payload)
+      let hasCompletedCapturedSet = session.exercises.contains { exercise in
+        session.setEntries[exercise.slotID]?.completedAt != nil
+      }
+      guard session.id == sessionID,
+            session.accountID == storedAccountID,
+            let finishedAt = session.finishedAt,
+            hasCompletedCapturedSet else {
+        continue
+      }
+
+      let sentBody = try CompletedSessionUploadPayload(session: session).encoded()
+      try db.execute(sql: """
+        INSERT INTO completed_session_uploads (session_id, account_id, sent_body, state, created_at)
+        VALUES (?, ?, ?, 'pending', ?)
+        ON CONFLICT (session_id) DO NOTHING
+        """, arguments: [sessionID.uuidString, storedAccountID, sentBody, finishedAt.timeIntervalSince1970])
+    }
   }
 
   func activeSession(accountID: String) throws -> WorkoutSession? {
