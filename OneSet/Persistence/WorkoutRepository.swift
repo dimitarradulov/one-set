@@ -308,6 +308,31 @@ final class WorkoutRepository {
     }
   }
 
+  func hasPendingSessionUploads(accountID: String) throws -> Bool {
+    try database.read { db in
+      try Bool.fetchOne(db, sql: """
+        SELECT EXISTS (
+          SELECT 1 FROM completed_session_uploads
+          WHERE account_id = ? AND state = 'pending'
+        )
+        """, arguments: [accountID]) ?? false
+    }
+  }
+
+  func hasPendingSessionUploads(accountID: String, cycleID: UUID) throws -> Bool {
+    try database.read { db in
+      try Bool.fetchOne(db, sql: """
+        SELECT EXISTS (
+          SELECT 1
+          FROM completed_session_uploads AS uploads
+          JOIN workout_sessions AS sessions
+            ON sessions.id = uploads.session_id AND sessions.account_id = uploads.account_id
+          WHERE uploads.account_id = ? AND uploads.state = 'pending' AND sessions.cycle_id = ?
+        )
+        """, arguments: [accountID, cycleID.uuidString]) ?? false
+    }
+  }
+
   func sessionUploadQueue(accountID: String) throws -> [CompletedSessionUploadQueueEntry] {
     try database.read { db in
       try Row.fetchAll(db, sql: """
