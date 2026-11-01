@@ -5,6 +5,355 @@ import Testing
 @MainActor
 struct CompletedSessionUploadTests {
   @Test
+  func retryAfterAcceptsDelaySecondsAndHttpDate() {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    #expect(CompletedSessionUploadRetryPolicy.serverRetryDate(headerValue: "120", at: now)
+      == now.addingTimeInterval(120))
+    #expect(CompletedSessionUploadRetryPolicy.serverRetryDate(
+      headerValue: "Fri, 15 Jan 2027 08:02:00 GMT", at: now
+    ) == Date(timeIntervalSince1970: 1_800_000_120))
+    #expect(CompletedSessionUploadRetryPolicy.serverRetryDate(headerValue: "invalid", at: now) == nil)
+  }
+
+  @Test
+  func httpFailuresSeparateAuthenticationPermanentAndTransientResponses() {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let unauthorized = CompletedSessionUploadError.httpFailure(status: 401, retryAfter: nil, at: now)
+    let forbidden = CompletedSessionUploadError.httpFailure(status: 403, retryAfter: nil, at: now)
+    let conflict = CompletedSessionUploadError.httpFailure(status: 409, retryAfter: nil, at: now)
+    let invalid = CompletedSessionUploadError.httpFailure(status: 422, retryAfter: nil, at: now)
+    #expect(unauthorized?.errorDescription == CompletedSessionUploadError.authenticationRequired.errorDescription)
+    #expect(forbidden?.errorDescription == CompletedSessionUploadError.forbidden.errorDescription)
+    #expect(conflict?.errorDescription == CompletedSessionUploadError.conflict.errorDescription)
+    #expect(invalid?.errorDescription == CompletedSessionUploadError.invalidSession.errorDescription)
+    #expect(CompletedSessionUploadError.httpFailure(status: 404, retryAfter: nil, at: now) == nil)
+
+    let rateLimited = CompletedSessionUploadError.httpFailure(
+      status: 429, retryAfter: "120", at: now
+    )
+    if case let .temporary(retryAfter)? = rateLimited {
+      #expect(retryAfter == now.addingTimeInterval(120))
+    } else {
+      Issue.record("A rate limit response must be retryable")
+    }
+    let unavailable = CompletedSessionUploadError.httpFailure(status: 503, retryAfter: nil, at: now)
+    if case let .temporary(retryAfter)? = unavailable {
+      #expect(retryAfter == nil)
+    } else {
+      Issue.record("A server failure must be retryable")
+    }
+  }
+
+  @Test
+  func drainContinuesAfterPermanentRejectionInOldestFirstOrder() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let service = CompletedSessionUploadSpy(outcomes: [.conflict, .success, .success, .success])
+    let cycleID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionIDs = try finishSessions(repository: repository, model: model, setup: setup, startingAt: start, count: 4)
+
+    await model.retryPendingSessionUploads(
+      using: authentication, at: start.addingTimeInterval(300), scheduleRetries: false
+    )
+
+    #expect(service.uploads.map(\.sessionID) == sessionIDs)
+    let uploadedWeeks = try service.uploads.map { upload -> Int in
+      let payload = try #require(JSONSerialization.jsonObject(with: upload.body) as? [String: Any])
+      return try #require(payload["week_number"] as? Int)
+    }
+    #expect(uploadedWeeks == [1, 1, 1, 2])
+    let pending = try repository.sessionUploadQueue(accountID: "preview-user")
+    #expect(pending.map(\.upload.sessionID) == [sessionIDs[0]])
+    #expect(pending.first?.permanentFailure == .conflict)
+    #expect(try repository.pendingSessionUploads(accountID: "preview-user").map(\.sessionID) == [sessionIDs[0]])
+    #expect(model.workoutErrorPresented == false)
+  }
+
+  @Test
+  func transientFailureLeavesASeparateLaterSessionFreeToUpload() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let service = CompletedSessionUploadSpy(outcomes: [.temporary(now.addingTimeInterval(60)), .success])
+    let cycleID = UUID(uuidString: "cccccccc-cccc-4ccc-8ccc-cccccccccccc")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let sessionIDs = try finishSessions(repository: repository, model: model, setup: setup, startingAt: now, count: 2)
+
+    await model.retryPendingSessionUploads(using: authentication, at: now, scheduleRetries: false)
+
+    #expect(service.uploads.map(\.sessionID) == sessionIDs)
+    let retained = try repository.sessionUploadQueue(accountID: "preview-user")
+    #expect(retained.map(\.upload.sessionID) == [sessionIDs[0]])
+    #expect(retained.first?.attemptCount == 1)
+    #expect(retained.first?.retryAfter == now.addingTimeInterval(60))
+    #expect(try repository.pendingSessionUploads(accountID: "preview-user").map(\.sessionID) == [sessionIDs[0]])
+  }
+
+  @Test
+  func retryWaitsForPersistedBackoffAndReusesBodyAfterRepositoryReopen() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let firstService = CompletedSessionUploadSpy(outcomes: [.commitThenLoseResponse])
+    let cycleID = UUID(uuidString: "66666666-6666-4666-8666-666666666666")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let firstModel = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: firstService,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await firstModel.resolveAccountSetup(using: authentication)
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionID = try finishOneSession(repository: repository, model: firstModel, setup: setup, startingAt: start)
+
+    await firstModel.retryPendingSessionUploads(using: authentication, at: start, scheduleRetries: false)
+    let originalBody = try #require(firstService.uploads.first?.body)
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let persisted = try #require(reopened.sessionUploadQueue(accountID: "preview-user").first)
+    #expect(persisted.upload.body == originalBody)
+    #expect(persisted.attemptCount == 1)
+    #expect(persisted.retryAfter == start.addingTimeInterval(15))
+
+    let restoredModel = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: firstService,
+      workoutRepository: reopened
+    )
+    await restoredModel.resolveAccountSetup(using: authentication)
+    await restoredModel.retryPendingSessionUploads(
+      using: authentication, at: start.addingTimeInterval(14), scheduleRetries: false
+    )
+    #expect(firstService.uploads.count == 1)
+
+    await restoredModel.retryPendingSessionUploads(
+      using: authentication, at: start.addingTimeInterval(15), scheduleRetries: false
+    )
+    #expect(firstService.uploads.map(\.sessionID) == [sessionID, sessionID])
+    #expect(firstService.uploads.allSatisfy { $0.body == originalBody })
+    #expect(try reopened.pendingSessionUploads(accountID: "preview-user").isEmpty)
+  }
+
+  @Test
+  func authenticationRequiredDefersUntilAuthenticatedRestoration() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = CompletedSessionUploadSpy(outcomes: [.authenticationRequired, .success])
+    let cycleID = UUID(uuidString: "77777777-7777-4777-8777-777777777777")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try finishOneSession(repository: repository, model: model, setup: setup, startingAt: now)
+
+    await model.retryPendingSessionUploads(using: authentication, at: now, scheduleRetries: false)
+    #expect(try repository.sessionUploadQueue(accountID: "preview-user").first?.isAuthenticationDeferred == true)
+    await model.retryPendingSessionUploads(
+      using: authentication, at: now.addingTimeInterval(60), scheduleRetries: false
+    )
+    #expect(service.uploads.count == 1)
+
+    await model.resumeDeferredSessionUploads(
+      using: authentication, at: now.addingTimeInterval(60), scheduleRetries: false
+    )
+    #expect(service.uploads.count == 2)
+    #expect(try repository.pendingSessionUploads(accountID: "preview-user").isEmpty)
+  }
+
+  @Test
+  func simultaneousDrainTriggersDoNotUploadTheSameRecordTwice() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = CompletedSessionUploadSpy(suspendNextUpload: true)
+    let cycleID = UUID(uuidString: "88888888-8888-4888-8888-888888888888")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    _ = try finishOneSession(repository: repository, model: model, setup: setup, startingAt: now)
+
+    let firstDrain = Task {
+      await model.retryPendingSessionUploads(using: authentication, at: now, scheduleRetries: false)
+    }
+    for _ in 0..<1_000 where !service.isUploadSuspended { await Task.yield() }
+    #expect(service.isUploadSuspended)
+    await model.retryPendingSessionUploads(using: authentication, at: now, scheduleRetries: false)
+    service.resumeSuspendedUpload()
+    await firstDrain.value
+    for _ in 0..<100 { await Task.yield() }
+
+    #expect(service.uploads.count == 1)
+    #expect(service.maximumConcurrentUploads == 1)
+    #expect(try repository.pendingSessionUploads(accountID: "preview-user").isEmpty)
+  }
+
+  @Test
+  func lateUploadResponseAfterAccountChangeCannotAcknowledgeOtherAccountWork() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = CompletedSessionUploadSpy(suspendNextUpload: true)
+    let cycleID = UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionID = try finishOneSession(repository: repository, model: model, setup: setup, startingAt: now)
+    let originalBody = try #require(repository.pendingSessionUpload(sessionID: sessionID, accountID: "preview-user")?.body)
+
+    let firstDrain = Task {
+      await model.retryPendingSessionUploads(using: authentication, at: now, scheduleRetries: false)
+    }
+    for _ in 0..<1_000 where !service.isUploadSuspended { await Task.yield() }
+    #expect(service.isUploadSuspended)
+    await authentication.signOut()
+    await model.resolveAccountSetup(using: authentication)
+    await authentication.signInWithGoogle()
+    await model.resolveAccountSetup(using: authentication)
+    service.resumeSuspendedUpload()
+    await firstDrain.value
+
+    #expect(authentication.signedInUser?.id == "preview-google")
+    #expect(try repository.pendingSessionUpload(sessionID: sessionID, accountID: "preview-user")?.body == originalBody)
+    #expect(try repository.pendingSessionUploads(accountID: "preview-google").isEmpty)
+  }
+
+  @Test
+  func appLifetimeWakeupsUseTheEarliestPersistedRetryDate() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = CompletedSessionUploadSpy()
+    let cycleID = UUID(uuidString: "99999999-9999-4999-8999-999999999999")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    var scheduledDelays: [TimeInterval] = []
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      waitForSessionUploadRetry: { scheduledDelays.append($0) },
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionIDs = try finishSessions(repository: repository, model: model, setup: setup, startingAt: now, count: 2)
+    try repository.recordTransientUploadFailure(
+      sessionID: sessionIDs[0], accountID: "preview-user", retryAt: now.addingTimeInterval(15)
+    )
+    try repository.recordTransientUploadFailure(
+      sessionID: sessionIDs[1], accountID: "preview-user", retryAt: now.addingTimeInterval(60)
+    )
+
+    await model.retryPendingSessionUploads(using: authentication, at: now)
+    for _ in 0..<1_000 where service.uploads.count < 2 { await Task.yield() }
+
+    #expect(scheduledDelays == [15, 45])
+    #expect(service.uploads.map(\.sessionID) == sessionIDs)
+    #expect(try repository.pendingSessionUploads(accountID: "preview-user").isEmpty)
+  }
+
+  @Test
+  func accountResetCancelsScheduledUploadRetry() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = CompletedSessionUploadSpy()
+    let retryWait = SessionUploadRetryWaitSpy()
+    let cycleID = UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!
+    let setup = AccountSetup(
+      preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: cycleID
+    )
+    let model = OnboardingModel(
+      catalog: .bundled,
+      setupService: StaticAccountSetupService(setup: setup),
+      completedSessionUploadService: service,
+      waitForSessionUploadRetry: { try await retryWait.wait($0) },
+      workoutRepository: repository
+    )
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let sessionID = try finishOneSession(repository: repository, model: model, setup: setup, startingAt: now)
+    try repository.recordTransientUploadFailure(
+      sessionID: sessionID, accountID: "preview-user", retryAt: now.addingTimeInterval(60)
+    )
+
+    await model.retryPendingSessionUploads(using: authentication, at: now)
+    for _ in 0..<1_000 where retryWait.delays.isEmpty { await Task.yield() }
+    #expect(retryWait.delays == [60])
+    model.resetAccount()
+    for _ in 0..<1_000 where !retryWait.wasCancelled { await Task.yield() }
+    #expect(retryWait.wasCancelled)
+  }
+
+  @Test
   func finishingSendsTheDurablePayloadAndAcknowledgesItLocally() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -116,18 +465,132 @@ struct CompletedSessionUploadTests {
 }
 
 @MainActor
+private func finishOneSession(
+  repository: WorkoutRepository,
+  model: OnboardingModel,
+  setup: AccountSetup,
+  startingAt date: Date
+) throws -> UUID {
+  try finishSessions(repository: repository, model: model, setup: setup, startingAt: date, count: 1)[0]
+}
+
+@MainActor
+private func finishSessions(
+  repository: WorkoutRepository,
+  model: OnboardingModel,
+  setup: AccountSetup,
+  startingAt date: Date,
+  count: Int
+) throws -> [UUID] {
+  guard let program = model.program(id: setup.programID), !program.workouts.isEmpty else {
+    throw WorkoutRepositoryError.invalidCompletedSession
+  }
+  return try (0..<count).map { index in
+    let workoutIndex = index % program.workouts.count
+    let workout = program.workouts[workoutIndex]
+    let week = index / program.workouts.count + 1
+    let day = workoutIndex + 1
+    guard let slot = workout.exercises.first else { throw WorkoutRepositoryError.invalidCompletedSession }
+    let sessionDate = date.addingTimeInterval(Double(index) * 60)
+    let session = WorkoutSession(
+      accountID: "preview-user", cycleID: setup.cycleID, program: program, workout: workout,
+      week: week, day: day, weightUnit: setup.preferredUnit, startedAt: sessionDate
+    )
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(
+      sessionID: session.id, accountID: session.accountID,
+      slotID: slot.id, weightInput: "50", repsInput: "8"
+    )
+    _ = try repository.completeSet(
+      sessionID: session.id, accountID: session.accountID, slotID: slot.id,
+      at: sessionDate.addingTimeInterval(10)
+    )
+    _ = try repository.finish(
+      sessionID: session.id, accountID: session.accountID, note: nil,
+      at: sessionDate.addingTimeInterval(20)
+    )
+    return session.id
+  }
+}
+
+@MainActor
+private final class SessionUploadRetryWaitSpy {
+  private(set) var delays: [TimeInterval] = []
+  private(set) var wasCancelled = false
+
+  func wait(_ delay: TimeInterval) async throws {
+    delays.append(delay)
+    do {
+      try await Task.sleep(for: .seconds(3_600))
+    } catch {
+      wasCancelled = true
+      throw error
+    }
+  }
+}
+
+@MainActor
 private final class CompletedSessionUploadSpy: CompletedSessionUploadService {
-  let fails: Bool
+  enum Outcome {
+    case success
+    case offline
+    case commitThenLoseResponse
+    case authenticationRequired
+    case forbidden
+    case conflict
+    case invalidSession
+    case temporary(Date?)
+  }
+
+  private var outcomes: [Outcome]
+  private var suspendNextUpload: Bool
+  private var suspendedUpload: CheckedContinuation<Void, Never>?
+  private var activeUploads = 0
+  private var committedBodies: [UUID: Data] = [:]
+  private(set) var maximumConcurrentUploads = 0
+  private(set) var isUploadSuspended = false
   private(set) var uploads: [PendingSessionUpload] = []
 
-  init(fails: Bool = false) {
-    self.fails = fails
+  init(fails: Bool = false, outcomes: [Outcome] = [], suspendNextUpload: Bool = false) {
+    self.outcomes = fails ? [.offline] : outcomes
+    self.suspendNextUpload = suspendNextUpload
+  }
+
+  func resumeSuspendedUpload() {
+    suspendedUpload?.resume()
+    suspendedUpload = nil
   }
 
   func upload(_ pending: PendingSessionUpload, for user: AuthenticatedUser) async throws {
     #expect(pending.accountID == user.id)
     uploads.append(pending)
-    if fails { throw URLError(.notConnectedToInternet) }
+    if let committedBody = committedBodies[pending.sessionID] {
+      #expect(committedBody == pending.body)
+    }
+    activeUploads += 1
+    maximumConcurrentUploads = max(maximumConcurrentUploads, activeUploads)
+    if suspendNextUpload {
+      suspendNextUpload = false
+      isUploadSuspended = true
+      await withCheckedContinuation { suspendedUpload = $0 }
+      isUploadSuspended = false
+    }
+    activeUploads -= 1
+    let outcome = outcomes.isEmpty ? .success : outcomes.removeFirst()
+    switch outcome {
+    case .success:
+      committedBodies[pending.sessionID] = pending.body
+      return
+    case .offline: throw URLError(.notConnectedToInternet)
+    case .commitThenLoseResponse:
+      committedBodies[pending.sessionID] = pending.body
+      throw URLError(.networkConnectionLost)
+    case .authenticationRequired: throw CompletedSessionUploadError.authenticationRequired
+    case .forbidden: throw CompletedSessionUploadError.forbidden
+    case .conflict: throw CompletedSessionUploadError.conflict
+    case .invalidSession: throw CompletedSessionUploadError.invalidSession
+    case .temporary(let retryAfter): throw CompletedSessionUploadError.temporary(retryAfter: retryAfter)
+    }
   }
 }
 

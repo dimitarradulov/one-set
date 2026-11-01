@@ -6,6 +6,47 @@ struct PendingSessionUpload: Equatable, Sendable {
   let body: Data
 }
 
+enum CompletedSessionUploadRejection: String, Equatable, Sendable {
+  case forbidden
+  case conflict
+  case invalidSession
+}
+
+struct CompletedSessionUploadQueueEntry: Equatable, Sendable {
+  let upload: PendingSessionUpload
+  let attemptCount: Int
+  let retryAfter: Date?
+  let isAuthenticationDeferred: Bool
+  let permanentFailure: CompletedSessionUploadRejection?
+}
+
+enum CompletedSessionUploadRetryPolicy {
+  static let initialDelay: TimeInterval = 15
+  static let maximumDelay: TimeInterval = 6 * 60 * 60
+
+  static func retryDate(afterAttempt attempt: Int, at date: Date, serverRetryAt: Date? = nil) -> Date {
+    let exponent = min(max(attempt - 1, 0), 16)
+    let exponentialDelay = min(maximumDelay, initialDelay * pow(2, Double(exponent)))
+    let serverDelay = max(serverRetryAt?.timeIntervalSince(date) ?? 0, 0)
+    return date.addingTimeInterval(max(exponentialDelay, serverDelay))
+  }
+
+  static func serverRetryDate(headerValue: String?, at date: Date) -> Date? {
+    guard let value = headerValue?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+      return nil
+    }
+    if let seconds = TimeInterval(value), seconds.isFinite, seconds >= 0 {
+      return date.addingTimeInterval(seconds)
+    }
+
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = "EEE',' dd MMM yyyy HH':'mm':'ss zzz"
+    return formatter.date(from: value)
+  }
+}
+
 struct CompletedSessionUploadPayload: Encodable, Sendable {
   struct WarmupGuidance: Encodable, Sendable {
     let steps: [String] = []

@@ -24,7 +24,7 @@ Send one session update at a time. Preserve a sent body and base session revisio
 
 For an authenticated account with an existing server-side cycle, finishing a full or partial workout commits the finished local session and a stable completed-session request body together before the app confirms finish. The body includes the complete captured slot list and prescription; performed results include the entered unit, load, reps and time, while unperformed slots carry null results. Draft text and the running rest countdown remain local. Drafts, discarded sessions and empty attempts are never sent. The app tries the completed-only `POST /v1/sessions/completed` request immediately after the durable local finish and shows no routine sync status or retry action.
 
-The local queue retains an unacknowledged body if that request fails. An equal retry with the same session ID and body is safe; a different body with that ID conflicts. Queue reads and acknowledgments are scoped by account. The request uses the currently authenticated account token and only records acknowledgment if the account and request generation still match after the response. Automatic relaunch/foreground retries and migration backfill are follow-on work; a retained pending body alone is not a backup until the server confirms it.
+The local queue retains an unacknowledged body if that request fails. An equal retry with the same session ID and body is safe; a different body with that ID conflicts. Queue reads, retry state and acknowledgments are scoped by account. The request uses the currently authenticated account token and only records acknowledgment if the account and request generation still match after the response. App-lifetime drains run after finish, authenticated restoration, foreground entry and a network path becoming available. While the process remains active, a cancellable wakeup retries at the earliest persisted due time; relaunch and foreground entry recover work if the process stops. Drains send due records oldest first. A transient failure gets its own retry date while later due records continue; a permanent rejection remains in the local queue and does not block later records. A 401 defers the record until authentication is restored; 403, 409 and invalid-session responses are retained as permanent failures. Other request failures persist an exponentially increasing retry date from 15 seconds up to six hours, honoring a longer `Retry-After` value when supplied. Background execution remains opportunistic, and a retained pending body alone is not a backup until the server confirms it.
 
 In one short server transaction:
 
@@ -59,7 +59,7 @@ Confirmed discard of a never-uploaded draft removes it locally and cancels its c
 
 ## Retry, authentication and access
 
-Retry network/5xx/429 failures with bounded backoff and jitter; honor Retry-After. Persist the queue and retry on foreground/reconnection. Background execution is opportunistic. Surface pending state and a retry action.
+Retry network/5xx/429 failures with bounded backoff; honor Retry-After. Persist the queue and retry on finish, authenticated restoration, foreground entry and reconnection. Background execution is opportunistic. Routine upload state stays invisible.
 
 401: refresh silently or defer reauthentication until local finish. 403: retain input and stop automatic retries. 409: retrieve current session state without clearing local work. 422: retain input and identify corrections. Never treat an error as permission to delete training data.
 

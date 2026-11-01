@@ -801,6 +801,33 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["overview.day.1.preview"].waitForExistence(timeout: 3))
   }
 
+  func testFinishedOfflineWorkoutSurvivesRelaunchWithoutSyncStatus() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.start"].tap()
+
+    let weight = firstRecordingField(suffix: ".weight")
+    XCTAssertTrue(weight.waitForExistence(timeout: 3))
+    weight.tap()
+    weight.typeText("50")
+    let reps = firstRecordingField(suffix: ".reps")
+    reps.tap()
+    reps.typeText("8")
+    app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
+    app.buttons["recording.finish"].tap()
+    app.buttons["finish.confirm"].tap()
+
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+    XCTAssertTrue(app.buttons["overview.day.2.preview"].label.contains("Not started"))
+    XCTAssertFalse(app.staticTexts["setup.uploadStatus"].exists)
+    XCTAssertFalse(app.buttons["setup.retryUpload"].exists)
+  }
+
   private func firstRecordingField(suffix: String) -> XCUIElement {
     app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'recording.input.' AND identifier ENDSWITH %@", suffix)).firstMatch
   }

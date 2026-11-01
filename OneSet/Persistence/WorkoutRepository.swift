@@ -86,6 +86,14 @@ final class WorkoutRepository {
         table.column("acknowledged_at", .double)
       }
     }
+    migrator.registerMigration("completed-session-upload-retry-v4") { db in
+      try db.alter(table: "completed_session_uploads") { table in
+        table.add(column: "attempt_count", .integer).notNull().defaults(to: 0)
+        table.add(column: "retry_after", .double)
+        table.add(column: "authentication_deferred", .boolean).notNull().defaults(to: false)
+        table.add(column: "permanent_failure", .text)
+      }
+    }
     try migrator.migrate(database)
   }
 
@@ -197,6 +205,37 @@ final class WorkoutRepository {
     }
   }
 
+  func sessionUploadQueue(accountID: String) throws -> [CompletedSessionUploadQueueEntry] {
+    try database.read { db in
+      try Row.fetchAll(db, sql: """
+        SELECT uploads.session_id, uploads.account_id, uploads.sent_body,
+          uploads.attempt_count, uploads.retry_after, uploads.authentication_deferred,
+          uploads.permanent_failure
+        FROM completed_session_uploads AS uploads
+        JOIN workout_sessions AS sessions ON sessions.id = uploads.session_id
+        WHERE uploads.account_id = ? AND uploads.state = 'pending'
+        ORDER BY sessions.started_at, sessions.id
+        """, arguments: [accountID]).map { row in
+          guard let sessionID = UUID(uuidString: row["session_id"] as String) else {
+            throw WorkoutRepositoryError.invalidCompletedSession
+          }
+          let retryTimestamp: Double? = row["retry_after"]
+          let rawFailure: String? = row["permanent_failure"]
+          return CompletedSessionUploadQueueEntry(
+            upload: PendingSessionUpload(
+              sessionID: sessionID,
+              accountID: row["account_id"],
+              body: row["sent_body"]
+            ),
+            attemptCount: row["attempt_count"],
+            retryAfter: retryTimestamp.map(Date.init(timeIntervalSince1970:)),
+            isAuthenticationDeferred: row["authentication_deferred"],
+            permanentFailure: rawFailure.flatMap(CompletedSessionUploadRejection.init(rawValue:))
+          )
+        }
+    }
+  }
+
   func pendingSessionUpload(sessionID: UUID, accountID: String) throws -> PendingSessionUpload? {
     try database.read { db in
       guard let row = try Row.fetchOne(db, sql: """
@@ -222,6 +261,54 @@ final class WorkoutRepository {
         SET state = 'acknowledged', acknowledged_at = ?
         WHERE session_id = ? AND account_id = ? AND state = 'pending'
         """, arguments: [date.timeIntervalSince1970, sessionID.uuidString, accountID])
+    }
+  }
+
+  func recordTransientUploadFailure(
+    sessionID: UUID, accountID: String, retryAt: Date
+  ) throws {
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET attempt_count = attempt_count + 1, retry_after = ?, authentication_deferred = 0
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+          AND permanent_failure IS NULL
+        """, arguments: [retryAt.timeIntervalSince1970, sessionID.uuidString, accountID])
+    }
+  }
+
+  func deferUploadUntilAuthenticationRestored(sessionID: UUID, accountID: String) throws {
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET authentication_deferred = 1, retry_after = NULL
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+          AND permanent_failure IS NULL
+        """, arguments: [sessionID.uuidString, accountID])
+    }
+  }
+
+  func resumeAuthenticationDeferredUploads(accountID: String) throws {
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET authentication_deferred = 0, retry_after = NULL
+        WHERE account_id = ? AND state = 'pending' AND authentication_deferred = 1
+          AND permanent_failure IS NULL
+        """, arguments: [accountID])
+    }
+  }
+
+  func rejectSessionUpload(
+    sessionID: UUID, accountID: String, reason: CompletedSessionUploadRejection
+  ) throws {
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET permanent_failure = ?, retry_after = NULL, authentication_deferred = 0
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+          AND permanent_failure IS NULL
+        """, arguments: [reason.rawValue, sessionID.uuidString, accountID])
     }
   }
 

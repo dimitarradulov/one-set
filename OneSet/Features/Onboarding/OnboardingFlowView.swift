@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingFlowView: View {
   @Environment(\.scenePhase) private var scenePhase
+  @State private var networkMonitor = WorkoutNetworkMonitor()
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
 
@@ -24,6 +25,7 @@ struct OnboardingFlowView: View {
       }
     }
     .task {
+      networkMonitor.start()
       await model.refreshCatalog()
     }
     .task(id: authentication.signedInUser?.id) {
@@ -33,6 +35,7 @@ struct OnboardingFlowView: View {
         await model.signOut(using: authentication)
       }
       #endif
+      await model.resumeDeferredSessionUploads(using: authentication)
       await model.retryCompletedUploads(using: authentication)
     }
     #if DEBUG
@@ -46,6 +49,18 @@ struct OnboardingFlowView: View {
       if phase == .active {
         Task { await model.refreshCatalog() }
         Task { await model.uploadCompletedSetup(using: authentication) }
+        Task { await model.retryPendingSessionUploads(using: authentication) }
+      }
+    }
+    .onChange(of: networkMonitor.isConnected) { _, isConnected in
+      guard isConnected else { return }
+      Task { await model.retryPendingSessionUploads(using: authentication) }
+    }
+    .onChange(of: authentication.didCompleteAuthentication) { _, didComplete in
+      guard didComplete else { return }
+      Task {
+        await model.resolveAccountSetup(using: authentication)
+        await model.resumeDeferredSessionUploads(using: authentication)
       }
     }
     .alert("Discard setup awaiting upload?", isPresented: $model.discardSetupPresented) {

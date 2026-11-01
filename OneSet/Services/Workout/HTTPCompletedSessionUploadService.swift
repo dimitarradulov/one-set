@@ -31,15 +31,14 @@ struct HTTPCompletedSessionUploadService: CompletedSessionUploadService {
             ["created", "acknowledged"].contains(acknowledgment.result) else {
         throw AccountSetupError.unavailable
       }
-    case 401:
-      throw CompletedSessionUploadError.authenticationRequired
-    case 403:
-      throw CompletedSessionUploadError.forbidden
-    case 409:
-      throw CompletedSessionUploadError.conflict
-    case 400, 422:
-      throw CompletedSessionUploadError.invalidSession
     default:
+      if let error = CompletedSessionUploadError.httpFailure(
+        status: response.statusCode,
+        retryAfter: response.value(forHTTPHeaderField: "Retry-After"),
+        at: .now
+      ) {
+        throw error
+      }
       throw AccountSetupError.unavailable
     }
   }
