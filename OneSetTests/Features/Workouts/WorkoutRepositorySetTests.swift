@@ -197,6 +197,13 @@ struct WorkoutRepositorySetTests {
     let pending = try #require(
       try repository.pendingSessionUpload(sessionID: session.id, accountID: session.accountID)
     )
+    let payload = try #require(JSONSerialization.jsonObject(with: pending.body) as? [String: Any])
+    #expect(payload["note"] is NSNull)
+    let sets = try #require(payload["sets"] as? [[String: Any]])
+    let unperformed = try #require(sets.first { $0["workout_exercise_key"] as? String == "slot-b" })
+    let prescription = try #require(unperformed["prescription"] as? [String: Any])
+    #expect(prescription["video_key"] is NSNull)
+    #expect(prescription["rest_seconds"] is NSNull)
     let sabotage = try DatabaseQueue(path: databaseURL.path)
     try sabotage.write { db in
       try db.execute(sql: """

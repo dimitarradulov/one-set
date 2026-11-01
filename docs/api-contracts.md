@@ -46,7 +46,43 @@ Settings, preference and activation writes are serialized on the device and use 
 
 `POST /v1/sessions/completed` is an authenticated first-write command for a finished session. It does not accept drafts, edits, or deletes. The Clerk subject supplies ownership. The client sends stable cycle, program, workout, slot, and exercise authoring keys plus the full captured prescription; the server resolves those keys and verifies that the cycle belongs to the caller and that the workout and slots belong to that cycle's program. Captured guidance and order are retained as sent, even when current catalog content has since changed. Subscription expiry is not rechecked for work already performed.
 
-The body contains `session_id`, `cycle_id`, `program_key`, `workout_key`, `week_number`, `workout_name`, `started_at`, `completed_at`, optional `note`, and an ordered `sets` array. Every captured slot appears once. A completed slot has `weight`, entered `unit`, `reps`, and `completed_at`; an unperformed slot sends null for weight, reps, and set completion time. Each row also contains `workout_exercise_key`, actual `exercise_key`, one-based `position`, and a `prescription` with captured `name`, `instructions`, `stopping_guidance`, `warmup_guidance`, `video_key`, `reps_min`, `reps_max`, `rep_scope`, and `rest_seconds`. `warmup_guidance` contains `steps` and `note`. Rest countdown state and uncompleted draft strings stay on the device.
+The body contains `session_id`, `cycle_id`, `program_key`, `workout_key`, `week_number`, `workout_name`, `started_at`, `completed_at`, nullable `note`, and an ordered `sets` array. Every captured slot appears once with `position` equal to its one-based array index. A completed slot has `weight`, entered `unit`, `reps`, and `completed_at`; an unperformed slot sends null for weight, reps, and set completion time. Each row also contains `workout_exercise_key`, actual `exercise_key`, and a `prescription` with captured `name`, `instructions`, `stopping_guidance`, `warmup_guidance`, nullable `video_key`, `reps_min`, `reps_max`, `rep_scope`, and nullable `rest_seconds`. Nullable fields must be present with explicit JSON `null`; omission is invalid. `warmup_guidance` contains `steps` and `note`. Rest countdown state and uncompleted draft strings stay on the device.
+
+For example, a completed row with no video key or customized rest still includes those keys:
+
+```json
+{
+  "session_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "cycle_id": "11111111-1111-4111-8111-111111111111",
+  "program_key": "machine-full-body",
+  "workout_key": "day-a",
+  "week_number": 1,
+  "workout_name": "Workout A",
+  "started_at": "2026-10-01T10:00:00.000Z",
+  "completed_at": "2026-10-01T10:45:00.000Z",
+  "note": null,
+  "sets": [{
+    "workout_exercise_key": "slot-a",
+    "exercise_key": "leg-press",
+    "position": 1,
+    "prescription": {
+      "name": "Leg Press",
+      "instructions": "Use a controlled full range.",
+      "stopping_guidance": "Stop when you cannot complete another rep with good form.",
+      "warmup_guidance": { "steps": [], "note": "Warm up gradually." },
+      "video_key": null,
+      "reps_min": 8,
+      "reps_max": 12,
+      "rep_scope": "reps",
+      "rest_seconds": null
+    },
+    "weight": 40,
+    "unit": "kg",
+    "reps": 10,
+    "completed_at": "2026-10-01T10:12:00.000Z"
+  }]
+}
+```
 
 The Worker rejects malformed values and cross-account references before writing. The database function writes the session, every captured set, the occurrence completion mark, and any applicable monotonic week advancement in one transaction. It accepts partial finishes with at least one completed set, older valid occurrences, and weeks beyond the recommended program duration. A new write returns `201 {"session_id":"…","result":"created"}`; an equal retry returns `200` with `result: "acknowledged"`; differing content for the same session ID returns `409 SESSION_CONFLICT`. Invalid payloads return `400` or `422 INVALID_SESSION`, cross-account cycle references return `403 FORBIDDEN`, and temporary database failures return `503 TEMPORARY_FAILURE`.
 

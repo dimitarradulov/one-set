@@ -49,6 +49,7 @@ type CompletedSession = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const KEY = /^[a-z0-9][a-z0-9_-]*$/;
 const ISO_TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/i;
+const POSTGRES_INT_MAX = 2_147_483_647;
 const MAX_BODY_BYTES = 1_048_576;
 
 function json(body: unknown, status = 200): Response {
@@ -111,6 +112,11 @@ function validDate(value: unknown): value is string {
     && Number.isFinite(Date.parse(value));
 }
 
+function positiveInt32(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value)
+    && value > 0 && value <= POSTGRES_INT_MAX;
+}
+
 function validPrescription(value: unknown): value is SessionPrescription {
   if (!isObject(value) || !onlyKeys(value, [
     'name', 'instructions', 'stopping_guidance', 'warmup_guidance', 'video_key',
@@ -124,8 +130,8 @@ function validPrescription(value: unknown): value is SessionPrescription {
     && Array.isArray(warmup.steps) && warmup.steps.length <= 20
     && validText(warmup.note, 2_000, true)
     && (value.video_key === null || validText(value.video_key, 500))
-    && Number.isInteger(value.reps_min) && Number(value.reps_min) > 0
-    && Number.isInteger(value.reps_max) && Number(value.reps_max) >= Number(value.reps_min)
+    && positiveInt32(value.reps_min) && positiveInt32(value.reps_max)
+    && value.reps_max >= value.reps_min
     && ['reps', 'each_leg', 'each_side'].includes(String(value.rep_scope))
     && (value.rest_seconds === null || (Number.isInteger(value.rest_seconds)
       && Number(value.rest_seconds) > 0 && Number(value.rest_seconds) <= 86_400));
@@ -140,7 +146,7 @@ function validSession(value: unknown): value is CompletedSession {
     || typeof value.cycle_id !== 'string' || !UUID.test(value.cycle_id)
     || !validText(value.program_key, 100) || !KEY.test(value.program_key)
     || !validText(value.workout_key, 100) || !KEY.test(value.workout_key)
-    || !Number.isInteger(value.week_number) || Number(value.week_number) <= 0
+    || !positiveInt32(value.week_number)
     || !validText(value.workout_name, 300)
     || !validDate(value.started_at) || !validDate(value.completed_at)
     || Date.parse(value.completed_at) < Date.parse(value.started_at)
@@ -149,21 +155,19 @@ function validSession(value: unknown): value is CompletedSession {
 
   const startedAt = Date.parse(value.started_at);
   const finishedAt = Date.parse(value.completed_at);
-  const positions = new Set<number>();
   const slotKeys = new Set<string>();
   let hasCompletedSet = false;
-  for (const rawSet of value.sets) {
+  for (const [index, rawSet] of value.sets.entries()) {
     if (!isObject(rawSet) || !onlyKeys(rawSet, [
       'workout_exercise_key', 'exercise_key', 'position', 'prescription',
       'weight', 'unit', 'reps', 'completed_at',
     ])) return false;
     if (!validText(rawSet.workout_exercise_key, 100) || !KEY.test(rawSet.workout_exercise_key)
       || !validText(rawSet.exercise_key, 100) || !KEY.test(rawSet.exercise_key)
-      || !Number.isInteger(rawSet.position) || Number(rawSet.position) <= 0
-      || positions.has(Number(rawSet.position)) || slotKeys.has(rawSet.workout_exercise_key)
+      || !positiveInt32(rawSet.position) || rawSet.position !== index + 1
+      || slotKeys.has(rawSet.workout_exercise_key)
       || !validPrescription(rawSet.prescription)
       || !['kg', 'lb'].includes(String(rawSet.unit))) return false;
-    positions.add(Number(rawSet.position));
     slotKeys.add(rawSet.workout_exercise_key);
 
     if (rawSet.completed_at === null) {
@@ -176,7 +180,7 @@ function validSession(value: unknown): value is CompletedSession {
       || typeof rawSet.weight !== 'number' || !Number.isFinite(rawSet.weight)
       || rawSet.weight < 0 || rawSet.weight > 9_999_999.999
       || Math.abs(rawSet.weight * 1_000 - Math.round(rawSet.weight * 1_000)) > 0.000_001
-      || !Number.isInteger(rawSet.reps) || Number(rawSet.reps) <= 0) return false;
+      || !positiveInt32(rawSet.reps)) return false;
     hasCompletedSet = true;
   }
   return hasCompletedSet;

@@ -264,3 +264,94 @@ test('missing or invalid authentication never reaches the database', async () =>
     assert.deepEqual(await response.json(), { error: { code: 'AUTH_REQUIRED' } });
   }
 });
+
+test('nullable fields require explicit null and accept null values', async () => {
+  const body = sessionBody({
+    session_id: '12121212-1212-4212-8212-121212121212',
+    note: null,
+    sets: sessionBody().sets.map(set => ({
+      ...set,
+      prescription: { ...set.prescription, video_key: null, rest_seconds: null },
+    })),
+  });
+  const response = await handleCompletedSessionRequest(request(awaitToken, body), env, database);
+  assert.equal(response.status, 201, JSON.stringify(await response.clone().json()));
+  const saved = await database.query(`SELECT session.note IS NULL AS note_is_null,
+      result.prescription ? 'video_key' AS has_video_key,
+      result.prescription->'video_key' = 'null'::jsonb AS video_is_null,
+      result.prescription ? 'rest_seconds' AS has_rest_seconds,
+      result.prescription->'rest_seconds' = 'null'::jsonb AS rest_is_null
+    FROM workout_sessions AS session
+    JOIN workout_session_sets AS result ON result.workout_session_id = session.id
+    WHERE session.id = $1 ORDER BY result.position`, [body.session_id]);
+  assert.deepEqual(saved, [
+    { note_is_null: true, has_video_key: true, video_is_null: true, has_rest_seconds: true, rest_is_null: true },
+    { note_is_null: true, has_video_key: true, video_is_null: true, has_rest_seconds: true, rest_is_null: true },
+  ]);
+
+  const noDatabase: SessionDatabase = { query: async () => { throw new Error('omitted null fields must not reach SQL'); } };
+  const omittedNote = JSON.parse(JSON.stringify(sessionBody({
+    session_id: '13131313-1313-4313-8313-131313131313', note: null,
+  }))) as Record<string, unknown>;
+  delete omittedNote.note;
+  const missingNote = await handleCompletedSessionRequest(request(awaitToken, omittedNote), env, noDatabase);
+  assert.equal(missingNote.status, 400);
+
+  const omittedVideo = JSON.parse(JSON.stringify(sessionBody({
+    session_id: '14141414-1414-4414-8414-141414141414',
+  }))) as { sets: Array<{ prescription: Record<string, unknown> }> };
+  delete omittedVideo.sets[0]!.prescription.video_key;
+  const missingVideo = await handleCompletedSessionRequest(request(awaitToken, omittedVideo), env, noDatabase);
+  assert.equal(missingVideo.status, 400);
+
+  const omittedRest = JSON.parse(JSON.stringify(sessionBody({
+    session_id: '15151515-1515-4515-8515-151515151515',
+  }))) as { sets: Array<{ prescription: Record<string, unknown> }> };
+  delete omittedRest.sets[0]!.prescription.rest_seconds;
+  const missingRest = await handleCompletedSessionRequest(request(awaitToken, omittedRest), env, noDatabase);
+  assert.equal(missingRest.status, 400);
+});
+
+test('PostgreSQL int4 boundaries are enforced for session values', async () => {
+  const maxInt = 2_147_483_647;
+  const base = sessionBody();
+  const maxValues = sessionBody({
+    session_id: '16161616-1616-4616-8616-161616161616',
+    week_number: maxInt,
+    sets: base.sets.map((set, index) => index === 0 ? {
+      ...set,
+      reps: maxInt,
+      prescription: { ...set.prescription, reps_min: maxInt, reps_max: maxInt },
+    } : set),
+  });
+  const maximum = await handleCompletedSessionRequest(request(awaitToken, maxValues), env, database);
+  assert.equal(maximum.status, 201, JSON.stringify(await maximum.clone().json()));
+
+  const noDatabase: SessionDatabase = { query: async () => { throw new Error('overflow must not reach SQL'); } };
+  const tooLarge = [
+    sessionBody({ session_id: '17171717-1717-4717-8717-171717171717', week_number: maxInt + 1 }),
+    sessionBody({ session_id: '18181818-1818-4818-8818-181818181818', sets: base.sets.map((set, index) => index === 0 ? { ...set, position: maxInt + 1 } : set) }),
+    sessionBody({ session_id: '19191919-1919-4919-8919-191919191919', sets: base.sets.map((set, index) => index === 0 ? { ...set, prescription: { ...set.prescription, reps_min: maxInt + 1, reps_max: maxInt + 1 } } : set) }),
+    sessionBody({ session_id: '20202020-2020-4020-8020-202020202020', sets: base.sets.map((set, index) => index === 0 ? { ...set, prescription: { ...set.prescription, reps_max: maxInt + 1 } } : set) }),
+    sessionBody({ session_id: '21212121-2121-4121-8121-212121212121', sets: base.sets.map((set, index) => index === 0 ? { ...set, reps: maxInt + 1 } : set) }),
+  ];
+  for (const body of tooLarge) {
+    const response = await handleCompletedSessionRequest(request(awaitToken, body), env, noDatabase);
+    assert.equal(response.status, 400, JSON.stringify(await response.clone().json()));
+  }
+});
+
+test('captured slot positions must match array order without gaps', async () => {
+  const noDatabase: SessionDatabase = { query: async () => { throw new Error('invalid order must not reach SQL'); } };
+  const base = sessionBody().sets;
+  for (const positions of [[2, 1], [1, 3]]) {
+    const body = sessionBody({
+      session_id: positions[0] === 2
+        ? '22222221-2222-4222-8222-222222222221'
+        : '23232323-2323-4323-8323-232323232323',
+      sets: base.map((set, index) => ({ ...set, position: positions[index] })),
+    });
+    const response = await handleCompletedSessionRequest(request(awaitToken, body), env, noDatabase);
+    assert.equal(response.status, 400);
+  }
+});

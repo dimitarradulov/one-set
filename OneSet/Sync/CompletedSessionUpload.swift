@@ -33,6 +33,19 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
       case repScope = "rep_scope"
       case restSeconds = "rest_seconds"
     }
+
+    func encode(to encoder: Encoder) throws {
+      var values = encoder.container(keyedBy: CodingKeys.self)
+      try values.encode(name, forKey: .name)
+      try values.encode(instructions, forKey: .instructions)
+      try values.encode(stoppingGuidance, forKey: .stoppingGuidance)
+      try values.encode(warmupGuidance, forKey: .warmupGuidance)
+      try values.encode(videoKey, forKey: .videoKey)
+      try values.encode(repsMin, forKey: .repsMin)
+      try values.encode(repsMax, forKey: .repsMax)
+      try values.encode(repScope, forKey: .repScope)
+      try values.encode(restSeconds, forKey: .restSeconds)
+    }
   }
 
   struct Set: Encodable, Sendable {
@@ -86,6 +99,20 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
     case workoutName = "workout_name"
     case startedAt = "started_at"
     case completedAt = "completed_at"
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var values = encoder.container(keyedBy: CodingKeys.self)
+    try values.encode(sessionID, forKey: .sessionID)
+    try values.encode(cycleID, forKey: .cycleID)
+    try values.encode(programKey, forKey: .programKey)
+    try values.encode(workoutKey, forKey: .workoutKey)
+    try values.encode(weekNumber, forKey: .weekNumber)
+    try values.encode(workoutName, forKey: .workoutName)
+    try values.encode(startedAt, forKey: .startedAt)
+    try values.encode(completedAt, forKey: .completedAt)
+    try values.encode(note, forKey: .note)
+    try values.encode(sets, forKey: .sets)
   }
 
   init(session: WorkoutSession) throws {
