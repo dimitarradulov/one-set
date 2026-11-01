@@ -72,6 +72,7 @@ struct AppDependencies {
     if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
+      }
     }
     #else
     let progressURL = directory.appending(path: "progress.json")
