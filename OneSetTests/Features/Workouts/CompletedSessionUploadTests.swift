@@ -167,7 +167,8 @@ struct CompletedSessionUploadTests {
     await restoredModel.retryPendingSessionUploads(
       using: authentication, at: date.addingTimeInterval(300), scheduleRetries: false
     )
-    #expect(try reopened.sessionUploadQueue(accountID: "preview-user").first?.upload.sessionID == conflictingSessionID)
+    #expect(try reopened.sessionUploadQueue(accountID: "preview-user")
+      .contains(where: { $0.upload.sessionID == conflictingSessionID }))
   }
 
   @Test

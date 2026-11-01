@@ -618,12 +618,14 @@ final class OnboardingModel {
       if let last = path.last, case .workoutPreview = last { path.removeLast() }
       if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
       if let authentication {
-        if let entry = try? workoutRepository.sessionUploadQueue(accountID: session.accountID)
-          .first(where: { $0.upload.sessionID == session.id }),
-          entry.permanentFailure == .setupCycleConflict {
+        let queue = try? workoutRepository.sessionUploadQueue(accountID: session.accountID)
+        if queue?.contains(where: { $0.upload.sessionID == session.id
+          && $0.permanentFailure == .setupCycleConflict }) == true {
           presentSessionUploadErrorIfNeeded(accountID: session.accountID)
         }
-        Task { await retryPendingSessionUploads(using: authentication) }
+        if queue?.contains(where: { $0.permanentFailure == nil && !$0.isAuthenticationDeferred }) == true {
+          Task { await retryPendingSessionUploads(using: authentication) }
+        }
       }
       return true
     } catch {

@@ -116,6 +116,113 @@ struct WorkoutRepositorySetTests {
   }
 
   @Test
+  func upgradingPreUploadStoreBackfillsOnlyCompletedSessionsAndPreservesSnapshots() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let cycleID = UUID()
+    let first = makeLegacyFinishedSession(cycleID: cycleID, week: 1,
+      startedAt: Date(timeIntervalSince1970: 1_800_000_000),
+      finishedAt: Date(timeIntervalSince1970: 1_800_003_600), note: "First session")
+    let second = makeLegacyFinishedSession(cycleID: cycleID, week: 2,
+      startedAt: Date(timeIntervalSince1970: 1_806_000_000),
+      finishedAt: Date(timeIntervalSince1970: 1_806_003_600), note: nil)
+    var active = makeSession(cycleID: cycleID, week: 3)
+    active.setEntries["slot-a"] = .init(weightInput: "90", repsInput: "draft", completedAt: nil)
+    let empty = makeLegacyFinishedSession(cycleID: cycleID, week: 4,
+      startedAt: Date(timeIntervalSince1970: 1_807_000_000),
+      finishedAt: Date(timeIntervalSince1970: 1_807_003_600), note: "Empty attempt", completed: false)
+    try makePreUploadStore(databaseURL: databaseURL, sessions: [first, second, active, empty])
+
+    let upgraded = try WorkoutRepository(databaseURL: databaseURL)
+    let queued = try upgraded.pendingSessionUploads(accountID: "account")
+    #expect(queued.map(\.sessionID) == [first.id, second.id])
+    #expect(try upgraded.pendingSessionUploads(accountID: "different-account").isEmpty)
+    #expect(try upgraded.activeSession(accountID: "account")?.id == active.id)
+    #expect(try upgraded.activeSession(accountID: "account")?.setEntries["slot-a"]?.weightInput == "90")
+    #expect(try upgraded.completedOccurrenceIDs(accountID: "account", cycleID: cycleID, week: 1) == ["day-a"])
+    #expect(try upgraded.completedOccurrenceIDs(accountID: "account", cycleID: cycleID, week: 2) == ["day-a"])
+    #expect(try upgraded.completedOccurrenceIDs(accountID: "account", cycleID: cycleID, week: 3).isEmpty)
+    #expect(try upgraded.nextOccurrence(accountID: "account", cycleID: cycleID,
+      programID: "program", workoutIDs: ["day-a"]).week == 3)
+
+    let firstBody = try #require(JSONSerialization.jsonObject(with: queued[0].body) as? [String: Any])
+    #expect(firstBody["session_id"] as? String == first.id.uuidString.lowercased())
+    #expect(firstBody["cycle_id"] as? String == cycleID.uuidString.lowercased())
+    #expect(firstBody["week_number"] as? Int == 1)
+    #expect(firstBody["note"] as? String == "First session")
+    let firstSets = try #require(firstBody["sets"] as? [[String: Any]])
+    #expect(firstSets.count == 2)
+    #expect(firstSets[0]["workout_exercise_key"] as? String == "removed-slot")
+    #expect(firstSets[0]["unit"] as? String == WeightUnit.pounds.rawValue)
+    #expect(firstSets[0]["weight"] as? Double == 72.5)
+    #expect(firstSets[0]["reps"] as? Int == 10)
+    let capturedPrescription = try #require(firstSets[0]["prescription"] as? [String: Any])
+    #expect(capturedPrescription["instructions"] as? String == "Instructions captured before the catalog changed.")
+    #expect(capturedPrescription["video_key"] as? String == "row/legacy-demo.mp4")
+    #expect(firstSets[1]["weight"] is NSNull)
+    #expect(firstSets[1]["reps"] is NSNull)
+    #expect(firstSets[1]["completed_at"] is NSNull)
+
+    try upgraded.acknowledgeSessionUpload(sessionID: first.id, accountID: "account",
+      at: Date(timeIntervalSince1970: 1_810_000_000))
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let remaining = try reopened.pendingSessionUploads(accountID: "account")
+    #expect(remaining.map(\.sessionID) == [second.id])
+    #expect(try reopened.pendingSessionUpload(sessionID: first.id, accountID: "account") == nil)
+    #expect(remaining.first?.body == queued[1].body)
+
+    let database = try DatabaseQueue(path: databaseURL.path)
+    try database.write { db in
+      try WorkoutRepository.backfillCompletedSessionUploads(in: db)
+    }
+    let afterRepeatedBackfill = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try afterRepeatedBackfill.sessionUploadQueue(accountID: "account").map(\.upload.sessionID) == [second.id])
+    #expect(try afterRepeatedBackfill.pendingSessionUpload(sessionID: first.id, accountID: "account") == nil)
+  }
+
+  @Test
+  func setupCycleConflictMigrationRunsOnFreshAndExistingV5Stores() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let freshURL = directory.appending(path: "fresh.sqlite")
+    _ = try WorkoutRepository(databaseURL: freshURL)
+    let freshDatabase = try DatabaseQueue(path: freshURL.path)
+    let freshMigrations = try freshDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(freshMigrations.contains("backfill-completed-session-uploads-v5"))
+    #expect(freshMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
+    #expect(try freshDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+
+    let existingURL = directory.appending(path: "existing-v5.sqlite")
+    _ = try WorkoutRepository(databaseURL: existingURL)
+    let existingDatabase = try DatabaseQueue(path: existingURL.path)
+    try existingDatabase.write { db in
+      try db.execute(sql: "DROP TABLE workout_cycle_upload_blocks")
+      try db.execute(
+        sql: "DELETE FROM grdb_migrations WHERE identifier = ?",
+        arguments: ["workout-setup-cycle-upload-conflicts-v6"]
+      )
+    }
+    let beforeUpgrade = try existingDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(beforeUpgrade.contains("backfill-completed-session-uploads-v5"))
+    #expect(!beforeUpgrade.contains("workout-setup-cycle-upload-conflicts-v6"))
+
+    _ = try WorkoutRepository(databaseURL: existingURL)
+    let upgradedDatabase = try DatabaseQueue(path: existingURL.path)
+    let upgradedMigrations = try upgradedDatabase.read { db in
+      try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    #expect(upgradedMigrations.contains("backfill-completed-session-uploads-v5"))
+    #expect(upgradedMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
+    #expect(try upgradedDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+  }
+
+  @Test
   func finishingPersistsOneStableUploadWithCapturedResultsAndNullUnperformedSlots() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -453,7 +560,9 @@ struct WorkoutRepositorySetTests {
     #expect(exercise.warmupRanges(for: "0").isEmpty)
   }
 
-  private func makeSession(cycleID: UUID = UUID(), week: Int = 1) -> WorkoutSession {
+  private func makeSession(cycleID: UUID = UUID(), week: Int = 1,
+                           startedAt: Date = .now,
+                           weightUnit: WeightUnit = .pounds) -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",
                       repTarget: RepTarget(minimum: 8, maximum: 12, scope: .eachSide),
@@ -466,6 +575,87 @@ struct WorkoutRepositorySetTests {
     ])
     let program = TrainingProgram(id: "program", name: "Program", format: "A/B", emphasis: "Strength", workouts: [workout])
     return WorkoutSession(accountID: "account", cycleID: cycleID, program: program,
-                          workout: workout, week: week, day: 1, weightUnit: .pounds)
+                          workout: workout, week: week, day: 1, weightUnit: weightUnit,
+                          startedAt: startedAt)
+  }
+
+  private func makeLegacyFinishedSession(
+    cycleID: UUID,
+    week: Int,
+    startedAt: Date,
+    finishedAt: Date,
+    note: String?,
+    completed: Bool = true
+  ) -> WorkoutSession {
+    let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
+      WorkoutExercise(id: "removed-slot", exerciseKey: "removed-row", name: "Removed Row Variation",
+        repTarget: RepTarget(minimum: 8, maximum: 12, scope: .eachSide),
+        instructions: "Instructions captured before the catalog changed.",
+        stoppingGuidance: "Stop at technical failure.", warmupGuidance: "Warm up progressively.",
+        restSeconds: 150, videoKey: "row/legacy-demo.mp4"),
+      WorkoutExercise(id: "slot-b", exerciseKey: "press", name: "Press",
+        repTarget: RepTarget(minimum: 8, maximum: 12),
+        instructions: "Captured press guidance.", stoppingGuidance: "Stop at technical failure.",
+        warmupGuidance: "Warm up progressively.")
+    ])
+    let program = TrainingProgram(id: "program", name: "Program", format: "A/B",
+      emphasis: "Strength", workouts: [workout])
+    var session = WorkoutSession(accountID: "account", cycleID: cycleID, program: program,
+      workout: workout, week: week, day: 1, weightUnit: .pounds, startedAt: startedAt)
+    if completed {
+      session.setEntries["removed-slot"] = .init(weightInput: "72.5", repsInput: "10",
+        completedAt: startedAt.addingTimeInterval(1_800))
+      session.setEntries["slot-b"] = .init(weightInput: "unperformed draft", repsInput: "",
+        completedAt: nil)
+    }
+    session.finishedAt = finishedAt
+    session.note = note
+    return session
+  }
+
+  private func makePreUploadStore(databaseURL: URL, sessions: [WorkoutSession]) throws {
+    try FileManager.default.createDirectory(
+      at: databaseURL.deletingLastPathComponent(), withIntermediateDirectories: true
+    )
+    let database = try DatabaseQueue(path: databaseURL.path)
+    var migrator = DatabaseMigrator()
+    migrator.registerMigration("create-workout-sessions-v1") { db in
+      try db.create(table: "workout_sessions") { table in
+        table.column("id", .text).primaryKey()
+        table.column("account_id", .text).notNull().indexed()
+        table.column("cycle_id", .text).notNull()
+        table.column("program_id", .text).notNull()
+        table.column("week", .integer).notNull()
+        table.column("workout_id", .text).notNull()
+        table.column("day", .integer).notNull()
+        table.column("started_at", .double).notNull()
+        table.column("payload", .blob).notNull()
+        table.column("finished_at", .double)
+      }
+    }
+    migrator.registerMigration("workout-week-membership-v2") { db in
+      try db.create(table: "workout_week_membership") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("program_id", .text).notNull()
+        table.column("week", .integer).notNull()
+        table.column("workout_id", .text).notNull()
+        table.primaryKey(["account_id", "cycle_id", "week", "workout_id"])
+      }
+    }
+    try migrator.migrate(database)
+    try database.write { db in
+      for session in sessions {
+        let payload = try JSONEncoder().encode(session)
+        try db.execute(sql: """
+          INSERT INTO workout_sessions
+            (id, account_id, cycle_id, program_id, week, workout_id, day, started_at, payload, finished_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """, arguments: [session.id.uuidString, session.accountID, session.cycleID.uuidString,
+            session.programID, session.week, session.workoutID, session.day,
+            session.startedAt.timeIntervalSince1970, payload,
+            session.finishedAt?.timeIntervalSince1970])
+      }
+    }
   }
 }
