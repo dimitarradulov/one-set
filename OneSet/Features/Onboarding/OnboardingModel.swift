@@ -50,6 +50,8 @@ final class OnboardingModel {
   private(set) var activeWorkoutSession: WorkoutSession?
   var workoutErrorPresented = false
   private(set) var workoutErrorMessage = ""
+  var sessionUploadErrorPresented = false
+  private(set) var sessionUploadErrorMessage = ""
   private(set) var workoutStorageOpenFailed = false
 
   init(
@@ -108,6 +110,12 @@ final class OnboardingModel {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
       if let setup {
+        if let pending = savedProgress?.completed, pending.needsUpload,
+           pending.setup.cycleID != setup.cycleID {
+          _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
+            accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
+          )
+        }
         try storeCompleted(setup, needsUpload: false, accountID: user.id)
         apply(setup)
       } else if let savedProgress {
@@ -130,6 +138,7 @@ final class OnboardingModel {
         selectedMainTab = .program
         programPath = [.workoutRecording(activeWorkoutSession.id)]
       }
+      presentSessionUploadErrorIfNeeded(accountID: user.id)
       setupResolution = .idle
     } catch {
       guard !Task.isCancelled, generation == lookupGeneration,
@@ -215,6 +224,8 @@ final class OnboardingModel {
     programSelectionMessage = nil
     discardSetupPresented = false
     progressErrorPresented = false
+    sessionUploadErrorPresented = false
+    sessionUploadErrorMessage = ""
     signOutErrorPresented = false
     weightUnit = .kilograms
     trainingDays = 3
@@ -403,10 +414,16 @@ final class OnboardingModel {
       let setup = try await setupService.save(completed.setup, for: user)
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
             !isSigningOut else { return }
+      if setup.cycleID != completed.setup.cycleID {
+        _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
+          accountID: user.id, cycleID: completed.setup.cycleID, establishedCycleID: setup.cycleID
+        )
+      }
       try storeCompleted(setup, needsUpload: false, accountID: user.id)
       // A different device may have established setup first. Respect its cycle.
       apply(setup, replacePath: setup.cycleID != completed.setup.cycleID)
       uploadMessage = nil
+      presentSessionUploadErrorIfNeeded(accountID: user.id)
       await retryPendingSessionUploads(using: authentication)
     } catch {
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
@@ -438,6 +455,13 @@ final class OnboardingModel {
     path = [.preferences, .programs]
     uploadMessage = nil
     programSelectionMessage = "That program is no longer available. Choose an available program to finish setup."
+  }
+
+  private func presentSessionUploadErrorIfNeeded(accountID: String) {
+    guard let workoutRepository,
+          (try? workoutRepository.hasUnresolvedSetupCycleConflict(accountID: accountID)) == true else { return }
+    sessionUploadErrorMessage = "Your completed workout is still saved on this device. It belongs to a different cycle than the one already on your account, so it wasn’t uploaded or moved. Keep this device while the cycle conflict is resolved."
+    sessionUploadErrorPresented = true
   }
 
   func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
@@ -594,6 +618,11 @@ final class OnboardingModel {
       if let last = path.last, case .workoutPreview = last { path.removeLast() }
       if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
       if let authentication {
+        if let entry = try? workoutRepository.sessionUploadQueue(accountID: session.accountID)
+          .first(where: { $0.upload.sessionID == session.id }),
+          entry.permanentFailure == .setupCycleConflict {
+          presentSessionUploadErrorIfNeeded(accountID: session.accountID)
+        }
         Task { await retryPendingSessionUploads(using: authentication) }
       }
       return true
@@ -647,6 +676,7 @@ final class OnboardingModel {
 
     let generation = lookupGeneration
     guard let entries = try? workoutRepository.sessionUploadQueue(accountID: user.id) else { return }
+    presentSessionUploadErrorIfNeeded(accountID: user.id)
     for entry in entries {
       guard !Task.isCancelled, !isSigningOut, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id,

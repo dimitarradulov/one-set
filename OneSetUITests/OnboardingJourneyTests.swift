@@ -917,6 +917,24 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
   }
 
+  func testEstablishedCycleConflictExplainsThatWorkoutRemainsOnDevice() {
+    relaunch(with: ["--ui-setup-cycle-conflict"])
+
+    let alert = app.alerts["Workout wasn’t uploaded"]
+    XCTAssertTrue(alert.waitForExistence(timeout: 5))
+    let retainedWorkMessage = alert.staticTexts.matching(
+      NSPredicate(format: "label CONTAINS %@", "still saved on this device")
+    ).firstMatch
+    XCTAssertTrue(retainedWorkMessage.exists)
+    XCTAssertTrue(retainedWorkMessage.label.contains("different cycle"))
+    XCTAssertTrue(retainedWorkMessage.label.contains("wasn’t uploaded or moved"))
+    alert.buttons["OK"].tap()
+
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["setup.uploadStatus"].exists)
+    XCTAssertFalse(app.buttons["setup.retryUpload"].exists)
+  }
+
   func testProgramBrowsingStackAndSelectedWeekSurviveTabSwitching() {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))

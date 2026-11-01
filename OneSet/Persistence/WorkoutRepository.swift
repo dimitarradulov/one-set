@@ -94,6 +94,15 @@ final class WorkoutRepository {
         table.add(column: "permanent_failure", .text)
       }
     }
+    migrator.registerMigration("workout-setup-cycle-upload-conflicts-v6") { db in
+      try db.create(table: "workout_cycle_upload_blocks") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("established_cycle_id", .text).notNull()
+        table.column("created_at", .double).notNull()
+        table.primaryKey(["account_id", "cycle_id"])
+      }
+    }
     try migrator.migrate(database)
   }
 
@@ -180,8 +189,66 @@ final class WorkoutRepository {
         VALUES (?, ?, ?, 'pending', ?)
         ON CONFLICT (session_id) DO NOTHING
         """, arguments: [sessionID.uuidString, accountID, sentBody, date.timeIntervalSince1970])
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET permanent_failure = 'setupCycleConflict'
+        WHERE session_id = ? AND account_id = ? AND state = 'pending'
+          AND permanent_failure IS NULL
+          AND EXISTS (
+            SELECT 1 FROM workout_cycle_upload_blocks AS blocks
+            WHERE blocks.account_id = ? AND blocks.cycle_id = ?
+          )
+        """, arguments: [sessionID.uuidString, accountID, accountID, session.cycleID.uuidString])
       return session
     }
+  }
+
+  /// Keeps uploads for a locally-created cycle blocked after setup resolves to another cycle.
+  /// The block and existing queue state commit together so relaunch cannot send the wrong cycle.
+  @discardableResult
+  func blockSessionUploadsForSetupCycle(
+    accountID: String,
+    cycleID: UUID,
+    establishedCycleID: UUID,
+    at date: Date = .now
+  ) throws -> Bool {
+    try database.write { db in
+      try db.execute(sql: """
+        INSERT INTO workout_cycle_upload_blocks (account_id, cycle_id, established_cycle_id, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (account_id, cycle_id) DO NOTHING
+        """, arguments: [accountID, cycleID.uuidString, establishedCycleID.uuidString, date.timeIntervalSince1970])
+      try db.execute(sql: """
+        UPDATE completed_session_uploads
+        SET permanent_failure = 'setupCycleConflict', retry_after = NULL, authentication_deferred = 0
+        WHERE account_id = ? AND state = 'pending' AND permanent_failure IS NULL
+          AND session_id IN (
+            SELECT id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND finished_at IS NOT NULL
+          )
+        """, arguments: [accountID, accountID, cycleID.uuidString])
+      return try Self.hasUnresolvedSetupCycleConflict(in: db, accountID: accountID)
+    }
+  }
+
+  func hasUnresolvedSetupCycleConflict(accountID: String) throws -> Bool {
+    try database.read { db in
+      try Self.hasUnresolvedSetupCycleConflict(in: db, accountID: accountID)
+    }
+  }
+
+  private static func hasUnresolvedSetupCycleConflict(in db: Database, accountID: String) throws -> Bool {
+    try Bool.fetchOne(db, sql: """
+      SELECT EXISTS (
+        SELECT 1
+        FROM workout_sessions AS sessions
+        JOIN workout_cycle_upload_blocks AS blocks
+          ON blocks.account_id = sessions.account_id AND blocks.cycle_id = sessions.cycle_id
+        LEFT JOIN completed_session_uploads AS uploads
+          ON uploads.session_id = sessions.id AND uploads.account_id = sessions.account_id
+        WHERE sessions.account_id = ?
+          AND (sessions.finished_at IS NULL OR uploads.state = 'pending')
+      )
+      """, arguments: [accountID]) ?? false
   }
 
   func pendingSessionUploads(accountID: String) throws -> [PendingSessionUpload] {

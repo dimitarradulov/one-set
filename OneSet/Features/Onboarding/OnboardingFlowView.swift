@@ -79,6 +79,11 @@ struct OnboardingFlowView: View {
     .alert("Couldn’t save progress", isPresented: $model.progressErrorPresented) { } message: {
       Text(model.progressErrorMessage)
     }
+    .alert("Workout wasn’t uploaded", isPresented: $model.sessionUploadErrorPresented) {
+      Button("OK", role: .cancel) { }
+    } message: {
+      Text(model.sessionUploadErrorMessage)
+    }
     .alert("Workout unavailable", isPresented: $model.workoutErrorPresented) {
       if model.workoutStorageOpenFailed {
         Button("Retry storage") { model.retryWorkoutStorage() }

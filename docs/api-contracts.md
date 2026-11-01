@@ -88,6 +88,8 @@ The Worker rejects malformed values and cross-account references before writing.
 
 On device, finishing commits the completed session and its exact sent body to the local store in one transaction before finish succeeds. The same session ID and body are reused after interruption or retry. A successful server response is acknowledged locally only for the same account and request generation; a failed request or failed local acknowledgment leaves the upload pending with durable retry metadata. App-lifetime drains run after finish, authenticated restoration, foreground entry and reconnection, in oldest-first order; while the process is active, a cancellable wakeup retries at the earliest persisted due time. Transient failures use exponential backoff from 15 seconds to six hours and honor a longer `Retry-After` header while later due records continue in the drain. A 401 defers the record until authentication is restored. 403, 409 and invalid-session responses are retained as permanent failures and do not block later uploads. Routine upload state is not shown in the UI.
 
+If a pending setup PUT returns a different established cycle, the app persists a setup-cycle conflict for the submitted local cycle before acknowledging setup. Sessions retain their original cycle, ID and sent body and remain queued; the Worker rejects the unowned cycle with `403 FORBIDDEN`. Sessions for other cycles continue independently. The app explains that the completed workout remains on-device, with no routine status or manual retry control.
+
 ## Session sync envelope
 
 `/sync/push` accepts a bounded list of session operations. Cycles/settings/preferences use their routes above. Here is one operation for saving an unfinished session; the example assumes a one-slot workout:

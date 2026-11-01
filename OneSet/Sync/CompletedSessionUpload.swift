@@ -10,6 +10,7 @@ enum CompletedSessionUploadRejection: String, Equatable, Sendable {
   case forbidden
   case conflict
   case invalidSession
+  case setupCycleConflict
 }
 
 struct CompletedSessionUploadQueueEntry: Equatable, Sendable {
