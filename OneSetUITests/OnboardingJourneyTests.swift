@@ -758,14 +758,14 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["workoutPreview.start"].tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     app.buttons["account.signOut"].tap()
     XCTAssertTrue(app.alerts["Couldn’t sign out"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.alerts["Couldn’t sign out"].staticTexts.containing(
       NSPredicate(format: "label CONTAINS[c] 'finish or discard'")
     ).firstMatch.exists)
     app.alerts["Couldn’t sign out"].buttons["OK"].tap()
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
     app.buttons["recording.discard"].tap()
@@ -1315,8 +1315,18 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
   }
 
+  private func mainTab(_ name: String) -> XCUIElement {
+    let phoneTab = app.tabBars.buttons[name]
+    if phoneTab.exists { return phoneTab }
+    // iPad's floating tab items are exposed as cells on current runtimes.
+    return app.descendants(matching: .any).matching(NSPredicate(
+      format: "label == %@ AND (elementType == %d OR elementType == %d)",
+      name, XCUIElement.ElementType.button.rawValue, XCUIElement.ElementType.cell.rawValue
+    )).firstMatch
+  }
+
   private func tapSettingsSignOut() {
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     app.buttons["account.signOut"].tap()
   }
 

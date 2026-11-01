@@ -52,7 +52,7 @@ Priority comes from the founder's program library and product decisions. Earlier
 | NF-06 | Workout completion may sync with delay; local finish must remain usable without waiting for the server. No backend latency SLA has been promised. |
 | NF-07 | Secure per-user authorization on every operation; server derives owner from verified identity. No database/service credentials shipped to the app. Protected user data never cached publicly. |
 | NF-08 | Costs ideally $0, target $5–10/month. Neon Free initially. Backups may add no cost without renewed approval; alerts are not equivalent to vendor spending caps. |
-| NF-09 | Proposed accessibility baseline: Dynamic Type, VoiceOver labels, visible units, touch targets, non-color-only completion/sync status and reduced-motion support. Supported iOS/device floor to be checked against chosen SDKs. |
+| NF-09 | Proposed accessibility baseline: Dynamic Type, VoiceOver labels, visible units, touch targets, non-color-only completion/sync status and reduced-motion support. Supported platform: iOS/iPadOS 26.0 or newer, on iPhone and iPad; see the release toolchain baseline in [README](../README.md). |
 | NF-10 | PostHog records onboarding completion, program choice, trial conversion, workout start/finish and sync failures. No weights/reps/free text, credentials, video tokens or replay. Analytics never blocks training. |
 
 ## Launch exclusions
