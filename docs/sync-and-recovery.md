@@ -2,7 +2,7 @@
 
 Status: broader protocol proposed. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. The completed-only first upload described below is implemented; refresh, edits, deletes and the broader recovery protocol remain future work.
 
-The [completed-session save slice](completed-session-save-plan.md) narrows the first upload implementation to finished sessions and supersedes the routine visible workout sync states and Retry action proposed below. Active drafts and discards remain local; automatic completed-session retries are invisible during normal use. Actionable failures still surface. The broader draft, history-edit and restoration protocol below remains future work.
+The [completed-session save slice](https://github.com/dimitarradulov/one-set/issues/40) narrows the first upload implementation to finished sessions and supersedes the routine visible workout sync states and Retry action proposed below. Active drafts and discards remain local; automatic completed-session retries are invisible during normal use. Actionable failures still surface. The broader draft, history-edit and restoration protocol below remains future work.
 
 ## Save states
 
