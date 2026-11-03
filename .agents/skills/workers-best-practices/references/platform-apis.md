@@ -22,7 +22,7 @@ Verify affected signatures against the project's target type definitions; consul
 - `ExecutionContext` as the third param in module export handlers (needed for `ctx.waitUntil()`)
 - `fetch()` handlers must return `Promise<Response>`
 
-### Binding access — the most common error
+### Binding access - the most common error
 
 - **Module export handlers** (`fetch`, `scheduled`, `queue`, `email`): bindings via `env.X` parameter
 - **Platform base classes** (`WorkerEntrypoint`, `DurableObject`, `Workflow`, `Agent`): bindings via `this.env.X`

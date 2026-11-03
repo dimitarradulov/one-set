@@ -16,7 +16,7 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 
 ## Matt Pocock
 
-### Engineering — 20
+### Engineering - 20
 
 | Skill | Case | Proposed OneSet use |
 |---|---|---|
@@ -41,7 +41,7 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 | [wayfinder](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/wayfinder/SKILL.md) | Discover; huge efforts only | Resolve linked decision tickets until a large effort can be specified. |
 | [wizard](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/wizard/SKILL.md) | Setup; conditional any route | Guide only dashboard/credential steps the agent cannot perform. |
 
-### Productivity — 7
+### Productivity - 7
 
 | Skill | Case | Proposed OneSet use |
 |---|---|---|
@@ -53,7 +53,7 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 | [wait-what](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/wait-what/SKILL.md) | Any route; direct | Explain an unclear previous message in plain language. |
 | [writing-for-agents](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/writing-for-agents/SKILL.md) | Setup; conditional Improve | Write skills, agent rules, and the documents they reference. |
 
-### Miscellaneous — 4
+### Miscellaneous - 4
 
 | Skill | Case | Proposed OneSet use |
 |---|---|---|
@@ -62,7 +62,7 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 | [scaffold-exercises](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/misc/scaffold-exercises/SKILL.md) | Direct; outside product routes | Course-exercise scaffolding; no normal OneSet product use. |
 | [setup-pre-commit](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/misc/setup-pre-commit/SKILL.md) | Setup | Husky/lint-staged setup for JS/TS; adapt to existing project checks. |
 
-### In-progress — 7; excluded from automatic routing
+### In-progress - 7; excluded from automatic routing
 
 | Skill | Case | Proposed OneSet use |
 |---|---|---|
@@ -74,7 +74,7 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 | [writing-fragments](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/in-progress/writing-fragments/SKILL.md) | Experimental; direct writing | Gather writing material; outside implementation routes. |
 | [writing-shape](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/in-progress/writing-shape/SKILL.md) | Experimental; direct writing | Shape existing material into an article; outside implementation routes. |
 
-## Addy Osmani — 25
+## Addy Osmani - 25
 
 | Skill | Case | Proposed OneSet use |
 |---|---|---|
@@ -106,13 +106,13 @@ A skill appearing in several cases is conditional support, not a mandatory step 
 
 ## Four adapted examples
 
-**Discover — offline workout sync:** read domain/architecture and existing decisions → `research` for unresolved facts → `grill-with-docs` for remaining choices → `prototype` only for a question needing a runnable answer → `to-spec` → `to-tickets` when multiple sessions are needed → Build. Add `api-and-interface-design` and migration/security guidance where their triggers apply. Use `wayfinder` only if the decision space is too large for ordinary discovery.
+**Discover - offline workout sync:** read domain/architecture and existing decisions → `research` for unresolved facts → `grill-with-docs` for remaining choices → `prototype` only for a question needing a runnable answer → `to-spec` → `to-tickets` when multiple sessions are needed → Build. Add `api-and-interface-design` and migration/security guidance where their triggers apply. Use `wayfinder` only if the decision space is too large for ordinary discovery.
 
-**Build — workout history filtering with agreed requirements:** read existing issue and affected storage/UI contracts → `incremental-implementation` → chosen TDD process for meaningful filter/persistence behavior → native SwiftUI guidance and simulator inspection for visible changes → OneSet validation → chosen review. No second specification or interview unless investigation reveals a real unresolved decision.
+**Build - workout history filtering with agreed requirements:** read existing issue and affected storage/UI contracts → `incremental-implementation` → chosen TDD process for meaningful filter/persistence behavior → native SwiftUI guidance and simulator inspection for visible changes → OneSet validation → chosen review. No second specification or interview unless investigation reveals a real unresolved decision.
 
-**Debug — rest timer fails after backgrounding:** chosen debugging skill → reproducible background/resume failure → isolate clock/lifecycle/persisted-deadline cause → failing regression test where practicable → smallest fix → relevant validation and native runtime checks → chosen review. Add instrumentation only if current evidence is insufficient or future diagnosis needs it.
+**Debug - rest timer fails after backgrounding:** chosen debugging skill → reproducible background/resume failure → isolate clock/lifecycle/persisted-deadline cause → failing regression test where practicable → smallest fix → relevant validation and native runtime checks → chosen review. Add instrumentation only if current evidence is insufficient or future diagnosis needs it.
 
-**Improve — slow workout-history scrolling:** `performance-optimization` adapted to Instruments → record baseline with realistic history → identify bottleneck → targeted `code-simplification` or architecture work only if evidence supports it → compare measurements → regression verification and review. A substantial architectural redesign detours through Discover rather than silently broadening the task.
+**Improve - slow workout-history scrolling:** `performance-optimization` adapted to Instruments → record baseline with realistic history → identify bottleneck → targeted `code-simplification` or architecture work only if evidence supports it → compare measurements → regression verification and review. A substantial architectural redesign detours through Discover rather than silently broadening the task.
 
 ## Adaptation and routing limits
 

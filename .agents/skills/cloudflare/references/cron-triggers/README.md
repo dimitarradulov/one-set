@@ -9,12 +9,12 @@ Use Cron Triggers to start periodic Worker jobs. Fetch the relevant current docu
 
 ## In This Reference
 
-- [configuration.md](./configuration.md) — schedule setup, environments, removal, and Green Compute
-- [api.md](./api.md) — handler implementation, asynchronous completion, and tests
-- [patterns.md](./patterns.md) — choosing execution boundaries and integrations
-- [gotchas.md](./gotchas.md) — investigating timing, failures, and repeated work
+- [configuration.md](./configuration.md) - schedule setup, environments, removal, and Green Compute
+- [api.md](./api.md) - handler implementation, asynchronous completion, and tests
+- [patterns.md](./patterns.md) - choosing execution boundaries and integrations
+- [gotchas.md](./gotchas.md) - investigating timing, failures, and repeated work
 
 ## See Also
 
-- [Workflows](../workflows/README.md) — durable multi-step jobs
-- [Queues](../queues/README.md) — asynchronous message processing
+- [Workflows](../workflows/README.md) - durable multi-step jobs
+- [Queues](../queues/README.md) - asynchronous message processing

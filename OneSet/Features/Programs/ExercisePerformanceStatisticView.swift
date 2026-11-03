@@ -13,7 +13,7 @@ struct ExercisePerformanceStatisticView: View {
         .foregroundStyle(OneSetColors.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(titleIdentifier)
-      Text("—")
+      Text("-")
         .font(OneSetTypography.metric)
         .foregroundStyle(OneSetColors.textPrimary)
         .accessibilityIdentifier(valueIdentifier)

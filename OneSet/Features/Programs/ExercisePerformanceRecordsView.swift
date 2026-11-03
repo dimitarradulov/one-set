@@ -9,7 +9,7 @@ struct ExercisePerformanceRecordsView: View {
           .foregroundStyle(OneSetColors.textPrimary)
           .accessibilityIdentifier("exerciseDetail.heaviestWeight")
 
-        Text("—")
+        Text("-")
           .font(OneSetTypography.display)
           .foregroundStyle(OneSetColors.textPrimary)
           .accessibilityIdentifier("exerciseDetail.heaviestWeightValue")

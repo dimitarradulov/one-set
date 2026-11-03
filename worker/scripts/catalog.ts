@@ -207,7 +207,7 @@ async function main(args: string[]): Promise<void> {
       const subject = change.name && change.name !== change.program_name && change.name !== change.workout_name
         ? change.name : undefined;
       const label = [location, subject].filter(Boolean).join(' / ') || change.program_key || 'catalog';
-      const detail = change.detail ? ` — ${change.detail}` : '';
+      const detail = change.detail ? ` - ${change.detail}` : '';
       console.log(`  ${change.kind}: ${label}${detail}`);
     }
     console.log(`Affected programs: ${(result.affected_programs ?? []).join(', ') || 'none'}`);

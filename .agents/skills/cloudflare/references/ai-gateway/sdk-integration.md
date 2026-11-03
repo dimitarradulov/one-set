@@ -8,7 +8,7 @@ Choose an integration that matches the application's runtime and required API sh
 | Vercel AI SDK, provider adapters, and fallback providers | [Vercel AI SDK integration](https://developers.cloudflare.com/ai-gateway/integrations/vercel-ai-sdk/index.md) |
 | Preserve OpenAI-native endpoints with the OpenAI SDK, Python, or HTTP | [OpenAI provider guide](https://developers.cloudflare.com/ai-gateway/usage/providers/openai/index.md) |
 | Preserve Anthropic-native requests | [Anthropic provider guide](https://developers.cloudflare.com/ai-gateway/usage/providers/anthropic/index.md) |
-| Use another provider or a framework's configurable provider endpoint | [Provider guides](https://developers.cloudflare.com/ai-gateway/usage/providers/index.md) — match the framework's expected API shape to the provider endpoint |
+| Use another provider or a framework's configurable provider endpoint | [Provider guides](https://developers.cloudflare.com/ai-gateway/usage/providers/index.md) - match the framework's expected API shape to the provider endpoint |
 | Configure Workers AI and an AI binding | [Binding setup](https://developers.cloudflare.com/ai-gateway/integrations/aig-workers-ai-binding/index.md) |
 | Call Workers AI or third-party models from a Worker; use gateway methods | [Workers binding methods](https://developers.cloudflare.com/ai-gateway/usage/worker-binding-methods/index.md) |
 | Set request metadata, caching, or other gateway headers | [Header glossary](https://developers.cloudflare.com/ai-gateway/glossary/index.md) |

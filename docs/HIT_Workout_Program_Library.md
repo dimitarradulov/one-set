@@ -4,7 +4,7 @@
 
 This library contains 10 distinct hypertrophy programs built around a **low-volume, high-effort, to-failure approach** suitable for a HIT-style training app.
 
-The programs borrow the useful practical idea from traditional HIT — **few work sets performed with very high effort and tracked progression** — while applying modern evidence on hypertrophy, exercise selection, fatigue, and safety.
+The programs borrow the useful practical idea from traditional HIT - **few work sets performed with very high effort and tracked progression** - while applying modern evidence on hypertrophy, exercise selection, fatigue, and safety.
 
 These are not claims that training to failure is uniquely superior. Current evidence indicates that failure is **not required** for hypertrophy and that approximately 1–2 RIR often produces similar growth with less fatigue. These templates deliberately use failure because that is the training style this library is designed to represent.
 
@@ -23,12 +23,12 @@ Unless a program explicitly states otherwise:
 
 ### Failure standards
 
-**MMF — Momentary Muscular Failure**<br>
+**MMF - Momentary Muscular Failure**<br>
 Continue until another full repetition cannot be completed through the prescribed range of motion with controlled technique.
 
 Use MMF mainly on stable machines and isolation exercises.
 
-**TF — Technical Failure**<br>
+**TF - Technical Failure**<br>
 Stop when another repetition would require meaningful technique breakdown, loss of position, or an unsafe grind.
 
 Use TF on free-weight compounds, weighted chin-ups, weighted dips, rows, deadlift variations, and other exercises where forcing a failed repetition adds unnecessary risk.
@@ -103,7 +103,7 @@ Do not add sets automatically because a session felt short.
 
 The three sessions train the whole body while changing the first-priority movements so the same muscles are not always trained after accumulated fatigue.
 
-## Workout A — Vertical Pull + Upper Chest
+## Workout A - Vertical Pull + Upper Chest
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -115,7 +115,7 @@ The three sessions train the whole body while changing the first-priority moveme
 | 6 | Barbell Curl | 6–10 | TF |
 | 7 | Cable Triceps Pressdown | 8–12 | MMF |
 
-## Workout B — Horizontal Pull + Chest
+## Workout B - Horizontal Pull + Chest
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -127,7 +127,7 @@ The three sessions train the whole body while changing the first-priority moveme
 | 6 | Incline Dumbbell Curl | 8–12 | MMF |
 | 7 | Overhead Cable Triceps Extension | 10–15 | MMF |
 
-## Workout C — Shoulder Girdle + Balanced Lower Body
+## Workout C - Shoulder Girdle + Balanced Lower Body
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -153,10 +153,10 @@ Track all exercises, but give special attention to the first two exercises of ea
 
 Suggested weekly layout:
 
-- Monday — Upper A
-- Tuesday — Lower A
-- Thursday — Upper B
-- Friday — Lower B
+- Monday - Upper A
+- Tuesday - Lower A
+- Thursday - Upper B
+- Friday - Lower B
 
 ## Upper A
 
@@ -252,7 +252,7 @@ Suggested weekly layout:
 
 Because each body part is trained infrequently, exercise selection provides more within-session coverage than the other programs.
 
-## Day 1 — Chest
+## Day 1 - Chest
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -261,7 +261,7 @@ Because each body part is trained infrequently, exercise selection provides more
 | 3 | Machine Chest Press | 8–12 | MMF |
 | 4 | Pec Deck | 10–15 | MMF |
 
-## Day 2 — Back
+## Day 2 - Back
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -271,7 +271,7 @@ Because each body part is trained infrequently, exercise selection provides more
 | 4 | Neutral-Grip Lat Pulldown | 8–12 | MMF |
 | 5 | Dumbbell Shrug | 8–12 | TF |
 
-## Day 3 — Legs
+## Day 3 - Legs
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -281,7 +281,7 @@ Because each body part is trained infrequently, exercise selection provides more
 | 4 | Seated Leg Curl | 8–12 | MMF |
 | 5 | Leg Extension | 10–15 | MMF |
 
-## Day 4 — Shoulders
+## Day 4 - Shoulders
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -291,7 +291,7 @@ Because each body part is trained infrequently, exercise selection provides more
 | 4 | Reverse Pec Deck | 12–20 | MMF |
 | 5 | Dumbbell Shrug | 8–12 | TF |
 
-## Day 5 — Arms
+## Day 5 - Arms
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -347,7 +347,7 @@ Because weekly set count is intentionally low, execution quality matters enormou
 
 The program does not attempt to literally shrink the waist. The visual effect comes primarily from building width around the shoulders and back while maintaining sensible body composition.
 
-## Day 1 — Lats + Upper Chest
+## Day 1 - Lats + Upper Chest
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -358,7 +358,7 @@ The program does not attempt to literally shrink the waist. The visual effect co
 | 5 | Incline Dumbbell Curl | 8–12 | MMF |
 | 6 | Overhead Cable Triceps Extension | 10–15 | MMF |
 
-## Day 2 — Lower Body + Delts
+## Day 2 - Lower Body + Delts
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -369,7 +369,7 @@ The program does not attempt to literally shrink the waist. The visual effect co
 | 5 | Cable Lateral Raise | 12–20 | MMF |
 | 6 | Cable Crunch | 10–15 | MMF |
 
-## Day 3 — Back Width + Shoulder Width
+## Day 3 - Back Width + Shoulder Width
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -390,11 +390,11 @@ The highest-priority V-taper muscles appear early and receive repeated weekly ex
 # 7. Powerhouse
 
 **Frequency:** 3 days per week<br>
-**Visual goal:** A dense, powerful wrestler-like build — thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.
+**Visual goal:** A dense, powerful wrestler-like build - thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.
 
 This look is not defined by neck and traps alone. The program emphasizes whole-body muscular density, particularly the torso, upper back, arms, thighs, glutes, and posterior chain. Neck, traps, forearms, and grip reinforce the overall appearance.
 
-## Day 1 — Torso Density + Arms
+## Day 1 - Torso Density + Arms
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -406,7 +406,7 @@ This look is not defined by neck and traps alone. The program emphasizes whole-b
 | 6 | Cable Triceps Pressdown | 8–12 | MMF |
 | 7 | Dumbbell Wrist Curl | 12–20 | TF |
 
-## Day 2 — Thighs + Posterior Chain + Traps
+## Day 2 - Thighs + Posterior Chain + Traps
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -418,7 +418,7 @@ This look is not defined by neck and traps alone. The program emphasizes whole-b
 | 6 | Machine Neck Extension | 12–20 | MMF |
 | 7 | Cable Crunch | 10–15 | MMF |
 
-## Day 3 — Upper Back + Shoulder Girdle + Traps
+## Day 3 - Upper Back + Shoulder Girdle + Traps
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -443,11 +443,11 @@ This look is not defined by neck and traps alone. The program emphasizes whole-b
 # 8. Classic Physique
 
 **Frequency:** 3 days per week<br>
-**Visual goal:** Balanced old-school proportions — broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.
+**Visual goal:** Balanced old-school proportions - broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.
 
 The goal is symmetry rather than maximizing one body part at the expense of the rest.
 
-## Day 1 — Upper Chest + Back Width
+## Day 1 - Upper Chest + Back Width
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -458,7 +458,7 @@ The goal is symmetry rather than maximizing one body part at the expense of the 
 | 5 | Barbell Curl | 6–10 | TF |
 | 6 | Overhead Cable Triceps Extension | 10–15 | MMF |
 
-## Day 2 — Legs + Torso
+## Day 2 - Legs + Torso
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -469,7 +469,7 @@ The goal is symmetry rather than maximizing one body part at the expense of the 
 | 5 | Hanging Knee Raise | 10–15 | TF |
 | 6 | 45-Degree Back Extension | 10–15 | TF |
 
-## Day 3 — Delts + Balanced Upper Body
+## Day 3 - Delts + Balanced Upper Body
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
@@ -642,13 +642,13 @@ The attached research used to design this library supports several important poi
 
 ## Key research represented in the project material
 
-- Refalo et al. — proximity to failure and hypertrophy systematic review/meta-analysis.
-- Grgic et al. — failure versus non-failure systematic review/meta-analysis.
-- Robinson et al. — proximity-to-failure dose-response meta-regression.
-- Currier et al. — resistance-training prescription and 2026 ACSM position stand.
-- Nunes et al. — exercise order systematic review/meta-analysis.
-- Kassiano et al. — exercise variation systematic review.
-- Pelland et al. — weekly volume and frequency dose-response meta-regressions.
+- Refalo et al. - proximity to failure and hypertrophy systematic review/meta-analysis.
+- Grgic et al. - failure versus non-failure systematic review/meta-analysis.
+- Robinson et al. - proximity-to-failure dose-response meta-regression.
+- Currier et al. - resistance-training prescription and 2026 ACSM position stand.
+- Nunes et al. - exercise order systematic review/meta-analysis.
+- Kassiano et al. - exercise variation systematic review.
+- Pelland et al. - weekly volume and frequency dose-response meta-regressions.
 
 ---
 

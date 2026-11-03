@@ -28,7 +28,7 @@ Shall I proceed?
 
 ## Existing authentication
 
-Before `init`, inspect auth dependencies, routes, middleware, sessions, and user records — never environment files. If a different auth provider exists, stop and get approval for a migration plan covering:
+Before `init`, inspect auth dependencies, routes, middleware, sessions, and user records - never environment files. If a different auth provider exists, stop and get approval for a migration plan covering:
 
 - Backend API user import, stable external IDs, compatible password hashes, and OAuth continuity.
 - Protected routes, tokens, session cutover, and rollout strategy.
@@ -197,11 +197,11 @@ Add to global CSS:
 
 Have the user sign up as their first test user. Congratulate them once the profile icon appears in the nav.
 
-Then ask how they want users to sign up and sign in — identifiers (email, phone, username) and social providers. Changing these needs a claimed application: have the user run `npx -y clerk@latest auth login` first, then review with `npx -y clerk@latest config pull` and change with `npx -y clerk@latest config patch` (supports `--dry-run`), or use the Clerk Dashboard. See [sign-up and sign-in options](https://clerk.com/docs/guides/configure/auth-strategies/sign-up-sign-in-options.md) for details.
+Then ask how they want users to sign up and sign in - identifiers (email, phone, username) and social providers. Changing these needs a claimed application: have the user run `npx -y clerk@latest auth login` first, then review with `npx -y clerk@latest config pull` and change with `npx -y clerk@latest config patch` (supports `--dry-run`), or use the Clerk Dashboard. See [sign-up and sign-in options](https://clerk.com/docs/guides/configure/auth-strategies/sign-up-sign-in-options.md) for details.
 
 Before production, have the user claim the app with `npx -y clerk@latest auth login`, then configure production with `npx -y clerk@latest deploy`. Unclaimed apps and temporary keys aren't production-ready.
 
-Then offer Organizations — multi-tenancy, team invitations, roles and permissions, and enterprise SSO.
+Then offer Organizations - multi-tenancy, team invitations, roles and permissions, and enterprise SSO.
 
 If yes:
 

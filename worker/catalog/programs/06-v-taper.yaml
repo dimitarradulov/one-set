@@ -5,7 +5,7 @@ format: Lats + Upper Chest / Lower Body + Delts / Back + Shoulder Width
 emphasis: "Greater shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced lower-body development."
 workouts:
   - key: v-taper-day-1-lats-upper-chest
-    name: Day 1 — Lats + Upper Chest
+    name: Day 1 - Lats + Upper Chest
     banner: upper-body
     position: 1
     exercises:
@@ -34,7 +34,7 @@ workouts:
         position: 6
         reps: { minimum: 10, maximum: 15 }
   - key: v-taper-day-2-lower-body-delts
-    name: Day 2 — Lower Body + Delts
+    name: Day 2 - Lower Body + Delts
     banner: lower-body
     position: 2
     exercises:
@@ -63,7 +63,7 @@ workouts:
         position: 6
         reps: { minimum: 10, maximum: 15 }
   - key: v-taper-day-3-back-width-shoulder-width
-    name: Day 3 — Back Width + Shoulder Width
+    name: Day 3 - Back Width + Shoulder Width
     banner: back-pull
     position: 3
     exercises:

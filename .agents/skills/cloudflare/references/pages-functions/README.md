@@ -12,9 +12,9 @@ Inspect whether the project uses a Functions directory or framework-generated ad
 
 ## In This Reference
 
-- [api.md](./api.md) — handlers, context, middleware, and assets
-- [configuration.md](./configuration.md) — bindings, environments, types, and local development
-- [patterns.md](./patterns.md) — request ownership and shared logic
-- [gotchas.md](./gotchas.md) — route, binding, and runtime investigation
+- [api.md](./api.md) - handlers, context, middleware, and assets
+- [configuration.md](./configuration.md) - bindings, environments, types, and local development
+- [patterns.md](./patterns.md) - request ownership and shared logic
+- [gotchas.md](./gotchas.md) - route, binding, and runtime investigation
 
 See [Pages](../pages/README.md) for builds and deployment decisions.

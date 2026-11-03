@@ -5,7 +5,7 @@ format: "Chest / Back / Legs / Shoulders / Arms"
 emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts."
 workouts:
   - key: bro-split-day-1-chest
-    name: Day 1 — Chest
+    name: Day 1 - Chest
     banner: chest-push
     position: 1
     exercises:
@@ -26,7 +26,7 @@ workouts:
         position: 4
         reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-2-back
-    name: Day 2 — Back
+    name: Day 2 - Back
     banner: back-pull
     position: 2
     exercises:
@@ -51,7 +51,7 @@ workouts:
         position: 5
         reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-3-legs
-    name: Day 3 — Legs
+    name: Day 3 - Legs
     banner: lower-body
     position: 3
     exercises:
@@ -76,7 +76,7 @@ workouts:
         position: 5
         reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-4-shoulders
-    name: Day 4 — Shoulders
+    name: Day 4 - Shoulders
     banner: shoulders
     position: 4
     exercises:
@@ -101,7 +101,7 @@ workouts:
         position: 5
         reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-5-arms
-    name: Day 5 — Arms
+    name: Day 5 - Arms
     banner: arms
     position: 5
     exercises:

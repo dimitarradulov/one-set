@@ -13,8 +13,8 @@ Decide whether the goal is a public application, authenticated private access, o
 
 ## In This Reference
 
-- [configuration.md](./configuration.md) — management mode, ingress, and origin settings
-- [networking.md](./networking.md) — firewall, connectivity, and private-network investigation
-- [api.md](./api.md) — programmatic setup and tunnel operations
-- [patterns.md](./patterns.md) — deployment and availability decisions
-- [gotchas.md](./gotchas.md) — troubleshooting and operational checks
+- [configuration.md](./configuration.md) - management mode, ingress, and origin settings
+- [networking.md](./networking.md) - firewall, connectivity, and private-network investigation
+- [api.md](./api.md) - programmatic setup and tunnel operations
+- [patterns.md](./patterns.md) - deployment and availability decisions
+- [gotchas.md](./gotchas.md) - troubleshooting and operational checks

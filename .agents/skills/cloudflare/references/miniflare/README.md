@@ -15,8 +15,8 @@ For interactive local development, use the project's Wrangler or Cloudflare Vite
 
 ## Read for the task
 
-- [Get started](https://developers.cloudflare.com/workers/testing/miniflare/get-started/index.md) — installation, scripts, lifecycle, and event dispatch.
-- [API routing](./api.md) — events and access to local resources.
-- [Configuration](./configuration.md) — modules, bindings, compatibility, and multiple Workers.
-- [Testing patterns](./patterns.md) — runtime choice, mocking, and test lifecycle.
-- [Troubleshooting and migrations](./gotchas.md) — build/configuration differences and existing test suites.
+- [Get started](https://developers.cloudflare.com/workers/testing/miniflare/get-started/index.md) - installation, scripts, lifecycle, and event dispatch.
+- [API routing](./api.md) - events and access to local resources.
+- [Configuration](./configuration.md) - modules, bindings, compatibility, and multiple Workers.
+- [Testing patterns](./patterns.md) - runtime choice, mocking, and test lifecycle.
+- [Troubleshooting and migrations](./gotchas.md) - build/configuration differences and existing test suites.

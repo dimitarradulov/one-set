@@ -16,7 +16,7 @@ Workers have a 128 MB memory limit. Buffering entire bodies with `await response
 
 **Check**: any `await response.text()`, `await response.json()`, or `await response.arrayBuffer()` on data that could be large or unbounded. Small, bounded payloads (known-size JSON, config files) are fine to buffer.
 
-Correct — stream through:
+Correct - stream through:
 ```ts
 async fetch(request: Request, env: Env): Promise<Response> {
   const response = await fetch("https://api.example.com/large-dataset");
@@ -24,13 +24,13 @@ async fetch(request: Request, env: Env): Promise<Response> {
 }
 ```
 
-Correct — concatenate multiple streams:
+Correct - concatenate multiple streams:
 ```ts
 async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const urls = ["https://api.example.com/part-1", "https://api.example.com/part-2"];
   const { readable, writable } = new TransformStream();
 
-  // Track the pipeline promise — don't let it float
+  // Track the pipeline promise - don't let it float
   ctx.waitUntil((async () => {
     for (const url of urls) {
       const response = await fetch(url);
@@ -49,7 +49,7 @@ async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response
 
 Anti-pattern:
 ```ts
-// Buffers entire body — crashes on large payloads
+// Buffers entire body - crashes on large payloads
 const response = await fetch("https://api.example.com/large-dataset");
 const text = await response.text();
 return new Response(text);
@@ -65,7 +65,7 @@ return new Response(text);
 
 `ctx.waitUntil()` performs background work (analytics, cache writes, webhooks) after the response is sent. Keeps response fast. 30-second time limit after response.
 
-**Check**: background work uses `ctx.waitUntil()`, not inline `await`. Do not destructure `ctx` — it loses the `this` binding and throws "Illegal invocation".
+**Check**: background work uses `ctx.waitUntil()`, not inline `await`. Do not destructure `ctx` - it loses the `this` binding and throws "Illegal invocation".
 
 ```ts
 async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -91,18 +91,18 @@ waitUntil(somePromise);
 
 ### Use bindings for Cloudflare services, not REST APIs
 
-Bindings (KV, R2, D1, Queues, Workflows) are direct, in-process references — no network hop, no authentication, no extra latency. Using the Cloudflare REST API from a Worker wastes time and adds complexity.
+Bindings (KV, R2, D1, Queues, Workflows) are direct, in-process references - no network hop, no authentication, no extra latency. Using the Cloudflare REST API from a Worker wastes time and adds complexity.
 
 **Check**: no `fetch("https://api.cloudflare.com/client/v4/...")` calls for services available as bindings.
 
 ```ts
-// Binding — direct, zero-cost
+// Binding - direct, zero-cost
 const object = await env.MY_BUCKET.get("my-file");
 ```
 
 Anti-pattern:
 ```ts
-// REST API from inside a Worker — unnecessary overhead
+// REST API from inside a Worker - unnecessary overhead
 const response = await fetch(
   "https://api.cloudflare.com/client/v4/accounts/.../r2/buckets/.../objects/my-file",
   { headers: { Authorization: `Bearer ${env.CF_API_TOKEN}` } }
@@ -158,7 +158,7 @@ const auth = await env.AUTH_SERVICE.verifyToken(token);
 
 ### Use Hyperdrive for external database connections
 
-Hyperdrive maintains a regional connection pool, eliminating per-request TCP + TLS + auth cost (often 300-500ms). Create a new `Client` per request — Hyperdrive manages the underlying pool. Requires `nodejs_compat`.
+Hyperdrive maintains a regional connection pool, eliminating per-request TCP + TLS + auth cost (often 300-500ms). Create a new `Client` per request - Hyperdrive manages the underlying pool. Requires `nodejs_compat`.
 
 **Check**: any `new Client()` or database connection that uses a direct connection string instead of `env.HYPERDRIVE.connectionString`.
 
@@ -203,7 +203,7 @@ export default {
 
 Anti-pattern:
 ```ts
-// Module-level mutable state — leaks between requests
+// Module-level mutable state - leaks between requests
 let currentUser: string | null = null;
 
 export default {
@@ -230,13 +230,13 @@ ctx.waitUntil(fetch("https://api.example.com/webhook", { method: "POST", body: J
 
 Anti-pattern:
 ```ts
-// Floating promise — result dropped, error swallowed
+// Floating promise - result dropped, error swallowed
 fetch("https://api.example.com/webhook", { method: "POST", body: JSON.stringify(data) });
 ```
 
 ### Be aware of platform limits
 
-Workers have a 10ms CPU time limit (Bundled) or 30s (Standard/Unbound). Heavy synchronous work — tight loops, large JSON parsing, compute-intensive crypto — can hit the CPU limit and terminate the request.
+Workers have a 10ms CPU time limit (Bundled) or 30s (Standard/Unbound). Heavy synchronous work - tight loops, large JSON parsing, compute-intensive crypto - can hit the CPU limit and terminate the request.
 
 **Check**: compute-heavy operations that run synchronously. Consider breaking work into smaller chunks, offloading to Queues/Workflows, or using WebAssembly for CPU-intensive tasks.
 
@@ -250,7 +250,7 @@ Workers have a 10ms CPU time limit (Bundled) or 30s (Standard/Unbound). Heavy sy
 
 Use `crypto.randomUUID()` for unique IDs and `crypto.getRandomValues()` for random bytes. `Math.random()` is not cryptographically secure.
 
-For comparing secrets (API keys, HMAC signatures), use `crypto.subtle.timingSafeEqual()`. Hash both values to a fixed size first — do not short-circuit on length mismatch (leaks length via timing).
+For comparing secrets (API keys, HMAC signatures), use `crypto.subtle.timingSafeEqual()`. Hash both values to a fixed size first - do not short-circuit on length mismatch (leaks length via timing).
 
 **Check**: no `Math.random()` for security-sensitive values. Secret comparisons use `timingSafeEqual` with fixed-size hashing.
 
@@ -265,7 +265,7 @@ const token = Array.from(tokenBytes).map((b) => b.toString(16).padStart(2, "0"))
 ```
 
 ```ts
-// Constant-time comparison — hash first to avoid length leak
+// Constant-time comparison - hash first to avoid length leak
 async function verifyToken(provided: string, expected: string): Promise<boolean> {
   const encoder = new TextEncoder();
   const [providedHash, expectedHash] = await Promise.all([
@@ -278,10 +278,10 @@ async function verifyToken(provided: string, expected: string): Promise<boolean>
 
 Anti-pattern:
 ```ts
-// Predictable — not cryptographically secure
+// Predictable - not cryptographically secure
 const token = Math.random().toString(36).substring(2);
 
-// Timing side-channel — leaks information about the expected value
+// Timing side-channel - leaks information about the expected value
 return provided === expected;
 ```
 

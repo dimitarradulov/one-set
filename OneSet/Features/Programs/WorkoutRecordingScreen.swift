@@ -268,7 +268,7 @@ struct WorkoutRecordingScreen: View {
                      keyboard: UIKeyboardType) -> some View {
     VStack(alignment: .leading, spacing: 5) {
       Text(title).font(OneSetTypography.caption).foregroundStyle(OneSetColors.textSecondary)
-      TextField("—", text: text)
+      TextField("-", text: text)
         .keyboardType(keyboard)
         .focused($focusedField, equals: field)
         .textFieldStyle(.roundedBorder)

@@ -15,7 +15,7 @@ Do not choose a platform solely from the framework name. For an existing Pages p
 
 ## Reading Order
 
-1. [configuration.md](configuration.md) — build output and routing configuration.
-2. [api.md](api.md) — fetch assets and handle responses.
-3. [patterns.md](patterns.md) — choose a routing design.
-4. [gotchas.md](gotchas.md) — diagnose routing, caching, and deployment issues.
+1. [configuration.md](configuration.md) - build output and routing configuration.
+2. [api.md](api.md) - fetch assets and handle responses.
+3. [patterns.md](patterns.md) - choose a routing design.
+4. [gotchas.md](gotchas.md) - diagnose routing, caching, and deployment issues.

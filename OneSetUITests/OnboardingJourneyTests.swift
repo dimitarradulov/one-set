@@ -545,9 +545,9 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["exerciseDetail.mostRecentResult"].exists)
     XCTAssertTrue(app.staticTexts["exerciseDetail.noRecords"].label.contains("No recorded sets yet"))
     XCTAssertTrue(app.staticTexts["exerciseDetail.noRecordsExplanation"].label.contains("Record this exercise to see your results here."))
-    XCTAssertEqual(app.staticTexts["exerciseDetail.heaviestWeightValue"].label, "—")
-    XCTAssertEqual(app.staticTexts["exerciseDetail.estimatedOneRepMaxValue"].label, "—")
-    XCTAssertEqual(app.staticTexts["exerciseDetail.mostRecentResultValue"].label, "—")
+    XCTAssertEqual(app.staticTexts["exerciseDetail.heaviestWeightValue"].label, "-")
+    XCTAssertEqual(app.staticTexts["exerciseDetail.estimatedOneRepMaxValue"].label, "-")
+    XCTAssertEqual(app.staticTexts["exerciseDetail.mostRecentResultValue"].label, "-")
     attachScreenshot(named: "exercise-records-performance")
 
     historyTab.tap()
@@ -736,7 +736,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(previous.waitForExistence(timeout: 3))
     XCTAssertTrue(previous.label.contains("100 lb × 10 reps"))
     XCTAssertTrue(previous.label.contains("Previous in this workout"))
-    XCTAssertTrue(firstRecordingField(suffix: ".weight").value as? String == "—")
+    XCTAssertTrue(firstRecordingField(suffix: ".weight").value as? String == "-")
     attachScreenshot(named: "recording-previous-performance")
   }
 

@@ -5,7 +5,7 @@ First identify whether the failure involves hosted-image storage, remote URL tra
 | Symptom or question | Documentation |
 |---------------------|---------------|
 | Resizing is absent, an origin request fails, or a transformation returns an error code | [Troubleshooting](https://developers.cloudflare.com/images/reference/troubleshooting/index.md) |
-| Input size, dimensions, animation, or format compatibility | [Limits and formats](https://developers.cloudflare.com/images/get-started/limits/index.md) — choose the section for the affected interface |
+| Input size, dimensions, animation, or format compatibility | [Limits and formats](https://developers.cloudflare.com/images/get-started/limits/index.md) - choose the section for the affected interface |
 | Unexpected fit, quality, format, or crop behavior | [Optimization features](https://developers.cloudflare.com/images/optimization/features/index.md) |
 | Binding input, output, or response handling fails | [Binding methods](https://developers.cloudflare.com/images/optimization/binding/index.md#methods) |
 | Local behavior differs from production | [Local binding development](https://developers.cloudflare.com/images/optimization/binding/index.md#interact-with-your-images-binding-locally) |

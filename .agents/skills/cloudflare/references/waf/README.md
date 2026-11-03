@@ -15,7 +15,7 @@ Identify the target account or zone and inspect existing rules before planning a
 
 ## Reading Order
 
-1. [configuration.md](configuration.md) — deployment method and existing configuration.
-2. [api.md](api.md) — API workflows and expression references.
-3. [patterns.md](patterns.md) — choose a protection or exception workflow.
-4. [gotchas.md](gotchas.md) — diagnose ordering, scope, and false positives.
+1. [configuration.md](configuration.md) - deployment method and existing configuration.
+2. [api.md](api.md) - API workflows and expression references.
+3. [patterns.md](patterns.md) - choose a protection or exception workflow.
+4. [gotchas.md](gotchas.md) - diagnose ordering, scope, and false positives.

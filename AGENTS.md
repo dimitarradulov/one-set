@@ -19,6 +19,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 ./scripts/validate.sh --focused OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome
 ```
 
+## Writing style
+
+Use em dashes sparingly in project text. Prefer a plain hyphen (`-`) for separators, or rephrase with commas, colons, or periods.
+
 ## Task guidance
 
 - Before handing back an action request, follow [task completion](docs/agents/task-completion.md).

@@ -8,13 +8,13 @@ The visual system should support the core workout loop without competing with it
 
 ### Principles
 
-1. **Training first** — the active workout is the highest-priority experience. Reduce taps, navigation, and visual noise.
-2. **One clear action** — each screen should have an obvious primary next action.
-3. **Dense, not cramped** — show useful performance context close to inputs while preserving comfortable touch targets.
-4. **State must be unmistakable** — draft, completed, pending sync, unavailable, destructive, and selected states must not rely on color alone.
-5. **Progressive disclosure** — keep routine logging compact; reveal instructions, warmups, notes, video, and replacement controls on demand.
-6. **Trust through consistency** — inputs, completion controls, timers, status language, and destructive actions behave consistently everywhere.
-7. **Dark by design** — the launch theme is intentionally dark, not a light interface inverted after the fact.
+1. **Training first** - the active workout is the highest-priority experience. Reduce taps, navigation, and visual noise.
+2. **One clear action** - each screen should have an obvious primary next action.
+3. **Dense, not cramped** - show useful performance context close to inputs while preserving comfortable touch targets.
+4. **State must be unmistakable** - draft, completed, pending sync, unavailable, destructive, and selected states must not rely on color alone.
+5. **Progressive disclosure** - keep routine logging compact; reveal instructions, warmups, notes, video, and replacement controls on demand.
+6. **Trust through consistency** - inputs, completion controls, timers, status language, and destructive actions behave consistently everywhere.
+7. **Dark by design** - the launch theme is intentionally dark, not a light interface inverted after the fact.
 
 ---
 
@@ -561,7 +561,7 @@ Every data-bearing screen should define these states before implementation:
 
 ---
 
-## 14. Design tokens — starter specification
+## 14. Design tokens - starter specification
 
 ```text
 color.background       = #1A1A1A

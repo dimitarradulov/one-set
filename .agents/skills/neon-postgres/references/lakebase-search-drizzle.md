@@ -95,7 +95,7 @@ npx drizzle-kit migrate
 
 ## BM25 Index
 
-Keep the `lakebase_bm25` index out of `schema.ts`. It must be built only after the initial corpus is loaded, so its build-time statistics are meaningful (see [Full-text search](full-text-search.md)) — a schema migration would build it against an empty table. Add it in a later custom migration that runs after seeding:
+Keep the `lakebase_bm25` index out of `schema.ts`. It must be built only after the initial corpus is loaded, so its build-time statistics are meaningful (see [Full-text search](full-text-search.md)) - a schema migration would build it against an empty table. Add it in a later custom migration that runs after seeding:
 
 ```bash
 npx drizzle-kit generate --custom --name=bm25_index

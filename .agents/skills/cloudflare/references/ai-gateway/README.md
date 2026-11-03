@@ -22,6 +22,6 @@ Gateway authentication and upstream provider credentials are separate concerns. 
 
 ## Related references
 
-- [Workers AI](../workers-ai/README.md) — model inference.
-- [Agents SDK documentation](https://developers.cloudflare.com/agents/index.md) — stateful agents.
-- [Vectorize](../vectorize/README.md) — vector search.
+- [Workers AI](../workers-ai/README.md) - model inference.
+- [Agents SDK documentation](https://developers.cloudflare.com/agents/index.md) - stateful agents.
+- [Vectorize](../vectorize/README.md) - vector search.

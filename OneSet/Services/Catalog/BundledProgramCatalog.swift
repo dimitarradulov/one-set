@@ -8,7 +8,7 @@ extension ProgramCatalog {
         emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy coverage without high per-session volume.",
         workouts: [
             WorkoutTemplate(
-              id: "full-body-workout-a-vertical-pull-upper-chest", name: "Workout A — Vertical Pull + Upper Chest",
+              id: "full-body-workout-a-vertical-pull-upper-chest", name: "Workout A - Vertical Pull + Upper Chest",
               banner: "general-gym",
               exercises: [
                   WorkoutExercise(
@@ -77,7 +77,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "full-body-workout-b-horizontal-pull-chest", name: "Workout B — Horizontal Pull + Chest",
+              id: "full-body-workout-b-horizontal-pull-chest", name: "Workout B - Horizontal Pull + Chest",
               banner: "general-gym",
               exercises: [
                   WorkoutExercise(
@@ -146,7 +146,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "full-body-workout-c-shoulder-girdle-balanced-lower-body", name: "Workout C — Shoulder Girdle + Balanced Lower Body",
+              id: "full-body-workout-c-shoulder-girdle-balanced-lower-body", name: "Workout C - Shoulder Girdle + Balanced Lower Body",
               banner: "general-gym",
               exercises: [
                   WorkoutExercise(
@@ -647,7 +647,7 @@ extension ProgramCatalog {
         emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts.",
         workouts: [
             WorkoutTemplate(
-              id: "bro-split-day-1-chest", name: "Day 1 — Chest",
+              id: "bro-split-day-1-chest", name: "Day 1 - Chest",
               banner: "chest-push",
               exercises: [
                   WorkoutExercise(
@@ -689,7 +689,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "bro-split-day-2-back", name: "Day 2 — Back",
+              id: "bro-split-day-2-back", name: "Day 2 - Back",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -740,7 +740,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "bro-split-day-3-legs", name: "Day 3 — Legs",
+              id: "bro-split-day-3-legs", name: "Day 3 - Legs",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -791,7 +791,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "bro-split-day-4-shoulders", name: "Day 4 — Shoulders",
+              id: "bro-split-day-4-shoulders", name: "Day 4 - Shoulders",
               banner: "shoulders",
               exercises: [
                   WorkoutExercise(
@@ -842,7 +842,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "bro-split-day-5-arms", name: "Day 5 — Arms",
+              id: "bro-split-day-5-arms", name: "Day 5 - Arms",
               banner: "arms",
               exercises: [
                   WorkoutExercise(
@@ -1036,7 +1036,7 @@ extension ProgramCatalog {
         emphasis: "Greater shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced lower-body development.",
         workouts: [
             WorkoutTemplate(
-              id: "v-taper-day-1-lats-upper-chest", name: "Day 1 — Lats + Upper Chest",
+              id: "v-taper-day-1-lats-upper-chest", name: "Day 1 - Lats + Upper Chest",
               banner: "upper-body",
               exercises: [
                   WorkoutExercise(
@@ -1096,7 +1096,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "v-taper-day-2-lower-body-delts", name: "Day 2 — Lower Body + Delts",
+              id: "v-taper-day-2-lower-body-delts", name: "Day 2 - Lower Body + Delts",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1156,7 +1156,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "v-taper-day-3-back-width-shoulder-width", name: "Day 3 — Back Width + Shoulder Width",
+              id: "v-taper-day-3-back-width-shoulder-width", name: "Day 3 - Back Width + Shoulder Width",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -1229,10 +1229,10 @@ extension ProgramCatalog {
       TrainingProgram(
         id: "powerhouse", name: "Powerhouse",
         format: "Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle",
-        emphasis: "A dense, powerful wrestler-like build — thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.",
+        emphasis: "A dense, powerful wrestler-like build - thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.",
         workouts: [
             WorkoutTemplate(
-              id: "powerhouse-day-1-torso-density-arms", name: "Day 1 — Torso Density + Arms",
+              id: "powerhouse-day-1-torso-density-arms", name: "Day 1 - Torso Density + Arms",
               banner: "upper-body",
               exercises: [
                   WorkoutExercise(
@@ -1301,7 +1301,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Day 2 — Thighs + Posterior Chain + Traps",
+              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Day 2 - Thighs + Posterior Chain + Traps",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1370,7 +1370,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "powerhouse-day-3-upper-back-shoulder-girdle-traps", name: "Day 3 — Upper Back + Shoulder Girdle + Traps",
+              id: "powerhouse-day-3-upper-back-shoulder-girdle-traps", name: "Day 3 - Upper Back + Shoulder Girdle + Traps",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -1443,10 +1443,10 @@ extension ProgramCatalog {
       TrainingProgram(
         id: "classic-physique", name: "Classic Physique",
         format: "Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body",
-        emphasis: "Balanced old-school proportions — broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.",
+        emphasis: "Balanced old-school proportions - broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.",
         workouts: [
             WorkoutTemplate(
-              id: "classic-physique-day-1-upper-chest-back-width", name: "Day 1 — Upper Chest + Back Width",
+              id: "classic-physique-day-1-upper-chest-back-width", name: "Day 1 - Upper Chest + Back Width",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -1506,7 +1506,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "classic-physique-day-2-legs-torso", name: "Day 2 — Legs + Torso",
+              id: "classic-physique-day-2-legs-torso", name: "Day 2 - Legs + Torso",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1566,7 +1566,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "classic-physique-day-3-delts-balanced-upper-body", name: "Day 3 — Delts + Balanced Upper Body",
+              id: "classic-physique-day-3-delts-balanced-upper-body", name: "Day 3 - Delts + Balanced Upper Body",
               banner: "shoulders",
               exercises: [
                   WorkoutExercise(

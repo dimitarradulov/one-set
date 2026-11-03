@@ -2,10 +2,10 @@ key: powerhouse
 name: Powerhouse
 recommended_weeks: 8
 format: Torso + Arms / Thighs + Posterior Chain / Upper Back + Shoulder Girdle
-emphasis: "A dense, powerful wrestler-like build — thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps."
+emphasis: "A dense, powerful wrestler-like build - thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps."
 workouts:
   - key: powerhouse-day-1-torso-density-arms
-    name: Day 1 — Torso Density + Arms
+    name: Day 1 - Torso Density + Arms
     banner: upper-body
     position: 1
     exercises:
@@ -38,7 +38,7 @@ workouts:
         position: 7
         reps: { minimum: 12, maximum: 20 }
   - key: powerhouse-day-2-thighs-posterior-chain-traps
-    name: Day 2 — Thighs + Posterior Chain + Traps
+    name: Day 2 - Thighs + Posterior Chain + Traps
     banner: lower-body
     position: 2
     exercises:
@@ -71,7 +71,7 @@ workouts:
         position: 7
         reps: { minimum: 10, maximum: 15 }
   - key: powerhouse-day-3-upper-back-shoulder-girdle-traps
-    name: Day 3 — Upper Back + Shoulder Girdle + Traps
+    name: Day 3 - Upper Back + Shoulder Girdle + Traps
     banner: back-pull
     position: 3
     exercises:

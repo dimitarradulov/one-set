@@ -12,9 +12,9 @@ Use this reference when maintaining an existing Pages project. For new applicati
 
 ## In This Reference
 
-- [configuration.md](./configuration.md) — build output, environments, and static rules
-- [api.md](./api.md) — request handling and framework integration
-- [patterns.md](./patterns.md) — project decisions and migration
-- [gotchas.md](./gotchas.md) — build, routing, and deployment investigation
+- [configuration.md](./configuration.md) - build output, environments, and static rules
+- [api.md](./api.md) - request handling and framework integration
+- [patterns.md](./patterns.md) - project decisions and migration
+- [gotchas.md](./gotchas.md) - build, routing, and deployment investigation
 
 See [Pages Functions](../pages-functions/README.md) for handler-focused navigation. Identify the existing deployment method and framework before proposing changes.

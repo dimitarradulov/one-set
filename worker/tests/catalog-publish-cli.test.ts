@@ -104,10 +104,10 @@ workouts:
     assert.match(output, /update workout: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ Workout A Revised/);
     assert.match(output, /remove workout: Machine Full Body \(machine-full-body\) \/ Workout B \(machine-full-body-b\)/);
     assert.match(output, /restore workout: Machine Full Body \(machine-full-body\) \/ Workout C \(machine-full-body-c\)/);
-    assert.match(output, /add exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-row — Exercise cable_row/);
-    assert.match(output, /update exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-chest-press — Exercise machine_chest_press; changed fields: reps/);
-    assert.match(output, /remove exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press — Exercise machine_chest_press/);
-    assert.match(output, /restore exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press — Exercise machine_chest_press/);
+    assert.match(output, /add exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-row - Exercise cable_row/);
+    assert.match(output, /update exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-chest-press - Exercise machine_chest_press; changed fields: reps/);
+    assert.match(output, /remove exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press - Exercise machine_chest_press/);
+    assert.match(output, /restore exercise slot: Machine Full Body \(machine-full-body\) \/ Workout A \(machine-full-body-a\) \/ machine-full-body-a-press - Exercise machine_chest_press/);
     assert.match(output, /update shared exercise: Machine Full Body \(machine-full-body\) \/ Machine Chest Press/);
     assert.match(output, /preview-123/);
     assert.ok(requestBody && typeof requestBody === 'object');

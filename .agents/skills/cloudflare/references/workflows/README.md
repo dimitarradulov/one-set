@@ -11,13 +11,13 @@ Fetch the relevant current documentation before implementing. API shapes, config
 
 ## In This Reference
 
-- [configuration.md](./configuration.md) — setup, bindings, retry configuration, and local development
-- [api.md](./api.md) — steps, instance lifecycle, events, CLI, and REST operations
-- [patterns.md](./patterns.md) — design decisions, examples, orchestration, and tests
-- [gotchas.md](./gotchas.md) — failures, timeouts, replay, and capacity investigation
+- [configuration.md](./configuration.md) - setup, bindings, retry configuration, and local development
+- [api.md](./api.md) - steps, instance lifecycle, events, CLI, and REST operations
+- [patterns.md](./patterns.md) - design decisions, examples, orchestration, and tests
+- [gotchas.md](./gotchas.md) - failures, timeouts, replay, and capacity investigation
 
 ## See Also
 
-- [Durable Objects](https://developers.cloudflare.com/durable-objects/index.md) — stateful coordination
-- [Queues](../queues/README.md) — asynchronous message delivery
-- [Workers](https://developers.cloudflare.com/workers/index.md) — application entry points that trigger instances
+- [Durable Objects](https://developers.cloudflare.com/durable-objects/index.md) - stateful coordination
+- [Queues](../queues/README.md) - asynchronous message delivery
+- [Workers](https://developers.cloudflare.com/workers/index.md) - application entry points that trigger instances

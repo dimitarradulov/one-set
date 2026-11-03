@@ -13,9 +13,9 @@ Before adding a Tail Worker, check whether built-in OpenTelemetry export meets t
 
 ## In This Reference
 
-- [configuration.md](./configuration.md) — producer, consumer, destination, and environment setup
-- [api.md](./api.md) — event fields, execution outcomes, and redaction
-- [patterns.md](./patterns.md) — destination and filtering decisions
-- [gotchas.md](./gotchas.md) — connection, data, and delivery investigation
+- [configuration.md](./configuration.md) - producer, consumer, destination, and environment setup
+- [api.md](./api.md) - event fields, execution outcomes, and redaction
+- [patterns.md](./patterns.md) - destination and filtering decisions
+- [gotchas.md](./gotchas.md) - connection, data, and delivery investigation
 
 See [observability](../observability/README.md) for broader logging and tracing choices.

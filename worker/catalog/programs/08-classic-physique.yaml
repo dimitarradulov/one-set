@@ -2,10 +2,10 @@ key: classic-physique
 name: Classic Physique
 recommended_weeks: 8
 format: Upper Chest + Back Width / Legs + Torso / Delts + Balanced Upper Body
-emphasis: "Balanced old-school proportions — broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs."
+emphasis: "Balanced old-school proportions - broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs."
 workouts:
   - key: classic-physique-day-1-upper-chest-back-width
-    name: Day 1 — Upper Chest + Back Width
+    name: Day 1 - Upper Chest + Back Width
     banner: back-pull
     position: 1
     exercises:
@@ -34,7 +34,7 @@ workouts:
         position: 6
         reps: { minimum: 10, maximum: 15 }
   - key: classic-physique-day-2-legs-torso
-    name: Day 2 — Legs + Torso
+    name: Day 2 - Legs + Torso
     banner: lower-body
     position: 2
     exercises:
@@ -63,7 +63,7 @@ workouts:
         position: 6
         reps: { minimum: 10, maximum: 15 }
   - key: classic-physique-day-3-delts-balanced-upper-body
-    name: Day 3 — Delts + Balanced Upper Body
+    name: Day 3 - Delts + Balanced Upper Body
     banner: shoulders
     position: 3
     exercises:
