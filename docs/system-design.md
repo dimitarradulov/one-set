@@ -30,7 +30,7 @@ Suggested modules: account/access, catalog, active workout, history, sync, media
 
 Writes serialize through a local transaction. Only after commit does UI confirm the save and schedule rest. A local storage failure displays an actionable failure and retains visible input; optimistic success alone is insufficient. Persist each input change efficiently; measure write latency rather than hiding data loss behind a long debounce.
 
-App startup first restores an active session, then refreshes remote state when possible. User data is namespaced per account; never render one user's store to another. Sign-out/account switch with pending data must offer to sync first and explicitly explain any local-data removal; never silently clear the outbox.
+App startup first restores an active session, then fetches compact progress for the active cycle when possible. Store that summary by account and cycle, independently from downloaded History sessions; combine its completion marks with local finished sessions when choosing the next occurrence. User data is namespaced per account; never render one user's store to another. Sign-out/account switch with pending data must offer to sync first and explicitly explain any local-data removal; never silently clear the outbox.
 
 ## Worker API and Postgres
 

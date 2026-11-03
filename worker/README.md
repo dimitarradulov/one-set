@@ -1,6 +1,6 @@
 # OneSet Worker and program catalog
 
-This Worker implements the `GET` and `PUT /v1/me/setup` contracts in [account setup](../docs/account-setup.md), authenticated catalog delivery, the founder's catalog publisher API, and the first-write contract for completed sessions. Program content lives in [catalog](catalog/), is previewed and validated before publication, and is applied atomically to Neon. Setup uses persistent authoring keys from migration 003 instead of a deployment-time per-program map.
+This Worker implements the `GET` and `PUT /v1/me/setup` contracts in [account setup](../docs/account-setup.md), authenticated `GET /v1/me/progress`, authenticated catalog delivery, the founder's catalog publisher API, and the first-write contract for completed sessions. Program content lives in [catalog](catalog/), is previewed and validated before publication, and is applied atomically to Neon. Setup uses persistent authoring keys from migration 003 instead of a deployment-time per-program map.
 
 Install dependencies with `npm ci` in this directory (Node 22 or later). Run `npm run typecheck` and `npm test`, or the repository's `./scripts/validate.sh` after installing dependencies. Tests verify real signed session tokens and owner-scoped SQL against the applied schema in disposable PGlite Postgres. They do not contact a live Clerk instance or Neon database.
 
@@ -67,6 +67,10 @@ The identity-provisioning update passed signed-token API tests against disposabl
 Migration 002 was applied to the deployed development database (`oneset` on `oneset-development`) on 2026-10-06 after rehearsal on a temporary child branch. First completion, safe retries and preservation of established records passed; the installed function and unchanged row counts were verified. The temporary branch was deleted. The updated Worker PUT handler has not been deployed by this migration task.
 
 The completed-setup handler was deployed to `oneset-api-development` on 2026-10-06 as version `d0770628-d587-464d-a497-b5ad88578db2`, serving 100% of development traffic. Worker typechecking, all 14 API tests and the Wrangler deployment dry run passed. That historical version retained `DATABASE_URL` and `CLERK_JWT_KEY`, with the existing development issuer, authorized party, and compatibility settings; at that point it still used a `PROGRAM_CATALOG_MAP`. Migration 003 and the catalog-aware Worker replace that mapping with persistent authoring keys. Live GET/PUT requests without authentication and PUT with an invalid token returned `401 AUTH_REQUIRED`; POST returned `405 METHOD_NOT_ALLOWED`. Responses retained `Cache-Control: private, no-store`. A successful authenticated save still needs verification using an actual signed-in app session. Production was not deployed or modified.
+
+## Compact progress restore
+
+`GET /v1/me/progress` returns only the authenticated account's active-cycle key, monotonic week boundary, completion marks, retained workout membership periods, and required workout keys for the current week. It does not read session or set bodies. The route is covered by signed-token and PGlite tests for current boundaries, completion marks, account isolation, unauthenticated requests and the private no-store response header.
 
 ## Completed-session first writes
 

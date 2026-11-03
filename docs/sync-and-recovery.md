@@ -59,9 +59,9 @@ Starting a new cycle creates the run, copies compatible preferences from local s
 
 ## Refresh and device replacement
 
-Fetch a complete owned snapshot from one read-only repeatable-read transaction: settings, runs/preferences, completion marks and sessions/sets. Apply only a complete response, preserving pending local input and suppressing pending deletions. Discard responses overtaken by newer local writes/acknowledgments. Partial history pages must never stand in for a full account snapshot.
+Fetch account setup and compact training progress independently from paginated History. The authenticated progress read returns the active cycle's monotonic training-week boundary, completion marks, retained workout membership periods, and required workout keys for the current week. Persist it by account/cycle, merge completion marks by identity and never lower the saved week boundary. Do not create session rows or upload work from these marks. Preserve local pending completions and include them when selecting completed days and the next workout.
 
-The same snapshot restores synced history on a replacement device. Active timers and unsynced work remain local. Concurrent training across devices is outside the current scope. Measure full-refresh size before introducing incremental synchronization.
+History pages restore full session details as the lifter browses; cached rows alone do not establish complete training progress or previous performance. Active timers and unsynced work remain local. Concurrent training across devices is outside the current scope.
 
 ## Delete and discard
 
