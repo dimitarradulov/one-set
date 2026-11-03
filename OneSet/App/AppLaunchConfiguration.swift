@@ -15,6 +15,7 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-setup-cycle-conflict")
       || arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
+      || arguments.contains("--ui-progress-restore-error")
     #else
     return false
     #endif
@@ -59,7 +60,8 @@ struct AppLaunchConfiguration {
       selectedProgramID = nil
     } else if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
       || arguments.contains("--ui-setup-upload-removed")
-      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error") {
+      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error")
+      || arguments.contains("--ui-progress-restore-error") {
       onboardingPath = []
       selectedProgramID = nil
     } else if arguments.contains("--ui-email-auth") {

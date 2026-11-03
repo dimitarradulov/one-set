@@ -7,6 +7,7 @@ struct AppDependencies {
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
   let previousPerformance: any PreviousPerformanceService
+  let accountProgress: (any AccountProgressService)?
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
@@ -29,6 +30,7 @@ struct AppDependencies {
       ),
       accountSetup: PreviewAccountSetupService(),
       previousPerformance: PreviewPreviousPerformanceService(),
+      accountProgress: nil,
       completedSessionUpload: nil,
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
@@ -51,10 +53,12 @@ struct AppDependencies {
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
+    let progressRestoreError = arguments.contains("--ui-progress-restore-error")
     let mainTabsPreview = launch.includesMainTabsPreview
     let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
+      || progressRestoreError
       || arguments.contains("--ui-google-auth-error")
       || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
       || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
@@ -69,9 +73,10 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = sessionSignOutPreview ? "session-signout-workouts.sqlite" : "workouts.sqlite"
+    let previewWorkoutFile = progressRestoreError ? "progress-restore-error-workouts.sqlite"
+      : (sessionSignOutPreview ? "session-signout-workouts.sqlite" : "workouts.sqlite")
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview {
+    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview || progressRestoreError {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -150,7 +155,7 @@ struct AppDependencies {
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
           startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-auth-restored")
             || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
-            || arguments.contains("--ui-progress-save-error"),
+            || arguments.contains("--ui-progress-save-error") || progressRestoreError,
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
           resetPersistedSession: arguments.contains("--ui-auth-reset"),
           signOutFails: arguments.contains("--ui-auth-signout-error") || arguments.contains("--ui-session-signout-error"),
@@ -167,6 +172,7 @@ struct AppDependencies {
           storageDirectory: storage.directory
         ),
         previousPerformance: PreviewPreviousPerformanceService(),
+        accountProgress: progressRestoreError ? PreviewAccountProgressService(fails: true) : nil,
         completedSessionUpload: nil,
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
@@ -208,6 +214,7 @@ struct AppDependencies {
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication),
       previousPerformance: HTTPPreviousPerformanceService(authentication: authentication),
+      accountProgress: HTTPAccountProgressService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))

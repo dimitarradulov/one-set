@@ -3,6 +3,7 @@ import { handleCatalogRequest } from './catalog';
 import { handleCompletedSessionRequest } from './sessions';
 import { handleSetupRequest } from './setup';
 import { handlePreviousPerformanceRequest } from './previous-performance';
+import { handleProgressRequest } from './progress';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -25,7 +26,12 @@ export default {
     }
     if (path === '/v1/me/previous-performance') {
       return handlePreviousPerformanceRequest(request, env, {
-        query: async (query, params) => sql.query(query, params),
+        query: async (query, params = []) => sql.query(query, params),
+      });
+    }
+    if (path.startsWith('/v1/me/progress')) {
+      return handleProgressRequest(request, env, {
+        query: async (query, params = []) => sql.query(query, params),
       });
     }
     return handleSetupRequest(request, env, {

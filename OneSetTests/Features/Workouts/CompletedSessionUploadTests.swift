@@ -5,6 +5,57 @@ import Testing
 @MainActor
 struct CompletedSessionUploadTests {
   @Test
+  func replacementDeviceRestoresCycleBoundaryAndOccurrenceMarksWithoutHistorySessions() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(
+      preferredUnit: .kilograms, trainingDays: 3, programID: "machine-full-body",
+      cycleID: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!
+    )
+    let program = try #require(ProgramCatalog.bundled.program(id: setup.programID))
+    let required = program.workouts.map(\.id)
+    let summary = AccountProgress(
+      cycleID: setup.cycleID, programID: setup.programID, currentTrainingWeek: 9,
+      completedOccurrences: [.init(weekNumber: 9, workoutID: required[0])],
+      workoutPeriods: required.map { .init(workoutID: $0, startsWeek: 1, endsWeek: nil) },
+      requiredWorkoutIDs: required
+    )
+    let repositoryURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: repositoryURL)
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(
+      catalog: .bundled, setupService: StaticAccountSetupService(setup: setup),
+      progressService: StaticAccountProgressService(progress: summary), workoutRepository: repository
+    )
+
+    await model.resolveAccountSetup(using: authentication)
+
+    #expect(model.currentWorkoutWeek(programID: setup.programID) == 9)
+    #expect(model.completedWorkoutIDs(programID: setup.programID, week: 9) == [required[0]])
+    let next = try repository.nextOccurrence(
+      accountID: "preview-user", cycleID: setup.cycleID, programID: setup.programID, workoutIDs: required
+    )
+    #expect(next.week == 9)
+    #expect(next.workoutID == required[1])
+    #expect(try repository.hasRestorableProgress(accountID: "another-account", cycleID: setup.cycleID) == false)
+    let delayed = AccountProgress(
+      cycleID: setup.cycleID, programID: setup.programID, currentTrainingWeek: 8,
+      completedOccurrences: [.init(weekNumber: 8, workoutID: required[0])],
+      workoutPeriods: [], requiredWorkoutIDs: required
+    )
+    try repository.restoreProgress(delayed, accountID: "preview-user")
+    #expect(try repository.nextOccurrence(accountID: "preview-user", cycleID: setup.cycleID,
+      programID: setup.programID, workoutIDs: required).week == 9)
+
+    let reopened = try WorkoutRepository(databaseURL: repositoryURL)
+    #expect(try reopened.completedOccurrenceIDs(accountID: "preview-user", cycleID: setup.cycleID, week: 9) == [required[0]])
+    #expect(try reopened.hasRestorableProgress(accountID: "preview-user", cycleID: setup.cycleID))
+    #expect(try reopened.completedOccurrenceIDs(accountID: "preview-user", cycleID: setup.cycleID, week: 8) == [required[0]])
+    #expect(try reopened.nextOccurrence(accountID: "preview-user", cycleID: setup.cycleID,
+      programID: setup.programID, workoutIDs: required).workoutID == required[1])
+  }
+
+  @Test
   func retryAfterAcceptsDelaySecondsAndHttpDate() {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     #expect(CompletedSessionUploadRetryPolicy.serverRetryDate(headerValue: "120", at: now)
@@ -984,6 +1035,15 @@ private struct StaticAccountSetupService: AccountSetupService {
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
     setup
+  }
+}
+
+@MainActor
+private struct StaticAccountProgressService: AccountProgressService {
+  let progress: AccountProgress?
+
+  func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {
+    progress
   }
 }
 

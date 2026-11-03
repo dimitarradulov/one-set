@@ -40,6 +40,7 @@ final class OnboardingModel {
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
   private let previousPerformanceService: (any PreviousPerformanceService)?
+  private let progressService: (any AccountProgressService)?
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
@@ -60,6 +61,7 @@ final class OnboardingModel {
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
     previousPerformanceService: (any PreviousPerformanceService)? = nil,
+    progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
@@ -76,6 +78,7 @@ final class OnboardingModel {
     self.catalog = catalog
     self.setupService = setupService
     self.previousPerformanceService = previousPerformanceService
+    self.progressService = progressService
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
     self.completedSessionUploadService = completedSessionUploadService
@@ -135,6 +138,25 @@ final class OnboardingModel {
         }
         try storeCompleted(setup, needsUpload: false, accountID: user.id)
         apply(setup)
+        if let progressService {
+          do {
+            let summary = try await progressService.lookup(for: user)
+            guard !Task.isCancelled, generation == lookupGeneration,
+                  authentication.signedInUser?.id == user.id else { return }
+            guard let summary,
+                  summary.cycleID == setup.cycleID, summary.programID == setup.programID else {
+              throw AccountSetupError.unavailable
+            }
+            try workoutRepository?.restoreProgress(summary, accountID: user.id)
+          } catch {
+            guard !Task.isCancelled, generation == lookupGeneration,
+                  authentication.signedInUser?.id == user.id else { return }
+            guard try workoutRepository?.hasRestorableProgress(accountID: user.id, cycleID: setup.cycleID) == true else {
+              setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
+              return
+            }
+          }
+        }
       } else if let savedProgress {
         restore(savedProgress)
       } else {

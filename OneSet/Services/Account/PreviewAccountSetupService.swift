@@ -30,6 +30,7 @@ final class PreviewAccountSetupService: AccountSetupService {
       try? FileManager.default.removeItem(at: backendURL)
     }
     completed = arguments.contains("--ui-setup-completed") || arguments.contains("--ui-setup-removed-follower")
+      || arguments.contains("--ui-progress-restore-error")
       || (includesMainTabsPreview
           && !arguments.contains("--ui-session-signout-confirmation")
           && !arguments.contains("--ui-session-signout-error"))

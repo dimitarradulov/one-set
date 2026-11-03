@@ -121,7 +121,40 @@ final class WorkoutRepository {
         table.primaryKey(["account_id", "cycle_id"])
       }
     }
-    migrator.registerMigration("restored-previous-performance-v7") { db in
+    migrator.registerMigration("restored-cycle-progress-v7") { db in
+      try db.create(table: "restored_cycle_progress") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("current_training_week", .integer).notNull()
+        table.column("payload", .blob).notNull()
+        table.primaryKey(["account_id", "cycle_id"])
+      }
+      try db.create(table: "restored_completed_occurrences") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("week", .integer).notNull()
+        table.column("workout_id", .text).notNull()
+        table.primaryKey(["account_id", "cycle_id", "week", "workout_id"])
+      }
+      try db.create(table: "restored_required_workouts") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("week", .integer).notNull()
+        table.column("position", .integer).notNull()
+        table.column("workout_id", .text).notNull()
+        table.primaryKey(["account_id", "cycle_id", "week", "workout_id"])
+      }
+      try db.create(table: "restored_workout_periods") { table in
+        table.column("account_id", .text).notNull()
+        table.column("cycle_id", .text).notNull()
+        table.column("workout_id", .text).notNull()
+        table.column("starts_week", .integer).notNull()
+        table.column("ends_week", .integer)
+        table.column("payload", .blob).notNull()
+        table.primaryKey(["account_id", "cycle_id", "workout_id", "starts_week"])
+      }
+    }
+    migrator.registerMigration("restored-previous-performance-v8") { db in
       try db.create(table: "restored_previous_performance") { table in
         table.column("account_id", .text).primaryKey()
         table.column("payload", .blob).notNull()
@@ -222,9 +255,12 @@ final class WorkoutRepository {
   private func nextOccurrence(in db: Database, accountID: String, cycleID: UUID,
                               programID: String, workoutIDs: [String]) throws
     -> (week: Int, day: Int, workoutID: String) {
-    var week = 1
+    var week = try Int.fetchOne(db, sql: "SELECT current_training_week FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?", arguments: [accountID, cycleID.uuidString]) ?? 1
     while true {
-      var members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
+      var members = try String.fetchAll(db, sql: "SELECT workout_id FROM restored_required_workouts WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY position", arguments: [accountID, cycleID.uuidString, week])
+      if members.isEmpty {
+        members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
+      }
       if members.isEmpty {
         members = workoutIDs
         for workoutID in members {
@@ -232,7 +268,11 @@ final class WorkoutRepository {
         }
       }
       for (index, workoutID) in members.enumerated() {
-        let completed = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week, workoutID]) ?? 0
+        let completed = try Int.fetchOne(db, sql: """
+          SELECT (SELECT COUNT(*) FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ? AND finished_at IS NOT NULL)
+            + (SELECT COUNT(*) FROM restored_completed_occurrences WHERE account_id = ? AND cycle_id = ? AND week = ? AND workout_id = ?)
+          """, arguments: [accountID, cycleID.uuidString, week, workoutID,
+                           accountID, cycleID.uuidString, week, workoutID]) ?? 0
         if completed == 0 { return (week, index + 1, workoutID) }
       }
       week += 1
@@ -481,7 +521,64 @@ final class WorkoutRepository {
 
   func completedOccurrenceIDs(accountID: String, cycleID: UUID, week: Int) throws -> Set<String> {
     try database.read { db in
-      Set(try String.fetchAll(db, sql: "SELECT workout_id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week]))
+      let local = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week])
+      let restored = try String.fetchAll(db, sql: "SELECT workout_id FROM restored_completed_occurrences WHERE account_id = ? AND cycle_id = ? AND week = ?", arguments: [accountID, cycleID.uuidString, week])
+      return Set(local + restored)
+    }
+  }
+
+  func restoreProgress(_ progress: AccountProgress, accountID: String) throws {
+    guard progress.currentTrainingWeek > 0,
+          progress.completedOccurrences.allSatisfy({ $0.weekNumber > 0 }),
+          progress.workoutPeriods.allSatisfy({ period in
+            period.startsWeek > 0 && (period.endsWeek.map { $0 >= period.startsWeek } ?? true)
+          }) else {
+      throw AccountSetupError.invalidSetup
+    }
+    let payload = try JSONEncoder().encode(progress)
+    try database.write { db in
+      let existingWeek = try Int.fetchOne(db, sql: "SELECT current_training_week FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?", arguments: [accountID, progress.cycleID.uuidString]) ?? 0
+      for occurrence in progress.completedOccurrences {
+        try db.execute(sql: """
+          INSERT OR IGNORE INTO restored_completed_occurrences (account_id, cycle_id, week, workout_id)
+          VALUES (?, ?, ?, ?)
+          """, arguments: [accountID, progress.cycleID.uuidString, occurrence.weekNumber, occurrence.workoutID])
+      }
+      if progress.currentTrainingWeek >= existingWeek {
+        try db.execute(sql: """
+          INSERT INTO restored_cycle_progress (account_id, cycle_id, current_training_week, payload)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT (account_id, cycle_id) DO UPDATE SET
+            current_training_week = max(restored_cycle_progress.current_training_week, excluded.current_training_week),
+            payload = CASE WHEN excluded.current_training_week >= restored_cycle_progress.current_training_week
+              THEN excluded.payload ELSE restored_cycle_progress.payload END
+          """, arguments: [accountID, progress.cycleID.uuidString, progress.currentTrainingWeek, payload])
+        try db.execute(sql: "DELETE FROM restored_required_workouts WHERE account_id = ? AND cycle_id = ? AND week = ?", arguments: [accountID, progress.cycleID.uuidString, progress.currentTrainingWeek])
+        for (position, workoutID) in progress.requiredWorkoutIDs.enumerated() {
+          try db.execute(sql: """
+            INSERT OR IGNORE INTO restored_required_workouts (account_id, cycle_id, week, position, workout_id)
+            VALUES (?, ?, ?, ?, ?)
+            """, arguments: [accountID, progress.cycleID.uuidString, progress.currentTrainingWeek, position, workoutID])
+        }
+      }
+      for period in progress.workoutPeriods {
+        let periodData = try JSONEncoder().encode(period)
+        try db.execute(sql: """
+          INSERT OR REPLACE INTO restored_workout_periods (account_id, cycle_id, workout_id, starts_week, ends_week, payload)
+          VALUES (?, ?, ?, ?, ?, ?)
+          """, arguments: [accountID, progress.cycleID.uuidString, period.workoutID, period.startsWeek, period.endsWeek, periodData])
+      }
+    }
+  }
+
+  func hasRestorableProgress(accountID: String, cycleID: UUID) throws -> Bool {
+    try database.read { db in
+      try Bool.fetchOne(db, sql: """
+        SELECT EXISTS (SELECT 1 FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?)
+          OR EXISTS (SELECT 1 FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND finished_at IS NOT NULL)
+          OR EXISTS (SELECT 1 FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND finished_at IS NULL)
+        """, arguments: [accountID, cycleID.uuidString, accountID, cycleID.uuidString,
+                         accountID, cycleID.uuidString]) ?? false
     }
   }
 

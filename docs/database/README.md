@@ -46,6 +46,8 @@ An occurrence is `(user_program_id, week_number, workout_id)`. Finish inserts it
 
 `user_programs.current_training_week` is the explicit, monotonic boundary for the cycle. Migration 005 initializes it to the first incomplete week using the template that existed before structural edits and the existing completion marks. New cycles start at week 1. `user_program_workout_periods` records each workout's required week interval for that cycle; `required_workouts_for_cycle_week()` returns the currently required, currently ordered workouts for a week at or after its boundary. Publication snapshots each cycle's week before changing membership, closes removed workouts at the preceding week and opens added workouts at the stored current week. A later session-finish command advances `current_training_week` only after all workouts required in that week are complete. Catalog refreshes and republication of old content never lower or recalculate this boundary. Completed marks, session snapshots and remembered replacements are untouched by publication.
 
+The authenticated `GET /v1/me/progress` read returns this boundary, the cycle's completion marks, retained membership periods, and the ordered current-week workout keys without fetching session details. The iOS repository stores the response separately from sessions and merges marks by account/cycle, so replacement-device training readiness does not depend on History pagination.
+
 ## Current templates and historical sessions
 
 Edit templates in place. Future sessions use the latest downloaded content, including within an existing run. Offline starts use the cached template. Copy workout name, exercise order and effective guidance at session start; subsequent template changes do not rewrite that session.

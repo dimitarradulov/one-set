@@ -1,6 +1,6 @@
 # Synchronization, durability and recovery
 
-Status: the completed-only first upload and compact previous-performance restore read are implemented. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. History pagination, progress summary restoration, edits, deletes and the broader recovery protocol remain future work.
+Status: the completed-only first upload, compact program-progress restore, and compact previous-performance restore read are implemented. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. History pagination, edits, deletes and the broader recovery protocol remain future work.
 
 The [completed-session save slice](https://github.com/dimitarradulov/one-set/issues/40) narrows the first upload implementation to finished sessions and supersedes the routine visible workout sync states and Retry action proposed below. Active drafts and discards remain local; automatic completed-session retries are invisible during normal use. Actionable failures still surface. The broader draft, history-edit and restoration protocol below remains future work.
 
@@ -32,7 +32,11 @@ The local queue retains an unacknowledged body if that request fails. An equal r
 
 ### Compact previous-performance restore
 
-After authenticated account setup resolves, the app reads `GET /v1/me/previous-performance`, which returns the latest completed working-set result for each actual exercise and original slot in each owned program workout. This read restores the preferred same-exercise/same-workout result and the latest fallback without fetching session history pages. The Worker derives ownership from Clerk authentication, keeps the response private, and does not require active subscription access. Local SQLite migration v7 adds an account-scoped cache separate from session rows and the upload queue. Results retain their original load and unit; the existing recorder uses them for display and progression guidance without filling current inputs. Local completed sessions are merged during selection, so newer offline work takes precedence. Failed reads preserve cached/local results and show an unavailable state with a retry action rather than claiming there is no earlier performance.
+After authenticated account setup resolves, the app reads `GET /v1/me/previous-performance`, which returns the latest completed working-set result for each actual exercise and original slot in each owned program workout. This read restores the preferred same-exercise/same-workout result and the latest fallback without fetching session history pages. The Worker derives ownership from Clerk authentication, keeps the response private, and does not require active subscription access. Local SQLite migration v8 adds an account-scoped cache separate from session rows and the upload queue. Results retain their original load and unit; the existing recorder uses them for display and progression guidance without filling current inputs. Local completed sessions are merged during selection, so newer offline work takes precedence. Failed reads preserve cached/local results and show an unavailable state with a retry action rather than claiming there is no earlier performance.
+
+### Compact program-progress restore
+
+After account setup resolves, the app reads `GET /v1/me/progress` and stores the active cycle's monotonic training-week boundary, completion marks, retained workout periods and current required workout order in account-scoped SQLite migration v7. This read restores Program overview completion marks and next-workout eligibility independently of History pages and full session details. Local finished sessions continue to contribute immediately, including work still pending upload. A failed summary read preserves an already restored snapshot; on a fresh device without safe cached progress, account restoration exposes its retry state instead of inventing a new week or cycle.
 
 If a locally completed setup is still pending, session uploads wait for its acknowledgment. Setup retries keep the same device-generated cycle ID, including after a lost response. If the account already has a different established cycle, the app records a durable block for the local cycle before acknowledging setup. Sessions under that original cycle remain queued with their original IDs and bodies; the Worker rejects them because the cycle is not owned by the account. Other sessions for valid owned cycles continue through the queue. An active workout on the blocked local cycle may still be finished and saved locally, but its upload remains blocked. The app explains that the completed workout is still on this device and was not moved or uploaded. It does not create a replacement cycle, rewrite the session, or show routine retry controls.
 
@@ -63,9 +67,9 @@ Starting a new cycle creates the run, copies compatible preferences from local s
 
 ## Refresh and device replacement
 
-Fetch a complete owned snapshot from one read-only repeatable-read transaction: settings, runs/preferences, completion marks and sessions/sets. Apply only a complete response, preserving pending local input and suppressing pending deletions. Discard responses overtaken by newer local writes/acknowledgments. Partial history pages must never stand in for a full account snapshot.
+Fetch account setup and compact training progress independently from paginated History. The authenticated progress read returns the active cycle's monotonic training-week boundary, completion marks, retained workout membership periods, and required workout keys for the current week. Persist it by account/cycle, merge completion marks by identity and never lower the saved week boundary. Do not create session rows or upload work from these marks. Preserve local pending completions and include them when selecting completed days and the next workout.
 
-The same snapshot restores synced history on a replacement device. Active timers and unsynced work remain local. Concurrent training across devices is outside the current scope. Measure full-refresh size before introducing incremental synchronization.
+History pages restore full session details as the lifter browses; cached rows alone do not establish complete training progress or previous performance. Active timers and unsynced work remain local. Concurrent training across devices is outside the current scope.
 
 ## Delete and discard
 

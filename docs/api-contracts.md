@@ -14,8 +14,9 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | POST /v1/maintenance/catalog/publish | Atomically publish the exact reviewed source; maintenance bearer secret |
 | GET /me/setup | Implemented owner-scoped completed setup lookup; [contract](account-setup.md) |
 | GET /me/previous-performance | Implemented compact owner-scoped latest-result summaries for recording |
+| GET /me/progress | Implemented owner-scoped compact progress restore, independent of paginated session history |
 | POST /sessions/completed | Implemented first-write contract for completed sessions and occurrence progress |
-| GET /me/bootstrap | Complete consistent owned snapshot, including OneSet settings, runs, preferences, sessions and completion marks; Clerk profile/access is resolved separately |
+| GET /me/bootstrap | Deferred full-snapshot proposal; training readiness uses `/me/progress`, while full sessions use paginated `/sessions` |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
 | POST /cycles | Create and select a new run with its initial compatible preference copy; retries return it without recopying or reactivating |
 | POST /cycles/{id}/activate | Select the latest run for that program; latest saved choice takes effect; block active-workout overlap |
@@ -44,6 +45,12 @@ Catalog reads and account setup require Clerk authentication. Catalog maintenanc
 - **Media:** `video_key` is the stored private object key, not a media-table ID or an access grant. Authorization is required for current and historical referenced media alike.
 
 Settings, preference and activation writes are serialized on the device and use latest-saved semantics. Their requests never carry a session `base_revision`.
+
+## Compact progress restore
+
+`GET /v1/me/progress` returns `{ progress }` for the authenticated user's active cycle, or `{ progress: null }` when no active cycle exists. A non-null response includes the stable cycle and program keys, monotonic `current_training_week`, all known completed occurrence marks (`week_number`, `workout_id`), retained workout membership periods (`starts_week`, nullable `ends_week`), and the ordered workout keys required in the current training week. It contains no session or set payloads. The Worker derives ownership from the verified Clerk subject and responds with `Cache-Control: private, no-store`; subscription access is not checked.
+
+The app persists this compact summary by account and cycle. It merges occurrence marks by identity and never lowers the saved week boundary. These marks drive week checkmarks and next-workout eligibility without creating synthetic session rows or upload operations. Local completed sessions remain part of progress when they are newer than the server summary.
 
 ## Completed-session first write
 
@@ -150,7 +157,7 @@ Validate full prescription structure, finite decimal weight, positive reps when 
 
 ## Refresh and deletion
 
-Bootstrap returns a complete consistent snapshot of owned settings, runs, remembered preferences, sessions with nested sets, and completion marks. It has no change-feed cursor, deleted-ID list or provider-access fields. History pagination is for display and must not be interpreted as a complete account snapshot. Preserve local pending work and ignore responses overtaken by newer local saves.
+The former full bootstrap proposal is deferred. Compact training progress is restored separately through `/me/progress`; full sessions are retrieved only through bounded history pages. Neither the visible History cache nor a partial page is a complete account snapshot. Preserve local pending work and ignore responses overtaken by newer local saves.
 
 Completed-history DELETE requires online confirmation and resolved pending uploads. Delete the owned session and its sets, retain completion marks, then acknowledge so the device can clear its copy. Repeated deletion of an absent session succeeds. Discarded drafts remain hidden locally during refresh until server deletion is confirmed. See [sync and recovery](sync-and-recovery.md) for retry ordering.
 

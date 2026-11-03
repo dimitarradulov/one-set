@@ -256,7 +256,7 @@ struct WorkoutRepositorySetTests {
     #expect(freshMigrations.contains("backfill-completed-session-uploads-v5"))
     #expect(freshMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
     #expect(try freshDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
-    #expect(freshMigrations.contains("restored-previous-performance-v7"))
+    #expect(freshMigrations.contains("restored-previous-performance-v8"))
     #expect(try freshDatabase.read { try $0.tableExists("restored_previous_performance") })
 
     let existingURL = directory.appending(path: "existing-v5.sqlite")
@@ -283,7 +283,7 @@ struct WorkoutRepositorySetTests {
     #expect(upgradedMigrations.contains("backfill-completed-session-uploads-v5"))
     #expect(upgradedMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
     #expect(try upgradedDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
-    #expect(upgradedMigrations.contains("restored-previous-performance-v7"))
+    #expect(upgradedMigrations.contains("restored-previous-performance-v8"))
     #expect(try upgradedDatabase.read { try $0.tableExists("restored_previous_performance") })
   }
 
