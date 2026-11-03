@@ -49,6 +49,7 @@ final class WorkoutRepository {
       at: databaseURL.deletingLastPathComponent(), withIntermediateDirectories: true
     )
     database = try DatabaseQueue(path: databaseURL.path)
+    try Self.normalizeLegacyMigrationIdentifiers(in: database)
     var migrator = DatabaseMigrator()
     migrator.registerMigration("create-workout-sessions-v1") { db in
       try db.create(table: "workout_sessions") { table in
@@ -107,6 +108,23 @@ final class WorkoutRepository {
       }
     }
     try migrator.migrate(database)
+  }
+
+  private static func normalizeLegacyMigrationIdentifiers(in database: DatabaseQueue) throws {
+    try database.write { db in
+      guard try db.tableExists("grdb_migrations") else { return }
+      // Earlier development builds applied the same cycle-upload-block schema as v5.
+      // Recognize that identifier without changing applied migrations or workout data.
+      try db.execute(sql: """
+        INSERT OR IGNORE INTO grdb_migrations (identifier)
+        SELECT 'workout-setup-cycle-upload-conflicts-v6' FROM grdb_migrations
+        WHERE identifier = 'workout-setup-cycle-upload-conflicts-v5'
+        """)
+      try db.execute(sql: """
+        DELETE FROM grdb_migrations
+        WHERE identifier = 'workout-setup-cycle-upload-conflicts-v5'
+        """)
+    }
   }
 
   nonisolated static func backfillCompletedSessionUploads(in db: Database) throws {

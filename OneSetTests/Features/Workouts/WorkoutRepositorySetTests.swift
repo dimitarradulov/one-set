@@ -5,6 +5,67 @@ import Testing
 
 @MainActor
 struct WorkoutRepositorySetTests {
+  @Test(arguments: [false, true])
+  func reopensStoreWithLegacyCycleUploadBlockMigration(backfillWasApplied: Bool) throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let session = makeSession()
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "72.5", repsInput: "10")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    _ = try repository.finish(sessionID: session.id, accountID: session.accountID, note: "Keep this session")
+    try repository.recordTransientUploadFailure(sessionID: session.id, accountID: session.accountID,
+      retryAt: Date(timeIntervalSince1970: 1_800_000_050))
+    let active = makeSession(cycleID: session.cycleID, week: 2)
+    _ = try repository.start(active)
+    _ = try repository.saveDraft(sessionID: active.id, accountID: active.accountID,
+      slotID: "slot-b", weightInput: "25", repsInput: "draft")
+    _ = try repository.blockSessionUploadsForSetupCycle(accountID: session.accountID,
+      cycleID: session.cycleID, establishedCycleID: UUID())
+
+    let database = try DatabaseQueue(path: databaseURL.path)
+    let tables = ["workout_sessions", "workout_week_membership", "completed_session_uploads",
+                  "workout_cycle_upload_blocks"]
+    let before = try database.read { db in
+      try tables.map { try Row.fetchAll(db, sql: "SELECT * FROM \($0) ORDER BY rowid") }
+    }
+    // Reproduce the migration history found in the affected simulator store.
+    try database.write { db in
+      try db.execute(sql: """
+        UPDATE grdb_migrations SET identifier = 'workout-setup-cycle-upload-conflicts-v5'
+        WHERE identifier = 'workout-setup-cycle-upload-conflicts-v6'
+        """)
+      if !backfillWasApplied {
+        try db.execute(sql: "DELETE FROM grdb_migrations WHERE identifier = 'backfill-completed-session-uploads-v5'")
+      }
+    }
+    let fixtureMigrations = try database.read { db in
+      try String.fetchSet(db, sql: "SELECT identifier FROM grdb_migrations")
+    }
+    try #require(fixtureMigrations.contains("workout-setup-cycle-upload-conflicts-v5"))
+    try #require(fixtureMigrations.contains("workout-setup-cycle-upload-conflicts-v6") == false)
+    try #require(fixtureMigrations.contains("backfill-completed-session-uploads-v5") == backfillWasApplied)
+
+    for _ in 0..<2 {
+      let reopened = try WorkoutRepository(databaseURL: databaseURL)
+      let after = try database.read { db in
+        try tables.map { try Row.fetchAll(db, sql: "SELECT * FROM \($0) ORDER BY rowid") }
+      }
+      #expect(after == before)
+      #expect(try reopened.activeSession(accountID: active.accountID)?.id == active.id)
+      #expect(try reopened.hasUnresolvedSetupCycleConflict(accountID: session.accountID))
+      let migrations = try database.read { db in
+        try String.fetchSet(db, sql: "SELECT identifier FROM grdb_migrations")
+      }
+      #expect(migrations.contains("workout-setup-cycle-upload-conflicts-v6"))
+      #expect(migrations.contains("workout-setup-cycle-upload-conflicts-v5") == false)
+      #expect(migrations.contains("backfill-completed-session-uploads-v5"))
+    }
+  }
+
   @Test
   func completedUploadRetryPolicyUsesExponentialDelayAndHonorsRetryAfter() {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
