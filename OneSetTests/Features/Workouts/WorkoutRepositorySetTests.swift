@@ -134,9 +134,10 @@ struct WorkoutRepositorySetTests {
     let tiedStart = Date(timeIntervalSince1970: 1_800_000_000)
     let firstID = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
     let secondID = UUID(uuidString: "00000000-0000-4000-8000-000000000002")!
+    let cycleID = UUID()
 
     for (week, id) in [(1, firstID), (2, secondID)] {
-      let session = makeSession(week: week, startedAt: tiedStart, id: id)
+      let session = makeSession(cycleID: cycleID, week: week, startedAt: tiedStart, id: id)
       _ = try repository.start(session)
       _ = try repository.saveDraft(sessionID: id, accountID: session.accountID,
         slotID: "slot-a", weightInput: "0", repsInput: "8")
@@ -250,6 +251,7 @@ struct WorkoutRepositorySetTests {
     #expect(firstBody["session_id"] as? String == first.id.uuidString.lowercased())
     #expect(firstBody["cycle_id"] as? String == cycleID.uuidString.lowercased())
     #expect(firstBody["week_number"] as? Int == 1)
+    #expect(firstBody["day_number"] as? Int == 1)
     #expect(firstBody["note"] as? String == "First session")
     let firstSets = try #require(firstBody["sets"] as? [[String: Any]])
     #expect(firstSets.count == 2)

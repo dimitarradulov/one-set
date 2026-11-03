@@ -22,6 +22,7 @@ struct OneSetApp: App {
       previousPerformanceService: dependencies.previousPerformance,
       progressService: dependencies.accountProgress,
       completedSessionUploadService: dependencies.completedSessionUpload,
+      sessionHistoryService: dependencies.sessionHistory,
       progressStore: dependencies.onboardingProgress,
       workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
       initialPath: launch.onboardingPath,
@@ -48,6 +49,7 @@ struct OneSetApp: App {
         previousPerformanceService: dependencies.previousPerformance,
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
+        sessionHistoryService: dependencies.sessionHistory,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory
       )
@@ -63,6 +65,7 @@ struct OneSetApp: App {
         previousPerformanceService: dependencies.previousPerformance,
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
+        sessionHistoryService: dependencies.sessionHistory,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory
       )

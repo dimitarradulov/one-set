@@ -27,50 +27,153 @@ final class HistoryModel {
   private(set) var sessions: [WorkoutSession] = []
   private(set) var isLoading = false
   private(set) var loadError: String?
+  private(set) var hasLoadedAccountHistory = false
+  private(set) var hasMoreHistory = false
+  private(set) var isLoadingOlder = false
+  private(set) var olderPageError: String?
+  private(set) var isOfflineOlderBoundary = false
+  private(set) var isAtEndOfArchive = false
   private(set) var calendarRevision = 0
   private var loadGeneration = 0
+  private var olderRequestGeneration = 0
+  private var wantsOfflineBoundaryPreview = false
+  private var coverage = SessionHistoryCoverage(nextCursor: nil, hasMore: false, hasLoadedPage: false)
 
   let accountID: String
   let displayUnit: WeightUnit
   private let loadSessions: @MainActor (String) throws -> [WorkoutSession]
   private let resolveProgramName: @MainActor (String) -> String?
+  private let loadCoverage: (@MainActor (String) throws -> SessionHistoryCoverage)?
+  private let savePage: (@MainActor (SessionHistoryPage, String) throws -> Void)?
+  private let fetchPage: (@MainActor (String?) async throws -> SessionHistoryPage)?
+  private let isAccountCurrent: @MainActor () -> Bool
 
   init(
     accountID: String,
     displayUnit: WeightUnit,
     loadSessions: @escaping @MainActor (String) throws -> [WorkoutSession],
-    resolveProgramName: @escaping @MainActor (String) -> String?
+    resolveProgramName: @escaping @MainActor (String) -> String?,
+    loadCoverage: (@MainActor (String) throws -> SessionHistoryCoverage)? = nil,
+    savePage: (@MainActor (SessionHistoryPage, String) throws -> Void)? = nil,
+    fetchPage: (@MainActor (String?) async throws -> SessionHistoryPage)? = nil,
+    isAccountCurrent: @escaping @MainActor () -> Bool = { true }
   ) {
     self.accountID = accountID
     self.displayUnit = displayUnit
     self.loadSessions = loadSessions
     self.resolveProgramName = resolveProgramName
+    self.loadCoverage = loadCoverage
+    self.savePage = savePage
+    self.fetchPage = fetchPage
+    self.isAccountCurrent = isAccountCurrent
   }
 
   func reload() async {
+    guard !isLoading else { return }
     loadGeneration += 1
     let generation = loadGeneration
+    olderRequestGeneration += 1
     isLoading = true
     loadError = nil
+    olderPageError = nil
+    isOfflineOlderBoundary = false
     defer {
       if generation == loadGeneration { isLoading = false }
     }
     await Task.yield()
-    guard generation == loadGeneration else { return }
+    guard generation == loadGeneration, isAccountCurrent() else { return }
     do {
-      let loaded = try loadSessions(accountID)
-        .filter { $0.accountID == accountID && $0.finishedAt != nil
-          && completedExerciseCount(for: $0) > 0 }
-        .sorted {
-          if $0.startedAt != $1.startedAt { return $0.startedAt > $1.startedAt }
-          return $0.id.uuidString > $1.id.uuidString
-        }
-      guard generation == loadGeneration else { return }
-      sessions = loaded
+      try reloadLocalSessions()
+      if let loadCoverage {
+        coverage = try loadCoverage(accountID)
+        hasLoadedAccountHistory = coverage.hasLoadedPage
+        updateArchiveBoundary()
+      }
     } catch {
       guard generation == loadGeneration else { return }
       loadError = error.localizedDescription
+      return
     }
+
+    guard let fetchPage, let savePage else { return }
+    do {
+      let page = try await fetchPage(nil)
+      guard generation == loadGeneration, isAccountCurrent() else { return }
+      try savePage(page, accountID)
+      guard generation == loadGeneration, isAccountCurrent() else { return }
+      coverage = try loadCoverage?(accountID)
+        ?? SessionHistoryCoverage(nextCursor: page.nextCursor, hasMore: page.hasMore, hasLoadedPage: true)
+      hasLoadedAccountHistory = true
+      updateArchiveBoundary()
+      try reloadLocalSessions()
+    } catch {
+      guard generation == loadGeneration, isAccountCurrent() else { return }
+      loadError = error.localizedDescription
+    }
+  }
+
+  func loadOlderPage() async {
+    guard let fetchPage, let savePage, hasLoadedAccountHistory, hasMoreHistory,
+          let cursor = coverage.nextCursor, !isLoadingOlder, isAccountCurrent() else { return }
+    let currentGeneration = loadGeneration
+    olderRequestGeneration += 1
+    let requestGeneration = olderRequestGeneration
+    isLoadingOlder = true
+    olderPageError = nil
+    isOfflineOlderBoundary = false
+    defer {
+      if requestGeneration == olderRequestGeneration { isLoadingOlder = false }
+    }
+    do {
+      let page = try await fetchPage(cursor)
+      guard requestGeneration == olderRequestGeneration,
+            currentGeneration == loadGeneration,
+            coverage.nextCursor == cursor,
+            isAccountCurrent() else { return }
+      try savePage(page, accountID)
+      guard requestGeneration == olderRequestGeneration,
+            currentGeneration == loadGeneration,
+            isAccountCurrent() else { return }
+      coverage = try loadCoverage?(accountID)
+        ?? SessionHistoryCoverage(nextCursor: page.nextCursor, hasMore: page.hasMore, hasLoadedPage: true)
+      updateArchiveBoundary()
+      try reloadLocalSessions()
+    } catch {
+      guard requestGeneration == olderRequestGeneration,
+            currentGeneration == loadGeneration,
+            isAccountCurrent() else { return }
+      if Self.isOffline(error) {
+        isOfflineOlderBoundary = true
+      } else {
+        olderPageError = error.localizedDescription
+      }
+    }
+  }
+
+  func markOfflineBoundaryForPreview() {
+    wantsOfflineBoundaryPreview = true
+    if hasMoreHistory { isOfflineOlderBoundary = true }
+  }
+
+  private func reloadLocalSessions() throws {
+    sessions = try loadSessions(accountID)
+      .filter { $0.accountID == accountID && $0.finishedAt != nil
+        && completedExerciseCount(for: $0) > 0 }
+      .sorted {
+        if $0.startedAt != $1.startedAt { return $0.startedAt > $1.startedAt }
+        return $0.id.uuidString > $1.id.uuidString
+      }
+  }
+
+  private func updateArchiveBoundary() {
+    hasMoreHistory = coverage.hasLoadedPage && coverage.hasMore && coverage.nextCursor != nil
+    isAtEndOfArchive = coverage.hasLoadedPage && !coverage.hasMore
+    if wantsOfflineBoundaryPreview && hasMoreHistory { isOfflineOlderBoundary = true }
+  }
+
+  private static func isOffline(_ error: Error) -> Bool {
+    guard let urlError = error as? URLError else { return false }
+    return [.notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost].contains(urlError.code)
   }
 
   func refreshCalendarContext() {
@@ -82,7 +185,7 @@ final class HistoryModel {
   }
 
   func programName(for session: WorkoutSession) -> String {
-    resolveProgramName(session.programID) ?? "Unavailable program"
+    session.resolvedProgramName ?? resolveProgramName(session.programID) ?? "Unavailable program"
   }
 
   func completedExerciseCount(for session: WorkoutSession) -> Int {
@@ -110,10 +213,11 @@ final class HistoryModel {
   func formattedWeight(_ entry: WorkoutSession.SetEntry, in session: WorkoutSession) -> String? {
     guard let value = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
           value.isFinite, value >= 0 else { return nil }
-    guard session.weightUnit != displayUnit else {
+    let recordedUnit = entry.recordedWeightUnit ?? session.weightUnit
+    guard recordedUnit != displayUnit else {
       return "\(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)) \(displayUnit.rawValue)"
     }
-    let source = session.weightUnit == .kilograms ? UnitMass.kilograms : UnitMass.pounds
+    let source = recordedUnit == .kilograms ? UnitMass.kilograms : UnitMass.pounds
     let target = displayUnit == .kilograms ? UnitMass.kilograms : UnitMass.pounds
     let converted = Measurement(value: value, unit: source).converted(to: target).value
     return "\(converted.formatted(.number.precision(.fractionLength(0...2)))) \(displayUnit.rawValue)"

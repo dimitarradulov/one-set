@@ -125,6 +125,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
   let programKey: String
   let workoutKey: String
   let weekNumber: Int
+  let dayNumber: Int
   let workoutName: String
   let startedAt: String
   let completedAt: String
@@ -138,6 +139,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
     case programKey = "program_key"
     case workoutKey = "workout_key"
     case weekNumber = "week_number"
+    case dayNumber = "day_number"
     case workoutName = "workout_name"
     case startedAt = "started_at"
     case completedAt = "completed_at"
@@ -150,6 +152,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
     try values.encode(programKey, forKey: .programKey)
     try values.encode(workoutKey, forKey: .workoutKey)
     try values.encode(weekNumber, forKey: .weekNumber)
+    try values.encode(dayNumber, forKey: .dayNumber)
     try values.encode(workoutName, forKey: .workoutName)
     try values.encode(startedAt, forKey: .startedAt)
     try values.encode(completedAt, forKey: .completedAt)
@@ -167,6 +170,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
     programKey = session.programID
     workoutKey = session.workoutID
     weekNumber = session.week
+    dayNumber = session.day
     workoutName = session.workoutName
     startedAt = Self.timestamp(session.startedAt)
     completedAt = Self.timestamp(finishDate)

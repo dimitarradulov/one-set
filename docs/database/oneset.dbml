@@ -119,6 +119,7 @@ Table workout_sessions {
   user_program_id uuid [not null, ref: > user_programs.id]
   workout_id integer [not null, ref: > workouts.id]
   week_number integer [not null, check: `week_number > 0`]
+  day_number integer [check: `day_number IS NULL OR day_number > 0`, note: 'Nullable for sessions written before remote day context was retained']
   workout_name text [not null, note: 'Copied at session start; later template renames do not rewrite history']
   started_at timestamptz [not null]
   completed_at timestamptz [note: 'Null means unfinished; no separate status field']

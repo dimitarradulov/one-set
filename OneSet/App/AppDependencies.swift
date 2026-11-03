@@ -9,6 +9,7 @@ struct AppDependencies {
   let previousPerformance: any PreviousPerformanceService
   let accountProgress: (any AccountProgressService)?
   let completedSessionUpload: (any CompletedSessionUploadService)?
+  let sessionHistory: (any SessionHistoryService)?
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
@@ -32,6 +33,7 @@ struct AppDependencies {
       previousPerformance: PreviewPreviousPerformanceService(),
       accountProgress: nil,
       completedSessionUpload: nil,
+      sessionHistory: nil,
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -53,6 +55,8 @@ struct AppDependencies {
     let historyPreview = arguments.contains("--ui-history-populated")
       || arguments.contains("--ui-history-partial-detail")
       || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
+      || arguments.contains("--ui-history-pagination")
+      || arguments.contains("--ui-history-offline-boundary")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
@@ -81,7 +85,7 @@ struct AppDependencies {
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
     if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview
-      || sessionSignOutPreview || historyPreview || progressRestoreError {
+      || sessionSignOutPreview || progressRestoreError {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -179,6 +183,23 @@ struct AppDependencies {
         previousPerformance: PreviewPreviousPerformanceService(),
         accountProgress: progressRestoreError ? PreviewAccountProgressService(fails: true) : nil,
         completedSessionUpload: nil,
+        sessionHistory: PreviewSessionHistoryService(
+          pages: arguments.contains("--ui-history-pagination")
+            ? [[Self.previewDownloadedHistorySession(
+                id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", workout: "machine-full-body-workout-b",
+                startedAt: Date(timeIntervalSince1970: 1_801_000_000), day: 2
+              )], [Self.previewDownloadedHistorySession(
+                id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", workout: "machine-full-body-workout-a",
+                startedAt: Date(timeIntervalSince1970: 1_792_000_000), day: 1
+              )]]
+            : (arguments.contains("--ui-history-offline-boundary")
+              ? [[Self.previewDownloadedHistorySession(
+                  id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", workout: "machine-full-body-workout-b",
+                  startedAt: Date(timeIntervalSince1970: 1_801_000_000), day: 2
+                )]] : []),
+          failsInitial: arguments.contains("--ui-history-error"),
+          failsOlder: arguments.contains("--ui-history-offline-boundary")
+        ),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -225,6 +246,7 @@ struct AppDependencies {
       previousPerformance: HTTPPreviousPerformanceService(authentication: authentication),
       accountProgress: HTTPAccountProgressService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
+      sessionHistory: HTTPSessionHistoryService(authentication: authentication),
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
@@ -295,6 +317,31 @@ struct AppDependencies {
         at: startedAt.addingTimeInterval(3_600)
       )
     }
+  }
+
+  private static func previewDownloadedHistorySession(
+    id sessionID: String,
+    workout workoutID: String,
+    startedAt: Date,
+    day: Int
+  ) -> WorkoutSession {
+    let id = UUID(uuidString: sessionID) ?? UUID()
+    let program = ProgramCatalog.bundled.program(id: "machine-full-body")!
+    let workout = program.workouts.first(where: { $0.id == workoutID }) ?? program.workouts[0]
+    var session = WorkoutSession(
+      accountID: "preview-user", cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+      program: program, workout: workout, week: 2, day: day,
+      weightUnit: .kilograms, startedAt: startedAt, id: id
+    )
+    if let exercise = session.exercises.first {
+      session.setEntries[exercise.slotID] = WorkoutSession.SetEntry(
+        weightInput: "42.5", repsInput: "10", completedAt: startedAt.addingTimeInterval(600),
+        recordedWeightUnit: .kilograms
+      )
+    }
+    session.finishedAt = startedAt.addingTimeInterval(1800)
+    session.note = "Downloaded for offline review"
+    return session
   }
   #endif
 }

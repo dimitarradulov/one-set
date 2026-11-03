@@ -25,7 +25,13 @@ struct CompletedSetupTabsView: View {
               if arguments.contains("--ui-history-error") { throw HistoryDataError.storageUnavailable }
               return try model.completedHistorySessions(accountID: $0)
             },
-            resolveProgramName: { model.programName(id: $0) }
+            resolveProgramName: { model.programName(id: $0) },
+            loadCoverage: { try model.completedHistoryCoverage(accountID: $0) },
+            savePage: { try model.saveCompletedHistoryPage($0, accountID: $1) },
+            fetchPage: { cursor in
+              try await model.fetchHistoryPage(accountID: accountID, cursor: cursor, using: authentication)
+            },
+            isAccountCurrent: { authentication.signedInUser?.id == accountID }
           )
           .id(accountID)
         } else {

@@ -43,6 +43,7 @@ type CompletedSession = {
   started_at: string;
   completed_at: string;
   note: string | null;
+  day_number?: number | null;
   sets: SessionSet[];
 };
 
@@ -140,7 +141,7 @@ function validPrescription(value: unknown): value is SessionPrescription {
 function validSession(value: unknown): value is CompletedSession {
   if (!isObject(value) || !onlyKeys(value, [
     'session_id', 'cycle_id', 'program_key', 'workout_key', 'week_number', 'workout_name',
-    'started_at', 'completed_at', 'note', 'sets',
+    'started_at', 'completed_at', 'note', 'day_number', 'sets',
   ])) return false;
   if (typeof value.session_id !== 'string' || !UUID.test(value.session_id)
     || typeof value.cycle_id !== 'string' || !UUID.test(value.cycle_id)
@@ -150,6 +151,8 @@ function validSession(value: unknown): value is CompletedSession {
     || !validText(value.workout_name, 300)
     || !validDate(value.started_at) || !validDate(value.completed_at)
     || Date.parse(value.completed_at) < Date.parse(value.started_at)
+    || (value.day_number !== undefined && value.day_number !== null
+      && (!positiveInt32(value.day_number) || value.day_number > 100))
     || !(value.note === null || validText(value.note, 4_000, true))
     || !Array.isArray(value.sets) || value.sets.length < 1 || value.sets.length > 100) return false;
 
@@ -216,7 +219,7 @@ export async function handleCompletedSessionRequest(
   if (!validSession(body)) return json({ error: { code: 'INVALID_SESSION' } }, 400);
   try {
     const [row] = await database.query(
-      'SELECT public.save_completed_session($1::text, $2::jsonb) AS result',
+      'SELECT public.save_completed_session_with_day($1::text, $2::jsonb) AS result',
       [subject, JSON.stringify(body)],
     );
     const result = row?.result;

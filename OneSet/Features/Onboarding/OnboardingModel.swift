@@ -47,6 +47,7 @@ final class OnboardingModel {
   private var workoutRepository: WorkoutRepository?
   private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
   private let completedSessionUploadService: (any CompletedSessionUploadService)?
+  private let sessionHistoryService: (any SessionHistoryService)?
   private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
   private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
   private(set) var activeWorkoutSession: WorkoutSession?
@@ -63,6 +64,7 @@ final class OnboardingModel {
     previousPerformanceService: (any PreviousPerformanceService)? = nil,
     progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
+    sessionHistoryService: (any SessionHistoryService)? = nil,
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
@@ -82,6 +84,7 @@ final class OnboardingModel {
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
     self.completedSessionUploadService = completedSessionUploadService
+    self.sessionHistoryService = sessionHistoryService
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
@@ -857,6 +860,40 @@ final class OnboardingModel {
     guard let workoutRepository else { throw HistoryDataError.storageUnavailable }
     workoutStorageOpenFailed = false
     return try workoutRepository.completedSessions(accountID: accountID)
+  }
+
+  func completedHistoryCoverage(accountID: String) throws -> SessionHistoryCoverage {
+    try historyRepository(accountID: accountID).historyCoverage(accountID: accountID)
+  }
+
+  func saveCompletedHistoryPage(_ page: SessionHistoryPage, accountID: String) throws {
+    try historyRepository(accountID: accountID).saveHistoryPage(page, accountID: accountID)
+  }
+
+  func fetchHistoryPage(
+    accountID: String, cursor: String?, using authentication: AuthenticationModel
+  ) async throws -> SessionHistoryPage {
+    guard let user = authentication.signedInUser, user.id == accountID,
+          resolvedAccountID == accountID, let sessionHistoryService else {
+      throw HistoryDataError.accountUnavailable
+    }
+    let page = try await sessionHistoryService.fetchPage(for: user, cursor: cursor)
+    guard authentication.signedInUser?.id == accountID, resolvedAccountID == accountID else {
+      throw HistoryDataError.accountUnavailable
+    }
+    return page
+  }
+
+  private func historyRepository(accountID: String) throws -> WorkoutRepository {
+    guard resolvedAccountID == accountID else { throw HistoryDataError.accountUnavailable }
+    if workoutRepository == nil {
+      guard let workoutRepositoryFactory else { throw HistoryDataError.storageUnavailable }
+      workoutRepository = try workoutRepositoryFactory()
+      configureCompletedSessionUploads()
+    }
+    guard let workoutRepository else { throw HistoryDataError.storageUnavailable }
+    workoutStorageOpenFailed = false
+    return workoutRepository
   }
 
   func programName(id: String) -> String? {

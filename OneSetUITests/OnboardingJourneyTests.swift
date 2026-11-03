@@ -989,6 +989,31 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["History couldn’t be loaded"].exists)
   }
 
+  func testHistoryPaginationAndOfflineBoundaryKeepDownloadedRows() {
+    relaunch(with: ["--ui-history-pagination"])
+    let rows = app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    )
+    XCTAssertEqual(rows.count, 1)
+    let loadOlder = app.buttons["history.older.load"]
+    XCTAssertTrue(loadOlder.waitForExistence(timeout: 5))
+    attachScreenshot(named: "history-pagination-boundary")
+    loadOlder.tap()
+    XCTAssertEqual(rows.count, 2)
+    XCTAssertTrue(app.staticTexts["End of history"].waitForExistence(timeout: 5))
+
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
+    relaunch(with: ["--ui-history-offline-boundary"])
+    let offlineBoundary = app.buttons["history.older.offline"]
+    XCTAssertTrue(offlineBoundary.waitForExistence(timeout: 5))
+    attachScreenshot(named: "history-offline-boundary")
+    offlineBoundary.tap()
+    XCTAssertTrue(app.buttons["history.older.offline"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).count, 1)
+  }
+
   func testEstablishedCycleConflictExplainsThatWorkoutRemainsOnDevice() {
     relaunch(with: ["--ui-setup-cycle-conflict"])
 

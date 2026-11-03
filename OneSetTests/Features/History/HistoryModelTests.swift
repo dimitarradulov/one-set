@@ -43,7 +43,9 @@ struct HistoryModelTests {
     let historySession = try #require(model.session(id: session.id))
     let rowResult = try #require(historySession.setEntries["slot-row"])
     #expect(model.completedExerciseCount(for: historySession) == 1)
-    #expect(model.formattedWeight(rowResult, in: historySession) == "45.36 kg")
+    let converted = Measurement(value: 100, unit: UnitMass.pounds).converted(to: .kilograms).value
+      .formatted(.number.precision(.fractionLength(0...2)))
+    #expect(model.formattedWeight(rowResult, in: historySession) == "\(converted) kg")
     #expect(model.programName(for: historySession) == "Unavailable program")
     #expect(model.months().count == 1)
     #expect(historySession.note == "Captured note")
@@ -63,5 +65,46 @@ struct HistoryModelTests {
 
     #expect(model.sessions.isEmpty)
     #expect(model.loadError != nil)
+  }
+
+  @Test
+  func downloadedPagesPersistSessionsAndCoverageWithoutQueueingUploads() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let program = try #require(ProgramCatalog.bundled.program(id: "machine-full-body"))
+    let workout = try #require(program.workouts.first)
+    let importedID = UUID(uuidString: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!
+    let startedAt = Date(timeIntervalSince1970: 1_800_000_000)
+    let imported = WorkoutSession(
+      id: importedID, accountID: "history-account", cycleID: UUID(), programID: program.id,
+      resolvedProgramName: "Captured program", week: 4, workoutID: workout.id, dayNumber: 2,
+      workoutName: workout.name, startedAt: startedAt, finishedAt: startedAt.addingTimeInterval(600),
+      note: "Downloaded note", exercises: workout.exercises.enumerated().map { .init(slot: $0.element, order: $0.offset) },
+      setEntries: [workout.exercises[0].id: .init(weightInput: "50", repsInput: "8", completedAt: startedAt.addingTimeInterval(500), recordedWeightUnit: .pounds)],
+      weightUnit: .pounds
+    )
+
+    try repository.saveHistoryPage(
+      SessionHistoryPage(sessions: [imported], nextCursor: "page-2", hasMore: true),
+      accountID: "history-account"
+    )
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.completedSessions(accountID: "history-account").map(\.id) == [importedID])
+    #expect(try reopened.historyCoverage(accountID: "history-account") ==
+      SessionHistoryCoverage(nextCursor: "page-2", hasMore: true, hasLoadedPage: true))
+    #expect(try reopened.pendingSessionUploads(accountID: "history-account").isEmpty)
+    #expect(try reopened.completedSessions(accountID: "another-account").isEmpty)
+    let saved = try #require(reopened.completedSessions(accountID: "history-account").first)
+    #expect(saved.historicalDayNumber == 2)
+    #expect(saved.resolvedProgramName == "Captured program")
+    #expect(saved.note == "Downloaded note")
+
+    try reopened.saveHistoryPage(
+      SessionHistoryPage(sessions: [], nextCursor: nil, hasMore: false), accountID: "history-account"
+    )
+    #expect(try reopened.historyCoverage(accountID: "history-account") ==
+      SessionHistoryCoverage(nextCursor: nil, hasMore: false, hasLoadedPage: true))
   }
 }

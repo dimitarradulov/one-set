@@ -161,6 +161,14 @@ final class WorkoutRepository {
         table.column("saved_at", .double).notNull()
       }
     }
+    migrator.registerMigration("downloaded-session-history-v9") { db in
+      try db.create(table: "account_history_coverage") { table in
+        table.column("account_id", .text).primaryKey()
+        table.column("next_cursor", .text)
+        table.column("has_more", .boolean).notNull()
+        table.column("has_loaded_page", .boolean).notNull()
+      }
+    }
     try migrator.migrate(database)
   }
 
@@ -598,6 +606,61 @@ final class WorkoutRepository {
         session.accountID == accountID && session.finishedAt != nil
           && session.exercises.contains { session.setEntries[$0.slotID]?.completedAt != nil }
       }
+  }
+
+  func historyCoverage(accountID: String) throws -> SessionHistoryCoverage {
+    try database.read { db in
+      guard let row = try Row.fetchOne(db, sql: """
+        SELECT next_cursor, has_more, has_loaded_page
+        FROM account_history_coverage WHERE account_id = ?
+        """, arguments: [accountID]) else {
+        return SessionHistoryCoverage(nextCursor: nil, hasMore: false, hasLoadedPage: false)
+      }
+      let hasMore: Bool = row["has_more"]
+      return SessionHistoryCoverage(
+        nextCursor: row["next_cursor"], hasMore: hasMore,
+        hasLoadedPage: row["has_loaded_page"]
+      )
+    }
+  }
+
+  /// Persists a complete server page and its contiguous continuation atomically.
+  /// Imported sessions never enter the completed-session upload queue.
+  func saveHistoryPage(_ page: SessionHistoryPage, accountID: String) throws {
+    guard page.hasMore == (page.nextCursor != nil),
+          page.sessions.allSatisfy({ $0.accountID == accountID && $0.finishedAt != nil }) else {
+      throw HistoryDataError.accountUnavailable
+    }
+    try database.write { db in
+      let encoder = JSONEncoder()
+      for session in page.sessions {
+        if let existingAccountID = try String.fetchOne(
+          db, sql: "SELECT account_id FROM workout_sessions WHERE id = ?",
+          arguments: [session.id.uuidString]
+        ) {
+          guard existingAccountID == accountID else { throw HistoryDataError.accountUnavailable }
+          continue
+        }
+        let payload = try encoder.encode(session)
+        try db.execute(sql: """
+          INSERT INTO workout_sessions (
+            id, account_id, cycle_id, program_id, week, workout_id, day, started_at, payload, finished_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """, arguments: [
+            session.id.uuidString, accountID, session.cycleID.uuidString, session.programID,
+            session.week, session.workoutID, session.day, session.startedAt.timeIntervalSince1970,
+            payload, session.finishedAt?.timeIntervalSince1970,
+          ])
+      }
+      try db.execute(sql: """
+        INSERT INTO account_history_coverage (account_id, next_cursor, has_more, has_loaded_page)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT (account_id) DO UPDATE SET
+          next_cursor = excluded.next_cursor,
+          has_more = excluded.has_more,
+          has_loaded_page = 1
+        """, arguments: [accountID, page.nextCursor, page.hasMore])
+    }
   }
 
   func previousPerformance(accountID: String, exerciseKey: String, slotID: String,

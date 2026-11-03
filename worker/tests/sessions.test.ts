@@ -51,6 +51,7 @@ await engine.exec(`
 `);
 await engine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/006_completed_session_write.sql', 'utf8'));
+await engine.exec(await readFile('../docs/database/migrations/007_completed_session_day_history.sql', 'utf8'));
 await engine.exec(`
   INSERT INTO users (id, clerk_user_id, preferred_unit, training_days) VALUES
     (1, 'session_user', 'kg', 2), (2, 'other_user', 'lb', 2);
@@ -71,6 +72,7 @@ function sessionBody(overrides: Record<string, unknown> = {}) {
     program_key: 'machine-full-body',
     workout_key: 'day-a',
     week_number: 1,
+    day_number: 3,
     workout_name: 'Captured Day A',
     started_at: '2026-10-01T10:00:00.000Z',
     completed_at: '2026-10-01T10:45:00.000Z',
@@ -152,6 +154,7 @@ test('completed session writes captured partial results and completion mark atom
     session_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', result: 'created',
   });
   const stored = await database.query(`SELECT session.workout_name, session.note,
+      session.day_number,
       result.position, result.exercise_id, result.prescription, result.weight::text AS weight,
       result.unit, result.reps, result.completed_at IS NOT NULL AS performed
     FROM workout_sessions AS session
@@ -160,6 +163,7 @@ test('completed session writes captured partial results and completion mark atom
   assert.equal(stored.length, 2);
   assert.equal(stored[0]?.workout_name, 'Captured Day A');
   assert.equal(stored[0]?.note, 'Felt strong');
+  assert.equal(stored[0]?.day_number, 3);
   assert.equal(stored[0]?.weight, '72.500');
   assert.equal(stored[0]?.unit, 'lb');
   assert.equal(stored[0]?.reps, 10);
@@ -343,6 +347,17 @@ test('nullable fields require explicit null and accept null values', async () =>
   delete omittedRest.sets[0]!.prescription.rest_seconds;
   const missingRest = await handleCompletedSessionRequest(request(awaitToken, omittedRest), env, noDatabase);
   assert.equal(missingRest.status, 400);
+});
+
+test('older completed-session clients may omit day_number and remain readable with null day', async () => {
+  const legacy = JSON.parse(JSON.stringify(sessionBody({
+    session_id: '19191919-1919-4919-8919-191919191919',
+  }))) as Record<string, unknown>;
+  delete legacy.day_number;
+  const response = await handleCompletedSessionRequest(request(awaitToken, legacy), env, database);
+  assert.equal(response.status, 201, JSON.stringify(await response.clone().json()));
+  const saved = await database.query(`SELECT day_number FROM workout_sessions WHERE id = $1`, [legacy.session_id as string]);
+  assert.deepEqual(saved, [{ day_number: null }]);
 });
 
 test('PostgreSQL int4 boundaries are enforced for session values', async () => {

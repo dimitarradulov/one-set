@@ -4,6 +4,7 @@ import { handleCompletedSessionRequest } from './sessions';
 import { handleSetupRequest } from './setup';
 import { handlePreviousPerformanceRequest } from './previous-performance';
 import { handleProgressRequest } from './progress';
+import { handleHistoryRequest } from './history';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -19,6 +20,11 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
+    if (path === '/v1/sessions') {
+      return handleHistoryRequest(request, env, {
+        query: async (query, params) => sql.query(query, params),
+      });
+    }
     if (path.startsWith('/v1/sessions/')) {
       return handleCompletedSessionRequest(request, env, {
         query: async (query, params) => sql.query(query, params),

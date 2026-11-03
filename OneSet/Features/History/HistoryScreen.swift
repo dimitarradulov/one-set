@@ -1,6 +1,8 @@
 import SwiftUI
+import Foundation
 
 struct HistoryScreen: View {
+  @Environment(\.scenePhase) private var scenePhase
   @State private var model: HistoryModel
   @State private var path: [UUID] = []
   @State private var initialRouteHandled = false
@@ -13,13 +15,21 @@ struct HistoryScreen: View {
     isActive: Bool,
     initialSessionID: UUID? = nil,
     loadSessions: @escaping @MainActor (String) throws -> [WorkoutSession],
-    resolveProgramName: @escaping @MainActor (String) -> String?
+    resolveProgramName: @escaping @MainActor (String) -> String?,
+    loadCoverage: (@MainActor (String) throws -> SessionHistoryCoverage)? = nil,
+    savePage: (@MainActor (SessionHistoryPage, String) throws -> Void)? = nil,
+    fetchPage: (@MainActor (String?) async throws -> SessionHistoryPage)? = nil,
+    isAccountCurrent: @escaping @MainActor () -> Bool = { true }
   ) {
     _model = State(initialValue: HistoryModel(
       accountID: accountID,
       displayUnit: displayUnit,
       loadSessions: loadSessions,
-      resolveProgramName: resolveProgramName
+      resolveProgramName: resolveProgramName,
+      loadCoverage: loadCoverage,
+      savePage: savePage,
+      fetchPage: fetchPage,
+      isAccountCurrent: isAccountCurrent
     ))
     self.isActive = isActive
     self.initialSessionID = initialSessionID
@@ -45,7 +55,13 @@ struct HistoryScreen: View {
         }
     }
     .task {
+      guard isActive else { return }
       await model.reload()
+#if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("--ui-history-offline-boundary") {
+        model.markOfflineBoundaryForPreview()
+      }
+#endif
       guard !initialRouteHandled else { return }
       initialRouteHandled = true
       if let initialSessionID, model.session(id: initialSessionID) != nil {
@@ -55,6 +71,9 @@ struct HistoryScreen: View {
     .onChange(of: isActive) { _, active in
       if active { Task { await model.reload() } }
     }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active && isActive { Task { await model.reload() } }
+    }
     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSSystemTimeZoneDidChange)) { _ in
       model.refreshCalendarContext()
     }
@@ -63,7 +82,7 @@ struct HistoryScreen: View {
   @ViewBuilder
   private var content: some View {
     if model.isLoading && model.sessions.isEmpty && model.loadError == nil {
-      ProgressView("Loading saved workouts…")
+      ProgressView("Loading history…")
         .font(OneSetTypography.body)
         .accessibilityIdentifier("history.loading")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -77,17 +96,26 @@ struct HistoryScreen: View {
           .accessibilityIdentifier("history.retry")
       }
     } else if model.sessions.isEmpty {
-      ContentUnavailableView {
-        Label("No workouts on this device", systemImage: "clock.arrow.circlepath")
-      } description: {
-        Text("Completed workouts saved on this device will appear here.")
+      if model.hasLoadedAccountHistory {
+        ContentUnavailableView {
+          Label("No completed workouts yet", systemImage: "clock.arrow.circlepath")
+        } description: {
+          Text("Completed workouts from your account will appear here.")
+        }
+        .accessibilityIdentifier("history.empty.account")
+      } else {
+        ContentUnavailableView {
+          Label("No workouts on this device", systemImage: "clock.arrow.circlepath")
+        } description: {
+          Text("Completed workouts saved on this device will appear here.")
+        }
+        .accessibilityIdentifier("history.empty")
       }
-      .accessibilityIdentifier("history.empty")
     } else {
       List {
         if model.loadError != nil {
           Section {
-            Label("Some saved workouts couldn’t be refreshed.", systemImage: "exclamationmark.triangle")
+            Label("Account history couldn’t be refreshed. Saved workouts are still here.", systemImage: "exclamationmark.triangle")
               .font(OneSetTypography.label)
               .foregroundStyle(OneSetColors.textSecondary)
             Button("Try again", systemImage: "arrow.clockwise") { Task { await model.reload() } }
@@ -116,12 +144,56 @@ struct HistoryScreen: View {
             }
           }
         }
+        if model.hasLoadedAccountHistory {
+          Section {
+            historyBoundary
+          }
+        }
       }
       .listStyle(.insetGrouped)
       .scrollContentBackground(.hidden)
       .background(OneSetColors.background)
       .refreshable { await model.reload() }
       .accessibilityIdentifier("history.list")
+    }
+  }
+
+  @ViewBuilder
+  private var historyBoundary: some View {
+    if model.isLoadingOlder {
+      ProgressView("Loading older workouts…")
+        .font(OneSetTypography.label)
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("history.older.loading")
+    } else if model.isOfflineOlderBoundary {
+      Button("Connect to load older workouts", systemImage: "wifi.slash") {
+        Task { await model.loadOlderPage() }
+      }
+      .font(OneSetTypography.label)
+      .frame(maxWidth: .infinity)
+      .accessibilityIdentifier("history.older.offline")
+    } else if model.olderPageError != nil {
+      VStack(spacing: 8) {
+        Label("Older workouts couldn’t be loaded.", systemImage: "exclamationmark.triangle")
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textSecondary)
+        Button("Try again") { Task { await model.loadOlderPage() } }
+          .accessibilityIdentifier("history.older.retry")
+      }
+      .frame(maxWidth: .infinity)
+    } else if model.hasMoreHistory {
+      Button("Load older workouts", systemImage: "arrow.down.circle") {
+        Task { await model.loadOlderPage() }
+      }
+      .font(OneSetTypography.label)
+      .frame(maxWidth: .infinity)
+      .accessibilityIdentifier("history.older.load")
+    } else if model.isAtEndOfArchive {
+      Label("End of history", systemImage: "checkmark.circle")
+        .font(OneSetTypography.caption)
+        .foregroundStyle(OneSetColors.textSecondary)
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("history.older.end")
     }
   }
 }
@@ -176,7 +248,7 @@ private struct HistorySessionDetailScreen: View {
       Section("Workout") {
         LabeledContent("Program", value: programName)
         LabeledContent("Workout", value: session.workoutName)
-        LabeledContent("Training", value: "Week \(session.week) · Day \(session.day)")
+        LabeledContent("Training", value: trainingContext)
         LabeledContent("Completed", value: "\(completedCount) of \(session.exercises.count) exercises")
       }
 
@@ -230,6 +302,11 @@ private struct HistorySessionDetailScreen: View {
           Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)) != nil,
           let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
     return entry
+  }
+
+  private var trainingContext: String {
+    guard let day = session.historicalDayNumber else { return "Week \(session.week) · Day unavailable" }
+    return "Week \(session.week) · Day \(day)"
   }
 
   private func resultLabel(weight: String, repsInput: String, scope: RepTarget.Scope) -> String {
