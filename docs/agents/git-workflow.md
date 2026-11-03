@@ -25,6 +25,16 @@ In pull requests:
 - Include screenshots for visual design changes.
 - Call out any migration or production-data impact explicitly.
 
+## Cleanup after implementation
+
+After implementation, validation, and the authorized delivery are complete, remove the task's temporary worktree and local branch before handing back the task. Run cleanup from the primary checkout, leaving it on `main`.
+
+1. Verify the task worktree is clean and its commits are preserved in the delivery target or a remote branch. If work remains uncommitted or only on the local branch, retain it and report the remaining delivery step.
+2. Remove the task worktree with `git worktree remove <path>`, then delete its local branch with `git branch -d <branch>`. If deletion fails because delivery used squash or rebase, verify the delivered changes before using `git branch -D <branch>`.
+3. Run `git worktree prune`, then verify with `git worktree list` and `git branch --list` that the task worktree and branch are gone.
+
+Preserve the primary checkout, other active tasks, and remote branches. Explicit user requests to delete worktrees or branches authorize cleanup of those named resources even when their commits have not been delivered.
+
 ## Delivery and status
 
 Establish the delivery target from the user's request or the invoked workflow. Editing alone does not require committing, pushing, or merging. For a request to push the current task, commit that task's changes first when needed, then push those commits. Stage explicit paths or hunks so unrelated work stays separate. Preserve the scope of earlier authorization across follow-up messages.

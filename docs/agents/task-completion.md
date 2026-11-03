@@ -8,5 +8,5 @@ Before finishing:
 
 1. Account for every requested outcome in the final diff or an explicit blocker. Preserve unrelated edits.
 2. Finish the checks selected by [validation](validation.md). Follow its failure-repair sequence before repeating a full suite.
-3. Complete the authorized delivery steps in [Git workflow](git-workflow.md#delivery-and-status), including issue reconciliation for issue-driven work.
+3. Complete the authorized delivery steps in [Git workflow](git-workflow.md#delivery-and-status), including issue reconciliation for issue-driven work, then perform [cleanup after implementation](git-workflow.md#cleanup-after-implementation).
 4. Report the implemented outcome, checks and any remaining blocker. For code delivery, include the Git and issue status from that workflow. If an external dependency prevents completion, leave a checkpoint with the exact next action and state what remains unfinished.
