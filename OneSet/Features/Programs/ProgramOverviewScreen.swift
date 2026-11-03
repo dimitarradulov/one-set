@@ -138,6 +138,11 @@ struct ProgramOverviewScreen: View {
   private func overviewCard(_ workout: WorkoutTemplate, day: Int) -> some View {
     let marks = completedWorkoutsForWeek?(selectedWeek) ?? completedWorkoutIDs
     let isComplete = marks.contains(workout.id)
+    let workoutTitle = workout.name.replacingOccurrences(
+      of: #"^Day \d+\s*-\s*"#,
+      with: "",
+      options: .regularExpression
+    )
     return Button {
       onPreviewWorkout(workout)
     } label: {
@@ -148,7 +153,7 @@ struct ProgramOverviewScreen: View {
           .frame(minWidth: 48, alignment: .leading)
 
         VStack(alignment: .leading, spacing: 8) {
-          Text(workout.name)
+          Text(workoutTitle)
             .font(OneSetTypography.bodyStrong)
             .foregroundStyle(OneSetColors.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
@@ -180,7 +185,7 @@ struct ProgramOverviewScreen: View {
       .contentShape(RoundedRectangle(cornerRadius: 12))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("View workout, Day \(day), \(workout.name), \(workout.movements.count) exercises, \(isComplete ? "Completed" : "Not started")")
+    .accessibilityLabel("View workout, Day \(day), \(workoutTitle), \(workout.movements.count) exercises, \(isComplete ? "Completed" : "Not started")")
     .accessibilityHint("Shows the exercises and rep targets without starting a workout.")
     .accessibilityIdentifier("overview.day.\(day).preview")
   }
