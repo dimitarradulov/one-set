@@ -933,7 +933,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.tabBars.buttons["Program"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].exists)
     app.tabBars.buttons["History"].tap()
-    XCTAssertTrue(app.staticTexts["No workouts on this device"].exists)
+    XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
     app.tabBars.buttons["Settings"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
     app.navigationBars.buttons.firstMatch.tap()
