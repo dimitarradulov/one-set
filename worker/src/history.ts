@@ -1,4 +1,4 @@
-import { verifyToken } from '@clerk/backend';
+import { authenticateClerkRequest } from './authentication.ts';
 
 export interface HistoryDatabase {
   query(sql: string, params: string[]): Promise<Record<string, unknown>[]>;
@@ -92,25 +92,9 @@ export async function handleHistoryRequest(
   if (url.pathname !== '/v1/sessions') return json({ error: { code: 'NOT_FOUND' } }, 404);
   if (request.method !== 'GET') return json({ error: { code: 'METHOD_NOT_ALLOWED' } }, 405);
 
-  const bearer = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
-  if (!bearer) return json({ error: { code: 'AUTH_REQUIRED' } }, 401);
-  if (!env.CLERK_JWT_KEY || !env.CLERK_ISSUER || !env.CLERK_AUTHORIZED_PARTIES) {
-    return json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
-  }
-
-  let owner: string;
-  try {
-    const claims = await verifyToken(bearer, { jwtKey: env.CLERK_JWT_KEY, clockSkewInMs: 0 });
-    const parties = env.CLERK_AUTHORIZED_PARTIES.split(',').map(origin => origin.trim());
-    if (claims.iss !== env.CLERK_ISSUER
-      || (claims.azp !== undefined && !parties.includes(claims.azp))
-      || !claims.sub || !claims.sid || claims.sts === 'pending') {
-      return json({ error: { code: 'AUTH_REQUIRED' } }, 401);
-    }
-    owner = claims.sub;
-  } catch {
-    return json({ error: { code: 'AUTH_REQUIRED' } }, 401);
-  }
+  const authentication = await authenticateClerkRequest(request, env);
+  if ('response' in authentication) return authentication.response;
+  const owner = authentication.subject;
 
   const sizeParameter = url.searchParams.get('limit');
   const pageSize = sizeParameter === null ? DEFAULT_PAGE_SIZE : Number(sizeParameter);

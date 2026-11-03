@@ -1007,31 +1007,17 @@ final class OnboardingJourneyTests: XCTestCase {
     ).count, 2)
   }
 
-  func testHistoryPaginationAndOfflineBoundaryKeepDownloadedRows() throws {
+  func testHistoryPaginationAndOfflineBoundaryKeepDownloadedRows() {
     relaunch(with: ["--ui-history-pagination"])
     let rows = app.buttons.matching(
       NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
     )
-    XCTAssertEqual(rows.count, 1)
     XCTAssertTrue(rows.firstMatch.label.contains("Workout B"))
     XCTAssertTrue(rows.firstMatch.label.contains("1 of 7 exercises completed"))
     XCTAssertGreaterThanOrEqual(rows.firstMatch.frame.height, 44)
-    let loadOlder = app.buttons["history.older.load"]
-    XCTAssertTrue(loadOlder.waitForExistence(timeout: 5))
-    XCTAssertGreaterThanOrEqual(loadOlder.frame.height, 44)
-    XCTAssertTrue(rows.firstMatch.frame.minY < loadOlder.frame.minY)
-    let accessibilityOrder = app.descendants(matching: .any).allElementsBoundByIndex
-      .map(\.identifier)
-    let sessionPosition = try XCTUnwrap(accessibilityOrder.firstIndex {
-      $0.hasPrefix("history.session.")
-    })
-    let continuationPosition = try XCTUnwrap(accessibilityOrder.firstIndex {
-      $0 == "history.older.load"
-    })
-    XCTAssertLessThan(sessionPosition, continuationPosition)
+    XCTAssertTrue(rows.element(boundBy: 1).waitForExistence(timeout: 5),
+      "Reaching the visible history boundary loads the next page")
     attachScreenshot(named: "history-pagination-boundary")
-    loadOlder.tap()
-    XCTAssertEqual(rows.count, 2)
     XCTAssertTrue(app.staticTexts["End of history"].waitForExistence(timeout: 5))
 
     app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString

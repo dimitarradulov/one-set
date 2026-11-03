@@ -191,6 +191,11 @@ struct HistoryScreen: View {
       .font(OneSetTypography.label)
       .frame(maxWidth: .infinity)
       .accessibilityIdentifier("history.older.load")
+      .onAppear {
+        // The boundary is the pagination sentinel. Reaching it while browsing
+        // fetches one page; a user may still activate the button explicitly.
+        Task { await model.loadOlderPage() }
+      }
     } else if model.isAtEndOfArchive {
       Label("End of history", systemImage: "checkmark.circle")
         .font(OneSetTypography.caption)
