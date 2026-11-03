@@ -3,6 +3,8 @@ import SwiftUI
 struct WorkoutRecordingScreen: View {
   let session: WorkoutSession
   let previousPerformances: [String: WorkoutRepository.PreviousPerformance]
+  let previousPerformanceUnavailable: Bool
+  let onRetryPreviousPerformance: () -> Void
   let onDiscard: () -> Void
   let onSaveDraft: (String, String, String) -> Bool
   let onComplete: (String) -> Bool
@@ -34,6 +36,8 @@ struct WorkoutRecordingScreen: View {
   }
 
   init(session: WorkoutSession, previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:],
+       previousPerformanceUnavailable: Bool = false,
+       onRetryPreviousPerformance: @escaping () -> Void = {},
        onDiscard: @escaping () -> Void,
        onSaveDraft: @escaping (String, String, String) -> Bool = { _, _, _ in true },
        onComplete: @escaping (String) -> Bool = { _ in true },
@@ -44,6 +48,8 @@ struct WorkoutRecordingScreen: View {
        onFinish: @escaping (String?) -> Bool = { _ in true }) {
     self.session = session
     self.previousPerformances = previousPerformances
+    self.previousPerformanceUnavailable = previousPerformanceUnavailable
+    self.onRetryPreviousPerformance = onRetryPreviousPerformance
     self.onDiscard = onDiscard
     self.onSaveDraft = onSaveDraft
     self.onComplete = onComplete
@@ -249,7 +255,8 @@ struct WorkoutRecordingScreen: View {
           .font(OneSetTypography.label)
           .foregroundStyle(OneSetColors.textPrimary)
         if !result.isSameProgramWorkout {
-          Text("Week \(result.week) · Day \(result.day)")
+          Text(result.day.map { "Week \(result.week) · Day \($0)" }
+            ?? "Week \(result.week) · \(result.completedAt.formatted(date: .abbreviated, time: .omitted))")
             .font(OneSetTypography.caption)
             .foregroundStyle(OneSetColors.textSecondary)
         }
@@ -257,10 +264,21 @@ struct WorkoutRecordingScreen: View {
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier("recording.previous.\(exercise.slotID)")
     } else {
-      Text("No previous result yet")
-        .font(OneSetTypography.caption)
-        .foregroundStyle(OneSetColors.textSecondary)
-        .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
+      if previousPerformanceUnavailable {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Previous result unavailable")
+            .font(OneSetTypography.caption)
+            .foregroundStyle(OneSetColors.textSecondary)
+            .accessibilityIdentifier("recording.previous.unavailable.\(exercise.slotID)")
+          Button("Retry previous results", action: onRetryPreviousPerformance)
+            .font(OneSetTypography.caption)
+        }
+      } else {
+        Text("No previous result yet")
+          .font(OneSetTypography.caption)
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
+      }
     }
   }
 

@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { handleCatalogRequest } from './catalog';
 import { handleCompletedSessionRequest } from './sessions';
 import { handleSetupRequest } from './setup';
+import { handlePreviousPerformanceRequest } from './previous-performance';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -19,6 +20,11 @@ export default {
     const sql = neon(env.DATABASE_URL);
     if (path.startsWith('/v1/sessions/')) {
       return handleCompletedSessionRequest(request, env, {
+        query: async (query, params) => sql.query(query, params),
+      });
+    }
+    if (path === '/v1/me/previous-performance') {
+      return handlePreviousPerformanceRequest(request, env, {
         query: async (query, params) => sql.query(query, params),
       });
     }

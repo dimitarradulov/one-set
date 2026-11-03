@@ -34,8 +34,22 @@ final class WorkoutRepository {
     let completedAt: Date
     let workoutName: String
     let week: Int
-    let day: Int
+    let day: Int?
     let isSameProgramWorkout: Bool
+  }
+  struct PreviousPerformanceSnapshot: Codable, Hashable, Sendable {
+    let sessionID: UUID
+    let exerciseKey: String
+    let programID: String
+    let workoutID: String
+    let slotID: String
+    let weightInput: String
+    let repsInput: String
+    let weightUnit: WeightUnit
+    let completedAt: Date
+    let workoutName: String
+    let week: Int
+    let day: Int?
   }
   struct PreviousPerformanceRequest: Hashable, Sendable {
     let slotID: String
@@ -105,6 +119,13 @@ final class WorkoutRepository {
         table.column("established_cycle_id", .text).notNull()
         table.column("created_at", .double).notNull()
         table.primaryKey(["account_id", "cycle_id"])
+      }
+    }
+    migrator.registerMigration("restored-previous-performance-v7") { db in
+      try db.create(table: "restored_previous_performance") { table in
+        table.column("account_id", .text).primaryKey()
+        table.column("payload", .blob).notNull()
+        table.column("saved_at", .double).notNull()
       }
     }
     try migrator.migrate(database)
@@ -477,33 +498,61 @@ final class WorkoutRepository {
       try Data.fetchAll(db, sql: "SELECT payload FROM workout_sessions WHERE account_id = ? AND finished_at IS NOT NULL ORDER BY finished_at DESC", arguments: [accountID])
     }
     let sessions = try payloads.map { try JSONDecoder().decode(WorkoutSession.self, from: $0) }
+    let restoredPayload = try database.read { db in
+      try Data.fetchOne(db, sql: "SELECT payload FROM restored_previous_performance WHERE account_id = ?", arguments: [accountID])
+    }
+    let restored = try restoredPayload.map { try JSONDecoder().decode([PreviousPerformanceSnapshot].self, from: $0) } ?? []
     var previousBySlot: [String: PreviousPerformance] = [:]
     for requested in exercises {
-      let results = sessions.flatMap { session -> [(WorkoutSession, WorkoutSession.Exercise, WorkoutSession.SetEntry)] in
+      let localResults = sessions.flatMap { session -> [PreviousPerformanceSnapshot] in
         guard session.finishedAt != nil else { return [] }
-        return session.exercises.compactMap { exercise in
+        return session.exercises.compactMap { exercise -> PreviousPerformanceSnapshot? in
           guard exercise.exerciseKey == requested.exerciseKey,
-                let entry = session.setEntries[exercise.slotID],
-                entry.completedAt != nil,
+                 let entry = session.setEntries[exercise.slotID],
+                let completedAt = entry.completedAt,
                 let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
                 weight.isFinite, weight >= 0,
                 let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
-          return (session, exercise, entry)
+          return PreviousPerformanceSnapshot(
+            sessionID: session.id, exerciseKey: exercise.exerciseKey, programID: session.programID,
+            workoutID: session.workoutID, slotID: exercise.slotID,
+            weightInput: entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines),
+            repsInput: entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines),
+            weightUnit: session.weightUnit, completedAt: completedAt, workoutName: session.workoutName,
+            week: session.week, day: session.day
+          )
         }
       }
-      let preferred = results.filter { $0.0.programID == programID && $0.0.workoutID == workoutID }
-      let sameSlot = preferred.filter { $0.1.slotID == requested.slotID }
-      guard let (session, _, entry) = (sameSlot.isEmpty ? preferred : sameSlot).first ?? results.first,
-            let completedAt = entry.completedAt else { continue }
+      let results = (localResults + restored.filter { $0.exerciseKey == requested.exerciseKey })
+        .sorted { lhs, rhs in
+          if lhs.completedAt != rhs.completedAt { return lhs.completedAt > rhs.completedAt }
+          if lhs.sessionID != rhs.sessionID { return lhs.sessionID.uuidString > rhs.sessionID.uuidString }
+          return lhs.slotID < rhs.slotID
+        }
+      let preferred = results.filter { $0.programID == programID && $0.workoutID == workoutID }
+      let sameSlot = preferred.filter { $0.slotID == requested.slotID }
+      guard let result = (sameSlot.isEmpty ? preferred : sameSlot).first ?? results.first else { continue }
       previousBySlot[requested.slotID] = PreviousPerformance(
-        weightInput: entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines),
-        repsInput: entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines),
-        weightUnit: session.weightUnit, completedAt: completedAt, workoutName: session.workoutName,
-        week: session.week, day: session.day,
-        isSameProgramWorkout: session.programID == programID && session.workoutID == workoutID
+        weightInput: result.weightInput, repsInput: result.repsInput,
+        weightUnit: result.weightUnit, completedAt: result.completedAt, workoutName: result.workoutName,
+        week: result.week, day: result.day,
+        isSameProgramWorkout: result.programID == programID && result.workoutID == workoutID
       )
     }
     return previousBySlot
+  }
+
+  func saveRestoredPreviousPerformances(
+    _ results: [PreviousPerformanceSnapshot], accountID: String, at date: Date = .now
+  ) throws {
+    let payload = try JSONEncoder().encode(results)
+    try database.write { db in
+      try db.execute(sql: """
+        INSERT INTO restored_previous_performance (account_id, payload, saved_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT (account_id) DO UPDATE SET payload = excluded.payload, saved_at = excluded.saved_at
+        """, arguments: [accountID, payload, date.timeIntervalSince1970])
+    }
   }
 
   @discardableResult

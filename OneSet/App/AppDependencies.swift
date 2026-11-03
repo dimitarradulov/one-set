@@ -6,6 +6,7 @@ struct AppDependencies {
   let authentication: any AuthenticationService
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
+  let previousPerformance: any PreviousPerformanceService
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
@@ -27,6 +28,7 @@ struct AppDependencies {
         fileURL: progressURL
       ),
       accountSetup: PreviewAccountSetupService(),
+      previousPerformance: PreviewPreviousPerformanceService(),
       completedSessionUpload: nil,
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
@@ -164,6 +166,7 @@ struct AppDependencies {
           includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
           storageDirectory: storage.directory
         ),
+        previousPerformance: PreviewPreviousPerformanceService(),
         completedSessionUpload: nil,
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
@@ -204,6 +207,7 @@ struct AppDependencies {
       authentication: authentication,
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication),
+      previousPerformance: HTTPPreviousPerformanceService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))

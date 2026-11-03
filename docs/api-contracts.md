@@ -1,6 +1,6 @@
 # Proposed API contracts
 
-HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog and account setup routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, and previous-performance read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
@@ -13,6 +13,7 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | POST /v1/maintenance/catalog/preview | Validate and compare source with the current snapshot; maintenance bearer secret |
 | POST /v1/maintenance/catalog/publish | Atomically publish the exact reviewed source; maintenance bearer secret |
 | GET /me/setup | Implemented owner-scoped completed setup lookup; [contract](account-setup.md) |
+| GET /me/previous-performance | Implemented compact owner-scoped latest-result summaries for recording |
 | POST /sessions/completed | Implemented first-write contract for completed sessions and occurrence progress |
 | GET /me/bootstrap | Complete consistent owned snapshot, including OneSet settings, runs, preferences, sessions and completion marks; Clerk profile/access is resolved separately |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
@@ -29,6 +30,8 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | DELETE /me | Proposed account-erasure flow; reauthentication and retention implementation required |
 
 Catalog reads and account setup require Clerk authentication. Catalog maintenance requires the separate `CATALOG_PUBLISH_TOKEN`; a Clerk session cannot publish. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
+
+`GET /v1/me/previous-performance` requires a verified Clerk session and returns `{ results: [...] }` with `Cache-Control: private, no-store`. The Worker derives ownership from the verified subject and does not require active subscription access. For each actual exercise and original workout slot, it returns the latest completed working-set result in each owned program workout. Each result includes `exercise_key`, `program_key`, `workout_key`, `slot_key`, `week_number`, captured `workout_name`, original decimal `weight`, original `unit`, `reps`, `completed_at`, and `session_id`. This compact read is independent of History pages; it does not return complete sessions, notes, drafts, warmups, or unperformed slots. The client stores these results separately from session rows and upload queues, merges them with locally completed sessions, prefers the exact original slot when available, then the same actual exercise in the same program workout, and otherwise labels the latest result elsewhere. A failed read preserves cached/local results and keeps an unavailable state distinct from confirmed absence.
 
 ## Payload rules
 

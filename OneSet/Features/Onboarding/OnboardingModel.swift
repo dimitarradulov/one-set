@@ -39,6 +39,7 @@ final class OnboardingModel {
   private var isSigningOut = false
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
+  private let previousPerformanceService: (any PreviousPerformanceService)?
   private var lookupGeneration = 0
   private var resolvedAccountID: String?
   private let catalog: ProgramCatalog
@@ -53,10 +54,12 @@ final class OnboardingModel {
   var sessionUploadErrorPresented = false
   private(set) var sessionUploadErrorMessage = ""
   private(set) var workoutStorageOpenFailed = false
+  private(set) var previousPerformanceUnavailable = false
 
   init(
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
+    previousPerformanceService: (any PreviousPerformanceService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
@@ -72,6 +75,7 @@ final class OnboardingModel {
   ) {
     self.catalog = catalog
     self.setupService = setupService
+    self.previousPerformanceService = previousPerformanceService
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
     self.completedSessionUploadService = completedSessionUploadService
@@ -153,6 +157,7 @@ final class OnboardingModel {
       }
       presentSessionUploadErrorIfNeeded(accountID: user.id)
       setupResolution = .idle
+      await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
     } catch {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
@@ -162,6 +167,7 @@ final class OnboardingModel {
         restore(savedProgress)
         resolvedAccountID = user.id
         setupResolution = .idle
+        await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
       } else {
         setupResolution = .failed(error.localizedDescription)
       }
@@ -322,6 +328,7 @@ final class OnboardingModel {
   private func resetAccount(preservingNavigation: Bool) {
     lookupGeneration += 1
     resolvedAccountID = nil
+    previousPerformanceUnavailable = false
     setupResolution = .idle
     restoredCycleID = nil
     savedProgress = nil
@@ -816,6 +823,30 @@ final class OnboardingModel {
     return (try? workoutRepository.previousPerformances(accountID: session.accountID,
       exercises: session.exercises.map { .init(slotID: $0.slotID, exerciseKey: $0.exerciseKey) },
       programID: session.programID, workoutID: session.workoutID)) ?? [:]
+  }
+
+  private func refreshPreviousPerformances(
+    for user: AuthenticatedUser, generation: Int, authentication: AuthenticationModel
+  ) async {
+    guard let previousPerformanceService, let workoutRepository else { return }
+    do {
+      let results = try await previousPerformanceService.lookup(for: user)
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            resolvedAccountID == user.id else { return }
+      try workoutRepository.saveRestoredPreviousPerformances(results, accountID: user.id)
+      previousPerformanceUnavailable = false
+    } catch {
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            resolvedAccountID == user.id else { return }
+      previousPerformanceUnavailable = true
+    }
+  }
+
+  func retryPreviousPerformances(using authentication: AuthenticationModel) async {
+    guard let user = authentication.signedInUser, resolvedAccountID == user.id else { return }
+    await refreshPreviousPerformances(for: user, generation: lookupGeneration, authentication: authentication)
   }
 
   private func showWorkoutSaveError(_ error: Error) {
