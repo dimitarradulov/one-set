@@ -8,7 +8,7 @@ ALTER TABLE public.workout_sessions
 CREATE FUNCTION public.save_completed_session_with_day(
   authenticated_clerk_user_id text,
   payload jsonb
-) RETURNS text LANGUAGE plpgsql AS $$
+) RETURNS text LANGUAGE plpgsql AS $function$
 DECLARE
   v_result text;
   v_session_id uuid;
@@ -53,6 +53,6 @@ BEGIN
 EXCEPTION
   WHEN unique_violation THEN RETURN 'session_conflict';
 END;
-$$;
+$function$;
 
 COMMIT;

@@ -107,4 +107,46 @@ struct HistoryModelTests {
     #expect(try reopened.historyCoverage(accountID: "history-account") ==
       SessionHistoryCoverage(nextCursor: nil, hasMore: false, hasLoadedPage: true))
   }
+
+  @Test
+  func recentRefreshInvalidatesInFlightOlderPageAndReleasesLoadingState() async throws {
+    var coverage = SessionHistoryCoverage(nextCursor: nil, hasMore: false, hasLoadedPage: false)
+    var olderContinuation: CheckedContinuation<SessionHistoryPage, Never>?
+    let model = HistoryModel(
+      accountID: "history-account",
+      displayUnit: .kilograms,
+      loadSessions: { _ in [] },
+      resolveProgramName: { _ in nil },
+      loadCoverage: { _ in coverage },
+      savePage: { page, _ in
+        coverage = SessionHistoryCoverage(
+          nextCursor: page.nextCursor,
+          hasMore: page.hasMore,
+          hasLoadedPage: true
+        )
+      },
+      fetchPage: { cursor in
+        guard cursor != nil else {
+          return SessionHistoryPage(sessions: [], nextCursor: "refreshed", hasMore: true)
+        }
+        return await withCheckedContinuation { olderContinuation = $0 }
+      }
+    )
+
+    await model.reload()
+    let olderLoad = Task { await model.loadOlderPage() }
+    await Task.yield()
+    #expect(model.isLoadingOlder)
+
+    await model.reload()
+    #expect(!model.isLoadingOlder)
+    #expect(coverage.nextCursor == "refreshed")
+
+    try #require(olderContinuation).resume(returning: SessionHistoryPage(
+      sessions: [], nextCursor: "stale-next", hasMore: true
+    ))
+    await olderLoad.value
+    #expect(coverage.nextCursor == "refreshed")
+    #expect(!model.isLoadingOlder)
+  }
 }

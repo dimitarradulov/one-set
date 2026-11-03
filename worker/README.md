@@ -82,7 +82,7 @@ The contract tests run authenticated Worker requests against disposable PGlite w
 
 At that check, shared `oneset-development` was READY at schema version 005 and had no workout memberships/templates, session rows, sets or completion marks; migration 006 was not installed there. The production branch was archived. No shared development or production data changed, and no Worker was deployed. An authenticated Worker-to-Neon save request remains unverified because a Clerk development session/project configuration is unavailable.
 
-Migration 007 and the history Worker route are not applied or deployed by this issue implementation. The latest documented development schema is version 006. Apply migration 007 to `oneset-development` before deploying the updated Worker; production remains untouched. The authenticated round trip for the new history route and day field remains unverified.
+On 2026-11-03, migration 007 was rehearsed on a disposable child of `oneset-development`, then applied to the development branch after approval. Inspection confirmed nullable integer `workout_sessions.day_number` and `save_completed_session_with_day(text,jsonb)`. Wrangler deployed development version `f648428f-90f9-4e3b-9020-92e25a6d04ef`; unauthenticated `GET /v1/sessions` returned `401 AUTH_REQUIRED` with `Cache-Control: private, no-store`. The authenticated live History/day round trip remains unverified because no signed-in Clerk session token was available in the environment. Contract tests against disposable PGlite verify the authenticated history and completed-session paths. Production was not queried or modified.
 
 ## Catalog API
 

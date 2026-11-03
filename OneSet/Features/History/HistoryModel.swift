@@ -73,6 +73,9 @@ final class HistoryModel {
     loadGeneration += 1
     let generation = loadGeneration
     olderRequestGeneration += 1
+    // A refresh replaces the continuation from the newest page. Release the
+    // older-page affordance now; its eventual response is rejected below.
+    isLoadingOlder = false
     isLoading = true
     loadError = nil
     olderPageError = nil
@@ -115,7 +118,6 @@ final class HistoryModel {
   func loadOlderPage() async {
     guard let fetchPage, let savePage, hasLoadedAccountHistory, hasMoreHistory,
           let cursor = coverage.nextCursor, !isLoadingOlder, isAccountCurrent() else { return }
-    let currentGeneration = loadGeneration
     olderRequestGeneration += 1
     let requestGeneration = olderRequestGeneration
     isLoadingOlder = true
@@ -127,12 +129,10 @@ final class HistoryModel {
     do {
       let page = try await fetchPage(cursor)
       guard requestGeneration == olderRequestGeneration,
-            currentGeneration == loadGeneration,
             coverage.nextCursor == cursor,
             isAccountCurrent() else { return }
       try savePage(page, accountID)
       guard requestGeneration == olderRequestGeneration,
-            currentGeneration == loadGeneration,
             isAccountCurrent() else { return }
       coverage = try loadCoverage?(accountID)
         ?? SessionHistoryCoverage(nextCursor: page.nextCursor, hasMore: page.hasMore, hasLoadedPage: true)
@@ -140,7 +140,6 @@ final class HistoryModel {
       try reloadLocalSessions()
     } catch {
       guard requestGeneration == olderRequestGeneration,
-            currentGeneration == loadGeneration,
             isAccountCurrent() else { return }
       if Self.isOffline(error) {
         isOfflineOlderBoundary = true

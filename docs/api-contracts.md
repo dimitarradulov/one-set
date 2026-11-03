@@ -1,6 +1,6 @@
-# Proposed API contracts
+# API contracts
 
-HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, and previous-performance read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, previous-performance read, progress read, and paginated session-history read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
@@ -22,7 +22,7 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | POST /cycles/{id}/activate | Select the latest run for that program; latest saved choice takes effect; block active-workout overlap |
 | PUT /cycles/{id}/exercises/{workout_exercise_id} | Save remembered `exercise_id`, `note`, `rest_seconds`; latest saved values take effect |
 | POST /sync/push | Apply a bounded batch of aggregate operations; outcome per operation |
-| GET /sessions | Keyset-paginated history; no public/shared cache |
+| GET /sessions | Implemented keyset-paginated history; no public/shared cache |
 | GET /sessions/{id} | Snapshot and results; ownership checked |
 | DELETE /sessions/{id} | Online confirmed hard deletion after outstanding session uploads resolve; absent record is already deleted |
 | GET /exercises/{id}/history | Owned completed results; optional `workout_program_id` / `workout_id` context |
@@ -52,9 +52,9 @@ Settings, preference and activation writes are serialized on the device and use 
 
 The app persists this compact summary by account and cycle. It merges occurrence marks by identity and never lowers the saved week boundary. These marks drive week checkmarks and next-workout eligibility without creating synthetic session rows or upload operations. Local completed sessions remain part of progress when they are newer than the server summary.
 
-## Complete session history
+## Paginated session history
 
-`GET /v1/sessions` requires a verified Clerk session and returns complete finished sessions ordered by `(started_at DESC, session_id DESC)`. The endpoint uses an opaque owner-bound keyset cursor, accepts `limit` from 1 through 50 (default 25), and returns `{ sessions, next_cursor, has_more }`. Each row includes the captured workout/session context, nullable historical `day_number`, current program display name, note, and every captured slot including unperformed slots. Responses use `Cache-Control: private, no-store`; drafts and unfinished sessions are excluded.
+`GET /v1/sessions` requires a verified Clerk session and returns complete finished sessions ordered by `(started_at DESC, session_id DESC)`. The endpoint uses an opaque owner-bound keyset cursor, accepts `limit` from 1 through 50 (default 25), and returns `{ sessions, next_cursor, has_more }`. Each row includes the captured workout/session context, nullable historical `day_number`, current program display name, note, and every captured slot including unperformed slots. Responses use `Cache-Control: private, no-store`; drafts and unfinished sessions are excluded. History refresh requests the first page and atomically stores it with its continuation; older pages are fetched only when requested by the user. A refresh does not imply deletion when a previously cached row is absent from that page. Stable session IDs deduplicate local finishes and their uploaded copies.
 
 ## Completed-session first write
 

@@ -12,6 +12,7 @@ struct AppLaunchConfiguration {
     return arguments.contains("--ui-main-workout-recording") || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
       || arguments.contains("--ui-history-populated") || arguments.contains("--ui-history-partial-detail")
       || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
+      || arguments.contains("--ui-history-refresh-error")
       || arguments.contains("--ui-history-pagination") || arguments.contains("--ui-history-offline-boundary")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
@@ -29,7 +30,8 @@ struct AppLaunchConfiguration {
     #if DEBUG
     if arguments.contains("--ui-main-history") || arguments.contains("--ui-history-populated")
       || arguments.contains("--ui-history-partial-detail") || arguments.contains("--ui-history-empty")
-      || arguments.contains("--ui-history-error") || arguments.contains("--ui-history-pagination")
+      || arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error")
+      || arguments.contains("--ui-history-pagination")
       || arguments.contains("--ui-history-offline-boundary") {
       selectedMainTab = .history
     } else if arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units")

@@ -972,6 +972,9 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertFalse(app.staticTexts["999"].exists)
     XCTAssertFalse(app.staticTexts["draft"].exists)
     XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "0 lb")).firstMatch.exists)
+    app.buttons["Program"].tap()
+    app.buttons["History"].tap()
+    XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.detail").firstMatch.exists)
     let detailList = app.collectionViews["history.detail"]
     for _ in 0..<5 {
       if app.staticTexts["Recorded as a partial workout."].exists { break }
@@ -979,24 +982,53 @@ final class OnboardingJourneyTests: XCTestCase {
     }
     XCTAssertTrue(app.staticTexts["Recorded as a partial workout."].waitForExistence(timeout: 5))
 
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
     relaunch(with: ["--ui-history-empty"])
-    XCTAssertTrue(app.staticTexts["No workouts on this device"].waitForExistence(timeout: 5))
-    XCTAssertTrue(app.staticTexts["Completed workouts saved on this device will appear here."].exists)
+    XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Completed workouts from your account will appear here."].exists)
 
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
     relaunch(with: ["--ui-history-error"])
     XCTAssertTrue(app.staticTexts["History couldn’t be loaded"].waitForExistence(timeout: 5))
     app.buttons["history.retry"].tap()
     XCTAssertTrue(app.staticTexts["History couldn’t be loaded"].exists)
+
+    app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
+    relaunch(with: ["--ui-history-refresh-error"])
+    XCTAssertEqual(app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).count, 2)
+    XCTAssertTrue(app.staticTexts.matching(
+      NSPredicate(format: "label CONTAINS %@", "Saved workouts are still here")
+    ).firstMatch.waitForExistence(timeout: 5))
+    app.buttons["history.retry"].tap()
+    XCTAssertEqual(app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).count, 2)
   }
 
-  func testHistoryPaginationAndOfflineBoundaryKeepDownloadedRows() {
+  func testHistoryPaginationAndOfflineBoundaryKeepDownloadedRows() throws {
     relaunch(with: ["--ui-history-pagination"])
     let rows = app.buttons.matching(
       NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
     )
     XCTAssertEqual(rows.count, 1)
+    XCTAssertTrue(rows.firstMatch.label.contains("Workout B"))
+    XCTAssertTrue(rows.firstMatch.label.contains("1 of 7 exercises completed"))
+    XCTAssertGreaterThanOrEqual(rows.firstMatch.frame.height, 44)
     let loadOlder = app.buttons["history.older.load"]
     XCTAssertTrue(loadOlder.waitForExistence(timeout: 5))
+    XCTAssertGreaterThanOrEqual(loadOlder.frame.height, 44)
+    XCTAssertTrue(rows.firstMatch.frame.minY < loadOlder.frame.minY)
+    let accessibilityOrder = app.descendants(matching: .any).allElementsBoundByIndex
+      .map(\.identifier)
+    let sessionPosition = try XCTUnwrap(accessibilityOrder.firstIndex {
+      $0.hasPrefix("history.session.")
+    })
+    let continuationPosition = try XCTUnwrap(accessibilityOrder.firstIndex {
+      $0 == "history.older.load"
+    })
+    XCTAssertLessThan(sessionPosition, continuationPosition)
     attachScreenshot(named: "history-pagination-boundary")
     loadOlder.tap()
     XCTAssertEqual(rows.count, 2)

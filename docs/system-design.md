@@ -32,6 +32,8 @@ Writes serialize through a local transaction. Only after commit does UI confirm 
 
 App startup first restores an active session, then fetches compact progress for the active cycle when possible. Store that summary by account and cycle, independently from downloaded History sessions; combine its completion marks with local finished sessions when choosing the next occurrence. User data is namespaced per account; never render one user's store to another. Sign-out/account switch with pending data must offer to sync first and explicitly explain any local-data removal; never silently clear the outbox.
 
+History stores complete finished sessions and owner-scoped keyset coverage separately from compact progress and previous-performance summaries. On tab return, foreground, or pull-to-refresh, request the newest page and merge by stable session ID; fetch older pages only when the user asks to continue. Persist each page and its cursor atomically. Keep local pending finishes and upload bookkeeping intact, preserve the visible session anchor and detail route when rows merge, and reject requests overtaken by refresh or account changes. Page omissions never imply deletion.
+
 ## Worker API and Postgres
 
 One modest Worker service with routes for catalog, owned training state, sync and media is sufficient. Verify Clerk tokens and derive user ownership at the boundary; no client-provided `user_id` authorizes access. Use a restricted database role, parameterized queries and an authenticated server-side Postgres connection. Driver/HTTP transaction support is a release spike: atomic session/sync writes require a supported transaction API, not unrelated statements.

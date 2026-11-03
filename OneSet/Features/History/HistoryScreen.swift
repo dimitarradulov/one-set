@@ -5,6 +5,7 @@ struct HistoryScreen: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var model: HistoryModel
   @State private var path: [UUID] = []
+  @State private var visibleSessionID: UUID?
   @State private var initialRouteHandled = false
   let isActive: Bool
   let initialSessionID: UUID?
@@ -134,6 +135,7 @@ struct HistoryScreen: View {
                   completedCount: model.completedExerciseCount(for: session)
                 )
               }
+              .id(session.id)
               .buttonStyle(.plain)
               .accessibilityLabel(HistorySessionRow.accessibilityLabel(
                 for: session,
@@ -153,6 +155,7 @@ struct HistoryScreen: View {
       .listStyle(.insetGrouped)
       .scrollContentBackground(.hidden)
       .background(OneSetColors.background)
+      .scrollPosition(id: $visibleSessionID, anchor: .top)
       .refreshable { await model.reload() }
       .accessibilityIdentifier("history.list")
     }

@@ -55,6 +55,7 @@ struct AppDependencies {
     let historyPreview = arguments.contains("--ui-history-populated")
       || arguments.contains("--ui-history-partial-detail")
       || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
+      || arguments.contains("--ui-history-refresh-error")
       || arguments.contains("--ui-history-pagination")
       || arguments.contains("--ui-history-offline-boundary")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
@@ -197,7 +198,7 @@ struct AppDependencies {
                   id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", workout: "machine-full-body-workout-b",
                   startedAt: Date(timeIntervalSince1970: 1_801_000_000), day: 2
                 )]] : []),
-          failsInitial: arguments.contains("--ui-history-error"),
+          failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
         workoutRepositoryFactory: {
@@ -220,7 +221,8 @@ struct AppDependencies {
             )
           }
           if historyPreview && (arguments.contains("--ui-history-populated")
-            || arguments.contains("--ui-history-partial-detail")) {
+            || arguments.contains("--ui-history-partial-detail")
+            || arguments.contains("--ui-history-refresh-error")) {
             try Self.seedHistoryPreviewSessions(in: repository)
           }
           return repository
