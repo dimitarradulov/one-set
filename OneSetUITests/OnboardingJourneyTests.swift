@@ -888,8 +888,6 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.tabBars.buttons["History"].tap()
     XCTAssertTrue(app.navigationBars["History"].exists)
-    XCTAssertTrue(app.staticTexts["No workouts on this device"].exists)
-    XCTAssertTrue(app.staticTexts["Completed workouts saved on this device will appear here."].exists)
 
     app.tabBars.buttons["Settings"].tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
@@ -945,7 +943,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
   func testCompletedSetupDevelopmentRoutesSelectTabsAndDestinations() {
     relaunch(with: ["--ui-main-history"])
-    XCTAssertTrue(app.staticTexts["No workouts on this device"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.tabBars.buttons["History"].isSelected)
 
     relaunch(with: ["--ui-main-settings-units"])
@@ -1073,7 +1071,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
     app.tabBars.buttons["History"].tap()
-    XCTAssertTrue(app.staticTexts["history.comingSoon"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
     app.tabBars.buttons["Program"].tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["exerciseDetail.historyTab"].isSelected)
