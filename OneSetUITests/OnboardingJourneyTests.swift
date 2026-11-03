@@ -804,7 +804,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testFinishedOfflineWorkoutSurvivesRelaunchWithoutSyncStatus() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-main-tabs"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
     app.buttons["workoutPreview.start"].tap()
@@ -822,7 +822,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
-    app.tabBars.buttons["History"].tap()
+    app.buttons["History"].tap()
     let historyRow = app.buttons.matching(
       NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
     ).firstMatch
@@ -834,15 +834,15 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.descendants(matching: .any).matching(
       NSPredicate(format: "label CONTAINS %@", "Not performed")
     ).firstMatch.exists)
-    app.navigationBars.buttons.firstMatch.tap()
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-history", "--ui-progress-keep"])
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
     XCTAssertTrue(app.buttons["overview.day.2.preview"].label.contains("Not started"))
     XCTAssertFalse(app.staticTexts["setup.uploadStatus"].exists)
     XCTAssertFalse(app.buttons["setup.retryUpload"].exists)
-    app.tabBars.buttons["History"].tap()
+    app.buttons["History"].tap()
     XCTAssertTrue(app.buttons.matching(
       NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
     ).firstMatch.waitForExistence(timeout: 3))

@@ -19,7 +19,7 @@ struct HistoryModelTests {
       emphasis: "Strength", workouts: [workout])
     let startedAt = Date(timeIntervalSince1970: 1_800_000_000)
     let session = WorkoutSession(accountID: "history-account", cycleID: UUID(), program: program,
-      workout: workout, week: 3, day: 2, weightUnit: .pounds, startedAt: startedAt)
+      workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: startedAt)
     _ = try repository.start(session)
     _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
       slotID: "slot-row", weightInput: "100", repsInput: "8")
