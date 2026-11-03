@@ -46,6 +46,9 @@ struct AppDependencies {
     let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
     let sessionSignOutPreview = arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
+    let historyPreview = arguments.contains("--ui-history-populated")
+      || arguments.contains("--ui-history-partial-detail")
+      || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
@@ -67,9 +70,10 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = sessionSignOutPreview ? "session-signout-workouts.sqlite" : "workouts.sqlite"
+    let previewWorkoutFile = sessionSignOutPreview ? "session-signout-workouts.sqlite"
+      : historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview {
+    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview || sessionSignOutPreview || historyPreview {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -184,6 +188,10 @@ struct AppDependencies {
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
+          if historyPreview && (arguments.contains("--ui-history-populated")
+            || arguments.contains("--ui-history-partial-detail")) {
+            try Self.seedHistoryPreviewSessions(in: repository)
+          }
           return repository
         }
       )
@@ -238,6 +246,43 @@ struct AppDependencies {
       sessionID: session.id, accountID: session.accountID, note: nil,
       at: startedAt.addingTimeInterval(20)
     )
+  }
+
+  private static func seedHistoryPreviewSessions(in repository: WorkoutRepository) throws {
+    guard try repository.completedSessions(accountID: "preview-user").isEmpty,
+          let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
+          let workout = program.workouts.first else { return }
+    let samples: [(String, UUID, Date, Bool)] = [
+      ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+       ISO8601DateFormatter().date(from: "2026-10-18T10:00:00Z")!, false),
+      ("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!,
+       ISO8601DateFormatter().date(from: "2026-10-29T18:30:00Z")!, true),
+    ]
+    for (_, sessionID, startedAt, partial) in samples {
+      let session = WorkoutSession(
+        accountID: "preview-user", cycleID: UUID(), program: program, workout: workout,
+        week: 1, day: 1, weightUnit: .pounds, startedAt: startedAt, id: sessionID
+      )
+      _ = try repository.start(session)
+      for (index, exercise) in session.exercises.enumerated() {
+        if partial && index > 0 {
+          _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+            slotID: exercise.slotID, weightInput: "999", repsInput: "draft")
+          continue
+        }
+        let weight = partial ? "0" : "125.5"
+        _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+          slotID: exercise.slotID, weightInput: weight, repsInput: "10")
+        _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+          slotID: exercise.slotID, at: startedAt.addingTimeInterval(Double(index + 1) * 600))
+      }
+      _ = try repository.finish(
+        sessionID: session.id,
+        accountID: session.accountID,
+        note: partial ? "Recorded as a partial workout." : nil,
+        at: startedAt.addingTimeInterval(3_600)
+      )
+    }
   }
   #endif
 }

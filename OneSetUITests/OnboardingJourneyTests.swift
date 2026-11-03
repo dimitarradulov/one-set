@@ -822,12 +822,30 @@ final class OnboardingJourneyTests: XCTestCase {
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+    app.tabBars.buttons["History"].tap()
+    let historyRow = app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).firstMatch
+    XCTAssertTrue(historyRow.waitForExistence(timeout: 3))
+    XCTAssertTrue(historyRow.label.contains("1 of"))
+    historyRow.tap()
+    XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.detail").firstMatch.waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "50 lb")).firstMatch.exists)
+    XCTAssertTrue(app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Not performed")
+    ).firstMatch.exists)
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
     XCTAssertTrue(app.buttons["overview.day.2.preview"].label.contains("Not started"))
     XCTAssertFalse(app.staticTexts["setup.uploadStatus"].exists)
     XCTAssertFalse(app.buttons["setup.retryUpload"].exists)
+    app.tabBars.buttons["History"].tap()
+    XCTAssertTrue(app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).firstMatch.waitForExistence(timeout: 3))
   }
 
   func testWorkoutStorageSurvivesRelaunchButIsIsolatedFromAnotherJourney() {
@@ -870,8 +888,8 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.tabBars.buttons["History"].tap()
     XCTAssertTrue(app.navigationBars["History"].exists)
-    XCTAssertTrue(app.staticTexts["history.comingSoon"].exists)
-    XCTAssertTrue(app.staticTexts["Your completed workouts will appear here."].exists)
+    XCTAssertTrue(app.staticTexts["No workouts on this device"].exists)
+    XCTAssertTrue(app.staticTexts["Completed workouts saved on this device will appear here."].exists)
 
     app.tabBars.buttons["Settings"].tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
@@ -917,7 +935,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.tabBars.buttons["Program"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].exists)
     app.tabBars.buttons["History"].tap()
-    XCTAssertTrue(app.staticTexts["history.comingSoon"].exists)
+    XCTAssertTrue(app.staticTexts["No workouts on this device"].exists)
     app.tabBars.buttons["Settings"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
     app.navigationBars.buttons.firstMatch.tap()
@@ -927,7 +945,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
   func testCompletedSetupDevelopmentRoutesSelectTabsAndDestinations() {
     relaunch(with: ["--ui-main-history"])
-    XCTAssertTrue(app.staticTexts["history.comingSoon"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.staticTexts["No workouts on this device"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.tabBars.buttons["History"].isSelected)
 
     relaunch(with: ["--ui-main-settings-units"])
@@ -938,6 +956,37 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-main-workout-preview"])
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+  }
+
+  func testHistoryPreviewRoutesShowPopulatedPartialEmptyAndRetryStates() {
+    relaunch(with: ["--ui-history-populated"])
+    XCTAssertTrue(app.staticTexts["October 2026"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")
+    ).count, 2)
+
+    relaunch(with: ["--ui-history-partial-detail"])
+    XCTAssertTrue(app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Not performed")
+    ).firstMatch.exists)
+    XCTAssertFalse(app.staticTexts["999"].exists)
+    XCTAssertFalse(app.staticTexts["draft"].exists)
+    XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "0 lb")).firstMatch.exists)
+    let detailList = app.collectionViews["history.detail"]
+    for _ in 0..<5 {
+      if app.staticTexts["Recorded as a partial workout."].exists { break }
+      detailList.swipeUp()
+    }
+    XCTAssertTrue(app.staticTexts["Recorded as a partial workout."].waitForExistence(timeout: 5))
+
+    relaunch(with: ["--ui-history-empty"])
+    XCTAssertTrue(app.staticTexts["No workouts on this device"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Completed workouts saved on this device will appear here."].exists)
+
+    relaunch(with: ["--ui-history-error"])
+    XCTAssertTrue(app.staticTexts["History couldn’t be loaded"].waitForExistence(timeout: 5))
+    app.buttons["history.retry"].tap()
+    XCTAssertTrue(app.staticTexts["History couldn’t be loaded"].exists)
   }
 
   func testEstablishedCycleConflictExplainsThatWorkoutRemainsOnDevice() {

@@ -126,6 +126,45 @@ struct WorkoutRepositorySetTests {
   }
 
   @Test
+  func completedSessionsAreAccountScopedFinishedAndNewestFirstWithStableTies() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let tiedStart = Date(timeIntervalSince1970: 1_800_000_000)
+    let firstID = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+    let secondID = UUID(uuidString: "00000000-0000-4000-8000-000000000002")!
+
+    for (week, id) in [(1, firstID), (2, secondID)] {
+      let session = makeSession(week: week, startedAt: tiedStart, id: id)
+      _ = try repository.start(session)
+      _ = try repository.saveDraft(sessionID: id, accountID: session.accountID,
+        slotID: "slot-a", weightInput: "0", repsInput: "8")
+      _ = try repository.completeSet(sessionID: id, accountID: session.accountID,
+        slotID: "slot-a", at: tiedStart.addingTimeInterval(30))
+      _ = try repository.finish(sessionID: id, accountID: session.accountID,
+        note: nil, at: tiedStart.addingTimeInterval(60))
+    }
+
+    let active = makeSession(week: 3, startedAt: tiedStart.addingTimeInterval(100))
+    _ = try repository.start(active)
+    let otherAccount = makeSession(week: 1, startedAt: tiedStart, accountID: "other-account")
+    _ = try repository.start(otherAccount)
+    _ = try repository.saveDraft(sessionID: otherAccount.id, accountID: otherAccount.accountID,
+      slotID: "slot-a", weightInput: "20", repsInput: "10")
+    _ = try repository.completeSet(sessionID: otherAccount.id, accountID: otherAccount.accountID,
+      slotID: "slot-a")
+    _ = try repository.finish(sessionID: otherAccount.id, accountID: otherAccount.accountID, note: nil)
+
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    let sessions = try reopened.completedSessions(accountID: "account")
+    #expect(sessions.map(\.id) == [secondID, firstID])
+    #expect(sessions.allSatisfy { $0.finishedAt != nil })
+    #expect(try reopened.completedSessions(accountID: "other-account").map(\.id) == [otherAccount.id])
+    #expect(sessions[0].setEntries["slot-a"]?.weightInput == "0")
+  }
+
+  @Test
   func invalidLoadsAndOtherAccountsCannotCompleteASession() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -623,7 +662,9 @@ struct WorkoutRepositorySetTests {
 
   private func makeSession(cycleID: UUID = UUID(), week: Int = 1,
                            startedAt: Date = .now,
-                           weightUnit: WeightUnit = .pounds) -> WorkoutSession {
+                           weightUnit: WeightUnit = .pounds,
+                           accountID: String = "account",
+                           id: UUID = UUID()) -> WorkoutSession {
     let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
       WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row",
                       repTarget: RepTarget(minimum: 8, maximum: 12, scope: .eachSide),
@@ -635,9 +676,9 @@ struct WorkoutRepositorySetTests {
                       warmupGuidance: "Warm up gradually.")
     ])
     let program = TrainingProgram(id: "program", name: "Program", format: "A/B", emphasis: "Strength", workouts: [workout])
-    return WorkoutSession(accountID: "account", cycleID: cycleID, program: program,
+    return WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
                           workout: workout, week: week, day: 1, weightUnit: weightUnit,
-                          startedAt: startedAt)
+                          startedAt: startedAt, id: id)
   }
 
   private func makeLegacyFinishedSession(

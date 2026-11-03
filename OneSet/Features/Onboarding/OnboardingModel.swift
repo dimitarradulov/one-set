@@ -818,6 +818,22 @@ final class OnboardingModel {
       programID: session.programID, workoutID: session.workoutID)) ?? [:]
   }
 
+  func completedHistorySessions(accountID: String) throws -> [WorkoutSession] {
+    guard resolvedAccountID == accountID else { throw HistoryDataError.accountUnavailable }
+    if workoutRepository == nil {
+      guard let workoutRepositoryFactory else { throw HistoryDataError.storageUnavailable }
+      workoutRepository = try workoutRepositoryFactory()
+      configureCompletedSessionUploads()
+    }
+    guard let workoutRepository else { throw HistoryDataError.storageUnavailable }
+    workoutStorageOpenFailed = false
+    return try workoutRepository.completedSessions(accountID: accountID)
+  }
+
+  func programName(id: String) -> String? {
+    catalog.program(id: id)?.name
+  }
+
   private func showWorkoutSaveError(_ error: Error) {
     workoutErrorMessage = error.localizedDescription
     workoutErrorPresented = true

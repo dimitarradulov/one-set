@@ -464,6 +464,24 @@ final class WorkoutRepository {
     }
   }
 
+  /// Returns only this account's explicitly finished sessions that contain a completed working set.
+  /// Ordering is based on the recorded start time, with the stable session ID breaking ties.
+  func completedSessions(accountID: String) throws -> [WorkoutSession] {
+    let payloads = try database.read { db in
+      try Data.fetchAll(db, sql: """
+        SELECT payload FROM workout_sessions
+        WHERE account_id = ? AND finished_at IS NOT NULL
+        ORDER BY started_at DESC, id DESC
+        """, arguments: [accountID])
+    }
+    return try payloads
+      .map { try JSONDecoder().decode(WorkoutSession.self, from: $0) }
+      .filter { session in
+        session.accountID == accountID && session.finishedAt != nil
+          && session.exercises.contains { session.setEntries[$0.slotID]?.completedAt != nil }
+      }
+  }
+
   func previousPerformance(accountID: String, exerciseKey: String, slotID: String,
                            programID: String, workoutID: String) throws -> PreviousPerformance? {
     let query = PreviousPerformanceRequest(slotID: slotID, exerciseKey: exerciseKey)

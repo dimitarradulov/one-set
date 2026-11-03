@@ -11,14 +11,26 @@ struct CompletedSetupTabsView: View {
         .tag(MainTab.program)
         .accessibilityIdentifier("tab.program")
 
-      NavigationStack {
-        ComingSoonScreen(
-          title: "History",
-          explanation: "Your completed workouts will appear here.",
-          identifier: "history"
-        )
-        .navigationTitle("History")
-        .navigationBarTitleDisplayMode(.large)
+      Group {
+        if let accountID = authentication.signedInUser?.id {
+          let arguments = ProcessInfo.processInfo.arguments
+          let initialSessionID = arguments.contains("--ui-history-partial-detail")
+            ? UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb") : nil
+          HistoryScreen(
+            accountID: accountID,
+            displayUnit: model.weightUnit,
+            isActive: model.selectedMainTab == .history,
+            initialSessionID: initialSessionID,
+            loadSessions: {
+              if arguments.contains("--ui-history-error") { throw HistoryDataError.storageUnavailable }
+              return try model.completedHistorySessions(accountID: $0)
+            },
+            resolveProgramName: { model.programName(id: $0) }
+          )
+          .id(accountID)
+        } else {
+          ContentUnavailableView("History unavailable", systemImage: "person.crop.circle.badge.exclamationmark")
+        }
       }
       .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
       .tag(MainTab.history)
