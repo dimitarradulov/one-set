@@ -108,7 +108,9 @@ struct CompletedSetupTabsView: View {
     case .workoutRecording(let sessionID):
       if let session = model.activeWorkoutSession, session.id == sessionID,
          let accountID = authentication.signedInUser?.id {
-        WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session)) {
+        WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session),
+          previousPerformanceUnavailable: model.previousPerformanceUnavailable,
+          onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {
           model.discardActiveWorkout(accountID: accountID)
         } onSaveDraft: { slotID, weight, reps in
           model.saveWorkoutDraft(slotID: slotID, weightInput: weight, repsInput: reps)

@@ -295,6 +295,8 @@ struct WorkoutRepositorySetTests {
     #expect(freshMigrations.contains("backfill-completed-session-uploads-v5"))
     #expect(freshMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
     #expect(try freshDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+    #expect(freshMigrations.contains("restored-previous-performance-v8"))
+    #expect(try freshDatabase.read { try $0.tableExists("restored_previous_performance") })
 
     let existingURL = directory.appending(path: "existing-v5.sqlite")
     _ = try WorkoutRepository(databaseURL: existingURL)
@@ -320,6 +322,8 @@ struct WorkoutRepositorySetTests {
     #expect(upgradedMigrations.contains("backfill-completed-session-uploads-v5"))
     #expect(upgradedMigrations.contains("workout-setup-cycle-upload-conflicts-v6"))
     #expect(try upgradedDatabase.read { try $0.tableExists("workout_cycle_upload_blocks") })
+    #expect(upgradedMigrations.contains("restored-previous-performance-v8"))
+    #expect(try upgradedDatabase.read { try $0.tableExists("restored_previous_performance") })
   }
 
   @Test
@@ -644,6 +648,55 @@ struct WorkoutRepositorySetTests {
     #expect(result.weightUnit == .pounds)
     #expect(result.workoutName == "Day B")
     #expect(!result.isSameProgramWorkout)
+  }
+
+  @Test
+  func restoredPreviousResultsPreferOlderSameWorkoutAndSurviveOfflineRelaunch() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let workout = WorkoutTemplate(id: "day-a", name: "Day A", exercises: [
+      WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row", repTarget: .init(minimum: 8, maximum: 12))
+    ])
+    let preferred = WorkoutRepository.PreviousPerformanceSnapshot(
+      sessionID: UUID(), exerciseKey: "row", programID: "program", workoutID: "day-a", slotID: "slot-a",
+      weightInput: "45.5", repsInput: "9", weightUnit: .kilograms,
+      completedAt: Date(timeIntervalSince1970: 100), workoutName: "Captured Day A", week: 2, day: nil
+    )
+    let newerElsewhere = WorkoutRepository.PreviousPerformanceSnapshot(
+      sessionID: UUID(), exerciseKey: "row", programID: "program", workoutID: "day-b", slotID: "slot-b",
+      weightInput: "90", repsInput: "7", weightUnit: .pounds,
+      completedAt: Date(timeIntervalSince1970: 200), workoutName: "Captured Day B", week: 3, day: nil
+    )
+    try repository.saveRestoredPreviousPerformances([preferred, newerElsewhere], accountID: "account")
+
+    let restored = try WorkoutRepository(databaseURL: databaseURL)
+    let result = try #require(try restored.previousPerformance(accountID: "account", exerciseKey: "row",
+      slotID: "slot-a", programID: "program", workoutID: "day-a"))
+    #expect(result.weightInput == "45.5")
+    #expect(result.repsInput == "9")
+    #expect(result.weightUnit == .kilograms)
+    #expect(result.isSameProgramWorkout)
+    #expect(try restored.previousPerformance(accountID: "another-account", exerciseKey: "row",
+      slotID: "slot-a", programID: "program", workoutID: "day-a") == nil)
+    #expect(try restored.pendingSessionUploads(accountID: "account").isEmpty)
+
+    let local = WorkoutSession(accountID: "account", cycleID: UUID(), program: .init(
+      id: "program", name: "Program", format: "A", emphasis: "Strength", workouts: [workout]
+    ), workout: workout, week: 1, day: 1, weightUnit: .pounds,
+       startedAt: Date(timeIntervalSince1970: 300))
+    _ = try restored.start(local)
+    _ = try restored.saveDraft(sessionID: local.id, accountID: "account", slotID: "slot-a",
+      weightInput: "50", repsInput: "10")
+    _ = try restored.completeSet(sessionID: local.id, accountID: "account", slotID: "slot-a",
+      at: Date(timeIntervalSince1970: 310))
+    _ = try restored.finish(sessionID: local.id, accountID: "account", note: nil,
+      at: Date(timeIntervalSince1970: 320))
+    let localWins = try #require(try restored.previousPerformance(accountID: "account", exerciseKey: "row",
+      slotID: "slot-a", programID: "program", workoutID: "day-a"))
+    #expect(localWins.weightInput == "50")
+    #expect(localWins.weightUnit == .pounds)
   }
 
   @Test

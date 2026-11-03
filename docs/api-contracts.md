@@ -1,6 +1,6 @@
 # Proposed API contracts
 
-HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog and account setup routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, and previous-performance read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
@@ -13,8 +13,10 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | POST /v1/maintenance/catalog/preview | Validate and compare source with the current snapshot; maintenance bearer secret |
 | POST /v1/maintenance/catalog/publish | Atomically publish the exact reviewed source; maintenance bearer secret |
 | GET /me/setup | Implemented owner-scoped completed setup lookup; [contract](account-setup.md) |
+| GET /me/previous-performance | Implemented compact owner-scoped latest-result summaries for recording |
+| GET /me/progress | Implemented owner-scoped compact progress restore, independent of paginated session history |
 | POST /sessions/completed | Implemented first-write contract for completed sessions and occurrence progress |
-| GET /me/bootstrap | Complete consistent owned snapshot, including OneSet settings, runs, preferences, sessions and completion marks; Clerk profile/access is resolved separately |
+| GET /me/bootstrap | Deferred full-snapshot proposal; training readiness uses `/me/progress`, while full sessions use paginated `/sessions` |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
 | POST /cycles | Create and select a new run with its initial compatible preference copy; retries return it without recopying or reactivating |
 | POST /cycles/{id}/activate | Select the latest run for that program; latest saved choice takes effect; block active-workout overlap |
@@ -30,6 +32,8 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 
 Catalog reads and account setup require Clerk authentication. Catalog maintenance requires the separate `CATALOG_PUBLISH_TOKEN`; a Clerk session cannot publish. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
 
+`GET /v1/me/previous-performance` requires a verified Clerk session and returns `{ results: [...] }` with `Cache-Control: private, no-store`. The Worker derives ownership from the verified subject and does not require active subscription access. For each actual exercise and original workout slot, it returns the latest completed working-set result in each owned program workout. Each result includes `exercise_key`, `program_key`, `workout_key`, `slot_key`, `week_number`, captured `workout_name`, original decimal `weight`, original `unit`, `reps`, `completed_at`, and `session_id`. This compact read is independent of History pages; it does not return complete sessions, notes, drafts, warmups, or unperformed slots. The client stores these results separately from session rows and upload queues, merges them with locally completed sessions, prefers the exact original slot when available, then the same actual exercise in the same program workout, and otherwise labels the latest result elsewhere. A failed read preserves cached/local results and keeps an unavailable state distinct from confirmed absence.
+
 ## Payload rules
 
 - **Catalog:** `GET /v1/catalog` returns `{ publication_id, catalog: { exercises, programs } }` from one publication snapshot. Programs use stable `key`, `name`, `recommended_weeks`, `training_days_per_week`, `format`, `emphasis`, and ordered current workouts. `training_days_per_week` is derived from current workouts, not authored separately. Removed workouts and slots are omitted from app delivery but remain in the reviewed source and database for identity and history preservation. Removed programs remain resolvable for existing followers and are excluded from new selection. Workouts and slots have stable authoring keys; slots contain an exercise key, order, rep bounds, and optional `scope` (`reps`, `each_leg`, or `each_side`). Shared exercises carry stable keys, complete technique, stopping and warm-up text, default reps, rest seconds and an optional video key. `ETag` identifies the complete snapshot; `If-None-Match` receives `304` when unchanged. The Worker also serves `/v1/catalog/programs`, `/v1/catalog/programs/{key}`, and `/v1/catalog/exercises` from that same snapshot.
@@ -41,6 +45,12 @@ Catalog reads and account setup require Clerk authentication. Catalog maintenanc
 - **Media:** `video_key` is the stored private object key, not a media-table ID or an access grant. Authorization is required for current and historical referenced media alike.
 
 Settings, preference and activation writes are serialized on the device and use latest-saved semantics. Their requests never carry a session `base_revision`.
+
+## Compact progress restore
+
+`GET /v1/me/progress` returns `{ progress }` for the authenticated user's active cycle, or `{ progress: null }` when no active cycle exists. A non-null response includes the stable cycle and program keys, monotonic `current_training_week`, all known completed occurrence marks (`week_number`, `workout_id`), retained workout membership periods (`starts_week`, nullable `ends_week`), and the ordered workout keys required in the current training week. It contains no session or set payloads. The Worker derives ownership from the verified Clerk subject and responds with `Cache-Control: private, no-store`; subscription access is not checked.
+
+The app persists this compact summary by account and cycle. It merges occurrence marks by identity and never lowers the saved week boundary. These marks drive week checkmarks and next-workout eligibility without creating synthetic session rows or upload operations. Local completed sessions remain part of progress when they are newer than the server summary.
 
 ## Completed-session first write
 
@@ -147,7 +157,7 @@ Validate full prescription structure, finite decimal weight, positive reps when 
 
 ## Refresh and deletion
 
-Bootstrap returns a complete consistent snapshot of owned settings, runs, remembered preferences, sessions with nested sets, and completion marks. It has no change-feed cursor, deleted-ID list or provider-access fields. History pagination is for display and must not be interpreted as a complete account snapshot. Preserve local pending work and ignore responses overtaken by newer local saves.
+The former full bootstrap proposal is deferred. Compact training progress is restored separately through `/me/progress`; full sessions are retrieved only through bounded history pages. Neither the visible History cache nor a partial page is a complete account snapshot. Preserve local pending work and ignore responses overtaken by newer local saves.
 
 Completed-history DELETE requires online confirmation and resolved pending uploads. Delete the owned session and its sets, retain completion marks, then acknowledge so the device can clear its copy. Repeated deletion of an absent session succeeds. Discarded drafts remain hidden locally during refresh until server deletion is confirmed. See [sync and recovery](sync-and-recovery.md) for retry ordering.
 
