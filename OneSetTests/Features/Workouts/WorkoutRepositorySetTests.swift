@@ -147,7 +147,7 @@ struct WorkoutRepositorySetTests {
         note: nil, at: tiedStart.addingTimeInterval(60))
     }
 
-    let active = makeSession(week: 3, startedAt: tiedStart.addingTimeInterval(100))
+    let active = makeSession(cycleID: cycleID, week: 3, startedAt: tiedStart.addingTimeInterval(100))
     _ = try repository.start(active)
     let otherAccount = makeSession(week: 1, startedAt: tiedStart, accountID: "other-account")
     _ = try repository.start(otherAccount)
