@@ -48,6 +48,19 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["continue.development"].waitForExistence(timeout: 5))
   }
 
+  func testDevelopmentSignInShowsEmptyHistoryBeforeFirstWorkout() {
+    relaunch(with: [])
+    app.buttons["continue.development"].tap()
+    completeSetupFromPreferences()
+    app.tabBars.buttons["History"].tap()
+
+    XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Complete your first workout to see it here."].exists)
+    XCTAssertFalse(app.staticTexts["History couldn’t be loaded"].exists)
+    XCTAssertFalse(app.buttons["history.retry"].exists)
+    attachScreenshot(named: "development-history-empty")
+  }
+
   func testAppleCancellationStaysOnWelcomeWithoutAnError() {
     relaunch(with: ["--ui-apple-cancel"])
     app.buttons["continue.apple"].tap()
@@ -983,7 +996,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
     relaunch(with: ["--ui-history-empty"])
     XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
-    XCTAssertTrue(app.staticTexts["Completed workouts from your account will appear here."].exists)
+    XCTAssertTrue(app.staticTexts["Complete your first workout to see it here."].exists)
 
     app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
     relaunch(with: ["--ui-history-error"])

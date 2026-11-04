@@ -97,21 +97,12 @@ struct HistoryScreen: View {
           .accessibilityIdentifier("history.retry")
       }
     } else if model.sessions.isEmpty {
-      if model.hasLoadedAccountHistory {
-        ContentUnavailableView {
-          Label("No completed workouts yet", systemImage: "clock.arrow.circlepath")
-        } description: {
-          Text("Completed workouts from your account will appear here.")
-        }
-        .accessibilityIdentifier("history.empty.account")
-      } else {
-        ContentUnavailableView {
-          Label("No workouts on this device", systemImage: "clock.arrow.circlepath")
-        } description: {
-          Text("Completed workouts saved on this device will appear here.")
-        }
-        .accessibilityIdentifier("history.empty")
+      ContentUnavailableView {
+        Label("No completed workouts yet", systemImage: "clock.arrow.circlepath")
+      } description: {
+        Text("Complete your first workout to see it here.")
       }
+      .accessibilityIdentifier(model.hasLoadedAccountHistory ? "history.empty.account" : "history.empty")
     } else {
       List {
         if model.loadError != nil {

@@ -28,9 +28,9 @@ struct CompletedSetupTabsView: View {
             resolveProgramName: { model.programName(id: $0) },
             loadCoverage: { try model.completedHistoryCoverage(accountID: $0) },
             savePage: { try model.saveCompletedHistoryPage($0, accountID: $1) },
-            fetchPage: { cursor in
+            fetchPage: model.canRefreshAccountHistory ? { cursor in
               try await model.fetchHistoryPage(accountID: accountID, cursor: cursor, using: authentication)
-            },
+            } : nil,
             isAccountCurrent: { authentication.signedInUser?.id == accountID }
           )
           .id(accountID)

@@ -862,6 +862,8 @@ final class OnboardingModel {
     return try workoutRepository.completedSessions(accountID: accountID)
   }
 
+  var canRefreshAccountHistory: Bool { sessionHistoryService != nil }
+
   func completedHistoryCoverage(accountID: String) throws -> SessionHistoryCoverage {
     try historyRepository(accountID: accountID).historyCoverage(accountID: accountID)
   }
