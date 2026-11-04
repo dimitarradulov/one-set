@@ -208,7 +208,12 @@ final class OnboardingModel {
          (error as? AccountSetupError) != .invalidSetup {
         restore(savedProgress)
         resolvedAccountID = user.id
-        activeWorkoutSession = try? workoutRepository?.activeSession(accountID: user.id)
+        do {
+          activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
+        } catch {
+          setupResolution = .failed("Your saved workout couldn’t be checked. Retry to continue.")
+          return
+        }
         if let activeWorkoutSession {
           selectedMainTab = .program
           programPath = [.workoutRecording(activeWorkoutSession.id)]
@@ -469,6 +474,7 @@ final class OnboardingModel {
   }
 
   func showProgramSwitcher() {
+    guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
     guard activeWorkoutSession == nil else {
       switchBlockedPresented = true
       return
@@ -508,6 +514,7 @@ final class OnboardingModel {
   }
 
   func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {
+    guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
     guard activeWorkoutSession == nil else { switchBlockedPresented = true; return }
     guard let user = authentication.signedInUser, user.id == resolvedAccountID,
           let progressStore, var progress = savedProgress else { return }

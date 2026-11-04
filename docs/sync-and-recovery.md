@@ -22,6 +22,10 @@ Save session inputs, completed sets, notes and the rest countdown deadline local
 
 Send one session update at a time. Preserve a sent body and base session revision for retries; keep newer local input separately until the earlier request is acknowledged. Session revisions protect against a delayed request overwriting a newer saved workout. They do not apply to runs, preferences or account settings.
 
+### First-time program switching
+
+The account-scoped onboarding file also stores confirmed latest-cycle metadata, the selected cycle, and fixed creation requests. A missing or failed discovery is not evidence that a program is new. The switch commits the selection and creation request in one atomic file replacement before navigating; the original setup upload remains separate. Pending creation is retried after setup, and session drains skip only sessions whose own cycle creation remains pending. Confirmed permanent creation conflicts retain the selection and queued workouts on the device. This slice does not yet activate a previously followed program; resumption and broader recovery remain in the related switching tickets.
+
 ### Completed-only first upload
 
 For an authenticated account with an existing server-side cycle, finishing a full or partial workout commits the finished local session and a stable completed-session request body together before the app confirms finish. The body includes the captured week/day, full slot list and prescription; performed results include the entered unit, load, reps and time, while unperformed slots carry null results. Draft text and the running rest countdown remain local. Drafts, discarded sessions and empty attempts are never sent. The app tries the completed-only `POST /v1/sessions/completed` request immediately after the durable local finish and shows no routine sync status or retry action.

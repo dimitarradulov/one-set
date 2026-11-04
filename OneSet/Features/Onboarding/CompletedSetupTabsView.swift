@@ -84,6 +84,7 @@ struct CompletedSetupTabsView: View {
               model.previewWorkout(programID: programID, workoutID: workout.id)
             }
           )
+          .id(programID)
           .navigationTitle("Program")
           .navigationBarTitleDisplayMode(.large)
           .toolbar {

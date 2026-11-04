@@ -15,6 +15,17 @@ final class OnboardingJourneyTests: XCTestCase {
     // Each test launches once with its initial arguments.
   }
 
+  func testSwitchExplainsUnfinishedWorkoutAndReturnsToIt() {
+    relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset"])
+    XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 5))
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
+    app.buttons["overview.switch"].tap()
+    XCTAssertTrue(app.alerts["Finish your workout first"].waitForExistence(timeout: 5))
+    app.alerts.buttons["Return to workout"].tap()
+    XCTAssertTrue(app.staticTexts["Workout A"].waitForExistence(timeout: 5))
+  }
+
   func testProgramSwitchReviewsAndSurvivesOfflineRelaunch() {
     relaunch(with: ["--ui-switch-test", "--ui-progress-keep"])
     XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
@@ -23,6 +34,10 @@ final class OnboardingJourneyTests: XCTestCase {
     programCard("bro-split").tap()
     XCTAssertTrue(app.staticTexts["program.detail.title"].waitForExistence(timeout: 5))
     XCTAssertEqual(app.staticTexts["program.detail.title"].label, "Bro Split")
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
+    programCard("bro-split").tap()
+    XCTAssertTrue(app.buttons["program.detail.select"].waitForExistence(timeout: 5))
     app.buttons["program.detail.select"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
