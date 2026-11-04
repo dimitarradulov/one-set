@@ -351,6 +351,74 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func replacementDeviceRestoresOtherCycleProgressAndCanResumeOffline() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let previous = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    let cycles = RecordingCycleService()
+    cycles.knownCycles = [AccountCycle(cycleID: setup.cycleID, programID: setup.programID,
+      startedAt: "2026-02-01T00:00:00Z"), previous]
+    let summary = AccountProgress(cycleID: previous.cycleID, programID: previous.programID,
+      currentTrainingWeek: 3, completedOccurrences: [.init(weekNumber: 3, workoutID: "bro-split-workout-a")],
+      workoutPeriods: [], requiredWorkoutIDs: ["bro-split-workout-a", "bro-split-workout-b"])
+    let storeURL = directory.appending(path: "progress.json")
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: cycles, progressService: PerCycleProgressService(summaries: [previous.cycleID: summary], active: AccountProgress(
+        cycleID: setup.cycleID, programID: setup.programID, currentTrainingWeek: 1,
+        completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])),
+      progressStore: FileOnboardingProgressStore(fileURL: storeURL),
+      workoutRepository: try WorkoutRepository(databaseURL: databaseURL))
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram(previous.programID, using: auth)
+    #expect(model.restoredCycleID == previous.cycleID)
+    #expect(model.currentWorkoutWeek(programID: previous.programID) == 3)
+    #expect(model.completedWorkoutIDs(programID: previous.programID, week: 3).contains("bro-split-workout-a"))
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: FileOnboardingProgressStore(fileURL: storeURL),
+      workoutRepository: try WorkoutRepository(databaseURL: databaseURL))
+    await reopened.resolveAccountSetup(using: auth)
+    #expect(reopened.restoredCycleID == previous.cycleID)
+    #expect(reopened.currentWorkoutWeek(programID: previous.programID) == 3)
+  }
+
+  @Test
+  func delayedProgressCannotOverwriteNewSelection() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let previous = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    let service = RecordingCycleService()
+    service.knownCycles = [previous]
+    let progress = SuspendedCycleProgressService(summary: AccountProgress(cycleID: previous.cycleID,
+      programID: previous.programID, currentTrainingWeek: 3, completedOccurrences: [],
+      workoutPeriods: [], requiredWorkoutIDs: []), active: AccountProgress(cycleID: setup.cycleID,
+      programID: setup.programID, currentTrainingWeek: 1, completedOccurrences: [],
+      workoutPeriods: [], requiredWorkoutIDs: []))
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressService: progress,
+      progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")),
+      workoutRepository: repository)
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: auth)
+    let refresh = Task { await model.refreshCycleKnowledge(using: auth) }
+    await progress.waitUntilRequested()
+    model.switchToProgram("push-pull-legs", using: auth)
+    let selectedCycle = model.restoredCycleID
+    progress.resume()
+    await refresh.value
+    #expect(model.selectedProgramID == "push-pull-legs")
+    #expect(model.restoredCycleID == selectedCycle)
+    #expect(try !repository.hasRestoredCycleSummary(accountID: "preview-user", cycleID: previous.cycleID))
+  }
+
+  @Test
   func failedResumeSaveKeepsCurrentCycleAndAllowsRetry() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -654,4 +722,34 @@ private final class RecordingCycleService: AccountCycleService {
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { created.append(cycle.cycleID) }
   func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { activated.append(cycleID) }
+}
+
+@MainActor
+private struct PerCycleProgressService: AccountProgressService {
+  let summaries: [UUID: AccountProgress]
+  let active: AccountProgress?
+  func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? { active }
+  func lookup(cycleID: UUID, for user: AuthenticatedUser) async throws -> AccountProgress? { summaries[cycleID] }
+}
+
+@MainActor
+private final class SuspendedCycleProgressService: AccountProgressService {
+  let summary: AccountProgress
+  let active: AccountProgress
+  private var pending: CheckedContinuation<AccountProgress?, Never>?
+  private var waiter: CheckedContinuation<Void, Never>?
+  init(summary: AccountProgress, active: AccountProgress) { self.summary = summary; self.active = active }
+  func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? { active }
+  func lookup(cycleID: UUID, for user: AuthenticatedUser) async throws -> AccountProgress? {
+    await withCheckedContinuation { continuation in
+      pending = continuation
+      waiter?.resume()
+      waiter = nil
+    }
+  }
+  func waitUntilRequested() async {
+    if pending != nil { return }
+    await withCheckedContinuation { waiter = $0 }
+  }
+  func resume() { pending?.resume(returning: summary); pending = nil }
 }

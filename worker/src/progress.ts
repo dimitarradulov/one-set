@@ -21,6 +21,10 @@ export async function handleProgressRequest(
   const authentication = await authenticateClerkRequest(request, env);
   if ('response' in authentication) return authentication.response;
   const subject = authentication.subject;
+  const cycleID = new URL(request.url).searchParams.get('cycle_id');
+  if (cycleID !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cycleID)) {
+    return json({ error: { code: 'INVALID_CYCLE' } }, 400);
+  }
 
   try {
     const [cycle] = await database.query(`
@@ -50,10 +54,10 @@ export async function handleProgressRequest(
              ), '[]'::jsonb) AS required_workouts
       FROM users AS owner
       JOIN user_programs AS cycle
-        ON cycle.id = owner.active_user_program_id AND cycle.user_id = owner.id
+        ON cycle.id = coalesce(nullif($2, '')::uuid, owner.active_user_program_id) AND cycle.user_id = owner.id
       JOIN workout_programs AS program ON program.id = cycle.workout_program_id
       WHERE owner.clerk_user_id = $1
-    `, [subject]);
+    `, [subject, cycleID ?? ""]);
     if (!cycle) return json({ progress: null });
     if (typeof cycle.cycle_id !== 'string' || typeof cycle.program_id !== 'string'
       || typeof cycle.current_training_week !== 'number' || cycle.current_training_week < 1) {
