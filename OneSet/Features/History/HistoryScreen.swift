@@ -39,6 +39,8 @@ struct HistoryScreen: View {
   var body: some View {
     NavigationStack(path: $path) {
       content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(OneSetColors.background)
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(for: UUID.self) { sessionID in
@@ -52,6 +54,7 @@ struct HistoryScreen: View {
             )
           } else {
             ContentUnavailableView("Session unavailable", systemImage: "clock.arrow.circlepath")
+              .background(OneSetColors.background)
           }
         }
     }

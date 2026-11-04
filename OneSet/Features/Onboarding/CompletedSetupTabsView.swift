@@ -36,6 +36,7 @@ struct CompletedSetupTabsView: View {
           .id(accountID)
         } else {
           ContentUnavailableView("History unavailable", systemImage: "person.crop.circle.badge.exclamationmark")
+            .background(OneSetColors.background)
         }
       }
       .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
@@ -84,6 +85,7 @@ struct CompletedSetupTabsView: View {
           .navigationBarTitleDisplayMode(.large)
         } else {
           ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+            .background(OneSetColors.background)
             .navigationTitle("Program")
         }
       }

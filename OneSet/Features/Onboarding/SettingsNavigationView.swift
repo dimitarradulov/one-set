@@ -38,6 +38,8 @@ struct SettingsNavigationView: View {
             .accessibilityIdentifier("settings.section.account")
         }
       }
+      .scrollContentBackground(.hidden)
+      .background(OneSetColors.background)
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.large)
       .navigationDestination(for: SettingsDestination.self) { destination in
@@ -64,6 +66,8 @@ private struct SettingsDestinationScreen: View {
       Text(destination.explanation)
         .accessibilityIdentifier("settings.destination.explanation")
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(OneSetColors.background)
     .accessibilityIdentifier("settings.destination.comingSoon")
     .navigationTitle(destination.title)
     .navigationBarTitleDisplayMode(.inline)
