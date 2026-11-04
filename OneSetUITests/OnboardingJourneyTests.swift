@@ -458,7 +458,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["workoutPreview.program"].label, "Machine Full Body")
     XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.name"].label, "Hack Squat Machine")
     XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.reps"].label, "6–10 reps")
-    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
@@ -508,11 +508,11 @@ final class OnboardingJourneyTests: XCTestCase {
     firstDayPreview.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["workoutPreview.program"].label.contains("Full Body"))
-    XCTAssertTrue(app.staticTexts["workoutPreview.readOnly"].label.contains("Read-only"))
+    XCTAssertFalse(app.staticTexts["workoutPreview.readOnly"].exists)
     XCTAssertEqual(app.staticTexts["workoutPreview.summary"].label, "7 exercises · 1 working set each")
     XCTAssertEqual(app.staticTexts["workoutPreview.exerciseOrderHeading"].label, "Exercise order")
     XCTAssertEqual(app.staticTexts["workoutPreview.repTargetsHeading"].label, "Rep targets")
-    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
     let firstMovement = app.staticTexts["workoutPreview.exercise.1.name"]
     let secondMovement = app.staticTexts["workoutPreview.exercise.2.name"]
@@ -579,7 +579,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(firstExercise.frame.minY, previewRowPosition, accuracy: 2)
-    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
 
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
 
@@ -635,7 +635,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
     app.navigationBars.buttons.firstMatch.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
   }
 
@@ -682,7 +682,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 5))
     let restored = renderedBannerArtwork(named: "banner-published-after-offline-relaunch")
     XCTAssertEqual(published, restored, "The published banner should render from the persisted offline catalog.")
-    XCTAssertTrue(app.staticTexts["workoutPreview.notStarted"].exists)
+    XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
   }
 
   func testRecordingShowsEmptyAndPreviousPerformanceWithCapturedGuidance() {

@@ -14,31 +14,16 @@ struct WorkoutTemplatePreviewScreen: View {
         WorkoutBanner(program: program, workout: workout, day: day)
 
         VStack(alignment: .leading, spacing: 20) {
-          VStack(alignment: .leading, spacing: 8) {
-            Label {
-              Text("\(workout.exercises.count) exercises · 1 working set each")
-            } icon: {
-              Image(systemName: "list.number")
-                .accessibilityHidden(true)
-            }
-            .font(OneSetTypography.label)
-            .foregroundStyle(OneSetColors.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityIdentifier("workoutPreview.summary")
-
-            Label("Read-only template preview", systemImage: "doc.text.magnifyingglass")
-              .font(OneSetTypography.label)
-              .foregroundStyle(OneSetColors.textSecondary)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(12)
-              .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
-              .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                  .strokeBorder(OneSetColors.border, lineWidth: 1)
-              }
-              .accessibilityLabel("Read-only template preview. No workout has started.")
-              .accessibilityIdentifier("workoutPreview.readOnly")
+          Label {
+            Text("\(workout.exercises.count) exercises · 1 working set each")
+          } icon: {
+            Image(systemName: "list.number")
+              .accessibilityHidden(true)
           }
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textPrimary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("workoutPreview.summary")
 
           VStack(alignment: .leading, spacing: 12) {
             sectionHeading
@@ -57,11 +42,6 @@ struct WorkoutTemplatePreviewScreen: View {
               .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
             }
           }
-
-          Text("No workout has started.")
-            .font(OneSetTypography.body)
-            .foregroundStyle(OneSetColors.textSecondary)
-            .accessibilityIdentifier("workoutPreview.notStarted")
         }
         .frame(maxWidth: 720, alignment: .leading)
         .padding(.horizontal, 20)
