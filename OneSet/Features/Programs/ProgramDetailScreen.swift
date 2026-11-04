@@ -82,10 +82,13 @@ struct ProgramDetailScreen: View {
                 .accessibilityHidden(true)
             }
             Text(isSelected ? (switching ? "Current program" : "Selected program") : (switching ? (previouslyFollowed ? "Resume this program" : "Switch to this program") : "Select program"))
+              .multilineTextAlignment(.center)
+              .fixedSize(horizontal: false, vertical: true)
           }
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)
           .frame(maxWidth: 560, minHeight: 52)
+          .padding(.vertical, 8)
           .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
           .contentShape(RoundedRectangle(cornerRadius: 12))
         }

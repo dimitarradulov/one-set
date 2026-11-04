@@ -351,6 +351,74 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func failedResumeSaveKeepsCurrentCycleAndAllowsRetry() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = SwitchFailingStore(file: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram("bro-split", using: auth)
+    let secondID = model.restoredCycleID
+    store.fails = true
+    model.switchToProgram(setup.programID, using: auth)
+    #expect(model.selectedProgramID == "bro-split")
+    #expect(model.restoredCycleID == secondID)
+    #expect(model.cycleMessage != nil)
+    store.fails = false
+    model.switchToProgram(setup.programID, using: auth)
+    #expect(model.restoredCycleID == setup.cycleID)
+  }
+
+  @Test
+  func rapidRoundTripSendsTheFinalActivationAfterCycleCreation() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = RecordingCycleService()
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram("bro-split", using: auth)
+    let secondID = try #require(model.restoredCycleID)
+    model.switchToProgram(setup.programID, using: auth)
+    await model.uploadPendingCycles(using: auth)
+    #expect(service.created == [secondID])
+    #expect(service.activated == [secondID, setup.cycleID])
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingActivations?.isEmpty == true)
+  }
+
+  @Test
+  func missingProgressForKnownCycleDoesNotResetOrSelectIt() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let service = RecordingCycleService()
+    service.knownCycles = [AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")]
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram("bro-split", using: auth)
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(model.cycleMessage != nil)
+    #expect(service.created.isEmpty)
+  }
+
+  @Test
   func browsingProgramsDoesNotChangeTheCurrentSelection() async {
     let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
       programID: "machine-full-body", cycleID: UUID())
@@ -574,4 +642,16 @@ private struct UnavailableCycleService: AccountCycleService {
   func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles { throw AccountCycleError.unavailable }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
+}
+
+@MainActor
+private final class RecordingCycleService: AccountCycleService {
+  var knownCycles: [AccountCycle] = []
+  var created: [UUID] = []
+  var activated: [UUID] = []
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: knownCycles, selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { created.append(cycle.cycleID) }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { activated.append(cycleID) }
 }

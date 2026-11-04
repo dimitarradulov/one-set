@@ -579,6 +579,15 @@ final class WorkoutRepository {
     }
   }
 
+  /// A restored summary confirms the server's complete compact progress for this cycle.
+  func hasRestoredCycleSummary(accountID: String, cycleID: UUID) throws -> Bool {
+    try database.read { db in
+      try Bool.fetchOne(db, sql: """
+        SELECT EXISTS (SELECT 1 FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?)
+        """, arguments: [accountID, cycleID.uuidString]) ?? false
+    }
+  }
+
   func hasRestorableProgress(accountID: String, cycleID: UUID) throws -> Bool {
     try database.read { db in
       try Bool.fetchOne(db, sql: """
