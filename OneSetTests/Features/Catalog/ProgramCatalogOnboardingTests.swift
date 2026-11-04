@@ -398,6 +398,140 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func cycleRetryBackoffSurvivesReopeningAndKeepsTheOriginalIdentity() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let fileURL = directory.appending(path: "progress.json")
+    let store = FileOnboardingProgressStore(fileURL: fileURL)
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: target.programID, selectedCycleID: target.cycleID,
+      knownCycles: [target], discoveryComplete: true, pendingCreations: [target],
+      pendingActivations: [target.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = BackoffCycleService()
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    await model.uploadPendingCycles(using: auth, at: now)
+    #expect(service.attempts == [target.cycleID])
+
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: fileURL))
+    await reopened.resolveAccountSetup(using: auth)
+    service.available = true
+    await reopened.uploadPendingCycles(using: auth, at: now.addingTimeInterval(14))
+    #expect(service.attempts == [target.cycleID])
+    await reopened.uploadPendingCycles(using: auth, at: now.addingTimeInterval(15))
+    #expect(service.attempts == [target.cycleID, target.cycleID])
+    #expect(reopened.restoredCycleID == target.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.isEmpty == true)
+  }
+
+  @Test
+  func lostCreationResponseAndRoundTripKeepTheLastSelectionAfterRestart() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let fileURL = directory.appending(path: "progress.json")
+    let store = FileOnboardingProgressStore(fileURL: fileURL)
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: setup.programID, selectedCycleID: setup.cycleID,
+      knownCycles: [target], discoveryComplete: true, pendingCreations: [target],
+      locallyKnownProgressCycleIDs: [setup.cycleID, target.cycleID],
+      pendingActivations: [target.cycleID, setup.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = LostCycleResponseService(selected: setup.cycleID)
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    await model.uploadPendingCycles(using: auth, at: now)
+    #expect(service.selected == target.cycleID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: fileURL))
+    await reopened.resolveAccountSetup(using: auth)
+    await reopened.uploadPendingCycles(using: auth, at: now.addingTimeInterval(15))
+    #expect(service.created == [target.cycleID])
+    #expect(service.selected == setup.cycleID)
+    #expect(reopened.restoredCycleID == setup.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingActivations?.isEmpty == true)
+  }
+
+  @Test
+  func lateCycleAcknowledgmentAfterSignOutLeavesOwnerWorkPending() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: target.programID, selectedCycleID: target.cycleID,
+      knownCycles: [target], discoveryComplete: true, pendingCreations: [target],
+      pendingActivations: [target.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = SuspendedCycleService()
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    let upload = Task { await model.uploadPendingCycles(using: auth) }
+    await service.waitUntilStarted()
+    await auth.signOut()
+    await model.resolveAccountSetup(using: auth)
+    service.finish()
+    await upload.value
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.first?.cycleID == target.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingActivations == [target.cycleID])
+    #expect(try store.load(accountID: "other-user") == nil)
+  }
+
+  @Test
+  func cycleAuthenticationFailureWaitsForSignInBeforeRetrying() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: target.programID, selectedCycleID: target.cycleID,
+      knownCycles: [target], discoveryComplete: true, pendingCreations: [target],
+      pendingActivations: [target.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = AuthenticationCycleService()
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    await model.uploadPendingCycles(using: auth)
+    service.authenticated = true
+    await model.uploadPendingCycles(using: auth)
+    #expect(service.attempts == 1)
+    #expect(model.cycleMessage?.contains("Sign in") == true)
+    await model.resumeDeferredSessionUploads(using: auth)
+    #expect(service.attempts == 2)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.isEmpty == true)
+  }
+
+  @Test
   func missingProgressForKnownCycleDoesNotResetOrSelectIt() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -654,4 +788,70 @@ private final class RecordingCycleService: AccountCycleService {
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { created.append(cycle.cycleID) }
   func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { activated.append(cycleID) }
+}
+
+@MainActor
+private final class BackoffCycleService: AccountCycleService {
+  var available = false
+  var attempts: [UUID] = []
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    attempts.append(cycle.cycleID)
+    if !available { throw AccountCycleError.unavailable }
+  }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
+}
+
+@MainActor
+private final class LostCycleResponseService: AccountCycleService {
+  var selected: UUID
+  var created: Set<UUID> = []
+  var loseResponse = true
+  init(selected: UUID) { self.selected = selected }
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    if created.insert(cycle.cycleID).inserted { selected = cycle.cycleID }
+    if loseResponse { loseResponse = false; throw AccountCycleError.unavailable }
+  }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { selected = cycleID }
+}
+
+@MainActor
+private final class SuspendedCycleService: AccountCycleService {
+  private var started = false
+  private var startWaiter: CheckedContinuation<Void, Never>?
+  private var pending: CheckedContinuation<Void, Never>?
+  func waitUntilStarted() async {
+    if started { return }
+    await withCheckedContinuation { startWaiter = $0 }
+  }
+  func finish() { pending?.resume(); pending = nil }
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    started = true
+    startWaiter?.resume()
+    startWaiter = nil
+    await withCheckedContinuation { pending = $0 }
+  }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
+}
+
+@MainActor
+private final class AuthenticationCycleService: AccountCycleService {
+  var authenticated = false
+  var attempts = 0
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    attempts += 1
+    if !authenticated { throw AccountCycleError.authenticationRequired }
+  }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
 }

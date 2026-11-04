@@ -173,7 +173,7 @@ struct CompletedSessionUploadTests {
     await restored.retryPendingSessionUploads(using: authentication, at: date, scheduleRetries: false)
     #expect(uploads.uploads.map(\.sessionID) == [independent])
     cycleService.available = true
-    await restored.uploadPendingCycles(using: authentication)
+    await restored.uploadPendingCycles(using: authentication, at: Date.now.addingTimeInterval(60))
     #expect(cycleService.attempts.allSatisfy { $0.cycleID == newCycleID })
     #expect(uploads.uploads.map(\.sessionID) == [independent, dependent])
     #expect(uploads.uploads.last?.body == originalBody)

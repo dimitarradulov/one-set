@@ -2,6 +2,12 @@ import Foundation
 
 /// Account-scoped cycle knowledge and locally committed selection commands.
 /// A missing or incomplete lookup must never be treated as proof that a program is new.
+struct CycleRetryState: Codable, Sendable {
+  var operation: String
+  var attempts: Int
+  var retryAfter: Date
+}
+
 struct ProgramCycleState: Codable, Sendable {
   var selectedProgramID: TrainingProgram.ID
   var selectedCycleID: UUID
@@ -15,4 +21,6 @@ struct ProgramCycleState: Codable, Sendable {
   var pendingActivations: [UUID]? = nil
   /// Permanently rejected creations are retained for recovery and not automatically retried.
   var rejectedCycleIDs: [UUID]? = nil
+  var retry: CycleRetryState? = nil
+  var authenticationDeferred: Bool? = nil
 }

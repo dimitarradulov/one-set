@@ -155,7 +155,9 @@ final class OnboardingModel {
           selectedProgramID = cycles.selectedProgramID
           restoredCycleID = cycles.selectedCycleID
           path = [.programOverview(cycles.selectedProgramID)]
-          if cycles.rejectedCycleIDs?.isEmpty == false {
+          if cycles.authenticationDeferred == true {
+            cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
+          } else if cycles.rejectedCycleIDs?.isEmpty == false {
             cycleMessage = "Your program change couldn’t be saved to your account. Your workouts remain on this device."
           }
         }
@@ -300,6 +302,7 @@ final class OnboardingModel {
                 authentication.signedInUser?.id == accountID,
                 self.resolvedAccountID == accountID else { return }
           await self.uploadCompletedSetup(using: authentication)
+          await self.uploadPendingCycles(using: authentication)
           await self.retryPendingSessionUploads(using: authentication)
         }
       }
@@ -572,10 +575,11 @@ final class OnboardingModel {
     }
   }
 
-  func uploadPendingCycles(using authentication: AuthenticationModel) async {
+  func uploadPendingCycles(using authentication: AuthenticationModel, at date: Date = .now) async {
     guard uploadingCyclesGeneration != lookupGeneration, !isSigningOut, !hasPendingSetup,
           let user = authentication.signedInUser, user.id == resolvedAccountID,
-          let cycleService, let progressStore else { return }
+          let cycleService, let progressStore,
+          savedProgress?.cycles?.authenticationDeferred != true else { return }
     let generation = lookupGeneration
     uploadingCyclesGeneration = generation
     defer { if uploadingCyclesGeneration == generation { uploadingCyclesGeneration = nil } }
@@ -583,36 +587,53 @@ final class OnboardingModel {
       || savedProgress?.cycles?.pendingActivations?.isEmpty == false {
       while let cycle = savedProgress?.cycles?.pendingCreations.first {
         if savedProgress?.cycles?.rejectedCycleIDs?.contains(cycle.cycleID) == true { return }
+        let operation = "create:\(cycle.cycleID.uuidString)"
+        if let retry = savedProgress?.cycles?.retry, retry.operation == operation, retry.retryAfter > date { return }
         do {
           try await cycleService.create(cycle, for: user)
           guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
                 !isSigningOut, var progress = savedProgress, var state = progress.cycles,
                 state.pendingCreations.first?.cycleID == cycle.cycleID else { return }
           state.pendingCreations.removeFirst()
+          state.retry = nil
           progress.cycles = state
           try progressStore.save(progress, accountID: user.id)
           savedProgress = progress
           cycleKnowledgeGeneration += 1
+          // Once creation is durable on the server, its workouts can upload even if
+          // a later activation is unavailable or permanently rejected.
+          await retryPendingSessionUploads(using: authentication)
+          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
+                !isSigningOut else { return }
         } catch {
           guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
           if let failure = error as? AccountCycleError, failure != .unavailable {
-            cycleMessage = "Your program change couldn’t be saved to your account. Your workouts remain on this device."
-            if failure != .authenticationRequired, var progress = savedProgress, var state = progress.cycles {
+            cycleMessage = failure == .authenticationRequired
+              ? "Sign in again to sync your program change. Your workouts remain on this device."
+              : "Your program change couldn’t be saved to your account. Your workouts remain on this device."
+            if failure == .authenticationRequired {
+              deferCycleForAuthentication(accountID: user.id, progressStore: progressStore)
+            } else if var progress = savedProgress, var state = progress.cycles {
               state.rejectedCycleIDs = (state.rejectedCycleIDs ?? []) + [cycle.cycleID]
               progress.cycles = state
               if (try? progressStore.save(progress, accountID: user.id)) != nil { savedProgress = progress }
             }
+          } else {
+            recordCycleRetry(operation, at: date, accountID: user.id, progressStore: progressStore)
           }
           return
         }
       }
       if let cycleID = savedProgress?.cycles?.pendingActivations?.first {
+        let operation = "activate:\(cycleID.uuidString)"
+        if let retry = savedProgress?.cycles?.retry, retry.operation == operation, retry.retryAfter > date { return }
         do {
           try await cycleService.activate(cycleID, for: user)
           guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
                 !isSigningOut, var progress = savedProgress, var state = progress.cycles,
                 state.pendingActivations?.first == cycleID else { return }
           state.pendingActivations?.removeFirst()
+          state.retry = nil
           progress.cycles = state
           try progressStore.save(progress, accountID: user.id)
           savedProgress = progress
@@ -620,13 +641,37 @@ final class OnboardingModel {
         } catch {
           guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
           if let failure = error as? AccountCycleError, failure != .unavailable {
-            cycleMessage = "Your program change couldn’t be saved to your account. Your workouts remain on this device."
+            cycleMessage = failure == .authenticationRequired
+              ? "Sign in again to sync your program change. Your workouts remain on this device."
+              : "Your program change couldn’t be saved to your account. Your workouts remain on this device."
+            if failure == .authenticationRequired {
+              deferCycleForAuthentication(accountID: user.id, progressStore: progressStore)
+            }
+          } else {
+            recordCycleRetry(operation, at: date, accountID: user.id, progressStore: progressStore)
           }
           return
         }
       }
     }
     await retryPendingSessionUploads(using: authentication)
+  }
+
+  private func deferCycleForAuthentication(accountID: String, progressStore: any OnboardingProgressStore) {
+    guard !isSigningOut, var progress = savedProgress, var state = progress.cycles else { return }
+    state.authenticationDeferred = true
+    progress.cycles = state
+    if (try? progressStore.save(progress, accountID: accountID)) != nil { savedProgress = progress }
+  }
+
+  private func recordCycleRetry(_ operation: String, at date: Date, accountID: String,
+                                progressStore: any OnboardingProgressStore) {
+    guard !isSigningOut, var progress = savedProgress, var state = progress.cycles else { return }
+    let attempts = (state.retry?.operation == operation ? state.retry?.attempts ?? 0 : 0) + 1
+    state.retry = CycleRetryState(operation: operation, attempts: attempts,
+      retryAfter: CompletedSessionUploadRetryPolicy.retryDate(afterAttempt: attempts, at: date))
+    progress.cycles = state
+    if (try? progressStore.save(progress, accountID: accountID)) != nil { savedProgress = progress }
   }
 
   func returnToActiveWorkout() {
@@ -696,7 +741,9 @@ final class OnboardingModel {
         restoredCycleID = cycles.selectedCycleID
         path = [.programOverview(cycles.selectedProgramID)]
       }
-      if progress.cycles?.rejectedCycleIDs?.isEmpty == false {
+      if progress.cycles?.authenticationDeferred == true {
+        cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
+      } else if progress.cycles?.rejectedCycleIDs?.isEmpty == false {
         cycleMessage = "Your program change couldn’t be saved to your account. Your workouts remain on this device."
       }
       uploadMessage = completed.needsUpload ? "Setup saved on this device. Waiting to upload." : nil
@@ -1018,9 +1065,21 @@ final class OnboardingModel {
     scheduleRetries: Bool = true
   ) async {
     guard !isSigningOut, let user = authentication.signedInUser,
-          resolvedAccountID == user.id,
-          let workoutRepository else { return }
-    try? workoutRepository.resumeAuthenticationDeferredUploads(accountID: user.id)
+          resolvedAccountID == user.id else { return }
+    let generation = lookupGeneration
+    if var progress = savedProgress, var state = progress.cycles,
+       state.authenticationDeferred == true, let progressStore {
+      state.authenticationDeferred = false
+      progress.cycles = state
+      if (try? progressStore.save(progress, accountID: user.id)) != nil {
+        savedProgress = progress
+        cycleMessage = nil
+        await uploadPendingCycles(using: authentication)
+      }
+    }
+    guard !isSigningOut, generation == lookupGeneration,
+          authentication.signedInUser?.id == user.id, resolvedAccountID == user.id else { return }
+    try? workoutRepository?.resumeAuthenticationDeferredUploads(accountID: user.id)
     await retryPendingSessionUploads(using: authentication, at: date, scheduleRetries: scheduleRetries)
   }
 
