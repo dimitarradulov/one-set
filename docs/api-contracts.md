@@ -1,6 +1,6 @@
 # API contracts
 
-HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, previous-performance read, progress read, and paginated session-history read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
+HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync rules](sync-and-recovery.md). The catalog, account setup, completed-session write, previous-performance read, progress read, cycle discovery/creation, and paginated session-history read routes below are implemented; other endpoints remain proposals. API version prefix `/v1`. Authenticate private routes with Clerk bearer token; derive account ID server-side. Accept UUID operation IDs for request correlation; stable entity IDs govern creation retries and session revisions protect workout updates, without a server operation ledger. Use opaque pagination cursors and structured errors. Avoid personal data in URLs/logs.
 
 ## Operations
 
@@ -18,7 +18,8 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | POST /sessions/completed | Implemented first-write contract for completed sessions and occurrence progress |
 | GET /me/bootstrap | Deferred full-snapshot proposal; training readiness uses `/me/progress`, while full sessions use paginated `/sessions` |
 | PATCH /me | OneSet unit/frequency changes; latest saved values take effect; account profile edits go through Clerk |
-| POST /cycles | Create and select a new run with its initial compatible preference copy; retries return it without recopying or reactivating |
+| GET /me/cycles | Implemented complete owner-scoped latest cycle discovery |
+| POST /cycles | Implemented first-cycle creation and selection; equal retries do not reactivate |
 | POST /cycles/{id}/activate | Select the latest run for that program; latest saved choice takes effect; block active-workout overlap |
 | PUT /cycles/{id}/exercises/{workout_exercise_id} | Save remembered `exercise_id`, `note`, `rest_seconds`; latest saved values take effect |
 | POST /sync/push | Apply a bounded batch of aggregate operations; outcome per operation |
@@ -33,6 +34,12 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 Catalog reads and account setup require Clerk authentication. Catalog maintenance requires the separate `CATALOG_PUBLISH_TOKEN`; a Clerk session cannot publish. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
 
 `GET /v1/me/previous-performance` requires a verified Clerk session and returns `{ results: [...] }` with `Cache-Control: private, no-store`. The Worker derives ownership from the verified subject and does not require active subscription access. For each actual exercise and original workout slot, it returns the latest completed working-set result in each owned program workout. Each result includes `exercise_key`, `program_key`, `workout_key`, `slot_key`, `week_number`, captured `workout_name`, original decimal `weight`, original `unit`, `reps`, `completed_at`, and `session_id`. This compact read is independent of History pages; it does not return complete sessions, notes, drafts, warmups, or unperformed slots. The client stores these results separately from session rows and upload queues, merges them with locally completed sessions, prefers the exact original slot when available, then the same actual exercise in the same program workout, and otherwise labels the latest result elsewhere. A failed read preserves cached/local results and keeps an unavailable state distinct from confirmed absence.
+
+## Cycle discovery and first-cycle creation
+
+`GET /v1/me/cycles` returns `{ "selected_cycle_id": UUID-or-null, "cycles": [...] }`, where each item contains `cycle_id`, `program_id` and UTC `started_at`. The list contains the latest owned cycle for every program, including removed programs, ordered by program key. Latest is determined by `started_at DESC, id DESC`; a successful result includes the selected cycle. This complete account-scoped lookup is independent of History and a failed lookup is not evidence of absence. Responses are private and never cached.
+
+`POST /v1/cycles` accepts exactly `cycle_id`, `program_id`, and a fixed UTC ISO 8601 `started_at`. The verified Clerk subject supplies the owner. A transaction locks the account, checks that setup exists and the program is offered, creates its first cycle at week 1, and selects it. There are no earlier same-program preferences to copy for a first cycle. The existing cycle initialization trigger records applicable workout periods. The result is `201 { "cycle_id": "…", "result": "created" }`; an equal retry returns `200` with `"acknowledged"` and never reselects the cycle. An existing different cycle for the program or conflicting payload returns `409 CYCLE_CONFLICT`; a removed or unknown program returns `409 PROGRAM_UNAVAILABLE`, a foreign cycle ID returns `403 FORBIDDEN`, and malformed input returns `400 INVALID_CYCLE`. Temporary failures return `503 TEMPORARY_FAILURE`. This endpoint does not start subsequent cycles or perform activation.
 
 ## Payload rules
 

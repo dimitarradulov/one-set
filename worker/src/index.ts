@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { handleCatalogRequest } from './catalog';
 import { handleCompletedSessionRequest } from './sessions';
 import { handleSetupRequest } from './setup';
+import { handleCycleRequest } from './cycles';
 import { handlePreviousPerformanceRequest } from './previous-performance';
 import { handleProgressRequest } from './progress';
 import { handleHistoryRequest } from './history';
@@ -20,6 +21,9 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
+    if (path === '/v1/cycles' || path === '/v1/me/cycles') {
+      return handleCycleRequest(request, env, { query: async (query, params) => sql.query(query, params) });
+    }
     if (path === '/v1/sessions') {
       return handleHistoryRequest(request, env, {
         query: async (query, params) => sql.query(query, params),
