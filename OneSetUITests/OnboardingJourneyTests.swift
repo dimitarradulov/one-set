@@ -55,6 +55,22 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertNotEqual(app.staticTexts["overview.title"].label, "Bro Split")
   }
 
+  func testReplacementDeviceResumesRestoredProgramProgress() {
+    relaunch(with: ["--ui-replacement-device", "--ui-progress-keep"])
+    XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
+    app.buttons["overview.switch"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
+    programCard("bro-split").tap()
+    let resume = app.buttons["program.detail.select"]
+    XCTAssertTrue(resume.waitForExistence(timeout: 5))
+    XCTAssertEqual(resume.label, "Resume this program")
+    resume.tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    XCTAssertTrue(app.buttons["overview.week.3"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["overview.week.3"].isSelected)
+  }
+
   func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
     relaunch(with: [])
     let shortcut = app.buttons["continue.development"]

@@ -510,6 +510,24 @@ final class OnboardingModel {
       try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
       cycleMessage = nil
+      // Each response is scoped to the verified owner and fixed cycle identity. Do not
+      // let a late response modify storage after a selection or account transition.
+      if let progressService, let workoutRepository {
+        for cycle in remote.cycles {
+          do {
+            let summary = try await progressService.lookup(cycleID: cycle.cycleID, for: user)
+            guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+                  authentication.signedInUser?.id == user.id else { return }
+            guard let summary, summary.cycleID == cycle.cycleID,
+                  summary.programID == cycle.programID else { continue }
+            try workoutRepository.restoreProgress(summary, accountID: user.id)
+          } catch {
+            guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+                  authentication.signedInUser?.id == user.id else { return }
+            // A failed read is not an empty cycle. Existing cached progress stays usable.
+          }
+        }
+      }
     } catch {
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
       if progress.cycles?.discoveryComplete != true {

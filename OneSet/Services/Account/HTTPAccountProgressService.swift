@@ -5,11 +5,22 @@ struct HTTPAccountProgressService: AccountProgressService {
   let authentication: ClerkAuthenticationService
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {
+    try await lookup(cycleID: nil, for: user)
+  }
+
+  func lookup(cycleID: UUID, for user: AuthenticatedUser) async throws -> AccountProgress? {
+    try await lookup(cycleID: Optional(cycleID), for: user)
+  }
+
+  private func lookup(cycleID: UUID?, for user: AuthenticatedUser) async throws -> AccountProgress? {
     guard let baseURLString = Bundle.main.object(forInfoDictionaryKey: "OneSetAPIBaseURL") as? String,
           let baseURL = URL(string: baseURLString), baseURL.scheme == "https",
           baseURL.host != nil else { throw AccountSetupError.unavailable }
     let token = try await authentication.sessionToken(for: user)
-    var request = URLRequest(url: baseURL.appending(path: "v1/me/progress"))
+    var components = URLComponents(url: baseURL.appending(path: "v1/me/progress"), resolvingAgainstBaseURL: false)!
+    if let cycleID { components.queryItems = [URLQueryItem(name: "cycle_id", value: cycleID.uuidString)] }
+    guard let url = components.url else { throw AccountSetupError.unavailable }
+    var request = URLRequest(url: url)
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     request.cachePolicy = .reloadIgnoringLocalCacheData

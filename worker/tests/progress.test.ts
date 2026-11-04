@@ -75,3 +75,22 @@ test('progress read requires authentication and returns no other account state',
     ], required_workouts: ['day-a', 'day-b'],
   } });
 });
+
+test('owned noncurrent cycle progress is available without exposing another account', async () => {
+  await db.exec(`INSERT INTO user_programs (id, user_id, workout_program_id, started_at, current_training_week)
+    VALUES ('33333333-3333-4333-8333-333333333333', 1, 10, now() - interval '1 day', 4)`);
+  const own = new Request('https://api.oneset.test/v1/me/progress?cycle_id=33333333-3333-4333-8333-333333333333', {
+    headers: { Authorization: `Bearer ${await token()}` },
+  });
+  const response = await handleProgressRequest(own, env, database);
+  assert.equal((await response.json() as { progress: { cycle_id: string } }).progress.cycle_id,
+    '33333333-3333-4333-8333-333333333333');
+  const foreign = new Request('https://api.oneset.test/v1/me/progress?cycle_id=33333333-3333-4333-8333-333333333333', {
+    headers: { Authorization: `Bearer ${await token('user_b')}` },
+  });
+  assert.deepEqual(await (await handleProgressRequest(foreign, env, database)).json(), { progress: null });
+  const invalid = new Request('https://api.oneset.test/v1/me/progress?cycle_id=invalid', {
+    headers: { Authorization: `Bearer ${await token()}` },
+  });
+  assert.equal((await handleProgressRequest(invalid, env, database)).status, 400);
+});

@@ -184,9 +184,11 @@ struct AppDependencies {
           includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
           storageDirectory: storage.directory
         ),
-        accountCycles: arguments.contains("--ui-switch-test") ? PreviewCycleService() : nil,
+        accountCycles: arguments.contains("--ui-replacement-device") ? PreviewRestoredCycles()
+          : (arguments.contains("--ui-switch-test") ? PreviewCycleService() : nil),
         previousPerformance: PreviewPreviousPerformanceService(),
-        accountProgress: progressRestoreError ? PreviewAccountProgressService(fails: true) : nil,
+        accountProgress: arguments.contains("--ui-replacement-device") ? PreviewRestoredProgress()
+          : (progressRestoreError ? PreviewAccountProgressService(fails: true) : nil),
         completedSessionUpload: nil,
         sessionHistory: PreviewSessionHistoryService(
           pages: arguments.contains("--ui-history-pagination")
@@ -397,6 +399,40 @@ private struct PreviewCycleService: AccountCycleService {
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
     throw AccountCycleError.unavailable
+  }
+}
+#endif
+
+#if DEBUG
+@MainActor
+private struct PreviewRestoredCycles: AccountCycleService {
+  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [
+      AccountCycle(cycleID: current, programID: "machine-full-body", startedAt: "2026-02-01T00:00:00Z"),
+      AccountCycle(cycleID: previous, programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    ], selectedCycleID: current)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
+}
+
+@MainActor
+private struct PreviewRestoredProgress: AccountProgressService {
+  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {
+    try await lookup(cycleID: current, for: user)
+  }
+  func lookup(cycleID: UUID, for user: AuthenticatedUser) async throws -> AccountProgress? {
+    if cycleID == current {
+      return AccountProgress(cycleID: current, programID: "machine-full-body", currentTrainingWeek: 1,
+        completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
+    }
+    guard cycleID == previous else { return nil }
+    return AccountProgress(cycleID: previous, programID: "bro-split", currentTrainingWeek: 3,
+      completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
   }
 }
 #endif
