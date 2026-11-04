@@ -218,6 +218,25 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func failedCycleDiscoveryDoesNotTreatUnknownProgramAsNew() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: UnavailableCycleService(), progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram("bro-split", using: auth)
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(model.cycleMessage != nil)
+    #expect(try store.load(accountID: "preview-user")?.cycles == nil)
+  }
+
+  @Test
   func unfinishedWorkoutBlocksBrowsingAndSelectionAfterRestart() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -513,4 +532,10 @@ private final class SwitchFailingStore: OnboardingProgressStore {
     try file.save(progress, accountID: accountID)
   }
   func remove(accountID: String) throws { try file.remove(accountID: accountID) }
+}
+
+@MainActor
+private struct UnavailableCycleService: AccountCycleService {
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles { throw AccountCycleError.unavailable }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
 }
