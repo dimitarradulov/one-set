@@ -5,6 +5,7 @@ struct ProgramDetailScreen: View {
   let isSelected: Bool
   let onSelect: () -> Void
   var switching = false
+  var previouslyFollowed = false
   var onPreviewWorkout: ((WorkoutTemplate) -> Void)? = nil
 
   var body: some View {
@@ -80,7 +81,7 @@ struct ProgramDetailScreen: View {
               Image(systemName: "checkmark.circle.fill")
                 .accessibilityHidden(true)
             }
-            Text(isSelected ? (switching ? "Current program" : "Selected program") : (switching ? "Switch to this program" : "Select program"))
+            Text(isSelected ? (switching ? "Current program" : "Selected program") : (switching ? (previouslyFollowed ? "Resume this program" : "Switch to this program") : "Select program"))
           }
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)

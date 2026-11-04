@@ -123,7 +123,7 @@ struct CompletedSetupTabsView: View {
     case .programDetail(let programID):
       if let program = model.program(id: programID), program.isOffered {
         ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
-          onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, onPreviewWorkout: { workout in
+          onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, previouslyFollowed: model.hasFollowedProgram(programID), onPreviewWorkout: { workout in
             model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
           })
           .navigationTitle(program.name)
