@@ -131,6 +131,7 @@ struct HistoryScreen: View {
               }
               .id(session.id)
               .buttonStyle(.plain)
+              .listRowBackground(OneSetColors.surface)
               .accessibilityLabel(HistorySessionRow.accessibilityLabel(
                 for: session,
                 programName: model.programName(for: session),
