@@ -54,4 +54,5 @@ enum AccountCycleError: Error, Equatable {
 protocol AccountCycleService {
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws
 }

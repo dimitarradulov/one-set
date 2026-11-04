@@ -391,6 +391,7 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
 #if DEBUG
 @MainActor
 private struct PreviewCycleService: AccountCycleService {
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     AccountCycles(cycles: [], selectedCycleID: nil)
   }

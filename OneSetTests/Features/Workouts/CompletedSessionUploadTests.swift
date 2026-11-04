@@ -1132,6 +1132,7 @@ private final class SequencedAccountSetupService: AccountSetupService {
 
 @MainActor
 private final class RetryableCycleCreationService: AccountCycleService {
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   var available = false
   private(set) var attempts: [AccountCycle] = []
 

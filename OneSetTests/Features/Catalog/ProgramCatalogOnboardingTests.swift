@@ -547,6 +547,7 @@ private struct StubAccountSetupService: AccountSetupService {
 
 @MainActor
 private struct OfflineCycleService: AccountCycleService {
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     AccountCycles(cycles: [], selectedCycleID: nil)
   }
@@ -570,6 +571,7 @@ private final class SwitchFailingStore: OnboardingProgressStore {
 
 @MainActor
 private struct UnavailableCycleService: AccountCycleService {
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles { throw AccountCycleError.unavailable }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
 }

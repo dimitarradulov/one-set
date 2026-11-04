@@ -28,6 +28,19 @@ struct HTTPAccountCycleService: AccountCycleService {
     }
   }
 
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {
+    let data = try await send(path: "v1/cycles/\(cycleID.uuidString)/activate", method: "POST", body: nil, for: user)
+    struct Response: Decodable {
+      let cycleID: UUID
+      let result: String
+      enum CodingKeys: String, CodingKey { case cycleID = "cycle_id", result }
+    }
+    guard let response = try? JSONDecoder().decode(Response.self, from: data),
+          response.cycleID == cycleID, response.result == "activated" else {
+      throw AccountCycleError.unavailable
+    }
+  }
+
   private func send(path: String, method: String, body: Data?, for user: AuthenticatedUser) async throws -> Data {
     guard let baseURLString = Bundle.main.object(forInfoDictionaryKey: "OneSetAPIBaseURL") as? String,
           let baseURL = URL(string: baseURLString), baseURL.scheme == "https",
