@@ -292,7 +292,7 @@ These headings group rows; they are not additional navigation destinations. Vari
 | Settings → Downloaded videos | Titled “Coming soon” placeholder |
 | Settings → Subscription | Titled “Coming soon” placeholder |
 | Settings → Account deletion | Titled “Coming soon” placeholder |
-| Settings → Sign out | Existing sign-out behavior, including pending-setup-upload confirmation and error handling |
+| Settings → Sign out | Always confirm sign-out, using the pending-setup or pending-workout warning when applicable, and preserve error handling |
 
 Downloaded videos will eventually let users inspect exercise-video storage and remove downloaded copies to free space. This pass adds its destination only, without implementing video management.
 

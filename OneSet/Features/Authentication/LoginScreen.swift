@@ -4,6 +4,8 @@ struct LoginScreen: View {
   @Bindable var model: AuthenticationModel
   var onContinueAfterAuthentication: (() -> Void)?
 
+  @State private var signOutConfirmationPresented = false
+
   @FocusState private var focusedField: Field?
 
   private enum Field {
@@ -48,6 +50,14 @@ struct LoginScreen: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     .background(OneSetColors.background)
     .animation(.easeInOut(duration: 0.2), value: model.signedInUser)
+    .alert("Sign out of OneSet?", isPresented: $signOutConfirmationPresented) {
+      Button("Cancel", role: .cancel) { }
+      Button("Sign out", role: .destructive) {
+        Task { await model.signOut() }
+      }
+    } message: {
+      Text("You’ll need to sign in again to access your account.")
+    }
   }
 
   private var emailEntry: some View {
@@ -157,7 +167,7 @@ struct LoginScreen: View {
       }
 
       actionButton("Sign out", identifier: "login.signOut") {
-        await model.signOut()
+        signOutConfirmationPresented = true
       }
 
       errorMessageView

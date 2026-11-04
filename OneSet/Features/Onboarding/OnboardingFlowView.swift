@@ -12,62 +12,14 @@ struct OnboardingFlowView: View {
   #endif
 
   var body: some View {
-    Group {
-      switch model.setupResolution {
-      case .loading, .failed:
-        AccountSetupScreen(model: model, authentication: authentication)
-      case .idle:
-        if model.hasCompletedSetup {
-          CompletedSetupTabsView(model: model, authentication: authentication)
-        } else {
-          journey
-        }
+    monitoredContent
+    .alert("Sign out of OneSet?", isPresented: $model.signOutConfirmationPresented) {
+      Button("Cancel", role: .cancel) { }
+      Button("Sign out", role: .destructive) {
+        Task { await model.confirmSignOut(using: authentication) }
       }
-    }
-    .task {
-      networkMonitor.start()
-      await model.refreshCatalog()
-    }
-    .task(id: authentication.signedInUser?.id) {
-      await model.resolveAccountSetup(using: authentication)
-      #if DEBUG
-      if ProcessInfo.processInfo.arguments.contains("--ui-setup-upload-discard") {
-        await model.signOut(using: authentication)
-      }
-      if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-confirmation")
-        || ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
-        await model.signOut(using: authentication)
-        if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
-          await model.confirmPendingSessionSignOut(using: authentication)
-        }
-      }
-      #endif
-      await model.resumeDeferredSessionUploads(using: authentication)
-      await model.retryCompletedUploads(using: authentication)
-    }
-    #if DEBUG
-    .onChange(of: authentication.signedInUser) { oldUser, newUser in
-      if oldUser != nil, newUser == nil {
-        onDevelopmentSignOut?()
-      }
-    }
-    #endif
-    .onChange(of: scenePhase) { _, phase in
-      if phase == .active {
-        Task { await model.refreshCatalog() }
-        Task { await model.uploadCompletedSetup(using: authentication) }
-        Task { await model.retryPendingSessionUploads(using: authentication) }
-      }
-    }
-    .onChange(of: networkMonitor.isConnected) { _, isConnected in
-      guard isConnected else { return }
-      Task { await model.retryPendingSessionUploads(using: authentication) }
-    }
-    .onChange(of: authentication.didCompleteAuthentication) { _, didComplete in
-      guard didComplete else { return }
-      Task {
-        await model.resumeDeferredSessionUploads(using: authentication)
-      }
+    } message: {
+      Text("You’ll need to sign in again to access your account.")
     }
     .alert("Discard setup awaiting upload?", isPresented: $model.discardSetupPresented) {
       Button("Cancel", role: .cancel) { }
@@ -107,6 +59,67 @@ struct OnboardingFlowView: View {
       Text(model.workoutErrorMessage)
     }
     .preferredColorScheme(.dark)
+  }
+
+  private var monitoredContent: some View {
+    Group {
+      switch model.setupResolution {
+      case .loading, .failed:
+        AccountSetupScreen(model: model, authentication: authentication)
+      case .idle:
+        if model.hasCompletedSetup {
+          CompletedSetupTabsView(model: model, authentication: authentication)
+        } else {
+          journey
+        }
+      }
+    }
+    .task {
+      networkMonitor.start()
+      await model.refreshCatalog()
+    }
+    .task(id: authentication.signedInUser?.id) {
+      await model.resolveAccountSetup(using: authentication)
+      #if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("--ui-signout-confirmation")
+        || ProcessInfo.processInfo.arguments.contains("--ui-setup-upload-discard") {
+        await model.signOut(using: authentication)
+      }
+      if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-confirmation")
+        || ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
+        await model.signOut(using: authentication)
+        if ProcessInfo.processInfo.arguments.contains("--ui-session-signout-error") {
+          await model.confirmPendingSessionSignOut(using: authentication)
+        }
+      }
+      #endif
+      await model.resumeDeferredSessionUploads(using: authentication)
+      await model.retryCompletedUploads(using: authentication)
+    }
+    #if DEBUG
+    .onChange(of: authentication.signedInUser) { oldUser, newUser in
+      if oldUser != nil, newUser == nil {
+        onDevelopmentSignOut?()
+      }
+    }
+    #endif
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active {
+        Task { await model.refreshCatalog() }
+        Task { await model.uploadCompletedSetup(using: authentication) }
+        Task { await model.retryPendingSessionUploads(using: authentication) }
+      }
+    }
+    .onChange(of: networkMonitor.isConnected) { _, isConnected in
+      guard isConnected else { return }
+      Task { await model.retryPendingSessionUploads(using: authentication) }
+    }
+    .onChange(of: authentication.didCompleteAuthentication) { _, didComplete in
+      guard didComplete else { return }
+      Task {
+        await model.resumeDeferredSessionUploads(using: authentication)
+      }
+    }
   }
 
   private var welcomeScreen: WelcomeScreen {

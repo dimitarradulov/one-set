@@ -20,6 +20,8 @@ final class OnboardingModel {
 
   private(set) var setupResolution: SetupResolution = .idle
   private(set) var restoredCycleID: UUID?
+  var signOutConfirmationPresented = false
+  private var signOutConfirmationAccountID: String?
   var discardSetupPresented = false
   var pendingSessionSignOutPresented = false
   private(set) var pendingSessionSignOutMessage = ""
@@ -207,7 +209,8 @@ final class OnboardingModel {
   func signOut(
     using authentication: AuthenticationModel,
     discardPending: Bool = false,
-    retainingPendingSessions: Bool = false
+    retainingPendingSessions: Bool = false,
+    confirmed: Bool = false
   ) async {
     guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     if activeWorkoutSession != nil {
@@ -243,6 +246,12 @@ final class OnboardingModel {
     }
     if hasPendingSetupForAccount && !discardPending && !retainingPendingSessions {
       discardSetupPresented = true
+      return
+    }
+
+    if !confirmed && !discardPending && !retainingPendingSessions {
+      signOutConfirmationAccountID = accountID
+      signOutConfirmationPresented = true
       return
     }
 
@@ -292,6 +301,14 @@ final class OnboardingModel {
       signOutErrorPresented = true
       resumeUploadsAfterFailure = true
     }
+  }
+
+  func confirmSignOut(using authentication: AuthenticationModel) async {
+    let accountID = signOutConfirmationAccountID
+    signOutConfirmationPresented = false
+    signOutConfirmationAccountID = nil
+    guard let accountID, authentication.signedInUser?.id == accountID else { return }
+    await signOut(using: authentication, confirmed: true)
   }
 
   func confirmPendingSessionSignOut(using authentication: AuthenticationModel) async {
@@ -361,6 +378,8 @@ final class OnboardingModel {
     completedSessionUploadCoordinator?.cancelPendingWork()
     uploadMessage = nil
     programSelectionMessage = nil
+    signOutConfirmationPresented = false
+    signOutConfirmationAccountID = nil
     discardSetupPresented = false
     pendingSessionSignOutPresented = false
     pendingSessionSignOutMessage = ""
