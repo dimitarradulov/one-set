@@ -69,7 +69,7 @@ User settings and remembered replacements/notes/rest use the latest saved values
 
 Resume the latest started run for the selected program (`started_at DESC, id DESC`). The app exposes Start new cycle, not arbitrary activation of an older cycle. Start time and run identity are fixed after creation.
 
-Starting a new cycle creates the run, copies compatible preferences from local state and selects it in one durable device transaction. Sync the run and initial preferences together; on first insertion the server also selects the new run under the user lock. A create retry returns the existing run without recopying preferences or reactivating it. Other program selections queue after pending run creation. Copy only preferences whose original slot remains in the current program template.
+Starting a new cycle creates the run, copies compatible preferences from local state and selects it in one durable device transaction. The current client persists the source cycle ID with the run, and the server copies its compatible saved preferences; no local preference-editing flow exists yet. Sync the run and source identity together; on first insertion the server also selects the new run under the user lock. A create retry returns the existing run without recopying preferences or reactivating it. Other program selections queue after pending run creation. Copy only preferences whose original slot remains in the current program template.
 
 `users.active_user_program_id` records the selected run; no per-run current flag is needed. Switching programs and new-cycle creation are blocked until the active workout is finished or discarded.
 

@@ -5,11 +5,13 @@ struct AccountCycle: Codable, Equatable, Sendable {
   let cycleID: UUID
   let programID: TrainingProgram.ID
   let startedAt: String
+  var preferenceSourceCycleID: UUID? = nil
 
   enum CodingKeys: String, CodingKey {
     case cycleID = "cycle_id"
     case programID = "program_id"
     case startedAt = "started_at"
+    case preferenceSourceCycleID = "preference_source_cycle_id"
   }
 }
 

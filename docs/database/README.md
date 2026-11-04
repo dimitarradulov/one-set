@@ -154,3 +154,5 @@ On 2026-11-03, migration 007 was rehearsed on disposable child branch `codex-iss
 
 
 [Migration 009](migrations/009_cycle_activation.sql) adds `activate_program_cycle()` without changing tables. Apply it before deploying the activation handler. It locks the account, verifies ownership, offered status and latest-cycle ordering, then updates the existing active-cycle relationship atomically. Disposable PGlite tests cover successful activation and retry, ownership, removed and older cycles, stable-ID tie breaking, rollback, and a delayed creation retry. No shared database was changed by this implementation.
+
+[Migration 010](migrations/010_cycle_preference_source.sql) adds an overload of `create_program_cycle()` that accepts an owned source cycle for compatible preference copying. Apply it before deploying the updated cycle handler. This keeps delayed offline creation tied to the program selected at the time of the local switch. The PGlite cycle API tests rehearse both owned and foreign sources. No tables change.

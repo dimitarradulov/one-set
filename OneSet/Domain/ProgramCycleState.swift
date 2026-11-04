@@ -23,6 +23,8 @@ struct ProgramCycleState: Codable, Sendable {
   var rejectedCycleIDs: [UUID]? = nil
   /// Permanently rejected activations remain recorded but do not block later choices.
   var rejectedActivationIDs: [UUID]? = nil
+  /// Catalog publication in effect when a program was rejected as unavailable.
+  var unavailableAtPublication: [String: String]? = nil
   var retry: CycleRetryState? = nil
   var authenticationDeferred: Bool? = nil
 }

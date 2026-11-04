@@ -43,7 +43,7 @@ final class OnboardingModel {
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
   private let cycleService: (any AccountCycleService)?
-  private var uploadingCyclesGeneration: Int?
+  private let cycleSyncCoordinator: ProgramCycleSyncCoordinator
   private var cycleKnowledgeGeneration = 0
   private(set) var cycleMessage: String?
   var cycleConflictMessage: String? {
@@ -80,6 +80,7 @@ final class OnboardingModel {
     catalog: ProgramCatalog,
     setupService: (any AccountSetupService)? = nil,
     cycleService: (any AccountCycleService)? = nil,
+    cycleSyncCoordinator: ProgramCycleSyncCoordinator = ProgramCycleSyncCoordinator(),
     previousPerformanceService: (any PreviousPerformanceService)? = nil,
     progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
@@ -99,6 +100,7 @@ final class OnboardingModel {
     self.catalog = catalog
     self.setupService = setupService
     self.cycleService = cycleService
+    self.cycleSyncCoordinator = cycleSyncCoordinator
     self.previousPerformanceService = previousPerformanceService
     self.progressService = progressService
     self.progressStore = progressStore
@@ -204,6 +206,7 @@ final class OnboardingModel {
         path = [.preferences]
       }
       resolvedAccountID = user.id
+      releaseReofferedCycleOperations()
       activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
       if let activeWorkoutSession {
         selectedMainTab = .program
@@ -456,6 +459,23 @@ final class OnboardingModel {
 
   func refreshCatalog() async {
     await catalog.refresh()
+    releaseReofferedCycleOperations()
+  }
+
+  private func releaseReofferedCycleOperations() {
+    guard let accountID = resolvedAccountID, let publication = catalog.publicationID,
+          let progressStore, var progress = savedProgress, var state = progress.cycles,
+          let rejected = state.unavailableAtPublication else { return }
+    let released = state.knownCycles.filter { cycle in
+      guard let previous = rejected[cycle.cycleID.uuidString], previous != publication else { return false }
+      return catalog.offeredPrograms.contains { $0.id == cycle.programID }
+    }.map(\.cycleID)
+    guard !released.isEmpty else { return }
+    state.rejectedCycleIDs?.removeAll { released.contains($0) }
+    state.rejectedActivationIDs?.removeAll { released.contains($0) }
+    for id in released { state.unavailableAtPublication?.removeValue(forKey: id.uuidString) }
+    progress.cycles = state
+    if (try? progressStore.save(progress, accountID: accountID)) != nil { savedProgress = progress }
   }
 
   func program(id: TrainingProgram.ID) -> TrainingProgram? {
@@ -574,7 +594,7 @@ final class OnboardingModel {
       targetCycleID = cycleID
     } else {
       let cycle = AccountCycle(cycleID: UUID(), programID: programID,
-        startedAt: ISO8601DateFormatter().string(from: .now))
+        startedAt: ISO8601DateFormatter().string(from: .now), preferenceSourceCycleID: state.selectedCycleID)
       targetCycleID = cycle.cycleID
       state.knownCycles.append(cycle)
       state.pendingCreations.append(cycle)
@@ -584,6 +604,9 @@ final class OnboardingModel {
       trustedCycles.append(cycleID)
     }
     state.locallyKnownProgressCycleIDs = trustedCycles
+    state.unavailableAtPublication?.removeValue(forKey: targetCycleID.uuidString)
+    state.rejectedCycleIDs?.removeAll { $0 == targetCycleID }
+    state.rejectedActivationIDs?.removeAll { $0 == targetCycleID }
     state.selectedProgramID = programID
     state.selectedCycleID = targetCycleID
     state.pendingActivations = (state.pendingActivations ?? []) + [targetCycleID]
@@ -603,122 +626,32 @@ final class OnboardingModel {
   }
 
   func uploadPendingCycles(using authentication: AuthenticationModel, at date: Date = .now) async {
-    guard uploadingCyclesGeneration != lookupGeneration, !isSigningOut, !hasPendingSetup,
+    guard !isSigningOut, !hasPendingSetup,
           let user = authentication.signedInUser, user.id == resolvedAccountID,
           let cycleService, let progressStore,
           savedProgress?.cycles?.authenticationDeferred != true else { return }
     let generation = lookupGeneration
-    uploadingCyclesGeneration = generation
-    defer { if uploadingCyclesGeneration == generation { uploadingCyclesGeneration = nil } }
-    while let currentState = savedProgress?.cycles {
-      let rejectedCreations = Set(currentState.rejectedCycleIDs ?? [])
-      let rejectedActivations = Set(currentState.rejectedActivationIDs ?? []).union(rejectedCreations)
-      guard currentState.pendingCreations.contains(where: { !rejectedCreations.contains($0.cycleID) })
-        || (currentState.pendingActivations ?? []).contains(where: { !rejectedActivations.contains($0) }) else { break }
-      while let state = savedProgress?.cycles,
-            let cycle = state.pendingCreations.first(where: { !(state.rejectedCycleIDs ?? []).contains($0.cycleID) }) {
-        let operation = "create:\(cycle.cycleID.uuidString)"
-        if let retry = savedProgress?.cycles?.retry, retry.operation == operation, retry.retryAfter > date { return }
-        do {
-          try await cycleService.create(cycle, for: user)
-          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-                !isSigningOut, var progress = savedProgress, var state = progress.cycles,
-                let index = state.pendingCreations.firstIndex(where: { $0.cycleID == cycle.cycleID }) else { return }
-          state.pendingCreations.remove(at: index)
-          state.retry = nil
-          progress.cycles = state
-          try progressStore.save(progress, accountID: user.id)
-          savedProgress = progress
-          cycleKnowledgeGeneration += 1
-          // Once creation is durable on the server, its workouts can upload even if
-          // a later activation is unavailable or permanently rejected.
-          await retryPendingSessionUploads(using: authentication)
-          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-                !isSigningOut else { return }
-        } catch {
-          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-                !isSigningOut else { return }
-          if let failure = error as? AccountCycleError, failure != .unavailable {
-            cycleMessage = failure == .authenticationRequired
-              ? "Sign in again to sync your program change. Your workouts remain on this device."
-              : nil
-            if failure == .authenticationRequired {
-              deferCycleForAuthentication(accountID: user.id, progressStore: progressStore)
-            } else if var progress = savedProgress, var state = progress.cycles {
-              state.rejectedCycleIDs = (state.rejectedCycleIDs ?? []) + [cycle.cycleID]
-              progress.cycles = state
-              do {
-                try progressStore.save(progress, accountID: user.id)
-                savedProgress = progress
-                continue
-              } catch { return }
-            }
-          } else {
-            recordCycleRetry(operation, at: date, accountID: user.id, progressStore: progressStore)
-          }
-          return
-        }
+    await cycleSyncCoordinator.upload(
+      user: user, generation: generation, at: date, publicationID: catalog.publicationID, service: cycleService, store: progressStore,
+      current: { [weak self] in
+        guard let self, self.lookupGeneration == generation, !self.isSigningOut,
+              authentication.signedInUser?.id == user.id else { return nil }
+        return self.savedProgress
+      },
+      didSave: { [weak self] progress in
+        self?.savedProgress = progress
+        self?.cycleKnowledgeGeneration += 1
+      },
+      authenticationRequired: { [weak self] in
+        self?.cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
+      },
+      creationAcknowledged: { [weak self] in
+        await self?.retryPendingSessionUploads(using: authentication)
       }
-      if let state = savedProgress?.cycles,
-         let cycleID = state.pendingActivations?.first(where: {
-           !(state.rejectedCycleIDs ?? []).contains($0) && !(state.rejectedActivationIDs ?? []).contains($0)
-         }) {
-        let operation = "activate:\(cycleID.uuidString)"
-        if let retry = savedProgress?.cycles?.retry, retry.operation == operation, retry.retryAfter > date { return }
-        do {
-          try await cycleService.activate(cycleID, for: user)
-          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-                !isSigningOut, var progress = savedProgress, var state = progress.cycles,
-                let index = state.pendingActivations?.firstIndex(of: cycleID) else { return }
-          state.pendingActivations?.remove(at: index)
-          state.retry = nil
-          progress.cycles = state
-          try progressStore.save(progress, accountID: user.id)
-          savedProgress = progress
-          cycleKnowledgeGeneration += 1
-        } catch {
-          guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-                !isSigningOut else { return }
-          if let failure = error as? AccountCycleError, failure != .unavailable {
-            cycleMessage = failure == .authenticationRequired
-              ? "Sign in again to sync your program change. Your workouts remain on this device."
-              : nil
-            if failure == .authenticationRequired {
-              deferCycleForAuthentication(accountID: user.id, progressStore: progressStore)
-            } else if var progress = savedProgress, var state = progress.cycles {
-              state.rejectedActivationIDs = (state.rejectedActivationIDs ?? []) + [cycleID]
-              progress.cycles = state
-              do {
-                try progressStore.save(progress, accountID: user.id)
-                savedProgress = progress
-                continue
-              } catch { return }
-            }
-          } else {
-            recordCycleRetry(operation, at: date, accountID: user.id, progressStore: progressStore)
-          }
-          return
-        }
-      }
-    }
+    )
+    guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
+          !isSigningOut else { return }
     await retryPendingSessionUploads(using: authentication)
-  }
-
-  private func deferCycleForAuthentication(accountID: String, progressStore: any OnboardingProgressStore) {
-    guard !isSigningOut, var progress = savedProgress, var state = progress.cycles else { return }
-    state.authenticationDeferred = true
-    progress.cycles = state
-    if (try? progressStore.save(progress, accountID: accountID)) != nil { savedProgress = progress }
-  }
-
-  private func recordCycleRetry(_ operation: String, at date: Date, accountID: String,
-                                progressStore: any OnboardingProgressStore) {
-    guard !isSigningOut, var progress = savedProgress, var state = progress.cycles else { return }
-    let attempts = (state.retry?.operation == operation ? state.retry?.attempts ?? 0 : 0) + 1
-    state.retry = CycleRetryState(operation: operation, attempts: attempts,
-      retryAfter: CompletedSessionUploadRetryPolicy.retryDate(afterAttempt: attempts, at: date))
-    progress.cycles = state
-    if (try? progressStore.save(progress, accountID: accountID)) != nil { savedProgress = progress }
   }
 
   func returnToActiveWorkout() {
@@ -852,6 +785,12 @@ final class OnboardingModel {
                                        selectedProgramID: setup.programID, nextStep: .overview)
     progress.completed = CompletedOnboarding(setup: setup, needsUpload: needsUpload)
     progress.cycles = savedProgress?.cycles
+    if var state = progress.cycles, state.pendingCreations.isEmpty,
+       (state.pendingActivations ?? []).isEmpty {
+      state.selectedProgramID = setup.programID
+      state.selectedCycleID = setup.cycleID
+      progress.cycles = state
+    }
     try progressStore?.save(progress, accountID: accountID)
     savedProgress = progress
   }

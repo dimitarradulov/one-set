@@ -1,7 +1,7 @@
 import { authenticateClerkRequest, type ClerkConfiguration } from './authentication.ts';
 
 export interface CycleDatabase {
-  query(sql: string, params: string[]): Promise<Record<string, unknown>[]>;
+  query(sql: string, params: (string | null)[]): Promise<Record<string, unknown>[]>;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -48,11 +48,12 @@ export async function handleCycleRequest(request: Request, env: ClerkConfigurati
       } catch { return json({ error: { code: 'INVALID_CYCLE' } }, 400); }
       if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: { code: 'INVALID_CYCLE' } }, 400);
       const value = body as Record<string, unknown>;
-      if (Object.keys(value).some(key => !['cycle_id', 'program_id', 'started_at', 'preferences'].includes(key))
+      if (Object.keys(value).some(key => !['cycle_id', 'program_id', 'started_at', 'preferences', 'preference_source_cycle_id'].includes(key))
         || typeof value.cycle_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.cycle_id)
         || typeof value.program_id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(value.program_id)
         || typeof value.started_at !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(value.started_at)
         || !Number.isFinite(Date.parse(value.started_at))) return json({ error: { code: 'INVALID_CYCLE' } }, 400);
+      if (value.preference_source_cycle_id !== undefined && (typeof value.preference_source_cycle_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.preference_source_cycle_id) || value.preferences !== undefined)) return json({ error: { code: 'INVALID_CYCLE' } }, 400);
       if (value.preferences !== undefined && (!Array.isArray(value.preferences) || value.preferences.length > 100 || value.preferences.some((item: unknown) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return true;
         const preference = item as Record<string, unknown>;
@@ -62,7 +63,7 @@ export async function handleCycleRequest(request: Request, env: ClerkConfigurati
           || (preference.note !== null && (typeof preference.note !== 'string' || preference.note.length > 2000))
           || (preference.rest_seconds !== null && (!Number.isInteger(preference.rest_seconds) || Number(preference.rest_seconds) < 1 || Number(preference.rest_seconds) > 2147483647));
       }))) return json({ error: { code: 'INVALID_CYCLE' } }, 400);
-      const [row] = await database.query('SELECT public.create_program_cycle($1, $2, $3::uuid, $4::timestamptz, $5::jsonb) AS result', [auth.subject, value.program_id, value.cycle_id, value.started_at, value.preferences === undefined ? 'null' : JSON.stringify(value.preferences)]);
+      const [row] = await database.query('SELECT public.create_program_cycle($1, $2, $3::uuid, $4::timestamptz, $5::jsonb, $6::uuid) AS result', [auth.subject, value.program_id, value.cycle_id, value.started_at, value.preferences === undefined ? 'null' : JSON.stringify(value.preferences), typeof value.preference_source_cycle_id === 'string' ? value.preference_source_cycle_id : null]);
       if (row?.result === 'created' || row?.result === 'acknowledged') return json({ cycle_id: value.cycle_id, result: row.result }, row.result === 'created' ? 201 : 200);
       if (row?.result === 'invalid') return json({ error: { code: 'INVALID_CYCLE' } }, 400);
       if (row?.result === 'forbidden') return json({ error: { code: 'FORBIDDEN' } }, 403);
