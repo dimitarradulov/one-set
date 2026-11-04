@@ -317,6 +317,40 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func resumingPreviousProgramRestoresItsCycleAndProgressAfterReopening() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let repositoryURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: repositoryURL)
+    let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    try repository.restoreProgress(AccountProgress(cycleID: setup.cycleID, programID: setup.programID,
+      currentTrainingWeek: 3, completedOccurrences: [.init(weekNumber: 3, workoutID: "machine-full-body-workout-a")],
+      workoutPeriods: [], requiredWorkoutIDs: ["machine-full-body-workout-a", "machine-full-body-workout-b"]), accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store, workoutRepository: repository)
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.switchToProgram("bro-split", using: auth)
+    #expect(model.selectedProgramID == "bro-split")
+    model.switchToProgram(setup.programID, using: auth)
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(model.currentWorkoutWeek(programID: setup.programID) == 3)
+    #expect(model.completedWorkoutIDs(programID: setup.programID, week: 3).contains("machine-full-body-workout-a"))
+    #expect(model.weightUnit == .pounds)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store,
+      workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
+    await reopened.resolveAccountSetup(using: auth)
+    #expect(reopened.selectedProgramID == setup.programID)
+    #expect(reopened.restoredCycleID == setup.cycleID)
+    #expect(reopened.currentWorkoutWeek(programID: setup.programID) == 3)
+  }
+
+  @Test
   func browsingProgramsDoesNotChangeTheCurrentSelection() async {
     let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
       programID: "machine-full-body", cycleID: UUID())
