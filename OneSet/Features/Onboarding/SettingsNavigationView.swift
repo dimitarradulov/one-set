@@ -15,6 +15,7 @@ struct SettingsNavigationView: View {
           Text("Training")
             .accessibilityIdentifier("settings.section.training")
         }
+        .listRowBackground(OneSetColors.surface)
 
         Section {
           destinationLink(.downloadedVideos)
@@ -22,6 +23,7 @@ struct SettingsNavigationView: View {
           Text("Downloads")
             .accessibilityIdentifier("settings.section.downloads")
         }
+        .listRowBackground(OneSetColors.surface)
 
         Section {
           destinationLink(.subscription)
@@ -37,6 +39,7 @@ struct SettingsNavigationView: View {
           Text("Account")
             .accessibilityIdentifier("settings.section.account")
         }
+        .listRowBackground(OneSetColors.surface)
       }
       .scrollContentBackground(.hidden)
       .background(OneSetColors.background)
