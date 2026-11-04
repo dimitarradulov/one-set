@@ -246,7 +246,7 @@ struct ProgramCatalogOnboardingTests {
       programID: "machine-full-body", cycleID: UUID())
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store,
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store,
       workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
@@ -257,7 +257,7 @@ struct ProgramCatalogOnboardingTests {
     model.switchToProgram("bro-split", using: auth)
     #expect(model.selectedProgramID == setup.programID)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store,
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store,
       workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await reopened.resolveAccountSetup(using: auth)
     reopened.showProgramSwitcher()
@@ -274,7 +274,7 @@ struct ProgramCatalogOnboardingTests {
       programID: "machine-full-body", cycleID: UUID())
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: authentication)
     await model.refreshCycleKnowledge(using: authentication)
     let target = try #require(model.programs.first(where: { $0.id != setup.programID }))
@@ -298,7 +298,7 @@ struct ProgramCatalogOnboardingTests {
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = OfflineCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: authentication)
     await model.refreshCycleKnowledge(using: authentication)
     let target = try #require(model.programs.first(where: { $0.id != setup.programID }))
@@ -309,12 +309,12 @@ struct ProgramCatalogOnboardingTests {
     #expect(model.programPath.isEmpty)
     #expect(cycleID != setup.cycleID)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
     await reopened.resolveAccountSetup(using: authentication)
     #expect(reopened.selectedProgramID == target.id)
     #expect(reopened.restoredCycleID == cycleID)
     #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.first?.cycleID == cycleID)
-    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.first?.preferenceSourceCycleID == setup.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.first?.preferences == [])
   }
 
   @Test
@@ -333,7 +333,7 @@ struct ProgramCatalogOnboardingTests {
     try store.save(progress, accountID: "preview-user")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: server),
-      cycleService: OfflineCycleService(), progressStore: store)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: server), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     model.switchToProgram(old.programID, using: auth)
     #expect(model.selectedProgramID == old.programID)
@@ -358,12 +358,54 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = RecordingCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     model.switchToProgram(old.programID, using: auth)
     await model.uploadPendingCycles(using: auth)
     #expect(service.created.contains(old.cycleID))
     #expect(model.cycleConflictMessage == nil)
+  }
+
+  @Test
+  func rejectedIntermediateCycleDoesNotBlockFollowingCapturedPreferences() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = try #require(ProgramCatalog.bundled.program(id: "push-pull-legs"))
+    let slot = try #require(target.workouts.first?.exercises.first?.id)
+    let preference = CyclePreference(workoutExerciseID: slot, exerciseID: nil, note: "captured", restSeconds: 90)
+    let intermediate = AccountCycle(cycleID: UUID(), programID: "bro-split",
+      startedAt: "2026-01-01T00:00:00Z", preferences: [preference])
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: intermediate.programID, selectedCycleID: intermediate.cycleID,
+      knownCycles: [intermediate], discoveryComplete: true, pendingCreations: [intermediate],
+      locallyKnownProgressCycleIDs: [intermediate.cycleID], pendingActivations: [intermediate.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = RejectingCycleService(rejected: intermediate.cycleID)
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    model.switchToProgram(target.id, using: auth)
+    let targetID = try #require(model.restoredCycleID)
+    #expect(targetID != intermediate.cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.last?.preferences == [preference])
+    await model.uploadPendingCycles(using: auth)
+    #expect(service.creations.contains(targetID))
+    #expect(service.payloads.first(where: { $0.cycleID == targetID })?.preferences == [preference])
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.contains(where: { $0.cycleID == intermediate.cycleID }) == true)
+  }
+
+  @Test
+  func incompleteCyclePreferenceLookupIsRejected() throws {
+    let data = Data("""
+      {"selected_cycle_id":null,"cycles":[{"cycle_id":"11111111-1111-4111-8111-111111111111","program_id":"machine-full-body","started_at":"2026-01-01T00:00:00Z"}]}
+      """.utf8)
+    #expect(throws: (any Error).self) { try JSONDecoder().decode(AccountCycles.self, from: data) }
   }
 
   @Test
@@ -380,7 +422,7 @@ struct ProgramCatalogOnboardingTests {
       workoutPeriods: [], requiredWorkoutIDs: ["machine-full-body-workout-a", "machine-full-body-workout-b"]), accountID: "preview-user")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store, workoutRepository: repository)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store, workoutRepository: repository)
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
     model.switchToProgram("bro-split", using: auth)
@@ -392,7 +434,7 @@ struct ProgramCatalogOnboardingTests {
     #expect(model.completedWorkoutIDs(programID: setup.programID, week: 3).contains("machine-full-body-workout-a"))
     #expect(model.weightUnit == .pounds)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store,
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store,
       workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await reopened.resolveAccountSetup(using: auth)
     #expect(reopened.selectedProgramID == setup.programID)
@@ -417,7 +459,7 @@ struct ProgramCatalogOnboardingTests {
     let databaseURL = directory.appending(path: "workouts.sqlite")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: cycles, progressService: PerCycleProgressService(summaries: [previous.cycleID: summary], active: AccountProgress(
+      cycleService: CycleServiceWithSetup(cycles, setup: setup), progressService: PerCycleProgressService(summaries: [previous.cycleID: summary], active: AccountProgress(
         cycleID: setup.cycleID, programID: setup.programID, currentTrainingWeek: 1,
         completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])),
       progressStore: FileOnboardingProgressStore(fileURL: storeURL),
@@ -429,7 +471,7 @@ struct ProgramCatalogOnboardingTests {
     #expect(model.currentWorkoutWeek(programID: previous.programID) == 3)
     #expect(model.completedWorkoutIDs(programID: previous.programID, week: 3).contains("bro-split-workout-a"))
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: FileOnboardingProgressStore(fileURL: storeURL),
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: FileOnboardingProgressStore(fileURL: storeURL),
       workoutRepository: try WorkoutRepository(databaseURL: databaseURL))
     await reopened.resolveAccountSetup(using: auth)
     #expect(reopened.restoredCycleID == previous.cycleID)
@@ -452,7 +494,7 @@ struct ProgramCatalogOnboardingTests {
       workoutPeriods: [], requiredWorkoutIDs: []))
     let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressService: progress,
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressService: progress,
       progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")),
       workoutRepository: repository)
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
@@ -477,7 +519,7 @@ struct ProgramCatalogOnboardingTests {
       programID: "machine-full-body", cycleID: UUID())
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
     model.switchToProgram("bro-split", using: auth)
@@ -502,7 +544,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = RecordingCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
     model.switchToProgram("bro-split", using: auth)
@@ -534,7 +576,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = RejectingCycleService(rejected: removed.cycleID)
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.uploadPendingCycles(using: auth)
     await model.uploadPendingCycles(using: auth)
@@ -542,7 +584,7 @@ struct ProgramCatalogOnboardingTests {
     #expect(service.activations == [setup.cycleID])
     #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations == [removed])
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: fileURL))
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: FileOnboardingProgressStore(fileURL: fileURL))
     await reopened.resolveAccountSetup(using: auth)
     await reopened.uploadPendingCycles(using: auth)
     #expect(service.creations == [removed.cycleID])
@@ -568,7 +610,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = RejectingCycleService(rejected: removed.cycleID, rejectActivation: true)
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.uploadPendingCycles(using: auth)
     await model.uploadPendingCycles(using: auth)
@@ -576,7 +618,7 @@ struct ProgramCatalogOnboardingTests {
     #expect(try store.load(accountID: "preview-user")?.cycles?.pendingActivations == [removed.cycleID])
     #expect(model.cycleConflictMessage != nil)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await reopened.resolveAccountSetup(using: auth)
     await reopened.uploadPendingCycles(using: auth)
     #expect(service.activations == [removed.cycleID, setup.cycleID])
@@ -596,7 +638,7 @@ struct ProgramCatalogOnboardingTests {
       programID: "machine-full-body", cycleID: UUID())
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: catalog, setupService: StubAccountSetupService(setup: setup),
-      cycleService: OfflineCycleService(), progressStore: store)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
     model.switchToProgram(target.id, using: auth)
@@ -637,7 +679,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let cycles = RecordingCycleService()
     let model = OnboardingModel(catalog: catalog, setupService: StubAccountSetupService(setup: setup),
-      cycleService: cycles, progressStore: store)
+      cycleService: CycleServiceWithSetup(cycles, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     #expect(model.cycleConflictMessage != nil)
     catalogService.result = .snapshot(snapshot("new", "new", bundled))
@@ -666,14 +708,14 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = BackoffCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     await model.uploadPendingCycles(using: auth, at: now)
     #expect(service.attempts == [target.cycleID])
 
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: fileURL))
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: FileOnboardingProgressStore(fileURL: fileURL))
     await reopened.resolveAccountSetup(using: auth)
     service.available = true
     await reopened.uploadPendingCycles(using: auth, at: now.addingTimeInterval(14))
@@ -704,14 +746,14 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = LostCycleResponseService(selected: setup.cycleID)
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     await model.uploadPendingCycles(using: auth, at: now)
     #expect(service.selected == target.cycleID)
     #expect(model.restoredCycleID == setup.cycleID)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: fileURL))
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: FileOnboardingProgressStore(fileURL: fileURL))
     await reopened.resolveAccountSetup(using: auth)
     await reopened.uploadPendingCycles(using: auth, at: now.addingTimeInterval(15))
     #expect(service.created == [target.cycleID])
@@ -738,7 +780,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = SuspendedCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     let upload = Task { await model.uploadPendingCycles(using: auth) }
     await service.waitUntilStarted()
@@ -769,7 +811,7 @@ struct ProgramCatalogOnboardingTests {
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let service = AuthenticationCycleService()
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store)
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store)
     await model.resolveAccountSetup(using: auth)
     await model.uploadPendingCycles(using: auth)
     service.authenticated = true
@@ -792,7 +834,7 @@ struct ProgramCatalogOnboardingTests {
     service.knownCycles = [AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")]
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
-      cycleService: service, progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
     model.switchToProgram("bro-split", using: auth)
@@ -1139,6 +1181,7 @@ private final class SuspendedCycleProgressService: AccountProgressService {
 @MainActor
 private final class RejectingCycleService: AccountCycleService {
   let rejected: UUID
+  var payloads: [AccountCycle] = []
   let rejectActivation: Bool
   var creations: [UUID] = []
   var activations: [UUID] = []
@@ -1151,6 +1194,7 @@ private final class RejectingCycleService: AccountCycleService {
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
     creations.append(cycle.cycleID)
+    payloads.append(cycle)
     if cycle.cycleID == rejected { throw AccountCycleError.programUnavailable }
   }
   func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {

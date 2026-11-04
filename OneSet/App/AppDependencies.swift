@@ -395,7 +395,9 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
 private struct PreviewCycleService: AccountCycleService {
   func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
-    AccountCycles(cycles: [], selectedCycleID: nil)
+    let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+    return AccountCycles(cycles: [AccountCycle(cycleID: current, programID: "machine-full-body",
+      startedAt: "2026-01-01T00:00:00Z")], selectedCycleID: current)
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
     throw AccountCycleError.unavailable

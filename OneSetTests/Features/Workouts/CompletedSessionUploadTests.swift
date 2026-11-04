@@ -143,7 +143,7 @@ struct CompletedSessionUploadTests {
     let uploads = CompletedSessionUploadSpy()
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StaticAccountSetupService(setup: setup),
-      cycleService: cycleService, completedSessionUploadService: uploads,
+      cycleService: CycleServiceWithSetup(cycleService, setup: setup), completedSessionUploadService: uploads,
       progressStore: store, workoutRepository: repository)
     await model.resolveAccountSetup(using: authentication)
     await model.refreshCycleKnowledge(using: authentication)
@@ -166,7 +166,7 @@ struct CompletedSessionUploadTests {
 
     let reopenedRepository = try WorkoutRepository(databaseURL: databaseURL)
     let restored = OnboardingModel(catalog: .bundled, setupService: StaticAccountSetupService(setup: setup),
-      cycleService: cycleService, completedSessionUploadService: uploads,
+      cycleService: CycleServiceWithSetup(cycleService, setup: setup), completedSessionUploadService: uploads,
       progressStore: FileOnboardingProgressStore(fileURL: storeURL), workoutRepository: reopenedRepository)
     await restored.resolveAccountSetup(using: authentication)
     #expect(restored.restoredCycleID == newCycleID)

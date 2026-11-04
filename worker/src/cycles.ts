@@ -73,7 +73,13 @@ export async function handleCycleRequest(request: Request, env: ClerkConfigurati
     }
     const [row] = await database.query(`SELECT owner.active_user_program_id AS selected_cycle_id,
       COALESCE((SELECT json_agg(json_build_object('cycle_id', latest.id, 'program_id', latest.authoring_key,
-        'started_at', to_char(latest.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) ORDER BY latest.authoring_key)
+        'started_at', to_char(latest.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+        'preferences', COALESCE((SELECT json_agg(json_build_object('workout_exercise_id', slot.authoring_key,
+          'exercise_id', replacement.authoring_key, 'note', preference.note, 'rest_seconds', preference.rest_seconds)
+          ORDER BY slot.authoring_key) FROM public.user_workout_exercises preference
+          JOIN public.workout_exercises slot ON slot.id = preference.workout_exercise_id
+          LEFT JOIN public.exercises replacement ON replacement.id = preference.exercise_id
+          WHERE preference.user_program_id = latest.id), '[]'::json)) ORDER BY latest.authoring_key)
         FROM (SELECT DISTINCT ON (cycle.workout_program_id) cycle.id, cycle.started_at, program.authoring_key
           FROM public.user_programs cycle JOIN public.workout_programs program ON program.id = cycle.workout_program_id
           WHERE cycle.user_id = owner.id ORDER BY cycle.workout_program_id, cycle.started_at DESC, cycle.id DESC) latest), '[]'::json) AS cycles

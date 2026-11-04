@@ -31,7 +31,7 @@ test('creation is durable and an equal retry does not reactivate an old choice',
   assert.deepEqual(await retry.json(), { cycle_id: cycle.cycle_id, result: 'acknowledged' });
   const lookup = await call('/v1/me/cycles');
   assert.deepEqual(await lookup.json(), { selected_cycle_id: '11111111-1111-4111-8111-111111111111', cycles: [
-    { cycle_id: '11111111-1111-4111-8111-111111111111', program_id: 'full-body', started_at: '2026-01-01T00:00:00.000Z' }, cycle,
+    { cycle_id: '11111111-1111-4111-8111-111111111111', program_id: 'full-body', started_at: '2026-01-01T00:00:00.000Z', preferences: [] }, { ...cycle, preferences: [] },
   ] });
 });
 
@@ -47,7 +47,7 @@ test('ownership, existing programs, unavailable programs and malformed identitie
   const invalid = await call('/v1/cycles', 'POST', { ...cycle, cycle_id: 'not-a-uuid' });
   assert.equal(invalid.status, 400);
   const lookup = await call('/v1/me/cycles', 'GET', undefined, 'user_b');
-  assert.deepEqual(await lookup.json(), { selected_cycle_id: '22222222-2222-4222-8222-222222222222', cycles: [{ cycle_id: '22222222-2222-4222-8222-222222222222', program_id: 'full-body', started_at: '2026-01-01T00:00:00.000Z' }] });
+  assert.deepEqual(await lookup.json(), { selected_cycle_id: '22222222-2222-4222-8222-222222222222', cycles: [{ cycle_id: '22222222-2222-4222-8222-222222222222', program_id: 'full-body', started_at: '2026-01-01T00:00:00.000Z', preferences: [] }] });
 });
 
 test('a failed insert rolls back the selection', async () => {
@@ -82,6 +82,8 @@ test('initial compatible preferences are created once and retries preserve later
   assert.equal(retried.status, 200);
   const { rows } = await engine.query<{ note: string }>(`SELECT note FROM user_workout_exercises WHERE user_program_id = '${body.cycle_id}'`);
   assert.equal(rows[0].note, 'Changed');
+  const discovery = await (await call('/v1/me/cycles')).json() as { cycles: { cycle_id: string, preferences: unknown[] }[] };
+  assert.deepEqual(discovery.cycles.find(item => item.cycle_id === body.cycle_id)?.preferences, [{ workout_exercise_id: 'test-slot', exercise_id: 'test-exercise', note: 'Changed', rest_seconds: 90 }]);
 });
 
 test('omitted preferences copy only compatible choices from the active cycle', async () => {

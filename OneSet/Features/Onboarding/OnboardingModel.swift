@@ -593,8 +593,21 @@ final class OnboardingModel {
       }
       targetCycleID = cycleID
     } else {
+      let sourcePreferences: [CyclePreference]
+      if let known = state.knownCycles.first(where: { $0.cycleID == state.selectedCycleID })?.preferences {
+        sourcePreferences = known
+      } else if progress.completed?.needsUpload == true,
+                progress.completed?.setup.cycleID == state.selectedCycleID {
+        sourcePreferences = []
+      } else {
+        cycleMessage = "Your program preferences couldn’t be checked. Connect and try again."
+        return
+      }
+      guard let target = catalog.program(id: programID) else { return }
+      let slots = Set(target.workouts.flatMap { $0.exercises.map(\.id) })
       let cycle = AccountCycle(cycleID: UUID(), programID: programID,
-        startedAt: ISO8601DateFormatter().string(from: .now), preferenceSourceCycleID: state.selectedCycleID)
+        startedAt: ISO8601DateFormatter().string(from: .now),
+        preferences: sourcePreferences.filter { slots.contains($0.workoutExerciseID) })
       targetCycleID = cycle.cycleID
       state.knownCycles.append(cycle)
       state.pendingCreations.append(cycle)
