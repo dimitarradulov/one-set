@@ -1,3 +1,4 @@
+// Migration 009 adds cycle activation logic without changing this schema.
 // Migration 008 adds the transactional create_program_cycle() function without schema changes.
 // Migration 002 adds complete_onboarding(); migration 003 adds stable catalog keys and publication state.
 // Applied by migrations/001_documented_schema.sql to Neon production on 2026-09-29.

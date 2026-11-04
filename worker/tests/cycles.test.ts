@@ -12,7 +12,7 @@ const initial = await readFile('../docs/database/migrations/001_documented_schem
 await engine.exec('BEGIN;\n' + initial.slice(initial.indexOf('CREATE TYPE')));
 await engine.exec(await readFile('../docs/database/migrations/002_completed_setup.sql', 'utf8'));
 await engine.exec(`INSERT INTO workout_programs (id, name) VALUES (1, 'Full Body'), (2, 'Upper Lower'), (3, 'Removed');`);
-for (const file of ['003_catalog_publication.sql', '004_offered_program_onboarding.sql', '005_cycle_workout_boundaries.sql', '008_cycle_creation.sql']) await engine.exec(await readFile('../docs/database/migrations/' + file, 'utf8'));
+for (const file of ['003_catalog_publication.sql', '004_offered_program_onboarding.sql', '005_cycle_workout_boundaries.sql', '008_cycle_creation.sql', '009_cycle_activation.sql']) await engine.exec(await readFile('../docs/database/migrations/' + file, 'utf8'));
 await engine.exec(`INSERT INTO users (id, clerk_user_id, preferred_unit, training_days) VALUES (1, 'user_a', 'kg', 3), (2, 'user_b', 'lb', 4);
   INSERT INTO user_programs (id, user_id, workout_program_id, started_at) VALUES ('11111111-1111-4111-8111-111111111111', 1, 1, '2026-01-01Z'), ('22222222-2222-4222-8222-222222222222', 2, 1, '2026-01-01Z');
   UPDATE users SET active_user_program_id = CASE id WHEN 1 THEN '11111111-1111-4111-8111-111111111111'::uuid ELSE '22222222-2222-4222-8222-222222222222'::uuid END;
@@ -101,4 +101,50 @@ test('invalid preference slots do not create or select a cycle', async () => {
   assert.equal(response.status, 400);
   const { rows } = await engine.query<{ active_user_program_id: string }>(`SELECT active_user_program_id FROM users WHERE id = 1`);
   assert.equal(rows[0].active_user_program_id, 'ffffffff-ffff-4fff-8fff-ffffffffffff');
+});
+
+test('activation selects an owned latest cycle and retains its progress on retry', async () => {
+  await engine.exec(`UPDATE user_programs SET current_training_week = 3 WHERE id = '11111111-1111-4111-8111-111111111111'`);
+  const path = '/v1/cycles/11111111-1111-4111-8111-111111111111/activate';
+  const activated = await call(path, 'POST');
+  assert.equal(activated.status, 200);
+  assert.deepEqual(await activated.json(), { cycle_id: '11111111-1111-4111-8111-111111111111', result: 'activated' });
+  const retry = await call(path, 'POST');
+  assert.equal(retry.status, 200);
+  const { rows } = await engine.query(`SELECT users.active_user_program_id, cycles.current_training_week FROM users JOIN user_programs cycles ON cycles.id = users.active_user_program_id WHERE users.id = 1`);
+  assert.deepEqual(rows, [{ active_user_program_id: '11111111-1111-4111-8111-111111111111', current_training_week: 3 }]);
+});
+
+test('activation rejects foreign, unknown, older and removed cycles without changing selection', async () => {
+  await engine.exec(`INSERT INTO user_programs (id, user_id, workout_program_id, started_at) VALUES
+    ('33333333-3333-4333-8333-333333333333', 1, 1, '2026-01-01Z'),
+    ('44444444-4444-4444-8444-444444444444', 1, 3, '2026-01-01Z');`);
+  const cases = [
+    ['22222222-2222-4222-8222-222222222222', 403, 'FORBIDDEN'],
+    ['99999999-9999-4999-8999-999999999999', 403, 'FORBIDDEN'],
+    ['11111111-1111-4111-8111-111111111111', 409, 'CYCLE_CONFLICT'],
+    ['44444444-4444-4444-8444-444444444444', 409, 'PROGRAM_UNAVAILABLE'],
+  ] as const;
+  for (const [id, status, code] of cases) {
+    const response = await call(`/v1/cycles/${id}/activate`, 'POST');
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), { error: { code } });
+  }
+  assert.equal((await call('/v1/cycles/not-a-uuid/activate', 'POST')).status, 400);
+  const latest = await call('/v1/cycles/33333333-3333-4333-8333-333333333333/activate', 'POST');
+  assert.equal(latest.status, 200);
+  const lookup = await call('/v1/me/cycles');
+  assert.equal((await lookup.json() as { selected_cycle_id: string }).selected_cycle_id, '33333333-3333-4333-8333-333333333333');
+});
+
+test('activation failure rolls back selection and old creation retry cannot reactivate', async () => {
+  await engine.exec(`CREATE FUNCTION fail_activation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test failure'; END $$;
+    CREATE TRIGGER reject_activation BEFORE UPDATE OF active_user_program_id ON users FOR EACH ROW EXECUTE FUNCTION fail_activation();`);
+  const failed = await call(`/v1/cycles/${cycle.cycle_id}/activate`, 'POST');
+  assert.equal(failed.status, 503);
+  await engine.exec('DROP TRIGGER reject_activation ON users; DROP FUNCTION fail_activation();');
+  const retry = await call('/v1/cycles', 'POST', cycle);
+  assert.equal(retry.status, 200);
+  const lookup = await call('/v1/me/cycles');
+  assert.equal((await lookup.json() as { selected_cycle_id: string }).selected_cycle_id, '33333333-3333-4333-8333-333333333333');
 });

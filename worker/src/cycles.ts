@@ -10,13 +10,24 @@ function json(body: unknown, status = 200): Response {
 
 export async function handleCycleRequest(request: Request, env: ClerkConfiguration, database: CycleDatabase): Promise<Response> {
   const path = new URL(request.url).pathname;
-  if (path !== '/v1/me/cycles' && path !== '/v1/cycles') return json({ error: { code: 'NOT_FOUND' } }, 404);
-  if ((path === '/v1/me/cycles' && request.method !== 'GET') || (path === '/v1/cycles' && request.method !== 'POST')) {
+  const activation = /^\/v1\/cycles\/([^/]+)\/activate$/.exec(path);
+  if (path !== '/v1/me/cycles' && path !== '/v1/cycles' && !activation) return json({ error: { code: 'NOT_FOUND' } }, 404);
+  if ((path === '/v1/me/cycles' && request.method !== 'GET') || ((path === '/v1/cycles' || activation) && request.method !== 'POST')) {
     return json({ error: { code: 'METHOD_NOT_ALLOWED' } }, 405);
   }
   const auth = await authenticateClerkRequest(request, env);
   if ('response' in auth) return auth.response;
   try {
+    if (activation) {
+      const cycleID = activation[1]!;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cycleID)) return json({ error: { code: 'INVALID_CYCLE' } }, 400);
+      const [row] = await database.query('SELECT public.activate_program_cycle($1, $2::uuid) AS result', [auth.subject, cycleID]);
+      if (row?.result === 'activated') return json({ cycle_id: cycleID, result: 'activated' });
+      if (row?.result === 'forbidden') return json({ error: { code: 'FORBIDDEN' } }, 403);
+      if (row?.result === 'unavailable') return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
+      if (row?.result === 'conflict') return json({ error: { code: 'CYCLE_CONFLICT' } }, 409);
+      return json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
+    }
     if (path === '/v1/cycles') {
       const reader = request.body?.getReader();
       if (!reader) return json({ error: { code: 'INVALID_CYCLE' } }, 400);

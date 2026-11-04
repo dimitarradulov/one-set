@@ -21,7 +21,7 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
-    if (path === '/v1/cycles' || path === '/v1/me/cycles') {
+    if (path === '/v1/cycles' || path === '/v1/me/cycles' || /^\/v1\/cycles\/[^/]+\/activate$/.test(path)) {
       return handleCycleRequest(request, env, { query: async (query, params) => sql.query(query, params) });
     }
     if (path === '/v1/sessions') {
