@@ -11,4 +11,6 @@ struct OnboardingProgress: Codable, Sendable {
   let selectedProgramID: TrainingProgram.ID?
   let nextStep: Step
   var completed: CompletedOnboarding? = nil
+  // Optional so existing setup files migrate without fabricating cycle metadata.
+  var cycles: ProgramCycleState? = nil
 }
