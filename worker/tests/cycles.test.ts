@@ -68,3 +68,37 @@ test('requests require authentication', async () => {
   const response = await handleCycleRequest(new Request('https://api.oneset.test/v1/me/cycles'), env, database);
   assert.equal(response.status, 401);
 });
+
+test('initial compatible preferences are created once and retries preserve later changes', async () => {
+  await engine.exec(`INSERT INTO workouts (id, name, authoring_key) VALUES (1, 'Workout', 'test-workout');
+    INSERT INTO exercises (id, name, authoring_key, instructions, reps_min, reps_max, rest_seconds, warmup_guidance) VALUES (1, 'Exercise', 'test-exercise', '', 5, 10, 60, '{}');
+    INSERT INTO program_workouts (program_id, workout_id, position) VALUES (4, 1, 1);
+    INSERT INTO workout_exercises (id, workout_id, exercise_id, position, reps_min, reps_max, authoring_key) VALUES (1, 1, 1, 1, 5, 10, 'test-slot');`);
+  const body = { ...cycle, cycle_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', program_id: 'bro-split', preferences: [{ workout_exercise_id: 'test-slot', exercise_id: 'test-exercise', note: 'Keep', rest_seconds: 90 }] };
+  const created = await call('/v1/cycles', 'POST', body);
+  assert.equal(created.status, 201);
+  await engine.exec(`UPDATE user_workout_exercises SET note = 'Changed' WHERE user_program_id = '${body.cycle_id}'`);
+  const retried = await call('/v1/cycles', 'POST', body);
+  assert.equal(retried.status, 200);
+  const { rows } = await engine.query<{ note: string }>(`SELECT note FROM user_workout_exercises WHERE user_program_id = '${body.cycle_id}'`);
+  assert.equal(rows[0].note, 'Changed');
+});
+
+test('omitted preferences copy only compatible choices from the active cycle', async () => {
+  await engine.exec(`INSERT INTO workout_programs (id, name, authoring_key) VALUES (5, 'Shared', 'shared');
+    INSERT INTO program_workouts (program_id, workout_id, position) VALUES (5, 1, 1);`);
+  const body = { ...cycle, cycle_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', program_id: 'shared' };
+  const response = await call('/v1/cycles', 'POST', body);
+  assert.equal(response.status, 201);
+  const { rows } = await engine.query<{ note: string }>(`SELECT note FROM user_workout_exercises WHERE user_program_id = '${body.cycle_id}'`);
+  assert.equal(rows[0].note, 'Changed');
+});
+
+test('invalid preference slots do not create or select a cycle', async () => {
+  await engine.exec(`INSERT INTO workout_programs (id, name, authoring_key) VALUES (6, 'Other', 'other');`);
+  const body = { ...cycle, cycle_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', program_id: 'other', preferences: [{ workout_exercise_id: 'test-slot', exercise_id: null, note: null, rest_seconds: null }] };
+  const response = await call('/v1/cycles', 'POST', body);
+  assert.equal(response.status, 400);
+  const { rows } = await engine.query<{ active_user_program_id: string }>(`SELECT active_user_program_id FROM users WHERE id = 1`);
+  assert.equal(rows[0].active_user_program_id, 'ffffffff-ffff-4fff-8fff-ffffffffffff');
+});
