@@ -19,6 +19,7 @@ struct OneSetApp: App {
     let model = OnboardingModel(
       catalog: dependencies.catalog,
       setupService: dependencies.accountSetup,
+      cycleService: dependencies.accountCycles,
       previousPerformanceService: dependencies.previousPerformance,
       progressService: dependencies.accountProgress,
       completedSessionUploadService: dependencies.completedSessionUpload,
@@ -46,6 +47,7 @@ struct OneSetApp: App {
       onboarding = OnboardingModel(
         catalog: dependencies.catalog,
         setupService: dependencies.accountSetup,
+      cycleService: dependencies.accountCycles,
         previousPerformanceService: dependencies.previousPerformance,
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
@@ -62,6 +64,7 @@ struct OneSetApp: App {
       onboarding = OnboardingModel(
         catalog: dependencies.catalog,
         setupService: dependencies.accountSetup,
+      cycleService: dependencies.accountCycles,
         previousPerformanceService: dependencies.previousPerformance,
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,

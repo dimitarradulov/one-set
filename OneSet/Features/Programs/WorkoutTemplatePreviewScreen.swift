@@ -7,6 +7,7 @@ struct WorkoutTemplatePreviewScreen: View {
   let workout: WorkoutTemplate
   let day: Int
   let onStartWorkout: () -> Void
+  var isBrowsingProgram = false
 
   var body: some View {
     ScrollView {
@@ -53,6 +54,7 @@ struct WorkoutTemplatePreviewScreen: View {
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
     .safeAreaInset(edge: .bottom, spacing: 0) {
+      if !isBrowsingProgram {
       Button {
         onStartWorkout()
       } label: {
@@ -70,6 +72,7 @@ struct WorkoutTemplatePreviewScreen: View {
       .padding(.vertical, 12)
       .frame(maxWidth: .infinity)
       .background(OneSetColors.background)
+      }
     }
   }
 

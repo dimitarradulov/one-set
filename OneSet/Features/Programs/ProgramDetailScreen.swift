@@ -4,6 +4,8 @@ struct ProgramDetailScreen: View {
   let program: TrainingProgram
   let isSelected: Bool
   let onSelect: () -> Void
+  var switching = false
+  var onPreviewWorkout: ((WorkoutTemplate) -> Void)? = nil
 
   var body: some View {
     GeometryReader { geometry in
@@ -52,7 +54,15 @@ struct ProgramDetailScreen: View {
                 .accessibilityAddTraits(.isHeader)
 
               ForEach(Array(program.workouts.enumerated()), id: \.element.id) { index, workout in
-                WorkoutTemplateCard(workout: workout, number: index + 1)
+                if let onPreviewWorkout {
+                  Button { onPreviewWorkout(workout) } label: {
+                    WorkoutTemplateCard(workout: workout, number: index + 1)
+                  }
+                  .buttonStyle(.plain)
+                  .accessibilityHint("Shows the workout and exercise details.")
+                } else {
+                  WorkoutTemplateCard(workout: workout, number: index + 1)
+                }
               }
             }
           }
@@ -70,7 +80,7 @@ struct ProgramDetailScreen: View {
               Image(systemName: "checkmark.circle.fill")
                 .accessibilityHidden(true)
             }
-            Text(isSelected ? "Selected program" : "Select program")
+            Text(isSelected ? (switching ? "Current program" : "Selected program") : (switching ? "Switch to this program" : "Select program"))
           }
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)
@@ -79,6 +89,7 @@ struct ProgramDetailScreen: View {
           .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+        .disabled(switching && isSelected)
         .accessibilityIdentifier("program.detail.select")
         .padding(.horizontal, 20)
         .padding(.top, 12)

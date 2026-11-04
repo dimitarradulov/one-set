@@ -15,6 +15,22 @@ final class OnboardingJourneyTests: XCTestCase {
     // Each test launches once with its initial arguments.
   }
 
+  func testProgramSwitchReviewsAndSurvivesOfflineRelaunch() {
+    relaunch(with: ["--ui-switch-test", "--ui-progress-keep"])
+    XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
+    app.buttons["overview.switch"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
+    programCard("bro-split").tap()
+    XCTAssertTrue(app.staticTexts["program.detail.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["program.detail.title"].label, "Bro Split")
+    app.buttons["program.detail.select"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    relaunch(with: ["--ui-switch-test", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+  }
+
   func testDevelopmentSignInBypassesProvidersAndSignOutRestoresNormalFlow() {
     relaunch(with: [])
     let shortcut = app.buttons["continue.development"]

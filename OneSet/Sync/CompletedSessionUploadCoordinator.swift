@@ -6,6 +6,7 @@ final class CompletedSessionUploadCoordinator {
     let user: AuthenticatedUser
     let isCurrent: @MainActor () -> Bool
     let date: Date
+    let blockedCycleIDs: Set<UUID>
   }
 
   private let repository: WorkoutRepository
@@ -31,10 +32,11 @@ final class CompletedSessionUploadCoordinator {
     for user: AuthenticatedUser,
     whileCurrent isCurrent: @escaping @MainActor () -> Bool,
     at date: Date,
-    scheduleRetries: Bool
+    scheduleRetries: Bool,
+    blockedCycleIDs: Set<UUID> = []
   ) async {
     // Recheck the captured account generation after each suspended upload before mutating its queue.
-    let request = DrainRequest(user: user, isCurrent: isCurrent, date: date)
+    let request = DrainRequest(user: user, isCurrent: isCurrent, date: date, blockedCycleIDs: blockedCycleIDs)
     guard isCurrent() else {
       cancelRetry()
       return
@@ -57,7 +59,8 @@ final class CompletedSessionUploadCoordinator {
             for: queuedDrain.user,
             whileCurrent: queuedDrain.isCurrent,
             at: queuedDrain.date,
-            scheduleRetries: true
+            scheduleRetries: true,
+            blockedCycleIDs: queuedDrain.blockedCycleIDs
           )
         }
       }
@@ -66,7 +69,10 @@ final class CompletedSessionUploadCoordinator {
     guard let entries = try? repository.sessionUploadQueue(accountID: user.id) else { return }
     for entry in entries {
       guard !Task.isCancelled, isCurrent() else { return }
-      guard entry.permanentFailure == nil, !entry.isAuthenticationDeferred,
+      struct CycleReference: Decodable { let cycle_id: UUID }
+      let cycleID = try? JSONDecoder().decode(CycleReference.self, from: entry.upload.body).cycle_id
+      guard blockedCycleIDs.isEmpty || (cycleID != nil && !blockedCycleIDs.contains(cycleID!)),
+            entry.permanentFailure == nil, !entry.isAuthenticationDeferred,
             entry.retryAfter.map({ $0 <= date }) ?? true else { continue }
 
       do {
@@ -168,7 +174,8 @@ final class CompletedSessionUploadCoordinator {
         for: request.user,
         whileCurrent: request.isCurrent,
         at: nextRetry,
-        scheduleRetries: true
+        scheduleRetries: true,
+        blockedCycleIDs: request.blockedCycleIDs
       )
     }
   }

@@ -5,6 +5,7 @@ struct ProgramSelectionScreen: View {
   let trainingDays: Int
   let selectedProgramID: TrainingProgram.ID?
   var recoveryMessage: String? = nil
+  var switching = false
 
   var body: some View {
     ScrollView {
@@ -40,7 +41,8 @@ struct ProgramSelectionScreen: View {
               program: program,
               position: index + 1,
               isMatch: program.trainingDaysPerWeek == trainingDays,
-              isSelected: selectedProgramID == program.id
+              isSelected: selectedProgramID == program.id,
+              selectionLabel: switching ? "Current" : "Selected"
             )
           }
         }

@@ -6,6 +6,7 @@ struct AppDependencies {
   let authentication: any AuthenticationService
   let onboardingProgress: any OnboardingProgressStore
   let accountSetup: any AccountSetupService
+  let accountCycles: (any AccountCycleService)?
   let previousPerformance: any PreviousPerformanceService
   let accountProgress: (any AccountProgressService)?
   let completedSessionUpload: (any CompletedSessionUploadService)?
@@ -30,6 +31,7 @@ struct AppDependencies {
         fileURL: progressURL
       ),
       accountSetup: PreviewAccountSetupService(),
+      accountCycles: nil,
       previousPerformance: PreviewPreviousPerformanceService(),
       accountProgress: nil,
       completedSessionUpload: nil,
@@ -85,7 +87,8 @@ struct AppDependencies {
       : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || setupCycleConflictPreview
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-switch-programs")
+      || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
       || sessionSignOutPreview || progressRestoreError {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
@@ -181,6 +184,7 @@ struct AppDependencies {
           includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
           storageDirectory: storage.directory
         ),
+        accountCycles: arguments.contains("--ui-switch-test") ? PreviewCycleService() : nil,
         previousPerformance: PreviewPreviousPerformanceService(),
         accountProgress: progressRestoreError ? PreviewAccountProgressService(fails: true) : nil,
         completedSessionUpload: nil,
@@ -245,6 +249,7 @@ struct AppDependencies {
       authentication: authentication,
       onboardingProgress: progress,
       accountSetup: HTTPAccountSetupService(authentication: authentication),
+      accountCycles: HTTPAccountCycleService(authentication: authentication),
       previousPerformance: HTTPPreviousPerformanceService(authentication: authentication),
       accountProgress: HTTPAccountProgressService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
@@ -379,6 +384,18 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
     return .snapshot(PublishedProgramCatalogSnapshot(
       publicationID: "preview-publication", entityTag: "\"preview-catalog\"", programs: programs
     ))
+  }
+}
+#endif
+
+#if DEBUG
+@MainActor
+private struct PreviewCycleService: AccountCycleService {
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    throw AccountCycleError.unavailable
   }
 }
 #endif

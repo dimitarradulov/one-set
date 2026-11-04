@@ -67,8 +67,11 @@ struct CompletedSetupTabsView: View {
         if let programID = model.selectedProgramID, let program = model.program(id: programID) {
           ProgramOverviewScreen(
             program: program,
-            uploadMessage: model.uploadMessage,
-            onRetryUpload: { Task { await model.uploadCompletedSetup(using: authentication) } },
+            uploadMessage: model.cycleMessage ?? model.uploadMessage,
+            onRetryUpload: { Task {
+              await model.uploadCompletedSetup(using: authentication)
+              await model.uploadPendingCycles(using: authentication)
+            } },
             preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
             activeSession: model.activeWorkoutSession,
             onResumeWorkout: {
@@ -83,6 +86,15 @@ struct CompletedSetupTabsView: View {
           )
           .navigationTitle("Program")
           .navigationBarTitleDisplayMode(.large)
+          .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+              Button("Switch") {
+                model.showProgramSwitcher()
+                Task { await model.refreshCycleKnowledge(using: authentication) }
+              }
+                .accessibilityIdentifier("overview.switch")
+            }
+          }
         } else {
           ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
             .background(OneSetColors.background)
@@ -91,11 +103,53 @@ struct CompletedSetupTabsView: View {
       }
       .navigationDestination(for: OnboardingRoute.self, destination: programDestination)
     }
+    .alert("Finish your workout first", isPresented: $model.switchBlockedPresented) {
+      Button("Return to workout", action: model.returnToActiveWorkout)
+      Button("Cancel", role: .cancel) { }
+    } message: {
+      Text("Finish or discard your current workout before switching programs.")
+    }
   }
 
   @ViewBuilder
   private func programDestination(for route: OnboardingRoute) -> some View {
     switch route {
+    case .programs:
+      ProgramSelectionScreen(programs: model.programs, trainingDays: model.trainingDays,
+        selectedProgramID: model.selectedProgramID, switching: true)
+        .navigationTitle("Programs")
+        .navigationBarTitleDisplayMode(.inline)
+    case .programDetail(let programID):
+      if let program = model.program(id: programID), program.isOffered {
+        ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
+          onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, onPreviewWorkout: { workout in
+            model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
+          })
+          .navigationTitle(program.name)
+          .navigationBarTitleDisplayMode(.inline)
+          .alert("Program switch", isPresented: Binding(
+            get: { model.cycleMessage != nil },
+            set: { if !$0 { model.clearCycleMessage() } }
+          )) {
+            Button("Retry") { Task {
+              await model.refreshCycleKnowledge(using: authentication)
+              model.switchToProgram(programID, using: authentication)
+            } }
+            Button("OK", role: .cancel) { model.clearCycleMessage() }
+          } message: { Text(model.cycleMessage ?? "") }
+      } else {
+        ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
+      }
+    case .switchingWorkoutPreview(let programID, let workoutID):
+      if let program = model.program(id: programID),
+         let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
+        WorkoutTemplatePreviewScreen(program: program, workout: program.workouts[workoutIndex],
+          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true)
+          .navigationTitle("Workout preview")
+          .navigationBarTitleDisplayMode(.inline)
+      } else {
+        ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
+      }
     case .workoutPreview(let programID, let workoutID):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {

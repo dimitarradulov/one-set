@@ -9,4 +9,6 @@ struct ProgramCycleState: Codable, Sendable {
   var discoveryComplete: Bool
   /// Creation payloads retain their original IDs and start times until acknowledged.
   var pendingCreations: [AccountCycle]
+  /// Permanently rejected creations are retained for recovery and not automatically retried.
+  var rejectedCycleIDs: [UUID]? = nil
 }

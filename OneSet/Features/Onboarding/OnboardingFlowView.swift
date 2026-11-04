@@ -106,13 +106,20 @@ struct OnboardingFlowView: View {
     .onChange(of: scenePhase) { _, phase in
       if phase == .active {
         Task { await model.refreshCatalog() }
-        Task { await model.uploadCompletedSetup(using: authentication) }
+        Task {
+          await model.uploadCompletedSetup(using: authentication)
+          await model.uploadPendingCycles(using: authentication)
+        }
         Task { await model.retryPendingSessionUploads(using: authentication) }
       }
     }
     .onChange(of: networkMonitor.isConnected) { _, isConnected in
       guard isConnected else { return }
-      Task { await model.retryPendingSessionUploads(using: authentication) }
+      Task {
+        await model.uploadCompletedSetup(using: authentication)
+        await model.uploadPendingCycles(using: authentication)
+        await model.retryPendingSessionUploads(using: authentication)
+      }
     }
     .onChange(of: authentication.didCompleteAuthentication) { _, didComplete in
       guard didComplete else { return }
@@ -240,6 +247,8 @@ struct OnboardingFlowView: View {
             } else {
               ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
             }
+          case .switchingWorkoutPreview:
+            ContentUnavailableView("Page unavailable", systemImage: "dumbbell")
           case .workoutPreview(let programID, let workoutID):
             if let program = model.program(id: programID),
                let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {

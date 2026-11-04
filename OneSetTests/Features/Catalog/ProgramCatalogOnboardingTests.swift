@@ -218,6 +218,101 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func unfinishedWorkoutBlocksBrowsingAndSelectionAfterRestart() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let repositoryURL = directory.appending(path: "workouts.sqlite")
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store,
+      workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
+    await model.resolveAccountSetup(using: auth)
+    await model.refreshCycleKnowledge(using: auth)
+    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    #expect(model.activeWorkoutSession != nil)
+    model.showProgramSwitcher()
+    #expect(model.switchBlockedPresented)
+    model.switchToProgram("bro-split", using: auth)
+    #expect(model.selectedProgramID == setup.programID)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store,
+      workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
+    await reopened.resolveAccountSetup(using: auth)
+    reopened.showProgramSwitcher()
+    #expect(reopened.switchBlockedPresented)
+    #expect(reopened.activeWorkoutSession?.id == model.activeWorkoutSession?.id)
+  }
+
+  @Test
+  func failedSwitchSaveKeepsPreviousSelection() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = SwitchFailingStore(file: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: OfflineCycleService(), progressStore: store)
+    await model.resolveAccountSetup(using: authentication)
+    await model.refreshCycleKnowledge(using: authentication)
+    let target = try #require(model.programs.first(where: { $0.id != setup.programID }))
+    store.fails = true
+    model.switchToProgram(target.id, using: authentication)
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(model.cycleMessage != nil)
+    store.fails = false
+    model.switchToProgram(target.id, using: authentication)
+    #expect(model.selectedProgramID == target.id)
+  }
+
+  @Test
+  func firstSwitchSurvivesReopeningWithTheSamePendingCycle() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let service = OfflineCycleService()
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: store)
+    await model.resolveAccountSetup(using: authentication)
+    await model.refreshCycleKnowledge(using: authentication)
+    let target = try #require(model.programs.first(where: { $0.id != setup.programID }))
+    model.showProgramSwitcher()
+    model.switchToProgram(target.id, using: authentication)
+    let cycleID = try #require(model.restoredCycleID)
+    #expect(model.selectedProgramID == target.id)
+    #expect(model.programPath.isEmpty)
+    #expect(cycleID != setup.cycleID)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
+    await reopened.resolveAccountSetup(using: authentication)
+    #expect(reopened.selectedProgramID == target.id)
+    #expect(reopened.restoredCycleID == cycleID)
+    #expect(try store.load(accountID: "preview-user")?.cycles?.pendingCreations.first?.cycleID == cycleID)
+  }
+
+  @Test
+  func browsingProgramsDoesNotChangeTheCurrentSelection() async {
+    let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup))
+    let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: authentication)
+
+    model.showProgramSwitcher()
+
+    #expect(model.programPath == [.programs])
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+  }
+
+  @Test
   func setupRestoresAProgramPublishedAfterTheAppRelease() async {
     let added = program(id: "founder-authored-plan", name: "Founder Authored Plan")
     let catalog = ProgramCatalog(programs: ProgramCatalog.bundled.programs + [added])
@@ -395,4 +490,27 @@ private struct StubAccountSetupService: AccountSetupService {
     if let saveError { throw saveError }
     return setup
   }
+}
+
+@MainActor
+private struct OfflineCycleService: AccountCycleService {
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    throw AccountCycleError.unavailable
+  }
+}
+
+@MainActor
+private final class SwitchFailingStore: OnboardingProgressStore {
+  let file: FileOnboardingProgressStore
+  var fails = false
+  init(file: FileOnboardingProgressStore) { self.file = file }
+  func load(accountID: String) throws -> OnboardingProgress? { try file.load(accountID: accountID) }
+  func save(_ progress: OnboardingProgress, accountID: String) throws {
+    if fails { throw CocoaError(.fileWriteOutOfSpace) }
+    try file.save(progress, accountID: accountID)
+  }
+  func remove(accountID: String) throws { try file.remove(accountID: accountID) }
 }

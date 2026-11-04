@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct ProgramCard: View {
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   let program: TrainingProgram
   let position: Int
   let isMatch: Bool
   let isSelected: Bool
+  var selectionLabel = "Selected"
 
   var body: some View {
     NavigationLink(value: OnboardingRoute.programDetail(program.id)) {
@@ -28,7 +30,7 @@ struct ProgramCard: View {
             Spacer(minLength: 0)
 
             if isSelected {
-              Label("Selected", systemImage: "checkmark.circle.fill")
+              Label(selectionLabel, systemImage: "checkmark.circle.fill")
                 .font(OneSetTypography.caption)
                 .foregroundStyle(OneSetColors.textPrimary)
                 .labelStyle(.titleAndIcon)
@@ -36,11 +38,19 @@ struct ProgramCard: View {
             }
           }
 
-          HStack(spacing: 8) {
-            Text("\(program.trainingDaysPerWeek) days / week")
-            Text("·")
-              .accessibilityHidden(true)
-            Text(program.workoutCountLabel)
+          Group {
+            if dynamicTypeSize.isAccessibilitySize {
+              VStack(alignment: .leading, spacing: 2) {
+                Text("\(program.trainingDaysPerWeek) days / week")
+                Text(program.workoutCountLabel)
+              }
+            } else {
+              HStack(spacing: 8) {
+                Text("\(program.trainingDaysPerWeek) days / week")
+                Text("·").accessibilityHidden(true)
+                Text(program.workoutCountLabel)
+              }
+            }
           }
           .font(OneSetTypography.caption)
           .foregroundStyle(OneSetColors.textSecondary)
@@ -88,7 +98,7 @@ struct ProgramCard: View {
       .contentShape(RoundedRectangle(cornerRadius: 16))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("\(program.name), \(program.trainingDaysPerWeek) days per week, \(program.workoutCountLabel)\(isMatch ? ", matches your schedule" : "")\(isSelected ? ", selected" : "")")
+    .accessibilityLabel("\(program.name), \(program.trainingDaysPerWeek) days per week, \(program.workoutCountLabel)\(isMatch ? ", matches your schedule" : "")\(isSelected ? ", \(selectionLabel.lowercased())" : "")")
     .accessibilityHint(isMatch ? "Matches your preferred training frequency. Opens program details." : "Opens program details.")
     .accessibilityIdentifier("programs.card.\(program.id)")
   }
