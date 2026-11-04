@@ -412,11 +412,13 @@ Prefer a labeled or unmistakable check control with at least a 44 pt target. A t
 
 Rest is secondary to logging and must not lock the screen.
 
-- Compact persistent bar/card after a completed set.
+- Show one compact rest card immediately below the most recently completed exercise, before the next exercise. Move it when another set is completed, including out of order. Do not show rest after the final exercise or when all exercises are complete, regardless of completion order.
+- Gently reveal the card if it is outside the viewport, respecting Reduce Motion.
 - Timer uses `metric` style.
 - Show `Skip` and adjustment access without making them more prominent than the countdown.
 - Timer state survives navigation/relaunch; visual design should communicate continuity rather than modal interruption.
 - When rest completes, use notification/haptic behavior when permitted and update the bar to a clear ready state.
+- Keep “Rest complete” in the same position until the next completion. Skip dismisses the card; finishing a workout does not require waiting for rest.
 
 ### Finish workout
 

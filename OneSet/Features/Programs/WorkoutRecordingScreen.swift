@@ -21,6 +21,7 @@ struct WorkoutRecordingScreen: View {
   @State private var inputs: [String: WorkoutSession.SetEntry]
   @State private var failedSaves: [String: FailedSave] = [:]
   @FocusState private var focusedField: Field?
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private struct Field: Hashable {
     let slotID: String
@@ -62,55 +63,78 @@ struct WorkoutRecordingScreen: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 20) {
-        Text("Week \(session.week) · Day \(session.day)")
-          .font(OneSetTypography.label)
-          .foregroundStyle(OneSetColors.textSecondary)
-        Text("Your workout is saved on this device. You can leave and resume it later.")
-          .font(OneSetTypography.body)
-          .foregroundStyle(OneSetColors.textSecondary)
-        if let deadline = session.restDeadline {
-          RestCountdownView(deadline: deadline, onAdjust: onAdjustRest, onSkip: onSkipRest)
+    ScrollViewReader { scrollProxy in
+      ScrollView {
+        VStack(alignment: .leading, spacing: 20) {
+          Text("Week \(session.week) · Day \(session.day)")
+            .font(OneSetTypography.label)
+            .foregroundStyle(OneSetColors.textSecondary)
+          Text("Your workout is saved on this device. You can leave and resume it later.")
+            .font(OneSetTypography.body)
+            .foregroundStyle(OneSetColors.textSecondary)
+          ForEach(session.exercises, id: \.slotID) { exercise in
+            exerciseRow(exercise)
+            if exercise.slotID == restSlotID, let deadline = session.restDeadline {
+              RestCountdownView(deadline: deadline, onAdjust: onAdjustRest, onSkip: onSkipRest)
+                .accessibilityValue("After \(exercise.name)")
+                .id("active-rest")
+                .onAppear {
+                  withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
+                    // With no anchor, reveal only the portion outside the viewport.
+                    scrollProxy.scrollTo("active-rest")
+                  }
+                }
+            }
+          }
+          Button("Finish workout") { showsFinishReview = true }
+            .font(OneSetTypography.button)
+            .foregroundStyle(Color.black)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("recording.finish")
+          Button("Discard workout", role: .destructive) { confirmsDiscard = true }
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("recording.discard")
         }
-        ForEach(session.exercises, id: \.slotID) { exercise in
-          exerciseRow(exercise)
-        }
-        Button("Finish workout") { showsFinishReview = true }
-          .font(OneSetTypography.button)
-          .foregroundStyle(Color.black)
-          .frame(maxWidth: .infinity, minHeight: 52)
-          .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
-          .accessibilityIdentifier("recording.finish")
-        Button("Discard workout", role: .destructive) { confirmsDiscard = true }
-          .frame(minHeight: 44)
-          .accessibilityIdentifier("recording.discard")
+        .frame(maxWidth: 720, alignment: .leading)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .top)
       }
-      .frame(maxWidth: 720, alignment: .leading)
-      .padding(20)
-      .frame(maxWidth: .infinity, alignment: .top)
+      .scrollDismissesKeyboard(.interactively)
+      .background(OneSetColors.background)
+      .navigationTitle(session.workoutName)
+      .navigationBarTitleDisplayMode(.inline)
+      .alert("Discard this unfinished workout?", isPresented: $confirmsDiscard) {
+        Button("Discard workout", role: .destructive, action: onDiscard)
+        Button("Keep workout", role: .cancel) {}
+      } message: {
+        Text("Your completed program progress will not change.")
+      }
+      .sheet(isPresented: $showsFinishReview) {
+        finishReview
+          .presentationDetents([.medium, .large])
+          .presentationDragIndicator(.visible)
+      }
+      .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
+        Button("Discard workout", role: .destructive, action: onDiscard)
+        Button("Keep recording", role: .cancel) {}
+      } message: {
+        Text("An empty workout cannot be saved as completed.")
+      }
     }
-    .scrollDismissesKeyboard(.interactively)
-    .background(OneSetColors.background)
-    .navigationTitle(session.workoutName)
-    .navigationBarTitleDisplayMode(.inline)
-    .alert("Discard this unfinished workout?", isPresented: $confirmsDiscard) {
-      Button("Discard workout", role: .destructive, action: onDiscard)
-      Button("Keep workout", role: .cancel) {}
-    } message: {
-      Text("Your completed program progress will not change.")
+  }
+
+  private var restSlotID: String? {
+    guard session.exercises.contains(where: { session.setEntries[$0.slotID]?.completedAt == nil }) else {
+      return nil
     }
-    .sheet(isPresented: $showsFinishReview) {
-      finishReview
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-    .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
-      Button("Discard workout", role: .destructive, action: onDiscard)
-      Button("Keep recording", role: .cancel) {}
-    } message: {
-      Text("An empty workout cannot be saved as completed.")
-    }
+    let latestCompleted = session.exercises
+      .filter { session.setEntries[$0.slotID]?.completedAt != nil }
+      .max {
+        (session.setEntries[$0.slotID]?.completedAt ?? .distantPast)
+          < (session.setEntries[$1.slotID]?.completedAt ?? .distantPast)
+      }?.slotID
+    return latestCompleted == session.exercises.last?.slotID ? nil : latestCompleted
   }
 
   private var finishReview: some View {
@@ -340,56 +364,5 @@ struct WorkoutRecordingScreen: View {
         inputs[slotID] = updated
       }
     }
-  }
-}
-
-private struct RestCountdownView: View {
-  let deadline: Date
-  let onAdjust: (Int) -> Bool
-  let onSkip: () -> Bool
-
-  var body: some View {
-    TimelineView(.periodic(from: .now, by: 1)) { context in
-      let remaining = max(0, Int(ceil(deadline.timeIntervalSince(context.date))))
-      if remaining > 0 {
-        HStack(spacing: 12) {
-          Image(systemName: "timer")
-            .font(.system(size: 20, weight: .semibold))
-            .accessibilityHidden(true)
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Rest")
-              .font(OneSetTypography.caption)
-              .foregroundStyle(OneSetColors.textSecondary)
-            Text(remaining.formattedRestTime)
-              .font(OneSetTypography.metric)
-              .monospacedDigit()
-              .foregroundStyle(OneSetColors.textPrimary)
-              .accessibilityLabel("Rest remaining, \(remaining.formattedRestTime)")
-          }
-          Spacer(minLength: 8)
-          Button("−15s") { _ = onAdjust(-15) }
-            .accessibilityLabel("Reduce rest by 15 seconds")
-            .accessibilityIdentifier("recording.rest.reduce")
-          Button("+15s") { _ = onAdjust(15) }
-            .accessibilityLabel("Add 15 seconds of rest")
-            .accessibilityIdentifier("recording.rest.add")
-          Button("Skip") { _ = onSkip() }
-            .accessibilityIdentifier("recording.rest.skip")
-        }
-        .font(OneSetTypography.label)
-        .buttonStyle(.bordered)
-        .tint(OneSetColors.accent)
-        .padding(12)
-        .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("recording.rest.countdown")
-      }
-    }
-  }
-}
-
-private extension Int {
-  var formattedRestTime: String {
-    String(format: "%d:%02d", self / 60, self % 60)
   }
 }
