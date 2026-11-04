@@ -24,7 +24,7 @@ Send one session update at a time. Preserve a sent body and base session revisio
 
 ### First-time program switching
 
-The account-scoped onboarding file also stores confirmed latest-cycle metadata, the selected cycle, and fixed creation requests. A missing or failed discovery is not evidence that a program is new. The switch commits the selection and creation request in one atomic file replacement before navigating; the original setup upload remains separate. Pending creation is retried after setup, and session drains skip only sessions whose own cycle creation remains pending. Confirmed permanent creation conflicts retain the selection and queued workouts on the device. This slice does not yet activate a previously followed program; resumption and broader recovery remain in the related switching tickets.
+The account-scoped onboarding file stores confirmed latest-cycle metadata, the selected cycle, fixed creation requests, and ordered activation requests. A missing or failed discovery is not evidence that a program is new. A switch commits the selection and its required requests in one atomic file replacement before navigating; the original setup upload remains separate. Creation follows setup, and session drains skip only sessions whose own cycle creation remains pending. Permanent creation and activation rejections are retained with their original cycle identities and are not automatically retried. Later valid selection requests and sessions for owned cycles continue independently. A rejected creation and its queued workouts remain on the device with their original payloads; the overview explains that the change was not saved to the account.
 
 ### Completed-only first upload
 

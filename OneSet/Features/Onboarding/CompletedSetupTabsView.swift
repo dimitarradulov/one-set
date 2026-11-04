@@ -67,11 +67,11 @@ struct CompletedSetupTabsView: View {
         if let programID = model.selectedProgramID, let program = model.program(id: programID) {
           ProgramOverviewScreen(
             program: program,
-            uploadMessage: model.cycleMessage ?? model.uploadMessage,
-            onRetryUpload: { Task {
+            uploadMessage: model.cycleConflictMessage ?? model.cycleMessage ?? model.uploadMessage,
+            onRetryUpload: model.cycleConflictMessage == nil ? { Task {
               await model.uploadCompletedSetup(using: authentication)
               await model.uploadPendingCycles(using: authentication)
-            } },
+            } } : nil,
             preferencesSummary: "Your preferences: \(model.weightUnit.rawValue) · \(model.trainingDays) training days per week",
             activeSession: model.activeWorkoutSession,
             onResumeWorkout: {

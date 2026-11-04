@@ -181,6 +181,55 @@ struct CompletedSessionUploadTests {
   }
 
   @Test
+  func removedCycleRejectionRetainsWorkoutAndAllowsOtherUploadsAfterReopening() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let storeURL = directory.appending(path: "onboarding.json")
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let store = FileOnboardingProgressStore(fileURL: storeURL)
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let setup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let removed = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    progress.cycles = ProgramCycleState(selectedProgramID: removed.programID, selectedCycleID: removed.cycleID,
+      knownCycles: [removed], discoveryComplete: true, pendingCreations: [removed],
+      pendingActivations: [removed.cycleID])
+    try store.save(progress, accountID: "preview-user")
+    let service = RemovedCycleCreationService()
+    let uploads = CompletedSessionUploadSpy()
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StaticAccountSetupService(setup: setup),
+      cycleService: service, completedSessionUploadService: uploads, progressStore: store, workoutRepository: repository)
+    await model.resolveAccountSetup(using: auth)
+    let removedSetup = AccountSetup(preferredUnit: .pounds, trainingDays: 3,
+      programID: removed.programID, cycleID: removed.cycleID)
+    let date = Date(timeIntervalSince1970: 1_800_000_000)
+    let dependent = try finishOneSession(repository: repository, model: model, setup: removedSetup, startingAt: date)
+    let independent = try finishOneSession(repository: repository, model: model, setup: setup, startingAt: date.addingTimeInterval(60))
+    let body = try #require(repository.pendingSessionUpload(sessionID: dependent, accountID: "preview-user")?.body)
+    await model.uploadPendingCycles(using: auth)
+    await model.retryPendingSessionUploads(using: auth, at: date, scheduleRetries: false)
+    #expect(uploads.uploads.map(\.sessionID) == [independent])
+    #expect(model.restoredCycleID == removed.cycleID)
+    #expect(model.cycleConflictMessage != nil)
+    let reopenedRepository = try WorkoutRepository(databaseURL: databaseURL)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StaticAccountSetupService(setup: setup),
+      cycleService: service, completedSessionUploadService: uploads,
+      progressStore: FileOnboardingProgressStore(fileURL: storeURL), workoutRepository: reopenedRepository)
+    await reopened.resolveAccountSetup(using: auth)
+    await reopened.uploadPendingCycles(using: auth)
+    await reopened.retryPendingSessionUploads(using: auth, at: date, scheduleRetries: false)
+    #expect(service.attempts == 1)
+    #expect(reopened.restoredCycleID == removed.cycleID)
+    #expect(try reopenedRepository.pendingSessionUpload(sessionID: dependent, accountID: "preview-user")?.body == body)
+    #expect(try reopenedRepository.pendingSessionUploads(accountID: "preview-google").isEmpty)
+    #expect(reopened.cycleConflictMessage != nil)
+  }
+
+  @Test
   func establishedCycleConflictRetainsOnlyItsSessionsAndSurvivesRestart() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -1144,4 +1193,17 @@ private final class RetryableCycleCreationService: AccountCycleService {
     attempts.append(cycle)
     if !available { throw AccountCycleError.unavailable }
   }
+}
+
+@MainActor
+private final class RemovedCycleCreationService: AccountCycleService {
+  var attempts = 0
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [], selectedCycleID: nil)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
+    attempts += 1
+    throw AccountCycleError.programUnavailable
+  }
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
 }

@@ -21,6 +21,8 @@ struct ProgramCycleState: Codable, Sendable {
   var pendingActivations: [UUID]? = nil
   /// Permanently rejected creations are retained for recovery and not automatically retried.
   var rejectedCycleIDs: [UUID]? = nil
+  /// Permanently rejected activations remain recorded but do not block later choices.
+  var rejectedActivationIDs: [UUID]? = nil
   var retry: CycleRetryState? = nil
   var authenticationDeferred: Bool? = nil
 }
