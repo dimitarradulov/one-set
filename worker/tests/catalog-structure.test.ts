@@ -272,6 +272,21 @@ test('structural publication preserves history and applies day changes at the cy
     'machine-full-body-c', 'machine-full-body-b',
   ]);
   assert.deepEqual(visibleProgram.workouts[1]?.exercises, []);
+  const historyAfterStructureRemoval = await database.query(`SELECT sessions.workout_name, sets.exercise_id,
+      sets.prescription, marks.week_number, cycles.current_training_week
+    FROM workout_sessions sessions
+    JOIN workout_session_sets sets ON sets.workout_session_id = sessions.id
+    JOIN completed_workouts marks ON marks.user_program_id = sessions.user_program_id
+    JOIN user_programs cycles ON cycles.id = sessions.user_program_id
+    WHERE sessions.id = '22222222-2222-4222-8222-222222222222'`);
+  assert.deepEqual(historyAfterStructureRemoval, history,
+    'removing a workout and slot preserves captured session content and completion history');
+  const rememberedAfterStructureRemoval = await database.query(`SELECT slots.authoring_key, preferences.note
+    FROM user_workout_exercises preferences
+    JOIN workout_exercises slots ON slots.id = preferences.workout_exercise_id
+    WHERE preferences.user_program_id = $1`, [cycleID]);
+  assert.deepEqual(rememberedAfterStructureRemoval, slotState,
+    'removing a workout and slot preserves remembered replacements');
 
   // Restoring and removing again within the same current week must not leave
   // overlapping active periods or duplicate active rows for the same day.
@@ -300,4 +315,54 @@ test('structural publication preserves history and applies day changes at the cy
   const currentWorkoutIDs = await database.query(`SELECT workout_id
     FROM program_workouts WHERE program_id = 10 AND position IS NOT NULL`);
   assert.equal(noActiveSameWeekRows.length, currentWorkoutIDs.length);
+
+  const removedProgram = structuredClone(revised);
+  removedProgram.programs[0]!.removed = true;
+  const programRemoval = await publish(removedProgram);
+  assert.ok(programRemoval.changes.some(change =>
+    change.kind === 'remove program' && change.program_key === 'machine-full-body'));
+  const followerCatalogResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
+  const followerCatalog = await followerCatalogResponse.json() as { catalog: { programs: Array<{
+    key: string; removed?: boolean; workouts: Array<{ key: string }>;
+  }> } };
+  const continuingProgram = followerCatalog.catalog.programs.find(candidate => candidate.key === 'machine-full-body');
+  assert.ok(continuingProgram, 'the removed program remains available to current followers');
+  assert.equal(continuingProgram.removed, true, 'the app receives the explicit unavailable marker');
+  assert.deepEqual(continuingProgram.workouts.map(workout => workout.key), ['machine-full-body-c', 'machine-full-body-a', 'machine-full-body-b'],
+    'existing followers keep the complete active rotation after program removal');
+  const enrollment = await database.query(`SELECT programs.id AS program_id, cycles.id AS cycle_id,
+      users.active_user_program_id, cycles.current_training_week
+    FROM workout_programs programs
+    JOIN user_programs cycles ON cycles.workout_program_id = programs.id
+    JOIN users ON users.id = cycles.user_id
+    WHERE programs.authoring_key = 'machine-full-body' AND cycles.id = $1`, [cycleID]);
+  assert.deepEqual(enrollment, [{ program_id: 10, cycle_id: cycleID, active_user_program_id: cycleID, current_training_week: 3 }],
+    'removal preserves the current follower enrollment and training week');
+  const historyAfterProgramRemoval = await database.query(`SELECT sessions.workout_name, sets.exercise_id,
+      sets.prescription, marks.week_number
+    FROM workout_sessions sessions
+    JOIN workout_session_sets sets ON sets.workout_session_id = sessions.id
+    JOIN completed_workouts marks ON marks.user_program_id = sessions.user_program_id
+    WHERE sessions.id = '22222222-2222-4222-8222-222222222222'`);
+  assert.deepEqual(historyAfterProgramRemoval, [{ workout_name: 'Workout A at the time',
+    exercise_id: originalIDs.exercise_id,
+    prescription: { name: 'Machine Chest Press', instructions: 'Captured before edit', reps_min: 6, reps_max: 10 },
+    week_number: 1,
+  }], 'program removal keeps captured sessions and completion marks');
+
+  const programRestoration = await publish(revised);
+  assert.ok(programRestoration.changes.some(change =>
+    change.kind === 'restore program' && change.program_key === 'machine-full-body'));
+  const restoredCatalogResponse = await handleCatalogRequest(request('/v1/catalog', userBearer), environment, database);
+  const restoredCatalog = await restoredCatalogResponse.json() as { catalog: { programs: Array<{ key: string; removed?: boolean }> } };
+  assert.equal(restoredCatalog.catalog.programs.filter(candidate => candidate.key === 'machine-full-body').length, 1,
+    'restoration reuses the existing catalog program identity');
+  assert.equal(restoredCatalog.catalog.programs.find(candidate => candidate.key === 'machine-full-body')?.removed, undefined);
+  const restoredEnrollment = await database.query(`SELECT programs.id AS program_id, cycles.id AS cycle_id,
+      users.active_user_program_id, cycles.current_training_week
+    FROM workout_programs programs
+    JOIN user_programs cycles ON cycles.workout_program_id = programs.id
+    JOIN users ON users.id = cycles.user_id
+    WHERE programs.authoring_key = 'machine-full-body' AND cycles.id = $1`, [cycleID]);
+  assert.deepEqual(restoredEnrollment, enrollment, 'restoration preserves program, cycle and active-follower identities');
 });

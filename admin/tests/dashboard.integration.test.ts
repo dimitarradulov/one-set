@@ -567,6 +567,89 @@ test('real browser submits native Astro Action forms through edit → review →
     assert.equal(appUpdated.workouts[0]!.exercises[0]!.reps.minimum, 5);
     assert.equal(appUpdated.workouts[0]!.exercises[0]!.reps.maximum, 6);
     assert.equal(appUpdated.workouts[0]!.exercises[0]!.exercise, replacementExercise);
+
+    const stableProgramKey = updated.key;
+    const stableWorkoutKey = updated.workouts[0]!.key;
+    const stableSlotKey = updated.workouts[0]!.exercises[0]!.key;
+    const openEditor = async () => {
+      await page.getByRole('link', { name: 'Return to catalog' }).click();
+      await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
+      await page.getByLabel('Program name').waitFor();
+    };
+    const reviewAndPublish = async (changeKind: string) => {
+      await page.getByRole('button', { name: 'Review complete program' }).click();
+      await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
+      assert.ok((await page.locator('.diff-list').innerText()).toLowerCase().includes(changeKind),
+        `review should explicitly show ${changeKind}`);
+      if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, `issue-64-${changeKind.replaceAll(' ', '-')}-review.png`), fullPage: true });
+      await page.getByRole('button', { name: 'Publish to development' }).click();
+      await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
+    };
+
+    await openEditor();
+    await page.locator('.workout-card').first().locator('.slot-list .slot-row').first().getByRole('button', { name: 'Remove slot' }).click();
+    await reviewAndPublish('remove exercise slot');
+    let retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(retained.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === stableSlotKey)?.removed, true,
+      'removing a slot retains its original stable identity');
+    assert.equal((await readAppCatalog()).programs.find(program => program.key === stableProgramKey)!.workouts
+      .flatMap(workout => workout.exercises).some(slot => slot.key === stableSlotKey), false,
+    'removed slots are absent from app-facing active prescriptions');
+
+    await openEditor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-64-retained-slot-restore-control.png'), fullPage: true });
+    await page.locator(`.retained-slot-rows [data-slot="${stableSlotKey}"]`).getByRole('button', { name: 'Restore slot' }).click();
+    await reviewAndPublish('restore exercise slot');
+    retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(retained.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === stableSlotKey)?.removed, undefined,
+      'restoring a slot reuses its original identity');
+    assert.ok((await readAppCatalog()).programs.find(program => program.key === stableProgramKey)!.workouts
+      .flatMap(workout => workout.exercises).some(slot => slot.key === stableSlotKey));
+
+    await openEditor();
+    await page.locator(`.workout-card[data-workout="${stableWorkoutKey}"]`).getByRole('button', { name: 'Remove template' }).click();
+    assert.match(await page.locator('#removed-workout-list > summary').innerText(), /1 removed workout template/);
+    assert.notEqual(await page.locator('#removed-workout-list').getAttribute('open'), null,
+      'removing a template exposes its restore action immediately');
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-64-removed-workout-restore-control.png'), fullPage: true });
+    await reviewAndPublish('remove workout');
+    retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(retained.workouts.find(workout => workout.key === stableWorkoutKey)?.removed, true,
+      'removing a workout retains its original stable identity');
+    assert.equal((await readAppCatalog()).programs.find(program => program.key === stableProgramKey)!.workouts
+      .some(workout => workout.key === stableWorkoutKey), false);
+
+    await openEditor();
+    await page.locator(`#removed-workout-list [data-workout="${stableWorkoutKey}"]`).getByRole('button', { name: 'Restore template' }).click();
+    assert.match(await page.locator('#removed-workout-list > summary').innerText(), /0 removed workout template/);
+    await reviewAndPublish('restore workout');
+    retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(retained.workouts.find(workout => workout.key === stableWorkoutKey)?.removed, undefined,
+      'restoring a workout reuses its original identity');
+    assert.ok((await readAppCatalog()).programs.find(program => program.key === stableProgramKey)!.workouts
+      .some(workout => workout.key === stableWorkoutKey));
+
+    const programCount = (await readCurrentSource()).source.programs.length;
+    await openEditor();
+    await page.getByRole('button', { name: 'Remove program' }).click();
+    await reviewAndPublish('remove program');
+    retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(retained.removed, true, 'program removal retains its original identity');
+    assert.equal((await readCurrentSource()).source.programs.filter(program => program.key === stableProgramKey).length, 1,
+      'program removal does not create a duplicate');
+    assert.equal((await readAppCatalog()).programs.find(program => program.key === stableProgramKey)?.removed, true,
+      'removed program remains in the app catalog for existing followers but is marked unavailable');
+    assert.match(await page.locator('body').innerText(), /Catalog published/);
+
+    await openEditor();
+    assert.match(await page.locator('.panel-heading').innerText(), /Removed/);
+    await page.getByRole('button', { name: 'Restore program' }).click();
+    await reviewAndPublish('restore program');
+    const restoredProgram = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
+    assert.equal(restoredProgram.removed, undefined, 'restoring makes the same program identity available again');
+    assert.equal((await readCurrentSource()).source.programs.length, programCount,
+      'restoration does not create a duplicate program');
+    assert.equal((await readAppCatalog()).programs.filter(program => program.key === stableProgramKey).length, 1);
   } finally {
     await browser?.close();
     worker.kill('SIGTERM');
