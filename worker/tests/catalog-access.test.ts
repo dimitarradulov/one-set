@@ -26,9 +26,9 @@ const source = {
   }],
 };
 const database: CatalogDatabase = {
-  query: async () => [{
-    publication_id: 'publication-123', source_fingerprint: 'a'.repeat(64), source_document: source,
-  }],
+  query: async sql => sql.includes('ORDER BY publication.published_at')
+    ? [{ current_publication_id: 'publication-123', publication_id: 'publication-123', source_fingerprint: 'a'.repeat(64), published_at: '2026-11-01T12:00:00Z' }]
+    : [{ publication_id: 'publication-123', source_fingerprint: 'a'.repeat(64), published_at: '2026-11-01T12:00:00Z', source_document: source }],
   transaction: async () => [],
 };
 const environment = {
@@ -97,4 +97,36 @@ test('maintenance source read reports unavailable storage instead of an empty ca
   const response = await read(await token(), unavailable);
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: { code: 'CATALOG_UNAVAILABLE' } });
+});
+
+test('publication history reads expose summaries and complete retained source only to the founder', async () => {
+  const accessToken = await token();
+  const list = await handleCatalogRequest(new Request('https://api.test/v1/maintenance/catalog/publications', {
+    headers: { 'Cf-Access-Jwt-Assertion': accessToken },
+  }), environment, database, controlledKeySource);
+  assert.equal(list.status, 200);
+  const listing = await list.json() as { current_publication_id: string; publications: Array<{ publication_id: string; source_fingerprint: string }> };
+  assert.equal(listing.current_publication_id, 'publication-123');
+  assert.equal(listing.publications[0]?.publication_id, 'publication-123');
+  assert.equal(listing.publications[0]?.source_fingerprint, 'a'.repeat(64));
+  assert.match(list.headers.get('Cache-Control') ?? '', /no-store/);
+
+  const detail = await handleCatalogRequest(new Request('https://api.test/v1/maintenance/catalog/publications/publication-123', {
+    headers: { 'Cf-Access-Jwt-Assertion': accessToken },
+  }), environment, database, controlledKeySource);
+  assert.equal(detail.status, 200);
+  const snapshot = await detail.json() as { source: typeof source; publication_id: string };
+  assert.equal(snapshot.publication_id, 'publication-123');
+  assert.equal(snapshot.source.programs[0]?.workouts[0]?.exercises[0]?.removed, true);
+});
+
+test('publication history rejects missing or invalid founder credentials and non-GET requests', async () => {
+  const requests = [
+    new Request('https://api.test/v1/maintenance/catalog/publications'),
+    new Request('https://api.test/v1/maintenance/catalog/publications', { headers: { 'Cf-Access-Jwt-Assertion': await token({ email: 'other@example.test' }) } }),
+    new Request('https://api.test/v1/maintenance/catalog/publications/publication-123', { headers: { 'Cf-Access-Jwt-Assertion': await token({ audience: 'wrong' }) } }),
+    new Request('https://api.test/v1/maintenance/catalog/publications', { method: 'POST', headers: { 'Cf-Access-Jwt-Assertion': await token() } }),
+  ];
+  const responses = await Promise.all(requests.map(request => handleCatalogRequest(request, environment, database, controlledKeySource)));
+  assert.deepEqual(responses.map(response => response.status), [401, 401, 401, 405]);
 });

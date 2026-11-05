@@ -290,6 +290,70 @@ async function readCatalogSource(
   });
 }
 
+async function authorizeMaintenanceRead(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<boolean> {
+  return request.method === 'GET'
+    && Boolean(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUDIENCE && env.ACCESS_APPROVED_EMAIL)
+    && verifyCloudflareAccess(request, env, controlledAccessKeySource);
+}
+
+async function readPublicationHistory(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!(await authorizeMaintenanceRead(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  try {
+    const rows = await database.query(`SELECT state.publication_id AS current_publication_id,
+      publication.id AS publication_id, publication.source_fingerprint, publication.published_at
+      FROM public.catalog_state AS state
+      LEFT JOIN public.catalog_publications AS publication ON true
+      WHERE state.singleton = true
+      ORDER BY publication.published_at DESC NULLS LAST, publication.id DESC`);
+    const currentPublicationID = typeof rows[0]?.current_publication_id === 'string' ? rows[0].current_publication_id : null;
+    const publications = rows.filter(publication => typeof publication.publication_id === 'string');
+    return json({ current_publication_id: currentPublicationID, publications: publications.map(publication => ({
+      publication_id: publication.publication_id,
+      source_fingerprint: publication.source_fingerprint,
+      published_at: publication.published_at,
+    })) });
+  } catch {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+}
+
+async function readHistoricalPublication(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!(await authorizeMaintenanceRead(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  const publicationID = new URL(request.url).pathname.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)$/)?.[1];
+  if (!publicationID) return error('NOT_FOUND', 404);
+  try {
+    const [publication] = await database.query(`SELECT id AS publication_id, source_fingerprint, published_at, source_document
+      FROM public.catalog_publications WHERE id = $1`, [decodeURIComponent(publicationID)]);
+    if (!publication) return error('PUBLICATION_NOT_FOUND', 404);
+    const source = checkedPrevious(publication.source_document);
+    if (!source) return error('CATALOG_UNAVAILABLE', 503);
+    return json({
+      publication_id: publication.publication_id,
+      source_fingerprint: publication.source_fingerprint,
+      published_at: publication.published_at,
+      source,
+    });
+  } catch {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+}
+
 export async function handleCatalogRequest(
   request: Request,
   env: CatalogConfiguration,
@@ -301,6 +365,12 @@ export async function handleCatalogRequest(
     if (path === '/v1/maintenance/catalog/source') {
       return await readCatalogSource(request, env, database, controlledAccessKeySource);
     }
+    if (path === '/v1/maintenance/catalog/publications') {
+      return await readPublicationHistory(request, env, database, controlledAccessKeySource);
+    }
+    if (path.startsWith('/v1/maintenance/catalog/publications/')) {
+      return await readHistoricalPublication(request, env, database, controlledAccessKeySource);
+    }
     if (path === '/v1/maintenance/catalog/preview') return await reviewCatalog(request, env, database);
     if (path === '/v1/maintenance/catalog/publish') return await publishCatalog(request, env, database);
     if (path === '/v1/catalog' || path === '/v1/catalog/programs'
@@ -310,7 +380,7 @@ export async function handleCatalogRequest(
     return error('NOT_FOUND', 404);
   } catch {
     console.error(JSON.stringify({ event: 'catalog_request_failed' }));
-    return error(path.startsWith('/v1/catalog') || path === '/v1/maintenance/catalog/source'
+    return error(path.startsWith('/v1/catalog') || path.startsWith('/v1/maintenance/catalog/publications') || path === '/v1/maintenance/catalog/source'
       ? 'CATALOG_UNAVAILABLE' : 'TEMPORARY_FAILURE', 503);
   }
 }

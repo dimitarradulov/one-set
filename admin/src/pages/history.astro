@@ -1,0 +1,87 @@
+---
+import { actions } from 'astro:actions';
+import { env } from 'cloudflare:workers';
+import {
+  loadHistoricalPublication,
+  loadPublicationHistory,
+  type HistoryActionResult,
+  type HistoryEnvironment,
+  type HistoricalPublication,
+} from '../history';
+
+export const prerender = false;
+const environment = env as HistoryEnvironment;
+const resultAction = Astro.getActionResult(actions.restorePublication);
+const publishAction = Astro.getActionResult(actions.publishRestoration);
+const result = (resultAction?.data ?? publishAction?.data) as HistoryActionResult | undefined;
+const loaded = await loadPublicationHistory(Astro.request, environment);
+const publications = loaded.publications ?? [];
+const selectedID = Astro.url.searchParams.get('publication_id') ?? '';
+const selected = selectedID ? await loadHistoricalPublication(Astro.request, environment, selectedID) : undefined;
+const email = environment.ACCESS_APPROVED_EMAIL ?? '';
+const editable = environment.CATALOG_ENVIRONMENT === 'development';
+const errors = [resultAction?.error, publishAction?.error].filter(Boolean);
+if (result?.view === 'history-error') Astro.response.status = result.status;
+else if (loaded.error) Astro.response.status = loaded.error.status;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+const html = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, character => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+})[character]!);
+const date = (value: string) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? value : new Intl.DateTimeFormat('en', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC',
+  }).format(parsed) + ' UTC';
+};
+const publicationRow = (publication: { publication_id: string; source_fingerprint: string; published_at: string }, isCurrent: boolean) => `
+  <article class="history-row">
+    <div class="history-row-main"><h2>${isCurrent ? 'Current publication' : 'Publication'}${isCurrent ? ' <span class="badge">Current</span>' : ''}</h2>
+      <p>${html(date(publication.published_at))}</p><p class="history-id"><code>${html(publication.publication_id)}</code></p></div>
+    <a class="button quiet" href="/history?publication_id=${encodeURIComponent(publication.publication_id)}">Inspect source</a>
+  </article>`;
+const sourceInspection = (publication: HistoricalPublication) => {
+  const exerciseNames = new Map(publication.source.exercises.map(exercise => [exercise.key, exercise.name]));
+  return `<div class="snapshot-content"><div class="snapshot-summary"><span>Publication <code>${html(publication.publication_id)}</code></span><span>Published ${html(date(publication.published_at))}</span><span>${publication.source.programs.length} programs · ${publication.source.exercises.length} shared exercises</span></div>
+    <h2>Programs and workout templates</h2>${publication.source.programs.map(program => `<section class="snapshot-program"><div class="snapshot-heading"><h3>${html(program.name)}</h3><span class="badge${program.removed ? ' removed' : ''}">${program.removed ? 'Removed' : 'Available'}</span></div><p>${html(program.key)} · ${html(program.format)} · ${program.recommended_weeks} recommended training weeks</p><p>${html(program.emphasis)}</p>${program.workouts.map(workout => `<section class="snapshot-workout"><h4>${workout.position}. ${html(workout.name)}${workout.removed ? ' <span class="badge removed">Removed</span>' : ''}</h4><ol>${workout.exercises.map(slot => `<li${slot.removed ? ' class="removed-slot"' : ''}>${html(exerciseNames.get(slot.exercise) ?? slot.exercise)} · ${slot.reps.minimum}–${slot.reps.maximum} ${html(slot.scope ?? 'reps')}${slot.removed ? ' · Removed' : ''}</li>`).join('')}</ol></section>`).join('')}</section>`).join('')}
+  <h2>Shared exercises</h2><div class="snapshot-exercises">${publication.source.exercises.map(exercise => `<article><h3>${html(exercise.name)}</h3><code>${html(exercise.key)}</code><p><strong>Technique:</strong> ${html(exercise.instructions)}</p><p><strong>Stop:</strong> ${html(exercise.stopping_guidance)}</p><p><strong>Warmup:</strong> ${html(exercise.warmup_guidance)}</p><p><strong>Rest:</strong> ${exercise.rest_seconds}s · <strong>Default reps:</strong> ${exercise.default_reps.minimum}–${exercise.default_reps.maximum}</p></article>`).join('')}</div></div>`;
+};
+const resultMarkup = () => {
+  if (result?.view === 'history-success') return `<section class="result success" role="status"><div class="result-mark" aria-hidden="true">✓</div><div><h1>Correction published</h1><p>A new catalog publication was created: <code>${html(result.publicationID)}</code>. Training data and captured sessions remain unchanged.</p><a class="button primary" href="/history">Return to publication history</a></div></section>`;
+  if (result?.view === 'history-review') return `<section class="history-review">
+    <div class="review-heading"><div><h1>Review historical correction</h1><p>Nothing has been published. This correction uses the current catalog as its base and creates a new publication.</p></div><span class="badge">${html(environment.CATALOG_ENVIRONMENT)} target</span></div>
+    <div class="review-origin"><p><strong>Selected content:</strong> ${html(result.publication.publication_id)} · ${html(date(result.publication.published_at))}</p><p><strong>Current base:</strong> ${html(result.current.publication_id)}</p></div>
+    <p class="retained-note">Reconciliation kept newer identities absent from this snapshot: ${result.retained.programs} programs, ${result.retained.workouts} workout templates, ${result.retained.slots} exercise slots, and ${result.retained.exercises} shared exercises. The full result below is reviewed against the current catalog.</p>
+    <div class="diff-list">${result.changes.length ? result.changes.map(change => `<div class="diff-row"><span class="change-kind">${html(change.kind)}</span><div><strong>${html(change.name ?? change.program_name ?? 'Catalog item')}</strong>${change.program_key ? `<code>${html(change.program_key)}</code>` : ''}${change.detail ? `<p>${html(change.detail)}</p>` : ''}</div></div>`).join('') : '<p>No catalog changes would result from this correction.</p>'}</div>
+    <div class="affected"><h2>Affected programs</h2><p>${result.affectedPrograms.length ? result.affectedPrograms.map(html).join(', ') : 'None'}</p></div>
+    <details class="review-source"><summary>Inspect the complete proposed source</summary>${sourceInspection({ ...result.publication, source: result.candidate })}</details>
+    <form method="POST" action="${actions.publishRestoration.queryString}" class="publish-form"><input type="hidden" name="publication_id" value="${html(result.publication.publication_id)}"><input type="hidden" name="publication_fingerprint" value="${html(result.current.source_fingerprint)}"><input type="hidden" name="catalog_source" value="${html(JSON.stringify(result.candidate))}"><input type="hidden" name="source_fingerprint" value="${html(result.sourceFingerprint)}"><input type="hidden" name="backend_fingerprint" value="${html(result.backendFingerprint)}"><input type="hidden" name="preview_id" value="${html(result.previewID)}"><button class="button primary" type="submit"${result.changes.length ? '' : ' disabled'}>Publish correction</button><a class="button quiet" href="/history?publication_id=${encodeURIComponent(result.publication.publication_id)}">Back to selected publication</a><a class="button quiet" href="/">Return to current catalog</a></form>
+  </section>`;
+  if (result?.view === 'history-error') return `<section class="result error" role="alert"><div class="result-mark" aria-hidden="true">!</div><div><h1>${html(result.title)}</h1><p>${html(result.detail)}</p>${result.retry ? `<form method="POST" action="${actions.publishRestoration.queryString}" class="retry-form"><input type="hidden" name="publication_id" value="${html(result.retry.publicationID)}"><input type="hidden" name="publication_fingerprint" value="${html(result.retry.publicationFingerprint)}"><input type="hidden" name="catalog_source" value="${html(result.retry.catalogSource)}"><input type="hidden" name="source_fingerprint" value="${html(result.retry.sourceFingerprint)}"><input type="hidden" name="backend_fingerprint" value="${html(result.retry.backendFingerprint)}"><input type="hidden" name="preview_id" value="${html(result.retry.previewID)}"><button class="button primary" type="submit">Retry this publication</button></form>` : ''}<a class="button quiet" href="${result.publicationID ? `/history?publication_id=${encodeURIComponent(result.publicationID)}` : '/history'}">Return to history</a></div></section>`;
+  if (loaded.error || errors.length) return `<section class="result error" role="alert"><div class="result-mark" aria-hidden="true">!</div><div><h1>Publication history unavailable</h1><p>${html(loaded.error?.detail ?? 'The submitted action could not be processed. Reload history and try again.')}</p><a class="button quiet" href="/history">Try again</a></div></section>`;
+  if (selectedID && !selected) return `<section class="result error" role="alert"><div class="result-mark" aria-hidden="true">!</div><div><h1>Publication not found</h1><p>This retained source is unavailable. Reload history and choose another version.</p><a class="button quiet" href="/history">Return to history</a></div></section>`;
+  if (selected) {
+    const isCurrent = loaded.currentPublicationID === selected.publication_id;
+    return `<section class="history-inspection"><div class="section-heading"><div><h1>Inspect publication</h1><p>Read-only historical content. Inspection does not change the live catalog.</p></div><nav class="history-nav-links" aria-label="History navigation"><a class="button quiet" href="/history">All publications</a><a class="button quiet" href="/">Current catalog</a></nav></div>${sourceInspection(selected)}${editable && !isCurrent ? `<form method="POST" action="${actions.restorePublication.queryString}" class="restore-form"><input type="hidden" name="publication_id" value="${html(selected.publication_id)}"><button class="button primary" type="submit">Prepare correction from this publication</button><p>Later programs, workout templates, slots, and shared exercises will be kept in the proposed source.</p></form>` : isCurrent ? '<p class="notice">This is the current publication. Choose an earlier version to prepare a correction.</p>' : '<p class="notice">Editing and publication are disabled for this catalog environment.</p>'}</section>`;
+  }
+  return `<section class="history-list"><div class="section-heading"><div><h1>Publication history</h1><p>Inspect retained catalog content and prepare a correction as a new version.</p></div><a class="button quiet" href="/">Current catalog</a></div>${publications.length ? publications.map(publication => publicationRow(publication, publication.publication_id === loaded.currentPublicationID)).join('') : '<p class="notice">No catalog publications are available yet.</p>'}</section>`;
+};
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark" />
+    <title>Publication history · OneSet</title>
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body>
+    <main class="shell history-shell">
+      <header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as {email}</div></header>
+      <Fragment set:html={resultMarkup()} />
+    </main>
+    <footer class="page-footer">OneSet catalog maintenance <span>·</span> edits remain in this browser visit only</footer>
+  </body>
+</html>

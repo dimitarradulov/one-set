@@ -15,6 +15,8 @@ import { handleDashboardAction, loadDashboard, renderDashboard, type DashboardEn
 import { handleCatalogRequest, type CatalogDatabase, type CatalogConfiguration } from '../../worker/src/catalog.ts';
 import { verifyCloudflareAccess } from '../../worker/src/cloudflare-access.ts';
 import type { CatalogSource } from '../../worker/src/catalog-validation.ts';
+import { loadPublicationHistory, prepareHistoricalRestoration, publishHistoricalRestoration, reconcileHistoricalSource,
+  type HistoryActionResult } from '../src/history.ts';
 
 const founder = 'founder@example.test';
 const team = 'https://oneset-test.cloudflareaccess.com';
@@ -104,6 +106,12 @@ function form(fields: Partial<ProgramFields> & Record<string, string> = {}): For
   return result;
 }
 
+function publicationForm(fields: Record<string, string>): FormData {
+  const result = new FormData();
+  for (const [key, value] of Object.entries(fields)) result.set(key, value);
+  return result;
+}
+
 async function dashboardRequest(action: string, fields: FormData, accessToken?: string, origin = 'https://dashboard.test', submittedOrigin = origin) {
   const body = new URLSearchParams();
   for (const [key, value] of fields.entries()) body.append(key, String(value));
@@ -134,6 +142,88 @@ async function readCurrentSource(): Promise<SourceResponse> {
   const rows = await database.query(`SELECT publication_id, source_fingerprint, source_document FROM public.catalog_state WHERE singleton = true`);
   const row = rows[0]!;
   return { publication_id: String(row.publication_id), source_fingerprint: String(row.source_fingerprint), source: row.source_document as CatalogSource };
+}
+
+function restorationForm(review: Extract<HistoryActionResult, { view: 'history-review' }>): FormData {
+  return publicationForm({
+    publication_id: review.publication.publication_id,
+    publication_fingerprint: review.current.source_fingerprint,
+    catalog_source: JSON.stringify(review.candidate),
+    source_fingerprint: review.sourceFingerprint,
+    backend_fingerprint: review.backendFingerprint,
+    preview_id: review.previewID,
+  });
+}
+
+async function createOlderSnapshot(): Promise<CatalogSource> {
+  const old = structuredClone(source);
+  old.programs = old.programs.slice(0, -1);
+  const first = old.programs[0]!;
+  delete first.removed;
+  for (const [index, workout] of first.workouts.entries()) {
+    delete workout.removed;
+    workout.position = index + 1;
+    for (const [slotIndex, slot] of workout.exercises.entries()) {
+      delete slot.removed;
+      slot.position = slotIndex + 1;
+    }
+  }
+  const revisedProgram = old.programs[1]!;
+  revisedProgram.name = 'Upper / Lower Historical Name';
+  const currentProgram = source.programs.find(program => program.key === revisedProgram.key)!;
+  const laterWorkout = [...currentProgram.workouts].reverse().find(workout => workout.removed !== true)!;
+  revisedProgram.workouts = revisedProgram.workouts.filter(workout => workout.key !== laterWorkout.key);
+  revisedProgram.workouts.filter(workout => workout.removed !== true).forEach((workout, index) => { workout.position = index + 1; });
+  const oldWorkout = revisedProgram.workouts.find(workout => workout.removed !== true)!;
+  const currentWorkout = currentProgram.workouts.find(workout => workout.key === oldWorkout.key)!;
+  const laterSlot = [...currentWorkout.exercises].reverse().find(slot => slot.removed !== true)!;
+  oldWorkout.exercises = oldWorkout.exercises.filter(slot => slot.key !== laterSlot.key);
+  oldWorkout.exercises.filter(slot => slot.removed !== true).forEach((slot, index) => { slot.position = index + 1; });
+
+  const laterProgram = source.programs.at(-1)!;
+  const laterExerciseKeys = new Set(laterProgram.workouts.flatMap(workout => workout.exercises.map(slot => slot.exercise)));
+  const oldReferences = new Set(old.programs.flatMap(program => program.workouts.flatMap(workout => workout.exercises.map(slot => slot.exercise))));
+  const laterExercise = [...laterExerciseKeys].find(key => !oldReferences.has(key));
+  if (laterExercise) old.exercises = old.exercises.filter(exercise => exercise.key !== laterExercise);
+  assert.deepEqual((await import('../../worker/src/catalog-validation.ts')).validateCatalogSource(old).errors, []);
+  return old;
+}
+
+async function insertTrainingFixture(): Promise<void> {
+  const selectedProgram = source.programs.find(program => program.key === 'upper-lower')!;
+  const selectedWorkout = selectedProgram.workouts.find(workout => workout.removed !== true)!;
+  const selectedSlot = selectedWorkout.exercises.find(slot => slot.removed !== true)!;
+  const [user] = (await engine.query<{ id: number }>(`INSERT INTO public.users
+    (clerk_user_id, preferred_unit, training_days) VALUES ('history-user', 'kg', 3) RETURNING id`)).rows;
+  assert.ok(user);
+  const enrollmentID = '00000000-0000-4000-8000-000000000065';
+  const [program] = (await engine.query<{ id: number }>(`SELECT id FROM public.workout_programs WHERE authoring_key = $1`, [selectedProgram.key])).rows;
+  const [workout] = (await engine.query<{ id: number }>(`SELECT id FROM public.workouts WHERE authoring_key = $1`, [selectedWorkout.key])).rows;
+  const [exercise] = (await engine.query<{ id: number }>(`SELECT id FROM public.exercises WHERE authoring_key = $1`, [selectedSlot.exercise])).rows;
+  const [slot] = (await engine.query<{ id: number }>(`SELECT id FROM public.workout_exercises WHERE authoring_key = $1`, [selectedSlot.key])).rows;
+  assert.ok(program && workout && exercise && slot);
+  await engine.query(`INSERT INTO public.user_programs (id, user_id, workout_program_id, started_at) VALUES ($1, $2, $3, '2026-01-01T00:00:00Z')`, [enrollmentID, String(user.id), String(program.id)]);
+  await engine.query(`UPDATE public.users SET active_user_program_id = $1 WHERE id = $2`, [enrollmentID, String(user.id)]);
+  await engine.query(`INSERT INTO public.user_workout_exercises (user_program_id, workout_exercise_id, exercise_id, note, rest_seconds)
+    VALUES ($1, $2, $3, 'remembered replacement context', 120)`, [enrollmentID, String(slot.id), String(exercise.id)]);
+  const sessionID = '00000000-0000-4000-8000-000000000066';
+  await engine.query(`INSERT INTO public.workout_sessions (id, user_program_id, workout_id, week_number, workout_name, started_at, completed_at, note)
+    VALUES ($1, $2, $3, 2, 'Captured session name', '2026-01-02T00:00:00Z', '2026-01-02T00:40:00Z', 'captured note')`, [sessionID, enrollmentID, String(workout.id)]);
+  await engine.query(`INSERT INTO public.workout_session_sets
+    (workout_session_id, position, workout_exercise_id, exercise_id, prescription, note, weight, unit, reps, completed_at)
+    VALUES ($1, 1, $2, $3, $4::jsonb, 'captured set', 22.5, 'kg', 9, '2026-01-02T00:30:00Z')`,
+  [sessionID, String(slot.id), String(exercise.id), JSON.stringify({ exercise: selectedSlot.exercise, reps: selectedSlot.reps, instructions: 'captured prescription' })]);
+  await engine.query(`INSERT INTO public.completed_workouts (user_program_id, week_number, workout_id) VALUES ($1, 2, $2)`, [enrollmentID, String(workout.id)]);
+}
+
+async function trainingSnapshot(): Promise<unknown> {
+  return (await engine.query(`SELECT
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.id) FROM public.users row) AS users,
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.id) FROM public.user_programs row) AS enrollments,
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.user_program_id, row.workout_exercise_id) FROM public.user_workout_exercises row) AS preferences,
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.id) FROM public.workout_sessions row) AS sessions,
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.workout_session_id, row.position) FROM public.workout_session_sets row) AS sets,
+    (SELECT jsonb_agg(to_jsonb(row) ORDER BY row.user_program_id, row.week_number, row.workout_id) FROM public.completed_workouts row) AS completions`)).rows[0];
 }
 
 interface SourceResponse { source: CatalogSource; publication_id: string; source_fingerprint: string }
@@ -241,6 +331,103 @@ test('protected edit → review → edit → publish → app catalog keeps unkno
     'removed program identity remains available to current followers with its unavailable marker');
 });
 
+test('historical correction keeps later identities, rejects stale review, retries safely, and preserves training data', async () => {
+  await insertTrainingFixture();
+  const oldSource = await createOlderSnapshot();
+  const { createHash } = await import('node:crypto');
+  const oldFingerprint = createHash('sha256').update(JSON.stringify(oldSource)).digest('hex');
+  await engine.query(`INSERT INTO public.catalog_publications (id, source_fingerprint, backend_fingerprint, source_document, published_at)
+    VALUES ('publication-history-old', $1, 'empty', $2::jsonb, '2026-01-01T00:00:00Z')`, [oldFingerprint, JSON.stringify(oldSource)]);
+
+  const accessToken = await token();
+  const currentBefore = await readCurrentSource();
+  const historyResponse = await handleCatalogRequest(new Request(`${apiOrigin}/v1/maintenance/catalog/publications`, {
+    headers: { 'Cf-Access-Jwt-Assertion': accessToken },
+  }), apiEnvironment, database, accessKeySource);
+  assert.equal(historyResponse.status, 200);
+  const listed = await historyResponse.json() as { publications: Array<{ publication_id: string }> };
+  assert.ok(listed.publications.some(publication => publication.publication_id === 'publication-history-old'));
+  const historyUnauthorized = await handleCatalogRequest(new Request(`${apiOrigin}/v1/maintenance/catalog/publications/publication-history-old`),
+    apiEnvironment, database, accessKeySource);
+  assert.equal(historyUnauthorized.status, 401);
+  assert.equal((await readCurrentSource()).source_fingerprint, currentBefore.source_fingerprint,
+    'history inspection reads must not change the published catalog');
+  const candidateResult = reconcileHistoricalSource(oldSource, currentBefore.source);
+  assert.equal(candidateResult.retained.programs, 1);
+  assert.ok(candidateResult.retained.workouts >= 1);
+  assert.ok(candidateResult.retained.slots >= 1);
+  assert.ok(candidateResult.retained.exercises >= 1);
+  const laterProgramKey = currentBefore.source.programs.at(-1)!.key;
+  const laterWorkoutKey = currentBefore.source.programs.find(program => program.key === source.programs[1]!.key)!.workouts.at(-1)!.key;
+  const laterSlotKey = currentBefore.source.programs.find(program => program.key === source.programs[1]!.key)!.workouts[0]!.exercises.at(-1)!.key;
+  assert.ok(candidateResult.source.programs.some(program => program.key === laterProgramKey));
+  assert.ok(candidateResult.source.programs.find(program => program.key === source.programs[1]!.key)?.workouts.some(workout => workout.key === laterWorkoutKey));
+  assert.ok(candidateResult.source.programs.find(program => program.key === source.programs[1]!.key)?.workouts.some(workout => workout.exercises.some(slot => slot.key === laterSlotKey)));
+
+  const trainingBefore = await trainingSnapshot();
+  const select = publicationForm({ publication_id: 'publication-history-old' });
+  const firstReview = await prepareHistoricalRestoration(await dashboardRequest('restorePublication', select, accessToken), select,
+    environment, { keySource: accessKeySource });
+  assert.equal(firstReview.view, 'history-review');
+  if (firstReview.view !== 'history-review') return;
+  assert.ok(firstReview.changes.some(change => change.kind.includes('restore')) || firstReview.changes.some(change => change.kind === 'update program'));
+
+  const competingSource = await readCurrentSource();
+  const competitorFields = form({ program_key: competingSource.source.programs[2]!.key,
+    name: 'Intervening publication', publication_fingerprint: competingSource.source_fingerprint });
+  const competitorReview = await handleDashboardAction('review', await dashboardRequest('reviewProgram', competitorFields, accessToken), competitorFields,
+    environment, { keySource: accessKeySource });
+  assert.equal(competitorReview.view, 'review');
+  if (competitorReview.view !== 'review') return;
+  const competitorPublish = await handleDashboardAction('publish', await dashboardRequest('publishProgram', await publishFields(competitorReview), accessToken),
+    await publishFields(competitorReview), environment, { keySource: accessKeySource });
+  assert.equal(competitorPublish.view, 'success');
+
+  const staleForm = restorationForm(firstReview);
+  const stale = await publishHistoricalRestoration(await dashboardRequest('publishRestoration', staleForm, accessToken), staleForm,
+    environment, { keySource: accessKeySource });
+  assert.equal(stale.view, 'history-error');
+  if (stale.view === 'history-error') assert.equal(stale.status, 409);
+
+  const latestSelection = await prepareHistoricalRestoration(await dashboardRequest('restorePublication', select, accessToken), select,
+    environment, { keySource: accessKeySource });
+  assert.equal(latestSelection.view, 'history-review');
+  if (latestSelection.view !== 'history-review') return;
+  const retryForm = restorationForm(latestSelection);
+  const uncertain = await publishHistoricalRestoration(await dashboardRequest('publishRestoration', retryForm, accessToken), retryForm,
+    environment, { keySource: accessKeySource, fetcher: async (input, init) => {
+      const response = await fetch(input, init);
+      if (new URL(String(input)).pathname.endsWith('/publish')) throw new Error('simulated lost response after commit');
+      return response;
+    } });
+  assert.equal(uncertain.view, 'history-error');
+  if (uncertain.view === 'history-error') assert.ok(uncertain.retry, 'an uncertain same-visit failure retains an exact retry form');
+  const countAfterCommit = await engine.query<{ count: string }>(`SELECT count(*)::text AS count FROM public.catalog_publications`);
+  const retry = await publishHistoricalRestoration(await dashboardRequest('publishRestoration', retryForm, accessToken), retryForm,
+    environment, { keySource: accessKeySource });
+  assert.equal(retry.view, 'history-success');
+  const countAfterRetry = await engine.query<{ count: string }>(`SELECT count(*)::text AS count FROM public.catalog_publications`);
+  assert.equal(countAfterRetry.rows[0]?.count, countAfterCommit.rows[0]?.count, 'retry must reuse the uncertain publication');
+
+  const appResponse = await handleCatalogRequest(new Request(`${apiOrigin}/v1/catalog`, {
+    headers: { Authorization: `Bearer ${await clerkToken()}` },
+  }), apiEnvironment, database, accessKeySource);
+  assert.equal(appResponse.status, 200);
+  const app = await appResponse.json() as { catalog: CatalogSource };
+  const correctedProgram = app.catalog.programs.find(program => program.key === oldSource.programs[1]!.key);
+  assert.equal(correctedProgram?.name, 'Upper / Lower Historical Name');
+  assert.ok(app.catalog.programs.some(program => program.key === laterProgramKey));
+  assert.ok(correctedProgram?.workouts.some(workout => workout.key === laterWorkoutKey));
+  assert.ok(correctedProgram?.workouts.some(workout => workout.exercises.some(slot => slot.key === laterSlotKey)));
+  assert.deepEqual(await trainingSnapshot(), trainingBefore, 'catalog correction must leave user, enrollment, preferences, sessions, sets, and completion marks unchanged');
+
+  const browserSource = structuredClone(oldSource);
+  browserSource.programs[1]!.name = 'Upper / Lower Browser Historical';
+  const browserFingerprint = createHash('sha256').update(JSON.stringify(browserSource)).digest('hex');
+  await engine.query(`INSERT INTO public.catalog_publications (id, source_fingerprint, backend_fingerprint, source_document, published_at)
+    VALUES ('publication-history-browser', $1, 'empty', $2::jsonb, '2026-01-02T00:00:00Z')`, [browserFingerprint, JSON.stringify(browserSource)]);
+});
+
 test('direct, cross-origin, and wrong-identity actions cannot reach the publisher', async () => {
   const fields = form({ publication_fingerprint: (await readCurrentSource()).source_fingerprint });
   const noToken = await handleDashboardAction('review', await dashboardRequest('reviewProgram', fields, ''), fields,
@@ -255,6 +442,24 @@ test('direct, cross-origin, and wrong-identity actions cannot reach the publishe
     environment, { keySource: accessKeySource });
   assert.equal(wrongIdentity.view, 'error');
   if (wrongIdentity.view === 'error') assert.equal(wrongIdentity.status, 401);
+});
+
+test('history page and direct correction actions enforce server authorization and same-origin checks', async () => {
+  const list = await loadPublicationHistory(new Request('https://dashboard.test/history'), environment, { keySource: accessKeySource });
+  assert.equal(list.error?.status, 401);
+  const selection = publicationForm({ publication_id: 'publication-history-old' });
+  const missing = await prepareHistoricalRestoration(await dashboardRequest('restorePublication', selection, ''), selection,
+    environment, { keySource: accessKeySource });
+  assert.equal(missing.view, 'history-error');
+  if (missing.view === 'history-error') assert.equal(missing.status, 401);
+  const crossOrigin = await prepareHistoricalRestoration(await dashboardRequest('restorePublication', selection, await token(), 'https://dashboard.test', 'https://attacker.test'),
+    selection, environment, { keySource: accessKeySource });
+  assert.equal(crossOrigin.view, 'history-error');
+  if (crossOrigin.view === 'history-error') assert.equal(crossOrigin.status, 401);
+  const publishWithoutAuth = await publishHistoricalRestoration(await dashboardRequest('publishRestoration', publicationForm({}), ''), publicationForm({}),
+    environment, { keySource: accessKeySource });
+  assert.equal(publishWithoutAuth.view, 'history-error');
+  if (publishWithoutAuth.view === 'history-error') assert.equal(publishWithoutAuth.status, 401);
 });
 
 test('non-development targets stay read-only even for the approved founder', async () => {
@@ -462,6 +667,97 @@ test('real browser submits native Astro Action forms through edit → review →
     await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-success.png'), fullPage: true });
     assert.equal((await readCurrentSource()).source.programs[1]!.name, 'Browser publication complete');
+  } finally {
+    await browser?.close();
+    worker.kill('SIGTERM');
+    await workerExit.catch(() => undefined);
+    await (await import('node:fs/promises')).unlink(e2eConfigPath.pathname).catch(() => undefined);
+  }
+});
+
+test('real browser inspects an older publication, shows a stale correction, and publishes a reconciled new version', { timeout: 90_000 }, async t => {
+  const chromePath = process.env.DASHBOARD_CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  try { await access(chromePath); } catch { t.skip('Set DASHBOARD_CHROME_BIN to run the local browser journey'); return; }
+  const outputDirectory = process.env.DASHBOARD_SCREENSHOT_DIR;
+  if (outputDirectory) await mkdir(outputDirectory, { recursive: true });
+  const portServer = net.createServer();
+  portServer.listen(0, '127.0.0.1');
+  await once(portServer, 'listening');
+  const browserPort = (portServer.address() as net.AddressInfo).port;
+  await new Promise<void>((resolveClose, rejectClose) => portServer.close(error => error ? rejectClose(error) : resolveClose()));
+
+  const configPath = new URL('../dist/server/wrangler.json', import.meta.url);
+  const config = JSON.parse(await readFile(configPath, 'utf8')) as { name: string; compatibility_date: string; vars: Record<string, string> };
+  config.name = 'oneset-catalog-history-browser-test';
+  config.compatibility_date = '2026-10-08';
+  environment.ACCESS_TEAM_DOMAIN = apiOrigin;
+  apiEnvironment.ACCESS_TEAM_DOMAIN = apiOrigin;
+  config.vars = { CATALOG_ENVIRONMENT: 'development', CATALOG_API_BASE_URL: apiOrigin,
+    CATALOG_PUBLISH_TOKEN: publisherToken, ACCESS_TEAM_DOMAIN: apiOrigin, ACCESS_AUDIENCE: audience, ACCESS_APPROVED_EMAIL: founder };
+  const e2eConfigPath = new URL('../dist/server/wrangler.history-e2e.json', import.meta.url);
+  await writeFile(e2eConfigPath, JSON.stringify(config));
+  const wranglerPath = resolve(new URL('../../worker/node_modules/.bin/wrangler', import.meta.url).pathname);
+  const worker = spawn(wranglerPath, ['dev', '--config', e2eConfigPath.pathname, '--port', String(browserPort), '--ip', '127.0.0.1', '--local'], { stdio: 'ignore' });
+  const workerExit = once(worker, 'exit');
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+  try {
+    const origin = `http://127.0.0.1:${browserPort}`;
+    let ready = false;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      try { const response = await fetch(origin); if (response.status === 401 || response.status === 200) { ready = true; break; } }
+      catch { /* Wrangler is still starting. */ }
+      await new Promise(resolveWait => setTimeout(resolveWait, 250));
+    }
+    assert.ok(ready, 'Astro Worker should become ready');
+    const browserToken = await token(founder, apiOrigin);
+    browser = await chromium.launch({ executablePath: chromePath, headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+    await page.setExtraHTTPHeaders({ 'Cf-Access-Jwt-Assertion': browserToken });
+    const selectedURL = `${origin}/history?publication_id=publication-history-browser`;
+    const inspected = await page.goto(selectedURL, { waitUntil: 'networkidle' });
+    assert.equal(inspected?.status(), 200);
+    const inspectionText = await page.locator('body').innerText();
+    assert.match(inspectionText, /Inspect publication/, `history page should render the selected publication; got: ${inspectionText.slice(0, 1200)}`);
+    assert.match(inspectionText, /Upper \/ Lower Browser Historical/);
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-65-history-inspection.png'), fullPage: true });
+
+    await page.getByRole('button', { name: 'Prepare correction from this publication' }).click();
+    await page.getByRole('heading', { name: 'Review historical correction' }).waitFor();
+    assert.match(await page.locator('body').innerText(), /Reconciliation kept newer identities/);
+    assert.match(await page.locator('body').innerText(), /Affected programs/);
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-65-history-review.png'), fullPage: true });
+
+    const current = await readCurrentSource();
+    const competitorFields = form({ program_key: current.source.programs[2]!.key, name: 'Browser competing edit',
+      publication_fingerprint: current.source_fingerprint });
+    const competitorReview = await handleDashboardAction('review', await dashboardRequest('reviewProgram', competitorFields, browserToken), competitorFields,
+      environment, { keySource: accessKeySource });
+    assert.equal(competitorReview.view, 'review');
+    if (competitorReview.view !== 'review') return;
+    const competitorPublishForm = await publishFields(competitorReview);
+    const competitorPublished = await handleDashboardAction('publish', await dashboardRequest('publishProgram', competitorPublishForm, browserToken),
+      competitorPublishForm, environment, { keySource: accessKeySource });
+    assert.equal(competitorPublished.view, 'success');
+
+    await page.getByRole('button', { name: 'Publish correction' }).click();
+    await page.getByRole('heading', { name: 'Catalog changed before publication' }).waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-65-history-stale.png'), fullPage: true });
+
+    await page.goto(selectedURL, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Prepare correction from this publication' }).click();
+    await page.getByRole('heading', { name: 'Review historical correction' }).waitFor();
+    transactionFailure = true;
+    await page.getByRole('button', { name: 'Publish correction' }).click();
+    await page.getByRole('heading', { name: 'Publication failed' }).waitFor();
+    await page.getByRole('button', { name: 'Retry this publication' }).waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-65-history-failure.png'), fullPage: true });
+    transactionFailure = false;
+    await page.getByRole('button', { name: 'Retry this publication' }).click();
+    await page.getByRole('heading', { name: 'Correction published' }).waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-65-history-success.png'), fullPage: true });
+    const after = await readCurrentSource();
+    assert.equal(after.source.programs[1]!.name, 'Upper / Lower Browser Historical');
+    assert.ok(after.source.programs.some(program => program.key === source.programs.at(-1)!.key), 'a program added after the historical publication remains present');
   } finally {
     await browser?.close();
     worker.kill('SIGTERM');
