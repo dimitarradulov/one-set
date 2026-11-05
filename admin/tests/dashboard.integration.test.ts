@@ -136,6 +136,14 @@ async function readCurrentSource(): Promise<SourceResponse> {
   return { publication_id: String(row.publication_id), source_fingerprint: String(row.source_fingerprint), source: row.source_document as CatalogSource };
 }
 
+async function readAppCatalog(): Promise<CatalogSource> {
+  const response = await handleCatalogRequest(new Request(`${apiOrigin}/v1/catalog`, {
+    headers: { Authorization: `Bearer ${await clerkToken()}` },
+  }), apiEnvironment, database, accessKeySource);
+  assert.equal(response.status, 200);
+  return (await response.json() as { catalog: CatalogSource }).catalog;
+}
+
 interface SourceResponse { source: CatalogSource; publication_id: string; source_fingerprint: string }
 
 server = createServer(async (incoming, outgoing) => {
@@ -516,6 +524,11 @@ test('real browser submits native Astro Action forms through edit → review →
     assert.equal(created.workouts[0]!.banner, 'issue-62-banner');
     assert.equal(created.workouts[0]!.exercises[0]!.reps.minimum, 9);
     assert.equal(created.workouts[0]!.exercises[0]!.scope, 'each_leg');
+    const appCreated = (await readAppCatalog()).programs.find(program => program.key === created.key)!;
+    assert.deepEqual(appCreated.workouts.map(workout => workout.position), [1, 2]);
+    assert.equal(appCreated.workouts[0]!.banner, 'issue-62-banner');
+    assert.equal(appCreated.workouts[0]!.exercises[0]!.reps.minimum, 9);
+    assert.equal(appCreated.workouts[0]!.exercises[0]!.scope, 'each_leg');
 
     await page.getByRole('link', { name: 'Return to catalog' }).click();
     await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
@@ -548,6 +561,12 @@ test('real browser submits native Astro Action forms through edit → review →
     assert.equal(updated.workouts[0]!.exercises[0]!.exercise, replacementExercise);
     assert.equal(updated.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === originalSlotKey)?.removed, true,
       'the prior slot identity remains represented as removed');
+    const appUpdated = (await readAppCatalog()).programs.find(program => program.key === existingProgramKey)!;
+    assert.deepEqual(appUpdated.workouts.map(workout => workout.key), updated.workouts.filter(workout => !workout.removed).map(workout => workout.key));
+    assert.deepEqual(appUpdated.workouts.map(workout => workout.position), updated.workouts.filter(workout => !workout.removed).map(workout => workout.position));
+    assert.equal(appUpdated.workouts[0]!.exercises[0]!.reps.minimum, 5);
+    assert.equal(appUpdated.workouts[0]!.exercises[0]!.reps.maximum, 6);
+    assert.equal(appUpdated.workouts[0]!.exercises[0]!.exercise, replacementExercise);
   } finally {
     await browser?.close();
     worker.kill('SIGTERM');
