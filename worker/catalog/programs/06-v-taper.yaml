@@ -1,8 +1,8 @@
 key: v-taper
 name: V-Taper
-recommended_weeks: 8
 format: Lats + Upper Chest / Lower Body + Delts / Back + Shoulder Width
-emphasis: "Greater shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced lower-body development."
+emphasis: Greater shoulder-to-waist contrast through lat width, lateral delts, upper chest, and balanced
+  lower-body development.
 workouts:
   - key: v-taper-day-1-lats-upper-chest
     name: Day 1 - Lats + Upper Chest
@@ -10,88 +10,127 @@ workouts:
     position: 1
     exercises:
       - key: v-taper-day-1-lats-upper-chest-weighted-chin-up
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: weighted-chin-up
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-1-lats-upper-chest-incline-smith-machine-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: incline-smith-machine-press
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-1-lats-upper-chest-neutral-grip-lat-pulldown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: neutral-grip-lat-pulldown
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-1-lats-upper-chest-machine-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: machine-lateral-raise
         position: 4
-        reps: { minimum: 12, maximum: 20 }
       - key: v-taper-day-1-lats-upper-chest-incline-dumbbell-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: incline-dumbbell-curl
         position: 5
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-1-lats-upper-chest-overhead-cable-triceps-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: overhead-cable-triceps-extension
         position: 6
-        reps: { minimum: 10, maximum: 15 }
   - key: v-taper-day-2-lower-body-delts
     name: Day 2 - Lower Body + Delts
     banner: lower-body
     position: 2
     exercises:
       - key: v-taper-day-2-lower-body-delts-hack-squat-machine
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: hack-squat-machine
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-2-lower-body-delts-romanian-deadlift
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: romanian-deadlift
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-2-lower-body-delts-seated-leg-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: seated-leg-curl
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-2-lower-body-delts-machine-shoulder-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: machine-shoulder-press
         position: 4
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-2-lower-body-delts-cable-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: cable-lateral-raise
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: v-taper-day-2-lower-body-delts-cable-crunch
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: cable-crunch
         position: 6
-        reps: { minimum: 10, maximum: 15 }
   - key: v-taper-day-3-back-width-shoulder-width
     name: Day 3 - Back Width + Shoulder Width
     banner: back-pull
     position: 3
     exercises:
       - key: v-taper-day-3-back-width-shoulder-width-neutral-grip-lat-pulldown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: neutral-grip-lat-pulldown
         position: 1
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-3-back-width-shoulder-width-chest-supported-machine-row
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: chest-supported-machine-row
         position: 2
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-3-back-width-shoulder-width-machine-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: machine-lateral-raise
         position: 3
-        reps: { minimum: 12, maximum: 20 }
       - key: v-taper-day-3-back-width-shoulder-width-incline-machine-chest-press
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: incline-machine-chest-press
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: v-taper-day-3-back-width-shoulder-width-reverse-pec-deck
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: reverse-pec-deck
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: v-taper-day-3-back-width-shoulder-width-barbell-curl
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: barbell-curl
         position: 6
-        reps: { minimum: 6, maximum: 10 }
       - key: v-taper-day-3-back-width-shoulder-width-cable-triceps-pressdown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: cable-triceps-pressdown
         position: 7
-        reps: { minimum: 8, maximum: 12 }
+recommended_weeks: 8

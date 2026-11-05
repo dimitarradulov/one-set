@@ -1,8 +1,7 @@
 key: bro-split
 name: Bro Split
-recommended_weeks: 8
-format: "Chest / Back / Legs / Shoulders / Arms"
-emphasis: "Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts."
+format: Chest / Back / Legs / Shoulders / Arms
+emphasis: Lifters who enjoy concentrated body-part sessions and prefer very low per-exercise set counts.
 workouts:
   - key: bro-split-day-1-chest
     name: Day 1 - Chest
@@ -10,122 +9,173 @@ workouts:
     position: 1
     exercises:
       - key: bro-split-day-1-chest-incline-smith-machine-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: incline-smith-machine-press
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-1-chest-weighted-dip
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: weighted-dip
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-1-chest-machine-chest-press
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: machine-chest-press
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-1-chest-pec-deck
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: pec-deck
         position: 4
-        reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-2-back
     name: Day 2 - Back
     banner: back-pull
     position: 2
     exercises:
       - key: bro-split-day-2-back-weighted-chin-up
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: weighted-chin-up
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-2-back-smith-machine-barbell-row
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: smith-machine-barbell-row
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-2-back-chest-supported-machine-row
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: chest-supported-machine-row
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-2-back-neutral-grip-lat-pulldown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: neutral-grip-lat-pulldown
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-2-back-dumbbell-shrug
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: dumbbell-shrug
         position: 5
-        reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-3-legs
     name: Day 3 - Legs
     banner: lower-body
     position: 3
     exercises:
       - key: bro-split-day-3-legs-hack-squat-machine
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: hack-squat-machine
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-3-legs-romanian-deadlift
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: romanian-deadlift
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-3-legs-leg-press
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: leg-press
         position: 3
-        reps: { minimum: 10, maximum: 15 }
       - key: bro-split-day-3-legs-seated-leg-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: seated-leg-curl
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-3-legs-leg-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: leg-extension
         position: 5
-        reps: { minimum: 10, maximum: 15 }
   - key: bro-split-day-4-shoulders
     name: Day 4 - Shoulders
     banner: shoulders
     position: 4
     exercises:
       - key: bro-split-day-4-shoulders-machine-shoulder-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: machine-shoulder-press
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-4-shoulders-machine-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: machine-lateral-raise
         position: 2
-        reps: { minimum: 12, maximum: 20 }
       - key: bro-split-day-4-shoulders-cable-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: cable-lateral-raise
         position: 3
-        reps: { minimum: 12, maximum: 20 }
       - key: bro-split-day-4-shoulders-reverse-pec-deck
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: reverse-pec-deck
         position: 4
-        reps: { minimum: 12, maximum: 20 }
       - key: bro-split-day-4-shoulders-dumbbell-shrug
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: dumbbell-shrug
         position: 5
-        reps: { minimum: 8, maximum: 12 }
   - key: bro-split-day-5-arms
     name: Day 5 - Arms
     banner: arms
     position: 5
     exercises:
       - key: bro-split-day-5-arms-barbell-curl
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: barbell-curl
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-5-arms-close-grip-smith-machine-bench-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: close-grip-smith-machine-bench-press
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: bro-split-day-5-arms-incline-dumbbell-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: incline-dumbbell-curl
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-5-arms-overhead-cable-triceps-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: overhead-cable-triceps-extension
         position: 4
-        reps: { minimum: 10, maximum: 15 }
       - key: bro-split-day-5-arms-hammer-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: hammer-curl
         position: 5
-        reps: { minimum: 8, maximum: 12 }
       - key: bro-split-day-5-arms-cable-triceps-pressdown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: cable-triceps-pressdown
         position: 6
-        reps: { minimum: 8, maximum: 12 }
+recommended_weeks: 8

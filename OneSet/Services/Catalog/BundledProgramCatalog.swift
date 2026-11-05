@@ -3,7 +3,7 @@ import Foundation
 extension ProgramCatalog {
   static var bundled: ProgramCatalog { ProgramCatalog(programs: [
       TrainingProgram(
-        id: "full-body", name: "Full Body",
+        id: "full-body", name: "Full Bodys",
         format: "A / B / C",
         emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy coverage without high per-session volume.",
         workouts: [
@@ -1232,7 +1232,7 @@ extension ProgramCatalog {
         emphasis: "A dense, powerful wrestler-like build - thick torso, substantial upper back, strong shoulder girdle, muscular arms and forearms, heavy thighs and posterior chain, with developed neck and traps.",
         workouts: [
             WorkoutTemplate(
-              id: "powerhouse-day-1-torso-density-arms", name: "Day 1 - Torso Density + Arms",
+              id: "powerhouse-day-1-torso-density-arms", name: "Torso Density + Arms",
               banner: "upper-body",
               exercises: [
                   WorkoutExercise(
@@ -1301,7 +1301,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Day 2 - Thighs + Posterior Chain + Traps",
+              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Thighs + Posterior Chain + Traps",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1370,7 +1370,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "powerhouse-day-3-upper-back-shoulder-girdle-traps", name: "Day 3 - Upper Back + Shoulder Girdle + Traps",
+              id: "powerhouse-day-3-upper-back-shoulder-girdle-traps", name: "Upper Back + Shoulder Girdle + Traps",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -1446,7 +1446,7 @@ extension ProgramCatalog {
         emphasis: "Balanced old-school proportions - broad shoulders, upper chest, lat width, proportional arms, a controlled waistline, and athletic legs.",
         workouts: [
             WorkoutTemplate(
-              id: "classic-physique-day-1-upper-chest-back-width", name: "Day 1 - Upper Chest + Back Width",
+              id: "classic-physique-day-1-upper-chest-back-width", name: "Upper Chest + Back Width",
               banner: "back-pull",
               exercises: [
                   WorkoutExercise(
@@ -1506,7 +1506,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "classic-physique-day-2-legs-torso", name: "Day 2 - Legs + Torso",
+              id: "classic-physique-day-2-legs-torso", name: "Legs + Torso",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1566,7 +1566,7 @@ extension ProgramCatalog {
               ]
             ),
             WorkoutTemplate(
-              id: "classic-physique-day-3-delts-balanced-upper-body", name: "Day 3 - Delts + Balanced Upper Body",
+              id: "classic-physique-day-3-delts-balanced-upper-body", name: "Delts + Balanced Upper Body",
               banner: "shoulders",
               exercises: [
                   WorkoutExercise(

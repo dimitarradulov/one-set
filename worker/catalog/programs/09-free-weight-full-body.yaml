@@ -1,8 +1,7 @@
 key: free-weight-full-body
 name: Free-Weight Full Body
-recommended_weeks: 8
-format: "A / B / C"
-emphasis: "Gyms with limited machines or lifters who strongly prefer barbells, dumbbells, and bodyweight loading."
+format: A / B / C
+emphasis: Gyms with limited machines or lifters who strongly prefer barbells, dumbbells, and bodyweight loading.
 workouts:
   - key: free-weight-full-body-workout-a
     name: Workout A
@@ -10,86 +9,123 @@ workouts:
     position: 1
     exercises:
       - key: free-weight-full-body-workout-a-front-squat
+        reps:
+          maximum: 8
+          minimum: 5
         exercise: front-squat
         position: 1
-        reps: { minimum: 5, maximum: 8 }
       - key: free-weight-full-body-workout-a-weighted-chin-up
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: weighted-chin-up
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-a-incline-dumbbell-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: incline-dumbbell-press
         position: 3
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-a-romanian-deadlift
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: romanian-deadlift
         position: 4
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-a-dumbbell-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: dumbbell-lateral-raise
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: free-weight-full-body-workout-a-barbell-curl
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: barbell-curl
         position: 6
-        reps: { minimum: 6, maximum: 10 }
   - key: free-weight-full-body-workout-b
     name: Workout B
     banner: general-gym
     position: 2
     exercises:
       - key: free-weight-full-body-workout-b-conventional-deadlift
+        reps:
+          maximum: 8
+          minimum: 5
         exercise: conventional-deadlift
         position: 1
-        reps: { minimum: 5, maximum: 8 }
       - key: free-weight-full-body-workout-b-weighted-dip
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: weighted-dip
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-b-barbell-row
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: barbell-row
         position: 3
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-b-bulgarian-split-squat
+        reps:
+          maximum: 12
+          minimum: 8
+        scope: each_leg
         exercise: bulgarian-split-squat
         position: 4
-        reps: { minimum: 8, maximum: 12 }
-        scope: each_leg
       - key: free-weight-full-body-workout-b-dumbbell-rear-delt-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: dumbbell-rear-delt-raise
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: free-weight-full-body-workout-b-dumbbell-overhead-triceps-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: dumbbell-overhead-triceps-extension
         position: 6
-        reps: { minimum: 10, maximum: 15 }
   - key: free-weight-full-body-workout-c
     name: Workout C
     banner: general-gym
     position: 3
     exercises:
       - key: free-weight-full-body-workout-c-goblet-squat
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: goblet-squat
         position: 1
-        reps: { minimum: 10, maximum: 15 }
       - key: free-weight-full-body-workout-c-one-arm-dumbbell-row
+        reps:
+          maximum: 12
+          minimum: 8
+        scope: each_side
         exercise: one-arm-dumbbell-row
         position: 2
-        reps: { minimum: 8, maximum: 12 }
-        scope: each_side
       - key: free-weight-full-body-workout-c-standing-dumbbell-shoulder-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: standing-dumbbell-shoulder-press
         position: 3
-        reps: { minimum: 6, maximum: 10 }
       - key: free-weight-full-body-workout-c-dumbbell-romanian-deadlift
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: dumbbell-romanian-deadlift
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: free-weight-full-body-workout-c-dumbbell-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: dumbbell-lateral-raise
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: free-weight-full-body-workout-c-hammer-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: hammer-curl
         position: 6
-        reps: { minimum: 8, maximum: 12 }
+recommended_weeks: 8

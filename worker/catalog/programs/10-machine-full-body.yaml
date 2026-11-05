@@ -1,8 +1,7 @@
 key: machine-full-body
 name: Machine Full Body
-recommended_weeks: 8
-format: "A / B / C"
-emphasis: "Lifters who want maximum stability, simple progression, and a low-skill environment for high-effort training."
+format: A / B / C
+emphasis: Lifters who want maximum stability, simple progression, and a low-skill environment for high-effort training.
 workouts:
   - key: machine-full-body-workout-a
     name: Workout A
@@ -10,100 +9,145 @@ workouts:
     position: 1
     exercises:
       - key: machine-full-body-workout-a-hack-squat-machine
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: hack-squat-machine
         position: 1
-        reps: { minimum: 6, maximum: 10 }
       - key: machine-full-body-workout-a-machine-chest-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: machine-chest-press
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: machine-full-body-workout-a-neutral-grip-lat-pulldown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: neutral-grip-lat-pulldown
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-a-seated-leg-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: seated-leg-curl
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-a-machine-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: machine-lateral-raise
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: machine-full-body-workout-a-machine-preacher-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: machine-preacher-curl
         position: 6
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-a-cable-triceps-pressdown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: cable-triceps-pressdown
         position: 7
-        reps: { minimum: 8, maximum: 12 }
   - key: machine-full-body-workout-b
     name: Workout B
     banner: general-gym
     position: 2
     exercises:
       - key: machine-full-body-workout-b-leg-press
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: leg-press
         position: 1
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-b-chest-supported-machine-row
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: chest-supported-machine-row
         position: 2
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-b-incline-machine-chest-press
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: incline-machine-chest-press
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-b-lying-leg-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: lying-leg-curl
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-b-reverse-pec-deck
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: reverse-pec-deck
         position: 5
-        reps: { minimum: 12, maximum: 20 }
       - key: machine-full-body-workout-b-cable-curl
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: cable-curl
         position: 6
-        reps: { minimum: 10, maximum: 15 }
       - key: machine-full-body-workout-b-overhead-cable-triceps-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: overhead-cable-triceps-extension
         position: 7
-        reps: { minimum: 10, maximum: 15 }
   - key: machine-full-body-workout-c
     name: Workout C
     banner: general-gym
     position: 3
     exercises:
       - key: machine-full-body-workout-c-leg-extension
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: leg-extension
         position: 1
-        reps: { minimum: 10, maximum: 15 }
       - key: machine-full-body-workout-c-machine-shoulder-press
+        reps:
+          maximum: 10
+          minimum: 6
         exercise: machine-shoulder-press
         position: 2
-        reps: { minimum: 6, maximum: 10 }
       - key: machine-full-body-workout-c-wide-grip-lat-pulldown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: wide-grip-lat-pulldown
         position: 3
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-c-seated-leg-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: seated-leg-curl
         position: 4
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-c-pec-deck
+        reps:
+          maximum: 15
+          minimum: 10
         exercise: pec-deck
         position: 5
-        reps: { minimum: 10, maximum: 15 }
       - key: machine-full-body-workout-c-machine-lateral-raise
+        reps:
+          maximum: 20
+          minimum: 12
         exercise: machine-lateral-raise
         position: 6
-        reps: { minimum: 12, maximum: 20 }
       - key: machine-full-body-workout-c-machine-preacher-curl
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: machine-preacher-curl
         position: 7
-        reps: { minimum: 8, maximum: 12 }
       - key: machine-full-body-workout-c-cable-triceps-pressdown
+        reps:
+          maximum: 12
+          minimum: 8
         exercise: cable-triceps-pressdown
         position: 8
-        reps: { minimum: 8, maximum: 12 }
+recommended_weeks: 8
