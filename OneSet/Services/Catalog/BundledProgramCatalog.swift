@@ -3,7 +3,7 @@ import Foundation
 extension ProgramCatalog {
   static var bundled: ProgramCatalog { ProgramCatalog(programs: [
       TrainingProgram(
-        id: "full-body", name: "Full Bodys",
+        id: "full-body", name: "Full Body",
         format: "A / B / C",
         emphasis: "Lifters who want frequent whole-body practice and broad hypertrophy coverage without high per-session volume.",
         workouts: [
