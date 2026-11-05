@@ -366,7 +366,10 @@ export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSo
 
   for (const exercise of next.exercises) {
     const oldExercise = before.exercises.get(exercise.key);
-    if (oldExercise && canonicalJSON(oldExercise) !== canonicalJSON(exercise)) {
+    if (!oldExercise) {
+      addChange('add shared exercise', undefined, undefined, exercise.name,
+        `Added shared exercise ${exercise.key}`);
+    } else if (canonicalJSON(oldExercise) !== canonicalJSON(exercise)) {
       const impacted = new Map<string, CatalogProgram>();
       for (const program of [...(previous?.programs ?? []), ...next.programs]) {
         const currentUse = program.removed !== true && program.workouts.some(workout =>

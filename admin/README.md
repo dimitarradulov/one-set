@@ -1,7 +1,8 @@
 # Private catalog dashboard
 
-The dashboard in this directory is a server-rendered Astro site for laptop catalog maintenance. It reads the full published source through the protected maintenance API, edits program name, format, emphasis, and recommended training weeks in native HTML forms, and uses Astro Actions to review and explicitly publish to the development catalog. After database publication, it synchronizes the exact retained source to the configured GitHub branch and regenerates the bundled Swift file with the same pure generator used by the catalog CLI. It does not save drafts or use browser storage. It is deployed to `https://oneset-catalog-dashboard.dimitarradulovv.workers.dev` behind a hostname-specific Cloudflare Access application. Preview URLs and custom domain routes are disabled.
+The dashboard in this directory is a server-rendered Astro site for laptop catalog maintenance. It reads the complete published source through the protected maintenance API, edits programs, workout structures, slots, and shared exercise guidance in native HTML forms, then reviews and explicitly publishes the complete candidate. Review identifies affected programs and the configured development API and repository target. Unpublished edits stay within the current visit.
 
+After database publication, the dashboard synchronizes the exact retained publication source to the configured GitHub branch and regenerates the bundled Swift catalog with the same pure generator used by the catalog CLI. Repository failure remains visible and retryable against that publication; stale or competing work cannot overwrite a newer source. Publication history supports reconciled corrections while retaining later identities and training records. The dashboard uses the configured Cloudflare Access hostname with preview URLs and alternate routes disabled.
 ## Local development and checks
 
 Use Node 22 or later:
@@ -14,7 +15,7 @@ npm run build
 npm test
 ```
 
-The Worker request integration runs with signed test tokens and a controlled key source, then calls the real maintenance source-read, preview, publish, and repository-sync handlers over HTTP with an isolated PGlite database. Dashboard checks cover the edit → review → edit → publish → sync/retry journey, transformation and generation from retained source, repository branch conflicts, delayed/stale work, repeated retry, newer publications, validation feedback, origin and Access rejection, rollback, unknown metadata and identity preservation, and the resulting app-facing catalog. Only GitHub transport is controlled in synchronization tests. The browser journey uses the installed Chrome executable; set `DASHBOARD_CHROME_BIN` if it is outside the default macOS path. These local checks simulate Access token verification. They do not perform a Cloudflare login or verify a deployed Access application or GitHub credential.
+The Worker request integration uses signed test tokens and an isolated PGlite database, then exercises the real maintenance source-read, preview, publish, history, and repository-sync handlers. Checks cover program and shared exercise editing, workout structure and explicit removal/restoration, historical correction, validation, Access and origin rejection, stale review, rollback, retry identity, synchronization conflicts and partial failure, metadata and stable identity preservation, and the resulting app-facing catalog. The browser journeys use the installed Chrome executable; set `DASHBOARD_CHROME_BIN` when it is elsewhere. Local signed-token checks do not verify deployed Access or GitHub credentials.
 
 ## Cloudflare Access setup
 

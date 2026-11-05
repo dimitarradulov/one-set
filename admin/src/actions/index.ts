@@ -16,6 +16,18 @@ export const server = {
     accept: 'form',
     handler: (input, context) => handleDashboardAction('publish', context.request, input, env as DashboardEnvironment),
   }),
+  editExercise: defineAction({
+    accept: 'form',
+    handler: (input, context) => handleDashboardAction('edit-exercise', context.request, input, env as DashboardEnvironment),
+  }),
+  reviewExercise: defineAction({
+    accept: 'form',
+    handler: (input, context) => handleDashboardAction('review-exercise', context.request, input, env as DashboardEnvironment),
+  }),
+  publishExercise: defineAction({
+    accept: 'form',
+    handler: (input, context) => handleDashboardAction('publish-exercise', context.request, input, env as DashboardEnvironment),
+  }),
   restorePublication: defineAction({
     accept: 'form',
     handler: (input, context) => prepareHistoricalRestoration(context.request, input, env as HistoryEnvironment),
@@ -27,6 +39,5 @@ export const server = {
   syncCatalog: defineAction({
     accept: 'form',
     handler: (input, context) => handleDashboardAction('sync', context.request, input, env as DashboardEnvironment),
-
   }),
 };
