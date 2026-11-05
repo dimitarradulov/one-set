@@ -25,6 +25,7 @@ await db.exec('BEGIN;\n' + schema.slice(schema.indexOf('CREATE TYPE')));
 await db.exec(await readFile('../docs/database/migrations/002_completed_setup.sql', 'utf8'));
 await db.exec(`INSERT INTO workout_programs (id, name) VALUES (10, 'Machine Full Body');`);
 await db.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await db.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await db.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 await db.exec(`INSERT INTO workouts (id, name, authoring_key) VALUES (100, 'A', 'day-a'), (101, 'B', 'day-b');
   INSERT INTO program_workouts (program_id, workout_id, position) VALUES (10, 100, 1), (10, 101, 2);

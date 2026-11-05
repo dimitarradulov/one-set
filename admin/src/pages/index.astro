@@ -1,0 +1,44 @@
+---
+import { actions } from 'astro:actions';
+import { env } from 'cloudflare:workers';
+import { loadDashboard, renderDashboard, type DashboardEnvironment, type DashboardResult } from '../dashboard';
+
+export const prerender = false;
+const environment = env as DashboardEnvironment;
+const actionResults = [
+  Astro.getActionResult(actions.editProgram),
+  Astro.getActionResult(actions.reviewProgram),
+  Astro.getActionResult(actions.publishProgram),
+  Astro.getActionResult(actions.syncCatalog),
+];
+let result: DashboardResult | undefined;
+const failedAction = actionResults.find(item => item?.error);
+const completedAction = actionResults.find(item => item?.data);
+if (failedAction?.error) {
+  result = {
+    view: 'error', status: failedAction.error.status,
+    title: failedAction.error.status === 401 ? 'Access required' : 'Form could not be processed',
+    detail: failedAction.error.status === 401
+      ? 'Sign in through Cloudflare Access with the approved founder email, then try again.'
+      : 'The submitted fields were invalid. Return to the catalog and try again.',
+  };
+} else if (completedAction?.data) {
+  result = completedAction.data as DashboardResult;
+}
+let sourceData;
+if (!result || result.view === 'success' || result.view === 'error') {
+  const loaded = await loadDashboard(Astro.request, environment);
+  sourceData = loaded.source;
+  if (!result && loaded.error) result = loaded.error;
+}
+let document = renderDashboard(result, sourceData, environment);
+document = document
+  .replaceAll('action="@editProgram"', `action="${actions.editProgram.queryString}"`)
+  .replaceAll('action="@reviewProgram"', `action="${actions.reviewProgram.queryString}"`)
+  .replaceAll('action="@publishProgram"', `action="${actions.publishProgram.queryString}"`)
+  .replaceAll('action="@syncCatalog"', `action="${actions.syncCatalog.queryString}"`);
+Astro.response.status = result?.view === 'error' ? result.status : 200;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+
+<Fragment set:html={document} />

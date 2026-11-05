@@ -164,8 +164,13 @@ Table catalog_publications {
   backend_fingerprint text [not null]
   source_document jsonb [not null, note: 'Complete reviewed catalog source applied by this publication']
   published_at timestamptz [not null, default: `now()`]
+  repository_sync_status text [not null, default: 'pending', note: 'Repository export state for this published operation']
+  repository_commit_sha text
+  repository_sync_error text
+  repository_synced_at timestamptz
   checks {
     `jsonb_typeof(source_document) = 'object'`
+    `repository_sync_status IN ('pending', 'in_progress', 'synchronized', 'failed', 'superseded')`
   }
 }
 

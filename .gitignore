@@ -11,6 +11,11 @@ xcuserdata/
 /references/
 
 /worker/node_modules/
+/admin/node_modules/
+/admin/.astro/
+/admin/dist/
+/admin/.dev.vars
+/admin/.wrangler/
 /worker/.wrangler/
 /worker/.dev.vars
 /worker/.oneset-catalog-preview.json

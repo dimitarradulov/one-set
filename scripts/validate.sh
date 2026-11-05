@@ -29,6 +29,10 @@ oneset_toolchain
 oneset_artifacts
 if [[ "$VALIDATION_MODE" == full ]]; then
   python3 -m unittest discover -s scripts/tests -v
+  npm ci --prefix admin
+  npm --prefix admin run check
+  npm --prefix admin run build
+  npm --prefix admin test
   npm --prefix worker run typecheck
   npm --prefix worker test
 fi

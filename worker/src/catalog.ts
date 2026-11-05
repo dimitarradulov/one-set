@@ -1,5 +1,7 @@
 import { verifyToken } from '@clerk/backend';
 import { diffCatalog, validateCatalogSource, type CatalogSource } from './catalog-validation';
+import { verifyCloudflareAccess, type AccessConfiguration } from './cloudflare-access';
+import type { JWTVerifyGetKey } from 'jose';
 
 export interface CatalogDatabase {
   query(sql: string, params?: string[]): Promise<Record<string, unknown>[]>;
@@ -11,12 +13,18 @@ export interface CatalogConfiguration {
   CLERK_JWT_KEY: string;
   CLERK_AUTHORIZED_PARTIES: string;
   CATALOG_PUBLISH_TOKEN: string;
+  ACCESS_TEAM_DOMAIN: string;
+  ACCESS_AUDIENCE: string;
+  ACCESS_APPROVED_EMAIL: string;
 }
 
 interface PublicationState {
   publication_id: string | null;
   source_fingerprint: string | null;
   source_document: unknown;
+  repository_sync_status: string | null;
+  repository_commit_sha: string | null;
+  repository_sync_error: string | null;
 }
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}): Response {
@@ -72,13 +80,19 @@ async function readBody(request: Request): Promise<unknown | Response> {
 }
 
 async function readState(database: CatalogDatabase): Promise<PublicationState | undefined> {
-  const [row] = await database.query(`SELECT publication_id, source_fingerprint, source_document
-    FROM public.catalog_state WHERE singleton = true`);
+  const [row] = await database.query(`SELECT state.publication_id, state.source_fingerprint, state.source_document,
+      publication.repository_sync_status, publication.repository_commit_sha, publication.repository_sync_error
+    FROM public.catalog_state AS state
+    LEFT JOIN public.catalog_publications AS publication ON publication.id = state.publication_id
+    WHERE state.singleton = true`);
   if (!row) return undefined;
   return {
     publication_id: typeof row.publication_id === 'string' ? row.publication_id : null,
     source_fingerprint: typeof row.source_fingerprint === 'string' ? row.source_fingerprint : null,
     source_document: row.source_document ?? null,
+    repository_sync_status: typeof row.repository_sync_status === 'string' ? row.repository_sync_status : null,
+    repository_commit_sha: typeof row.repository_commit_sha === 'string' ? row.repository_commit_sha : null,
+    repository_sync_error: typeof row.repository_sync_error === 'string' ? row.repository_sync_error : null,
   };
 }
 
@@ -261,13 +275,192 @@ async function readCatalog(
   return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
 }
 
+async function readCatalogSource(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUDIENCE || !env.ACCESS_APPROVED_EMAIL) {
+    return error('TEMPORARY_FAILURE', 503);
+  }
+  if (!(await verifyCloudflareAccess(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  const state = await readState(database);
+  if (!state?.source_document || !state.publication_id || !state.source_fingerprint) {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+  const source = checkedPrevious(state.source_document);
+  if (!source) return error('CATALOG_UNAVAILABLE', 503);
+  return json({
+    source,
+    publication_id: state.publication_id,
+    current_publication_id: state.publication_id,
+    source_fingerprint: state.source_fingerprint,
+    repository_sync_status: state.repository_sync_status ?? 'pending',
+    repository_commit_sha: state.repository_commit_sha,
+    repository_sync_error: state.repository_sync_error,
+  });
+}
+
+async function publishedOperation(
+  request: Request,
+  env: CatalogConfiguration,
+  database: CatalogDatabase,
+  publicationID: string,
+): Promise<Response> {
+  const secret = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!env.CATALOG_PUBLISH_TOKEN || !(await sameSecret(secret, env.CATALOG_PUBLISH_TOKEN))) {
+    return error('FORBIDDEN', 403);
+  }
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  const [row] = await database.query(`SELECT id, source_fingerprint, source_document,
+      repository_sync_status, repository_commit_sha, repository_sync_error, repository_synced_at
+    FROM public.catalog_publications WHERE id = $1`, [publicationID]);
+  if (!row) return error('PUBLICATION_NOT_FOUND', 404);
+  const [state] = await database.query(`SELECT publication_id FROM public.catalog_state WHERE singleton = true`);
+  return json({
+    publication_id: row.id,
+    source_fingerprint: row.source_fingerprint,
+    source: row.source_document,
+    is_current: state?.publication_id === publicationID,
+    current_publication_id: typeof state?.publication_id === 'string' ? state.publication_id : null,
+    repository_sync_status: row.repository_sync_status,
+    repository_commit_sha: row.repository_commit_sha,
+    repository_sync_error: row.repository_sync_error,
+    repository_synced_at: row.repository_synced_at,
+  });
+}
+
+async function updateRepositorySync(
+  request: Request,
+  env: CatalogConfiguration,
+  database: CatalogDatabase,
+  publicationID: string,
+): Promise<Response> {
+  const secret = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!env.CATALOG_PUBLISH_TOKEN || !(await sameSecret(secret, env.CATALOG_PUBLISH_TOKEN))) {
+    return error('FORBIDDEN', 403);
+  }
+  if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 405);
+  const bodyValue = await readBody(request);
+  if (bodyValue instanceof Response) return bodyValue;
+  const body = sourceFromBody(bodyValue);
+  const status = body?.status;
+  if (!['in_progress', 'synchronized', 'failed', 'superseded'].includes(String(status))) {
+    return error('INVALID_SYNC_STATUS', 400);
+  }
+  const syncStatus = String(status);
+  const commitSHA = typeof body?.repository_commit_sha === 'string' ? body.repository_commit_sha : null;
+  const detail = typeof body?.error === 'string' ? body.error.slice(0, 500) : null;
+  const [row] = await database.transaction(`UPDATE public.catalog_publications AS publication
+    SET repository_sync_status = $2,
+        repository_commit_sha = coalesce(nullif($3, ''), publication.repository_commit_sha),
+        repository_sync_error = CASE WHEN $2 = 'failed' THEN nullif($4, '') ELSE NULL END,
+        repository_synced_at = CASE WHEN $2 = 'synchronized' THEN now() ELSE publication.repository_synced_at END
+    WHERE publication.id = $1
+      AND EXISTS (SELECT 1 FROM public.catalog_state WHERE singleton = true AND publication_id = $1)
+    RETURNING id, repository_sync_status, repository_commit_sha, repository_sync_error, repository_synced_at`,
+  [publicationID, syncStatus, commitSHA ?? '', detail ?? '']);
+  if (!row) return error('STALE_PUBLICATION', 409);
+  return json({
+    publication_id: row.id,
+    repository_sync_status: row.repository_sync_status,
+    repository_commit_sha: row.repository_commit_sha,
+    repository_sync_error: row.repository_sync_error,
+    repository_synced_at: row.repository_synced_at,
+  });
+}
+
+async function authorizeMaintenanceRead(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<boolean> {
+  return request.method === 'GET'
+    && Boolean(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUDIENCE && env.ACCESS_APPROVED_EMAIL)
+    && verifyCloudflareAccess(request, env, controlledAccessKeySource);
+}
+
+async function readPublicationHistory(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!(await authorizeMaintenanceRead(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  try {
+    const rows = await database.query(`SELECT state.publication_id AS current_publication_id,
+      publication.id AS publication_id, publication.source_fingerprint, publication.published_at
+      FROM public.catalog_state AS state
+      LEFT JOIN public.catalog_publications AS publication ON true
+      WHERE state.singleton = true
+      ORDER BY publication.published_at DESC NULLS LAST, publication.id DESC`);
+    const currentPublicationID = typeof rows[0]?.current_publication_id === 'string' ? rows[0].current_publication_id : null;
+    const publications = rows.filter(publication => typeof publication.publication_id === 'string');
+    return json({ current_publication_id: currentPublicationID, publications: publications.map(publication => ({
+      publication_id: publication.publication_id,
+      source_fingerprint: publication.source_fingerprint,
+      published_at: publication.published_at,
+    })) });
+  } catch {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+}
+
+async function readHistoricalPublication(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!(await authorizeMaintenanceRead(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  const publicationID = new URL(request.url).pathname.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)$/)?.[1];
+  if (!publicationID) return error('NOT_FOUND', 404);
+  try {
+    const [publication] = await database.query(`SELECT id AS publication_id, source_fingerprint, published_at, source_document
+      FROM public.catalog_publications WHERE id = $1`, [decodeURIComponent(publicationID)]);
+    if (!publication) return error('PUBLICATION_NOT_FOUND', 404);
+    const source = checkedPrevious(publication.source_document);
+    if (!source) return error('CATALOG_UNAVAILABLE', 503);
+    return json({
+      publication_id: publication.publication_id,
+      source_fingerprint: publication.source_fingerprint,
+      published_at: publication.published_at,
+      source,
+    });
+  } catch {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+}
+
 export async function handleCatalogRequest(
   request: Request,
   env: CatalogConfiguration,
   database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
   try {
+    const repositorySyncPath = path.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)\/repository-sync$/);
+    if (repositorySyncPath) return await updateRepositorySync(request, env, database, decodeURIComponent(repositorySyncPath[1]!));
+    const publicationPath = path.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)$/);
+    if (publicationPath) {
+      return request.headers.get('Authorization')?.startsWith('Bearer ')
+        ? await publishedOperation(request, env, database, decodeURIComponent(publicationPath[1]!))
+        : await readHistoricalPublication(request, env, database, controlledAccessKeySource);
+    }
+    if (path === '/v1/maintenance/catalog/source') {
+      return await readCatalogSource(request, env, database, controlledAccessKeySource);
+    }
+    if (path === '/v1/maintenance/catalog/publications') {
+      return await readPublicationHistory(request, env, database, controlledAccessKeySource);
+    }
+    if (path.startsWith('/v1/maintenance/catalog/publications/')) {
+      return await readHistoricalPublication(request, env, database, controlledAccessKeySource);
+    }
     if (path === '/v1/maintenance/catalog/preview') return await reviewCatalog(request, env, database);
     if (path === '/v1/maintenance/catalog/publish') return await publishCatalog(request, env, database);
     if (path === '/v1/catalog' || path === '/v1/catalog/programs'
@@ -277,6 +470,7 @@ export async function handleCatalogRequest(
     return error('NOT_FOUND', 404);
   } catch {
     console.error(JSON.stringify({ event: 'catalog_request_failed' }));
-    return error(path.startsWith('/v1/catalog') ? 'CATALOG_UNAVAILABLE' : 'TEMPORARY_FAILURE', 503);
+    return error(path.startsWith('/v1/catalog') || path.startsWith('/v1/maintenance/catalog/publications') || path === '/v1/maintenance/catalog/source'
+      ? 'CATALOG_UNAVAILABLE' : 'TEMPORARY_FAILURE', 503);
   }
 }

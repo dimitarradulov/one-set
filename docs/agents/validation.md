@@ -6,6 +6,7 @@ Choose validation by the affected behavior before finishing a code change. Size 
 | --- | --- |
 | Localized iOS behavior with a clear affected workflow, such as removing a button or adjusting input validation | `./scripts/validate.sh --focused OneSetUITests/Class/testMethod` with existing tests covering the affected behavior. Supply multiple selectors when needed. |
 | Appearance-only iOS change, such as copy, spacing, or color | `./scripts/validate-ui.sh --ui-<affected-route>` and screenshot inspection; its app build is sufficient when interaction and navigation are unchanged. |
+| Dashboard-only change | `npm --prefix admin run check`, `npm --prefix admin run build`, and `npm --prefix admin test`; include Worker checks when its source-read or authorization boundary changes. |
 | Worker-only change | Worker typecheck and relevant API tests using the scripts in `worker/package.json`. |
 | Simulator or validation tooling only | Relevant `scripts/tests` tests and a real run of the affected command. |
 | Shared models/services, persistence, concurrency, authentication/session logic, schema, dependencies, build configuration, changes spanning iOS and Worker, or unclear impact | `./scripts/validate.sh` (full suite). |
@@ -22,7 +23,7 @@ For tasks limited to documentation, agent instructions, configuration examples, 
 - Inspect the final diff for accidental or unrelated changes.
 - Report the chosen scope, why it fits the change, and which checks actually ran and their outcomes. Describe an interrupted run as incomplete. If validation cannot be performed, state exactly what remains unvalidated.
 
-For full or Worker validation, install Worker dependencies first with `npm ci --prefix worker` (Node 22 or later). Full validation invokes an Xcode build, the `OneSetUITests` target, simulator discovery/recovery regression tests, and Worker typechecking/API contract tests. No coverage threshold is defined. Build logs and `.xcresult` results are retained under `.codex/validation/` by default.
+For full or Worker validation, install Worker dependencies first with `npm ci --prefix worker` (Node 22 or later). Full validation also installs the dashboard dependencies with `npm ci --prefix admin`, then runs Astro checks/build/request integration alongside Worker typechecking/API contract tests. It invokes an Xcode build, the `OneSetUITests` target, and simulator discovery/recovery regression tests. No coverage threshold is defined. Build logs and `.xcresult` results are retained under `.codex/validation/` by default.
 
 All simulator scripts select an available compatible device by UUID, wait for boot readiness and create a replacement when automatic selection cannot boot an existing device. A particular model name is not required. For device overrides, iPad validation, artifact paths, missing runtimes and host/agent permissions, follow [simulator validation and recovery](../simulator-validation.md).
 

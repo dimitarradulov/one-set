@@ -14,6 +14,9 @@ const environment = {
   CLERK_JWT_KEY: await exportSPKI(keys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CATALOG_PUBLISH_TOKEN: 'publisher-secret-separate-from-user-tokens',
+  ACCESS_TEAM_DOMAIN: 'https://oneset-test.cloudflareaccess.com',
+  ACCESS_AUDIENCE: 'catalog-dashboard-test-audience',
+  ACCESS_APPROVED_EMAIL: 'founder@example.test',
 };
 
 async function userToken(subject = 'catalog-user') {
@@ -82,6 +85,7 @@ await databaseEngine.exec(`
   SELECT setval(pg_get_serial_sequence('workout_programs', 'id'), 10);
 `);
 await databaseEngine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await databaseEngine.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await databaseEngine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 await databaseEngine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
 
@@ -394,4 +398,42 @@ test('catalog storage outages return a structured unavailable response', async (
   );
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: { code: 'CATALOG_UNAVAILABLE' } });
+});
+
+test('published source sync status is protected, current-version bound, and retryable', async () => {
+  const [row] = await database.query(`SELECT publication_id FROM public.catalog_state WHERE singleton = true`);
+  const publicationID = String(row!.publication_id);
+  const endpoint = `/v1/maintenance/catalog/publications/${publicationID}`;
+  const denied = await handleCatalogRequest(request(endpoint), environment, database);
+  assert.equal(denied.status, 403);
+
+  const read = await handleCatalogRequest(request(endpoint, environment.CATALOG_PUBLISH_TOKEN), environment, database);
+  assert.equal(read.status, 200);
+  const operation = await read.json() as { is_current: boolean; repository_sync_status: string; source: CatalogSource };
+  assert.equal(operation.is_current, true);
+  assert.ok(operation.source.programs.length);
+
+  const update = (status: string) => handleCatalogRequest(request(`${endpoint}/repository-sync`,
+    environment.CATALOG_PUBLISH_TOKEN, 'POST', { status, repository_commit_sha: 'commit-123' }), environment, database);
+  const started = await update('in_progress');
+  assert.equal(started.status, 200);
+  const completed = await update('synchronized');
+  assert.equal(completed.status, 200);
+  const synchronized = await handleCatalogRequest(request(endpoint, environment.CATALOG_PUBLISH_TOKEN), environment, database);
+  const completedOperation = await synchronized.json() as { repository_sync_status: string; repository_commit_sha: string };
+  assert.equal(completedOperation.repository_sync_status, 'synchronized');
+  assert.equal(completedOperation.repository_commit_sha, 'commit-123');
+
+  const nextSource = structuredClone(operation.source);
+  nextSource.programs[0]!.name += ' Next';
+  const nextFingerprint = createHash('sha256').update(JSON.stringify(nextSource)).digest('hex');
+  await database.query(`INSERT INTO public.catalog_publications (id, source_fingerprint, backend_fingerprint, source_document)
+    VALUES ('newer-sync-publication', $1, 'previous', $2::jsonb)`, [nextFingerprint, JSON.stringify(nextSource)]);
+  await database.query(`UPDATE public.catalog_state SET publication_id = 'newer-sync-publication',
+    source_fingerprint = $1, source_document = $2::jsonb WHERE singleton = true`, [nextFingerprint, JSON.stringify(nextSource)]);
+  const oldRead = await handleCatalogRequest(request(endpoint, environment.CATALOG_PUBLISH_TOKEN), environment, database);
+  assert.equal((await oldRead.json() as { is_current: boolean }).is_current, false);
+  const staleUpdate = await update('failed');
+  assert.equal(staleUpdate.status, 409);
+  assert.deepEqual(await staleUpdate.json(), { error: { code: 'STALE_PUBLICATION' } });
 });
