@@ -29,6 +29,8 @@ npm run catalog -- preview --environment development --source catalog
 npm run catalog -- publish --environment development --source catalog
 ```
 
+Dashboard publications also synchronize the exact retained publication to the configured GitHub branch. The dashboard Worker serializes the complete published source into readable YAML and calls the same pure Swift generator used by `generate-bundled`. It writes only `worker/catalog/` source artifacts and `OneSet/Services/Catalog/BundledProgramCatalog.swift`, using the latest branch head as the commit parent. A non-fast-forward update is retried from the newer head; any unrelated files remain in the tree. The API refuses to mark or export an operation that is no longer the current database publication. Repository failure leaves the live database catalog published and the dashboard offers a retry by publication ID.
+
 The generator defaults to `worker/catalog` and writes `../OneSet/Services/Catalog/BundledProgramCatalog.swift`. Use `--source <directory>` and `--output <path>` to work with a separate catalog or output location. The preview file `.oneset-catalog-preview.json` is private to the local working tree and should not be committed.
 
 Configure the catalog publisher outside source control, using the publisher secret set on the matching Worker environment:

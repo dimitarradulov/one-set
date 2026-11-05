@@ -1,23 +1,34 @@
 import { verifyCloudflareAccess, type AccessConfiguration } from '../../worker/src/cloudflare-access';
 import { validateCatalogSource, type CatalogSource } from '../../worker/src/catalog-validation';
 import type { JWTVerifyGetKey } from 'jose';
+import { synchronizePublication, type RepositorySyncDependencies, type RepositorySyncEnvironment } from './repository-sync';
 
 export interface DashboardEnvironment extends AccessConfiguration {
   CATALOG_ENVIRONMENT: string;
   CATALOG_API_BASE_URL: string;
   CATALOG_PUBLISH_TOKEN?: string;
+  CATALOG_REPOSITORY_OWNER?: string;
+  CATALOG_REPOSITORY_NAME?: string;
+  CATALOG_REPOSITORY_BRANCH?: string;
+  CATALOG_REPOSITORY_TOKEN?: string;
 }
 
 export interface DashboardDependencies {
   keySource?: JWTVerifyGetKey;
   fetcher?: typeof fetch;
   verify?: (request: Request, configuration: AccessConfiguration, keySource?: JWTVerifyGetKey) => Promise<boolean>;
+  repositorySync?: (publicationID: string, environment: RepositorySyncEnvironment,
+    dependencies?: RepositorySyncDependencies) => Promise<{ status: 'synchronized' | 'failed' | 'superseded'; publicationID: string; commitSHA?: string; detail?: string }>;
+  repositorySyncDependencies?: RepositorySyncDependencies;
 }
 
 interface SourceResponse {
   source: CatalogSource;
   publication_id: string;
   source_fingerprint: string;
+  repository_sync_status?: string;
+  repository_commit_sha?: string | null;
+  repository_sync_error?: string | null;
 }
 
 export interface ProgramFields {
@@ -39,10 +50,10 @@ export interface ReviewChange {
 export type DashboardResult =
   | { view: 'edit'; source: CatalogSource; publicationID: string; sourceFingerprint: string; fields: ProgramFields; errors?: Partial<Record<keyof ProgramFields, string>>; message?: string }
   | { view: 'review'; source: CatalogSource; publicationID: string; sourceFingerprint: string; reviewSourceFingerprint: string; previewID: string; backendFingerprint: string; changes: ReviewChange[]; affectedPrograms: string[]; fields: ProgramFields }
-  | { view: 'success'; publicationID: string }
+  | { view: 'success'; publicationID: string; repositoryStatus?: 'synchronized' | 'failed' | 'superseded'; repositoryDetail?: string; repositoryCommitSHA?: string }
   | { view: 'error'; title: string; detail: string; status: number; fields?: ProgramFields };
 
-export type DashboardActionKind = 'edit' | 'review' | 'publish';
+export type DashboardActionKind = 'edit' | 'review' | 'publish' | 'sync';
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 
@@ -129,7 +140,7 @@ async function readPublishedSource(request: Request, environment: DashboardEnvir
 }
 
 function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view: 'edit' | 'review' }>,
-  environmentName: string, email: string): string {
+  environmentName: string, repositoryTarget: string, email: string): string {
   const chosen = data.source.programs.find(program => program.key === data.fields.program_key);
   const programOptions = data.source.programs.map(program => `<option value="${html(program.key)}"${program.key === data.fields.program_key ? ' selected' : ''}>${html(program.name)}${program.removed ? ' · Removed' : ''}</option>`).join('');
   const errors = data.view === 'edit' ? data.errors ?? {} : {};
@@ -144,7 +155,7 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
   };
   const hidden = `<input type="hidden" name="program_key" value="${html(data.fields.program_key)}"><input type="hidden" name="publication_fingerprint" value="${html(data.sourceFingerprint)}">`;
   const editForm = `<form method="POST" action="@reviewProgram" class="editor-form">${hidden}<div class="field"><label for="program-picker">Program</label><select id="program-picker" disabled>${programOptions}</select><input type="hidden" name="program_key" value="${html(data.fields.program_key)}"></div>${field('name', 'Program name', data.fields.name)}${field('format', 'Format', data.fields.format)}${field('emphasis', 'Emphasis', data.fields.emphasis, 'textarea')}${field('recommended_weeks', 'Recommended training weeks', data.fields.recommended_weeks, 'number', 'Training weeks describe the program rotation, not calendar dates.')}<div class="form-actions"><button class="button primary" type="submit">Review changes</button><a class="button quiet" href="/">Cancel</a></div></form>`;
-  const review = data.view === 'review' ? `<section class="review-block"><div class="review-heading"><div><h2>Review program changes</h2><p>Nothing has been published. Confirm the exact values below before publishing.</p></div><span class="badge">${html(environmentName)} target</span></div><div class="diff-list">${data.changes.length ? data.changes.map(change => `<div class="diff-row"><span class="change-kind">${html(change.kind)}</span><div><strong>${html(change.name ?? change.program_name ?? 'Program')}</strong>${change.detail ? `<p>${html(change.detail)}</p>` : ''}</div></div>`).join('') : '<p>No catalog fields changed.</p>'}</div><div class="affected"><h3>Affected programs</h3><p>${data.affectedPrograms.length ? data.affectedPrograms.map(html).join(', ') : 'None'}</p></div><div class="review-values"><span>Name <strong>${html(data.fields.name)}</strong></span><span>Format <strong>${html(data.fields.format)}</strong></span><span>Emphasis <strong>${html(data.fields.emphasis)}</strong></span><span>Recommended weeks <strong>${html(data.fields.recommended_weeks)}</strong></span></div><form method="POST" action="@publishProgram" class="publish-form"><input type="hidden" name="program_key" value="${html(data.fields.program_key)}"><input type="hidden" name="name" value="${html(data.fields.name)}"><input type="hidden" name="format" value="${html(data.fields.format)}"><input type="hidden" name="emphasis" value="${html(data.fields.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(data.fields.recommended_weeks)}"><input type="hidden" name="publication_fingerprint" value="${html(data.sourceFingerprint)}"><input type="hidden" name="source_fingerprint" value="${html(data.reviewSourceFingerprint)}"><input type="hidden" name="preview_id" value="${html(data.previewID)}"><input type="hidden" name="backend_fingerprint" value="${html(data.backendFingerprint)}"><button class="button primary" type="submit"${data.changes.length ? '' : ' disabled'}>Publish to ${html(environmentName)}</button><span class="publish-note">${data.changes.length ? 'One explicit publication to the selected development catalog.' : 'No changes to publish.'}</span></form><form method="POST" action="@editProgram" class="back-form">${hidden}<input type="hidden" name="name" value="${html(data.fields.name)}"><input type="hidden" name="format" value="${html(data.fields.format)}"><input type="hidden" name="emphasis" value="${html(data.fields.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(data.fields.recommended_weeks)}"><button class="button quiet" type="submit">Back to editing</button></form></section>` : '';
+  const review = data.view === 'review' ? `<section class="review-block"><div class="review-heading"><div><h2>Review program changes</h2><p>Nothing has been published. Confirm the exact values and both targets before publishing.</p></div><span class="badge target-badge">${html(environmentName)} catalog · repo ${html(repositoryTarget)}</span></div><div class="diff-list">${data.changes.length ? data.changes.map(change => `<div class="diff-row"><span class="change-kind">${html(change.kind)}</span><div><strong>${html(change.name ?? change.program_name ?? 'Program')}</strong>${change.detail ? `<p>${html(change.detail)}</p>` : ''}</div></div>`).join('') : '<p>No catalog fields changed.</p>'}</div><div class="affected"><h3>Affected programs</h3><p>${data.affectedPrograms.length ? data.affectedPrograms.map(html).join(', ') : 'None'}</p></div><div class="review-values"><span>Name <strong>${html(data.fields.name)}</strong></span><span>Format <strong>${html(data.fields.format)}</strong></span><span>Emphasis <strong>${html(data.fields.emphasis)}</strong></span><span>Recommended weeks <strong>${html(data.fields.recommended_weeks)}</strong></span></div><form method="POST" action="@publishProgram" class="publish-form"><input type="hidden" name="program_key" value="${html(data.fields.program_key)}"><input type="hidden" name="name" value="${html(data.fields.name)}"><input type="hidden" name="format" value="${html(data.fields.format)}"><input type="hidden" name="emphasis" value="${html(data.fields.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(data.fields.recommended_weeks)}"><input type="hidden" name="publication_fingerprint" value="${html(data.sourceFingerprint)}"><input type="hidden" name="source_fingerprint" value="${html(data.reviewSourceFingerprint)}"><input type="hidden" name="preview_id" value="${html(data.previewID)}"><input type="hidden" name="backend_fingerprint" value="${html(data.backendFingerprint)}"><button class="button primary" type="submit"${data.changes.length ? '' : ' disabled'}>Publish to ${html(environmentName)}</button><span class="publish-note">${data.changes.length ? 'One explicit publication to the selected development catalog and configured repository branch.' : 'No changes to publish.'}</span></form><form method="POST" action="@editProgram" class="back-form">${hidden}<input type="hidden" name="name" value="${html(data.fields.name)}"><input type="hidden" name="format" value="${html(data.fields.format)}"><input type="hidden" name="emphasis" value="${html(data.fields.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(data.fields.recommended_weeks)}"><button class="button quiet" type="submit">Back to editing</button></form></section>` : '';
   return `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="intro"><div><h1>Program details</h1><p>Update the program description used by lifters. Workouts and training history stay as published.</p></div><div class="environment">Target <strong>${html(environmentName)}</strong></div></section><div class="workflow"><span class="step active">Edit</span><span aria-hidden="true">→</span><span class="step${view === 'review' ? ' active' : ''}">Review</span><span aria-hidden="true">→</span><span class="step">Publish</span></div>${view === 'edit' ? `<section class="editor-layout"><aside class="program-rail"><h2>Programs</h2><ul>${data.source.programs.map(program => `<li${program.key === data.fields.program_key ? ' class="selected"' : ''}><span>${html(program.name)}</span><small>${html(program.format)}${program.removed ? ' · Removed' : ''}</small></li>`).join('')}</ul></aside><div class="editor-panel"><div class="panel-heading"><div><h2>Edit details</h2><p>Key <code>${html(chosen?.key)}</code> · Other catalog content is preserved.</p></div><span class="badge">${chosen?.removed ? 'Removed' : 'Published'}</span></div>${Object.keys(errors).length ? `<div class="notice error" role="alert"><strong>Fix ${Object.keys(errors).length} field${Object.keys(errors).length === 1 ? '' : 's'} below.</strong> Your entries are still here.</div>` : ''}${editForm}</div></section>` : review}</main>`;
 }
 
@@ -153,18 +164,32 @@ export function renderDashboard(result: DashboardResult | undefined, sourceData:
   const email = environment.ACCESS_APPROVED_EMAIL ?? '';
   const config = apiConfiguration(environment);
   const environmentName = config?.environmentName ?? 'unconfigured';
+  const repositoryTarget = [environment.CATALOG_REPOSITORY_OWNER, environment.CATALOG_REPOSITORY_NAME].every(Boolean)
+    && environment.CATALOG_REPOSITORY_BRANCH
+    ? `${environment.CATALOG_REPOSITORY_OWNER}/${environment.CATALOG_REPOSITORY_NAME} · ${environment.CATALOG_REPOSITORY_BRANCH}`
+    : 'not configured';
   let body: string;
   if (result?.view === 'edit' || result?.view === 'review') {
-    body = formPage(result.view, result, environmentName, email);
+    body = formPage(result.view, result, environmentName, repositoryTarget, email);
   } else if (result?.view === 'success') {
-    body = `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="result success" role="status"><div class="result-mark" aria-hidden="true">✓</div><div><h1>Catalog published</h1><p>The development catalog accepted publication <code>${html(result.publicationID)}</code>. The app-facing catalog now contains the updated program details.</p><a class="button primary" href="/">Return to catalog</a></div></section></main>`;
+    const synchronized = result.repositoryStatus === 'synchronized';
+    const repositoryMessage = synchronized
+      ? `Repository source and the bundled iOS catalog are synchronized${result.repositoryCommitSHA ? ` at <code>${html(result.repositoryCommitSHA.slice(0, 12))}</code>` : ''}.`
+      : result.repositoryStatus === 'superseded'
+        ? `The database publication completed, but a newer publication is now current. ${html(result.repositoryDetail ?? 'Reload the catalog and synchronize the current version.')}`
+        : `The database publication completed and remains live. Repository synchronization is incomplete${result.repositoryDetail ? `: ${html(result.repositoryDetail)}` : '.'} Retry uses this same published version.`;
+    const retry = !synchronized && result.repositoryStatus !== 'superseded'
+      ? `<form method="POST" action="@syncCatalog"><input type="hidden" name="publication_id" value="${html(result.publicationID)}"><button class="button primary" type="submit">Retry repository sync</button></form>` : '';
+    body = `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="result ${synchronized ? 'success' : 'error'}" role="${synchronized ? 'status' : 'alert'}"><div class="result-mark" aria-hidden="true">${synchronized ? '✓' : '!'}</div><div><h1>${synchronized ? 'Catalog published and synchronized' : 'Catalog published; repository sync needed'}</h1><p>The development catalog accepted publication <code>${html(result.publicationID)}</code>.</p><p>${repositoryMessage}</p><div class="form-actions">${retry}<a class="button quiet" href="/">Return to catalog</a></div></div></section></main>`;
   } else if (result?.view === 'error') {
     body = `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="result error" role="alert"><div class="result-mark" aria-hidden="true">!</div><div><h1>${html(result.title)}</h1><p>${html(result.detail)}</p>${result.fields ? `<form method="POST" action="@editProgram"><input type="hidden" name="program_key" value="${html(result.fields.program_key)}"><input type="hidden" name="name" value="${html(result.fields.name)}"><input type="hidden" name="format" value="${html(result.fields.format)}"><input type="hidden" name="emphasis" value="${html(result.fields.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(result.fields.recommended_weeks)}"><button class="button quiet" type="submit">Return to editing</button></form>` : ''}</div></section></main>`;
   } else if (sourceData) {
     const count = sourceData.source.programs.length;
+    const syncStatus = sourceData.repository_sync_status ?? 'pending';
+    const syncNotice = syncStatus === 'synchronized' ? '' : `<section class="sync-notice" role="${syncStatus === 'failed' ? 'alert' : 'status'}"><div><h2>${syncStatus === 'failed' ? 'Repository synchronization needs a retry' : syncStatus === 'in_progress' ? 'Repository synchronization did not finish' : 'Repository files are awaiting synchronization'}</h2><p>The database publication is live. This status tracks repository export separately, so an export problem does not roll back the catalog used by lifters.${sourceData.repository_sync_error ? ` Last result: ${html(sourceData.repository_sync_error)}` : ''}</p></div><form method="POST" action="@syncCatalog"><input type="hidden" name="publication_id" value="${html(sourceData.publication_id)}"><button class="button primary" type="submit">${syncStatus === 'failed' || syncStatus === 'in_progress' ? 'Retry repository sync' : 'Sync repository files'}</button></form></section>`;
     const exerciseByKey = new Map(sourceData.source.exercises.map(exercise => [exercise.key, exercise]));
     const fullCatalog = `<section class="full-catalog"><details><summary>Browse workout templates and shared exercises</summary><div class="full-catalog-content"><h2>Workout templates</h2>${sourceData.source.programs.map(program => `<section class="read-program"><div class="read-program-heading"><h3>${html(program.name)}</h3><span class="badge${program.removed ? ' removed' : ''}">${program.removed ? 'Removed' : 'Available'}</span></div><p>${html(program.key)} · ${html(program.format)} · ${program.recommended_weeks} recommended training weeks</p>${program.workouts.map(workout => `<section class="read-workout"><div><strong>${workout.position}. ${html(workout.name)}</strong>${workout.removed ? ' <span class="badge removed">Removed</span>' : ''}</div><ul>${workout.exercises.map(slot => { const exercise = exerciseByKey.get(slot.exercise); return `<li${slot.removed ? ' class="removed-slot"' : ''}>${slot.position}. ${html(exercise?.name ?? slot.exercise)} · ${slot.reps.minimum}–${slot.reps.maximum} ${html(slot.scope ?? 'reps')}${slot.removed ? ' · Removed' : ''}</li>`; }).join('')}</ul></section>`).join('')}</section>`).join('')}<h2>Shared exercises</h2><div class="shared-exercises">${sourceData.source.exercises.map(exercise => `<article><h3>${html(exercise.name)}</h3><code>${html(exercise.key)}</code><p><strong>Technique:</strong> ${html(exercise.instructions)}</p><p><strong>Stop:</strong> ${html(exercise.stopping_guidance)}</p><p><strong>Warmup:</strong> ${html(exercise.warmup_guidance)}</p><p><strong>Rest:</strong> ${exercise.rest_seconds}s · <strong>Default reps:</strong> ${exercise.default_reps.minimum}–${exercise.default_reps.maximum}</p></article>`).join('')}</div></div></details></section>`;
-    body = `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="intro"><div><h1>Program catalog</h1><p>Choose a program to edit its display details, then review before publishing.</p></div><div class="environment">Target <strong>${html(environmentName)}</strong></div></section><section class="catalog-panel"><div class="catalog-toolbar"><div><h2>${count} programs in catalog</h2><p class="publication-meta"><span>Publication <code title="${html(sourceData.publication_id)}">${html(sourceData.publication_id)}</code></span><span>Source <code title="${html(sourceData.source_fingerprint)}">${html(sourceData.source_fingerprint)}</code></span></p></div><a class="button quiet history-link" href="/history">Publication history</a></div><div class="catalog-rows">${sourceData.source.programs.map((program, index) => `<article class="catalog-row"><span class="row-index">${String(index + 1).padStart(2, '0')}</span><div class="row-main"><h3>${html(program.name)}</h3><p>${html(program.format)} <span aria-hidden="true">·</span> ${html(program.emphasis)}</p></div><span class="badge${program.removed ? ' removed' : ''}">${program.removed ? 'Removed' : 'Available'}</span><form method="POST" action="@editProgram"><input type="hidden" name="program_key" value="${html(program.key)}"><input type="hidden" name="name" value="${html(program.name)}"><input type="hidden" name="format" value="${html(program.format)}"><input type="hidden" name="emphasis" value="${html(program.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(program.recommended_weeks)}"><input type="hidden" name="publication_fingerprint" value="${html(sourceData.source_fingerprint)}"><button class="button quiet" type="submit">Edit details</button></form></article>`).join('')}</div></section>${fullCatalog}</main>`;
+    body = `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="intro"><div><h1>Program catalog</h1><p>Choose a program to edit its display details, then review before publishing.</p></div><div class="environment">Target <strong>${html(environmentName)}</strong></div></section>${syncNotice}<section class="catalog-panel"><div class="catalog-toolbar"><div><h2>${count} programs in catalog</h2><p class="publication-meta"><span>Publication <code title="${html(sourceData.publication_id)}">${html(sourceData.publication_id)}</code></span><span>Source <code title="${html(sourceData.source_fingerprint)}">${html(sourceData.source_fingerprint)}</code></span></p></div><a class="button quiet history-link" href="/history">Publication history</a></div><div class="catalog-rows">${sourceData.source.programs.map((program, index) => `<article class="catalog-row"><span class="row-index">${String(index + 1).padStart(2, '0')}</span><div class="row-main"><h3>${html(program.name)}</h3><p>${html(program.format)} <span aria-hidden="true">·</span> ${html(program.emphasis)}</p></div><span class="badge${program.removed ? ' removed' : ''}">${program.removed ? 'Removed' : 'Available'}</span><form method="POST" action="@editProgram"><input type="hidden" name="program_key" value="${html(program.key)}"><input type="hidden" name="name" value="${html(program.name)}"><input type="hidden" name="format" value="${html(program.format)}"><input type="hidden" name="emphasis" value="${html(program.emphasis)}"><input type="hidden" name="recommended_weeks" value="${html(program.recommended_weeks)}"><input type="hidden" name="publication_fingerprint" value="${html(sourceData.source_fingerprint)}"><button class="button quiet" type="submit">Edit details</button></form></article>`).join('')}</div></section>${fullCatalog}</main>`;
   } else {
     const title = 'Catalog unavailable';
     const detail = 'The configured catalog could not be loaded. No empty catalog is being shown.';
@@ -220,6 +245,17 @@ export async function handleDashboardAction(kind: DashboardActionKind, request: 
   environment: DashboardEnvironment, dependencies: DashboardDependencies = {}): Promise<DashboardResult> {
   const accessError = await validateRequest(request, environment, dependencies);
   if (accessError) return accessError;
+  if (kind === 'sync') {
+    const publicationID = text(form.get('publication_id'));
+    if (!publicationID || !environment.CATALOG_PUBLISH_TOKEN) {
+      return { view: 'error', status: 400, title: 'Synchronization is unavailable', detail: 'The published catalog identity or server publisher credential is missing.' };
+    }
+    const sync = await (dependencies.repositorySync ?? synchronizePublication)(publicationID,
+      environment as RepositorySyncEnvironment, dependencies.repositorySyncDependencies);
+    return { view: 'success', publicationID, repositoryStatus: sync.status,
+      ...(sync.detail ? { repositoryDetail: sync.detail } : {}),
+      ...(sync.commitSHA ? { repositoryCommitSHA: sync.commitSHA } : {}) };
+  }
   const sourceData = await readPublishedSource(request, environment, dependencies);
   if (!sourceData) return { view: 'error', status: 503, title: 'Catalog storage is unavailable', detail: 'The configured catalog could not be read. Nothing has been edited or published.' };
   const fields = readFields(form);
@@ -285,7 +321,11 @@ export async function handleDashboardAction(kind: DashboardActionKind, request: 
         if (response.status === 403) return { view: 'error', status: 403, title: 'Publication access was denied', detail: 'The development catalog rejected the server publisher credential. Ask the dashboard administrator to check its configuration.', fields };
         return { view: 'error', status: 503, title: 'Publication failed', detail: 'The catalog service did not confirm this publication. Check the catalog before retrying; the previous complete catalog remains available if the transaction failed.', fields };
       }
-      return { view: 'success', publicationID: result.publication_id };
+      const synchronization = await (dependencies.repositorySync ?? synchronizePublication)(result.publication_id,
+        environment as RepositorySyncEnvironment, dependencies.repositorySyncDependencies);
+      return { view: 'success', publicationID: result.publication_id, repositoryStatus: synchronization.status,
+        ...(synchronization.detail ? { repositoryDetail: synchronization.detail } : {}),
+        ...(synchronization.commitSHA ? { repositoryCommitSHA: synchronization.commitSHA } : {}) };
     } catch {
       return { view: 'error', status: 503, title: 'Publication result is uncertain', detail: 'The response was interrupted. The same reviewed publication can be retried safely; reload the catalog first to check whether it completed.', fields };
     }

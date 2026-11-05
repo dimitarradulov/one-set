@@ -1,6 +1,6 @@
 # Database design
 
-The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002–005 add setup completion, stable catalog publication, offered-program onboarding and cycle-scoped workout boundaries without replacing existing program, cycle or history IDs. [Migration 006](migrations/006_completed_session_write.sql) adds the owner-scoped completed-session write function without adding tables or columns. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
+The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002–005 add setup completion, stable catalog publication, offered-program onboarding and cycle-scoped workout boundaries without replacing existing program, cycle or history IDs. [Migration 006](migrations/006_completed_session_write.sql) adds the owner-scoped completed-session write function without adding tables or columns. Migration 011 adds repository synchronization state to published catalog operations. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
 
 ## Tables and their purpose
 
@@ -18,7 +18,7 @@ The [DBML](oneset.dbml) documents the baseline training schema plus completed-wo
 | `workout_sessions` | One attempt at a run/week/day/workout, copied workout name, start/finish times, optional note and upload revision. `day_number` is nullable for legacy sessions. Ownership comes through `user_programs`; no duplicate user ID. |
 | `workout_session_sets` | One row per original slot, including unfinished work. Stores actual exercise, copied order/guidance/note, weight, entered unit, reps and completion time. |
 | `completed_workouts` | Three-column run/week/workout completion mark. Kept separately only because deleting history must not rewind program progress. |
-| `catalog_publications` | Immutable identifier and fingerprints for each successfully reviewed source snapshot. |
+| `catalog_publications` | Immutable reviewed source plus the status, commit, and last error of its repository synchronization operation. |
 | `catalog_state` | Singleton pointer to the current complete catalog snapshot and publication fingerprint. |
 
 ```mermaid
@@ -143,6 +143,8 @@ Before application, it was rehearsed on a temporary child of the development bra
 Migrations 004 and 005 were rehearsed together on the temporary Neon branch `oneset-15-migration-rehearsal`, parented from `oneset-development`. Both applied successfully. The branch began with two cycles and no workout membership periods. A temporary synthetic workout and cycle verified that the initialization trigger created a period starting in week 1; `required_workouts_for_cycle_week` returned zero before the cycle's current week 3 and one at week 3. After the rehearsal, migrations 004 and 005 were applied to `oneset-development` (`br-autumn-term-b1pjy8wc`). Live checks verified the new function signatures and that existing counts remained two users, two cycles, zero workout periods, zero completion marks, and zero sessions. Production was not modified.
 
 Migration 006 adds `save_completed_session(authenticated_clerk_user_id, payload)`, which resolves stable authoring keys, validates the captured snapshot and cycle ownership, inserts session/set/completion rows atomically, and advances the cycle week only when all workouts required for that occurrence week are complete. PGlite exercises full and partial finishes, retained snapshots, retries and rollback.
+
+Migration 011 adds published-operation repository sync status, commit identity, error detail, and completion time. The Worker and dashboard integration suites apply it to disposable PGlite before exercising status transitions and current-publication checks. It has not been applied to a shared database or deployed; apply it to the development database as part of the integrated parent release.
 
 Migration 007 adds nullable `workout_sessions.day_number` and `save_completed_session_with_day(...)`, preserving migration 006's original writer for existing callers. New completed-session requests may include a positive `day_number`; old requests remain valid and produce a null day. The wrapper uses the existing first-write transaction and rejects conflicting retries that attempt to change the captured day. PGlite migration/query checks cover the additive schema and completed-session read path.
 

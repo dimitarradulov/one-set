@@ -2,8 +2,9 @@ import { verifyCloudflareAccess, type AccessConfiguration } from '../../worker/s
 import { validateCatalogSource, type CatalogSource } from '../../worker/src/catalog-validation';
 import type { JWTVerifyGetKey } from 'jose';
 import { publishCatalogSource, readCurrentCatalog, reviewCatalogSource } from './catalog-maintenance';
+import { synchronizePublication, type RepositorySyncDependencies, type RepositorySyncEnvironment, type RepositorySyncResult } from './repository-sync';
 
-export interface HistoryEnvironment extends AccessConfiguration {
+export interface HistoryEnvironment extends AccessConfiguration, RepositorySyncEnvironment {
   CATALOG_ENVIRONMENT: string;
   CATALOG_API_BASE_URL: string;
   CATALOG_PUBLISH_TOKEN?: string;
@@ -13,6 +14,9 @@ export interface HistoryDependencies {
   keySource?: JWTVerifyGetKey;
   fetcher?: typeof fetch;
   verify?: (request: Request, configuration: AccessConfiguration, keySource?: JWTVerifyGetKey) => Promise<boolean>;
+  repositorySync?: (publicationID: string, environment: RepositorySyncEnvironment,
+    dependencies?: RepositorySyncDependencies) => Promise<RepositorySyncResult>;
+  repositorySyncDependencies?: RepositorySyncDependencies;
 }
 
 export interface PublicationSummary {
@@ -35,7 +39,8 @@ export type HistoryActionResult =
   | { view: 'history-review'; publication: HistoricalPublication; current: CurrentPublication; candidate: CatalogSource;
       changes: HistoryChange[]; affectedPrograms: string[]; sourceFingerprint: string; backendFingerprint: string;
       previewID: string; retained: RetainedCounts }
-  | { view: 'history-success'; publicationID: string }
+  | { view: 'history-success'; publicationID: string; repositoryStatus: RepositorySyncResult['status'];
+      repositoryDetail?: string; repositoryCommitSHA?: string }
   | { view: 'history-error'; status: number; title: string; detail: string; publicationID?: string; retry?: HistoryRetry };
 
 export interface HistoryChange {
@@ -227,5 +232,9 @@ export async function publishHistoricalRestoration(request: Request, form: FormD
     ...(published.status === 409 ? {} : { retry: { publicationID, publicationFingerprint, catalogSource: JSON.stringify(candidate),
       sourceFingerprint: submittedSourceFingerprint, backendFingerprint, previewID } }),
   };
-  return { view: 'history-success', publicationID: published.publicationID };
+  const synchronization = await (dependencies.repositorySync ?? synchronizePublication)(published.publicationID,
+    environment, dependencies.repositorySyncDependencies);
+  return { view: 'history-success', publicationID: published.publicationID, repositoryStatus: synchronization.status,
+    ...(synchronization.detail ? { repositoryDetail: synchronization.detail } : {}),
+    ...(synchronization.commitSHA ? { repositoryCommitSHA: synchronization.commitSHA } : {}) };
 }

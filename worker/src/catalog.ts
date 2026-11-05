@@ -22,6 +22,9 @@ interface PublicationState {
   publication_id: string | null;
   source_fingerprint: string | null;
   source_document: unknown;
+  repository_sync_status: string | null;
+  repository_commit_sha: string | null;
+  repository_sync_error: string | null;
 }
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}): Response {
@@ -77,13 +80,19 @@ async function readBody(request: Request): Promise<unknown | Response> {
 }
 
 async function readState(database: CatalogDatabase): Promise<PublicationState | undefined> {
-  const [row] = await database.query(`SELECT publication_id, source_fingerprint, source_document
-    FROM public.catalog_state WHERE singleton = true`);
+  const [row] = await database.query(`SELECT state.publication_id, state.source_fingerprint, state.source_document,
+      publication.repository_sync_status, publication.repository_commit_sha, publication.repository_sync_error
+    FROM public.catalog_state AS state
+    LEFT JOIN public.catalog_publications AS publication ON publication.id = state.publication_id
+    WHERE state.singleton = true`);
   if (!row) return undefined;
   return {
     publication_id: typeof row.publication_id === 'string' ? row.publication_id : null,
     source_fingerprint: typeof row.source_fingerprint === 'string' ? row.source_fingerprint : null,
     source_document: row.source_document ?? null,
+    repository_sync_status: typeof row.repository_sync_status === 'string' ? row.repository_sync_status : null,
+    repository_commit_sha: typeof row.repository_commit_sha === 'string' ? row.repository_commit_sha : null,
+    repository_sync_error: typeof row.repository_sync_error === 'string' ? row.repository_sync_error : null,
   };
 }
 
@@ -286,7 +295,80 @@ async function readCatalogSource(
   return json({
     source,
     publication_id: state.publication_id,
+    current_publication_id: state.publication_id,
     source_fingerprint: state.source_fingerprint,
+    repository_sync_status: state.repository_sync_status ?? 'pending',
+    repository_commit_sha: state.repository_commit_sha,
+    repository_sync_error: state.repository_sync_error,
+  });
+}
+
+async function publishedOperation(
+  request: Request,
+  env: CatalogConfiguration,
+  database: CatalogDatabase,
+  publicationID: string,
+): Promise<Response> {
+  const secret = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!env.CATALOG_PUBLISH_TOKEN || !(await sameSecret(secret, env.CATALOG_PUBLISH_TOKEN))) {
+    return error('FORBIDDEN', 403);
+  }
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  const [row] = await database.query(`SELECT id, source_fingerprint, source_document,
+      repository_sync_status, repository_commit_sha, repository_sync_error, repository_synced_at
+    FROM public.catalog_publications WHERE id = $1`, [publicationID]);
+  if (!row) return error('PUBLICATION_NOT_FOUND', 404);
+  const [state] = await database.query(`SELECT publication_id FROM public.catalog_state WHERE singleton = true`);
+  return json({
+    publication_id: row.id,
+    source_fingerprint: row.source_fingerprint,
+    source: row.source_document,
+    is_current: state?.publication_id === publicationID,
+    current_publication_id: typeof state?.publication_id === 'string' ? state.publication_id : null,
+    repository_sync_status: row.repository_sync_status,
+    repository_commit_sha: row.repository_commit_sha,
+    repository_sync_error: row.repository_sync_error,
+    repository_synced_at: row.repository_synced_at,
+  });
+}
+
+async function updateRepositorySync(
+  request: Request,
+  env: CatalogConfiguration,
+  database: CatalogDatabase,
+  publicationID: string,
+): Promise<Response> {
+  const secret = request.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!env.CATALOG_PUBLISH_TOKEN || !(await sameSecret(secret, env.CATALOG_PUBLISH_TOKEN))) {
+    return error('FORBIDDEN', 403);
+  }
+  if (request.method !== 'POST') return error('METHOD_NOT_ALLOWED', 405);
+  const bodyValue = await readBody(request);
+  if (bodyValue instanceof Response) return bodyValue;
+  const body = sourceFromBody(bodyValue);
+  const status = body?.status;
+  if (!['in_progress', 'synchronized', 'failed', 'superseded'].includes(String(status))) {
+    return error('INVALID_SYNC_STATUS', 400);
+  }
+  const syncStatus = String(status);
+  const commitSHA = typeof body?.repository_commit_sha === 'string' ? body.repository_commit_sha : null;
+  const detail = typeof body?.error === 'string' ? body.error.slice(0, 500) : null;
+  const [row] = await database.transaction(`UPDATE public.catalog_publications AS publication
+    SET repository_sync_status = $2,
+        repository_commit_sha = coalesce(nullif($3, ''), publication.repository_commit_sha),
+        repository_sync_error = CASE WHEN $2 = 'failed' THEN nullif($4, '') ELSE NULL END,
+        repository_synced_at = CASE WHEN $2 = 'synchronized' THEN now() ELSE publication.repository_synced_at END
+    WHERE publication.id = $1
+      AND EXISTS (SELECT 1 FROM public.catalog_state WHERE singleton = true AND publication_id = $1)
+    RETURNING id, repository_sync_status, repository_commit_sha, repository_sync_error, repository_synced_at`,
+  [publicationID, syncStatus, commitSHA ?? '', detail ?? '']);
+  if (!row) return error('STALE_PUBLICATION', 409);
+  return json({
+    publication_id: row.id,
+    repository_sync_status: row.repository_sync_status,
+    repository_commit_sha: row.repository_commit_sha,
+    repository_sync_error: row.repository_sync_error,
+    repository_synced_at: row.repository_synced_at,
   });
 }
 
@@ -362,6 +444,14 @@ export async function handleCatalogRequest(
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
   try {
+    const repositorySyncPath = path.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)\/repository-sync$/);
+    if (repositorySyncPath) return await updateRepositorySync(request, env, database, decodeURIComponent(repositorySyncPath[1]!));
+    const publicationPath = path.match(/^\/v1\/maintenance\/catalog\/publications\/([^/]+)$/);
+    if (publicationPath) {
+      return request.headers.get('Authorization')?.startsWith('Bearer ')
+        ? await publishedOperation(request, env, database, decodeURIComponent(publicationPath[1]!))
+        : await readHistoricalPublication(request, env, database, controlledAccessKeySource);
+    }
     if (path === '/v1/maintenance/catalog/source') {
       return await readCatalogSource(request, env, database, controlledAccessKeySource);
     }

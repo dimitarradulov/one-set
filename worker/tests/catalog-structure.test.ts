@@ -77,6 +77,7 @@ await engine.exec(`
   SELECT setval(pg_get_serial_sequence('workout_programs', 'id'), 10);
 `);
 await engine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await engine.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
 

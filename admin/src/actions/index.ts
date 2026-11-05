@@ -24,4 +24,9 @@ export const server = {
     accept: 'form',
     handler: (input, context) => publishHistoricalRestoration(context.request, input, env as HistoryEnvironment),
   }),
+  syncCatalog: defineAction({
+    accept: 'form',
+    handler: (input, context) => handleDashboardAction('sync', context.request, input, env as DashboardEnvironment),
+
+  }),
 };

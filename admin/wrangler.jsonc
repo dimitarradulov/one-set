@@ -8,6 +8,9 @@
   "preview_urls": false,
   "vars": {
     "CATALOG_ENVIRONMENT": "development",
+    "CATALOG_REPOSITORY_OWNER": "dimitarradulov",
+    "CATALOG_REPOSITORY_NAME": "one-set",
+    "CATALOG_REPOSITORY_BRANCH": "main",
     "CATALOG_API_BASE_URL": "https://oneset-api-development.dimitarradulovv.workers.dev",
     "ACCESS_TEAM_DOMAIN": "https://misty-flower-edfe.cloudflareaccess.com",
     "ACCESS_AUDIENCE": "cea4eb9b4f3e93c40ca65d1cb6ed6a697ba62115630b202af82c57cca15e5026",

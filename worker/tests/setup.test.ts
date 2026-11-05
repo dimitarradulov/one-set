@@ -47,6 +47,7 @@ await db.exec(`
   SELECT setval(pg_get_serial_sequence('users', 'id'), 2);
 `);
 await db.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
+await db.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await db.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 
 test('lookup returns only verified owner setup even with a client ownership claim', async () => {
