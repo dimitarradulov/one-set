@@ -86,6 +86,7 @@ async function github(path: string, config: NonNullable<ReturnType<typeof repoCo
       ...init,
       headers: {
         Authorization: `Bearer ${config.token}`,
+        'User-Agent': 'OneSetCatalogDashboard',
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),

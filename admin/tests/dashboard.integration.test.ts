@@ -1162,6 +1162,7 @@ function githubHarness() {
     get refUpdates() { return refUpdates; },
     conflictOnce() { conflictNextUpdate = true; },
     async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+      assert.equal(new Headers(init?.headers).get('User-Agent'), 'OneSetCatalogDashboard');
       const url = new URL(String(input));
       const path = url.pathname.replace(/^\/repos\/[^/]+\/[^/]+/, '');
       const method = init?.method ?? 'GET';
