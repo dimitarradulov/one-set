@@ -273,6 +273,41 @@ test('non-development targets stay read-only even for the approved founder', asy
   if (result.view === 'error') assert.equal(result.status, 403);
 });
 
+test('complete-source review gives actionable structure, reference, duplicate-key, and identity errors', async () => {
+  const baseline = await readCurrentSource();
+  const selected = baseline.source.programs.find(program => program.removed !== true)!;
+  const selectedSlot = selected.workouts.find(workout => workout.removed !== true)!.exercises.find(slot => slot.removed !== true)!;
+  const secondExercise = baseline.source.exercises.find(exercise => exercise.key !== selectedSlot.exercise)!;
+  const scenarios: Array<[string, (candidate: CatalogSource) => void, RegExp]> = [
+    ['rep bounds', candidate => {
+      const slot = candidate.programs.find(program => program.key === selected.key)!.workouts
+        .flatMap(workout => workout.exercises).find(item => item.key === selectedSlot.key)!;
+      slot.reps.minimum = slot.reps.maximum + 1;
+    }, /rep bounds/],
+    ['broken exercise reference', candidate => {
+      candidate.programs.find(program => program.key === selected.key)!.workouts
+        .flatMap(workout => workout.exercises).find(item => item.key === selectedSlot.key)!.exercise = 'missing-movement';
+    }, /unknown exercise/],
+    ['duplicate identity', candidate => {
+      candidate.programs.push({ ...structuredClone(selected), name: 'Duplicate program identity' });
+    }, /duplicate key/],
+    ['movement identity conflict', candidate => {
+      candidate.programs.find(program => program.key === selected.key)!.workouts
+        .flatMap(workout => workout.exercises).find(item => item.key === selectedSlot.key)!.exercise = secondExercise.key;
+    }, /cannot be reused for a different exercise/],
+  ];
+  for (const [label, mutate, expected] of scenarios) {
+    const candidate = structuredClone(baseline.source);
+    mutate(candidate);
+    const submitted = form({ program_key: selected.key, publication_fingerprint: baseline.source_fingerprint,
+      catalog_source: JSON.stringify(candidate) });
+    const result = await handleDashboardAction('review', await dashboardRequest('reviewProgram', submitted), submitted,
+      environment, { keySource: accessKeySource });
+    assert.equal(result.view, 'edit', `${label} should return to the editor`);
+    if (result.view === 'edit') assert.match(result.catalogErrors?.join(' ') ?? '', expected, label);
+  }
+});
+
 test('stale reviews and transaction failures report errors and preserve the previous catalog', async () => {
   const accessToken = await token();
   const baseline = await readCurrentSource();
@@ -434,34 +469,85 @@ test('real browser submits native Astro Action forms through edit → review →
     await page.setExtraHTTPHeaders({ 'Cf-Access-Jwt-Assertion': browserToken });
     const response = await page.goto(`${origin}/`, { waitUntil: 'networkidle' });
     assert.equal(response?.status(), 200);
-    await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
+    await page.getByRole('button', { name: 'Create program' }).click();
     await page.getByLabel('Program name').waitFor();
-    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-edit.png'), fullPage: true });
+    await page.getByLabel('Program name').fill('Browser-created structure');
+    await page.getByLabel('Format').fill('2 workouts · full body');
+    await page.getByLabel('Emphasis').fill('A complete browser-authored program.');
+    await page.getByLabel('Recommended training weeks').fill('12');
+    await page.getByRole('button', { name: 'Add workout template' }).click();
+    const workoutCards = page.locator('.workout-card');
+    assert.equal(await workoutCards.count(), 2);
+    await workoutCards.nth(1).getByLabel('Workout name').fill('Workout B');
+    await workoutCards.nth(1).getByLabel('Banner identifier').fill('issue-62-banner');
+    await workoutCards.nth(1).locator('[data-slot-field="minimum"]').fill('9');
+    await workoutCards.nth(1).locator('[data-slot-field="maximum"]').fill('13');
+    await workoutCards.nth(1).getByLabel('Scope').selectOption('each_leg');
+    await workoutCards.nth(1).getByRole('button', { name: 'Move workout up' }).click();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-edit.png'), fullPage: true });
 
     await page.getByLabel('Program name').evaluate(input => input.removeAttribute('required'));
     await page.getByLabel('Program name').fill('');
-    await page.getByRole('button', { name: 'Review changes' }).click();
+    await page.getByRole('button', { name: 'Review complete program' }).click();
     const validationText = await page.locator('body').innerText();
     assert.match(validationText, /Enter a program name\./, `server validation should return the edit form; received: ${validationText}`);
-    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-error.png'), fullPage: true });
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-error.png'), fullPage: true });
 
-    await page.getByLabel('Program name').fill('Browser action roundtrip');
-    await page.getByLabel('Emphasis').fill('A browser-verified program detail change.');
-    await page.getByRole('button', { name: 'Review changes' }).click();
-    await page.getByRole('heading', { name: 'Review program changes' }).waitFor();
-    await page.getByText('A browser-verified program detail change.').waitFor();
-    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-review.png'), fullPage: true });
+    await page.getByLabel('Program name').fill('Browser-created structure');
+    await page.getByRole('button', { name: 'Review complete program' }).click();
+    await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
+    await page.locator('.proposed-structure').getByText('Banner issue-62-banner').waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-review.png'), fullPage: true });
 
     await page.getByRole('button', { name: 'Back to editing' }).click();
     await page.getByLabel('Program name').waitFor();
-    assert.equal(await page.getByLabel('Program name').inputValue(), 'Browser action roundtrip');
-    await page.getByLabel('Program name').fill('Browser publication complete');
-    await page.getByRole('button', { name: 'Review changes' }).click();
-    await page.getByRole('heading', { name: 'Review program changes' }).waitFor();
+    assert.equal(await page.getByLabel('Program name').inputValue(), 'Browser-created structure');
+    assert.equal(await page.locator('.workout-card').count(), 2);
+    assert.equal(await page.locator('.workout-card').first().getByLabel('Workout name').inputValue(), 'Workout B');
+    await page.getByRole('button', { name: 'Review complete program' }).click();
+    await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
     await page.getByRole('button', { name: 'Publish to development' }).click();
     await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
-    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-success.png'), fullPage: true });
-    assert.equal((await readCurrentSource()).source.programs[1]!.name, 'Browser publication complete');
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-success.png'), fullPage: true });
+    const created = (await readCurrentSource()).source.programs.find(program => program.name === 'Browser-created structure');
+    assert.ok(created, 'the complete new program should be published');
+    assert.equal(created.workouts.length, 2);
+    assert.deepEqual(created.workouts.map(workout => workout.position), [1, 2]);
+    assert.equal(created.workouts[0]!.banner, 'issue-62-banner');
+    assert.equal(created.workouts[0]!.exercises[0]!.reps.minimum, 9);
+    assert.equal(created.workouts[0]!.exercises[0]!.scope, 'each_leg');
+
+    await page.getByRole('link', { name: 'Return to catalog' }).click();
+    await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
+    await page.getByLabel('Program name').waitFor();
+    const existingProgramKey = (await readCurrentSource()).source.programs[1]!.key;
+    const existingWorkouts = page.locator('.workout-card');
+    assert.ok(await existingWorkouts.count() >= 2);
+    const beforeOrder = await existingWorkouts.evaluateAll(rows => rows.map(row => row.querySelector('code')?.textContent));
+    await existingWorkouts.first().getByRole('button', { name: 'Move workout down' }).click();
+    const selectedRow = page.locator('.workout-card').first().locator('.slot-row').first();
+    const originalSlotKey = await selectedRow.getAttribute('data-slot');
+    const originalExercise = await selectedRow.locator('[data-slot-field="exercise"]').inputValue();
+    const replacementExercise = (await readCurrentSource()).source.exercises.find(exercise => exercise.key !== originalExercise)!.key;
+    const beforePrescription = await selectedRow.locator('[data-slot-field="minimum"]').inputValue();
+    await page.locator('.workout-card').first().locator('.slot-row').first().locator('[data-slot-field="minimum"]').fill('5');
+    await page.locator('.workout-card').first().locator('.slot-row').first().locator('[data-slot-field="maximum"]').fill('6');
+    await page.locator('.workout-card').first().locator('.slot-row').first().locator('[data-slot-field="exercise"]').selectOption(replacementExercise);
+    await page.getByRole('button', { name: 'Review complete program' }).click();
+    await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Publish to development' }).isEnabled(), true);
+    await page.getByRole('button', { name: 'Publish to development' }).click();
+    await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
+    const updated = (await readCurrentSource()).source.programs.find(program => program.key === existingProgramKey)!;
+    assert.notDeepEqual(updated.workouts.map(workout => workout.key), beforeOrder);
+    assert.equal(updated.workouts[0]!.exercises[0]!.reps.minimum, 5);
+    assert.equal(updated.workouts[0]!.exercises[0]!.reps.maximum, 6);
+    assert.notEqual(beforePrescription, '5');
+    assert.notEqual(updated.workouts[0]!.exercises[0]!.key, originalSlotKey,
+      'a changed movement receives a new stable slot identity');
+    assert.equal(updated.workouts[0]!.exercises[0]!.exercise, replacementExercise);
+    assert.equal(updated.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === originalSlotKey)?.removed, true,
+      'the prior slot identity remains represented as removed');
   } finally {
     await browser?.close();
     worker.kill('SIGTERM');
