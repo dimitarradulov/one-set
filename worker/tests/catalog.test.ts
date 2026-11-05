@@ -419,7 +419,7 @@ test('published source sync status is protected, current-version bound, and retr
   const [row] = await database.query(`SELECT publication_id FROM public.catalog_state WHERE singleton = true`);
   const publicationID = String(row!.publication_id);
   const endpoint = `/v1/maintenance/catalog/publications/${publicationID}`;
-  const denied = await handleCatalogRequest(request(endpoint), environment, database);
+  const denied = await handleCatalogRequest(request(endpoint, 'wrong-publisher-token'), environment, database);
   assert.equal(denied.status, 403);
 
   const read = await handleCatalogRequest(request(endpoint, environment.CATALOG_PUBLISH_TOKEN), environment, database);
