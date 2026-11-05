@@ -1,0 +1,11 @@
+---
+import { env } from 'cloudflare:workers';
+import { handleDashboardRequest } from '../dashboard';
+
+const result = await handleDashboardRequest(Astro.request, env);
+Astro.response.status = result.status;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const document = await result.text();
+---
+
+<Fragment set:html={document} />

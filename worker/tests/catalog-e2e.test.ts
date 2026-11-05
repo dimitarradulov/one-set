@@ -21,6 +21,9 @@ const environment = {
   CLERK_JWT_KEY: await exportSPKI(signingKeys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CATALOG_PUBLISH_TOKEN: 'e2e-publisher-secret',
+  ACCESS_TEAM_DOMAIN: issuer,
+  ACCESS_AUDIENCE: 'dashboard-e2e-audience',
+  ACCESS_APPROVED_EMAIL: 'founder@example.test',
 };
 async function token(subject: string): Promise<string> {
   return new SignJWT({ sid: `e2e-session-${subject}` })

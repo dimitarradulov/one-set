@@ -1,0 +1,57 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202a25;
+  background: #f3f3ee;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+.shell { max-width: 1420px; margin: 0 auto; padding: 44px 56px 72px; }
+.masthead { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #d7d9d0; padding-bottom: 22px; }
+.brand { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.identity { color: #68736d; font-size: 13px; }
+.intro { display: flex; justify-content: space-between; align-items: end; gap: 28px; padding: 42px 0 32px; }
+h1 { max-width: 760px; margin: 0; font-size: clamp(36px, 4vw, 58px); line-height: 1; letter-spacing: -.055em; font-weight: 650; }
+.eyebrow { margin: 0 0 14px; color: #69766e; font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.environment { flex: none; padding: 10px 13px; border: 1px solid #d5d8cf; border-radius: 999px; color: #4f5c53; font-size: 12px; }
+.summary { display: flex; gap: 10px; margin-bottom: 30px; }
+.summary span { padding: 8px 12px; background: #e7e9e1; border-radius: 7px; color: #566158; font-size: 12px; }
+.section-title { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #d7d9d0; padding-bottom: 12px; margin: 38px 0 14px; }
+h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
+.count { max-width: 50%; overflow: hidden; color: #79837b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.program-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.program, .exercise { background: #fbfbf8; border: 1px solid #e0e2da; border-radius: 10px; }
+.program[open] { grid-column: 1 / -1; }
+summary { list-style: none; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+.program-summary { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 14px; padding: 16px 18px; }
+.program-number { color: #a3aaa1; font-variant-numeric: tabular-nums; font-size: 12px; }
+.program-name { font-size: 16px; font-weight: 650; }
+.program-meta { margin-top: 4px; color: #778078; font-size: 12px; }
+.program-name, .program-meta { display: block; }
+.chevron { color: #89928a; transition: transform .15s ease; }
+details[open] .chevron { transform: rotate(180deg); }
+.badge { border-radius: 999px; padding: 5px 9px; background: #e5eee5; color: #45664b; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.badge.removed { background: #f5e8df; color: #905332; }
+.program-body { border-top: 1px solid #e7e8e1; padding: 19px 23px 23px; }
+.description { color: #59655d; font-size: 13px; line-height: 1.55; }
+.workout { margin-top: 12px; padding: 14px 16px; border-left: 2px solid #d9dfd4; background: #f6f7f2; }
+.workout.removed { border-left-color: #ce9878; }
+.workout-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 700; }
+.slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; margin: 12px 0 0; padding: 0; list-style: none; }
+.slot { color: #5e6961; font-size: 12px; line-height: 1.45; }
+.slot.removed { color: #a36846; }
+.exercise-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.exercise { padding: 15px 16px; }
+.exercise h3 { margin: 0; font-size: 14px; }
+.exercise-key { margin: 4px 0 11px; color: #8a948b; font-size: 10px; }
+.guidance { margin: 7px 0 0; color: #657068; font-size: 11px; line-height: 1.45; }
+.guidance strong { color: #344139; }
+.alert { padding: 24px; background: #fff5e9; border: 1px solid #ecd8bd; border-radius: 10px; color: #714e2c; }
+.alert h2 { margin-bottom: 8px; }
+.alert p { margin: 0; font-size: 14px; line-height: 1.5; }
+footer { margin-top: 48px; color: #89928a; font-size: 11px; }
+@media (max-width: 800px) { .shell { padding: 26px 20px 48px; } .intro { align-items: start; flex-direction: column; } .program-list, .exercise-list { grid-template-columns: 1fr; } .program[open] { grid-column: auto; } .slots { grid-template-columns: 1fr; } }

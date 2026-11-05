@@ -14,6 +14,9 @@ const environment = {
   CLERK_JWT_KEY: await exportSPKI(keys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CATALOG_PUBLISH_TOKEN: 'structure-publisher-token',
+  ACCESS_TEAM_DOMAIN: 'https://oneset-test.cloudflareaccess.com',
+  ACCESS_AUDIENCE: 'catalog-dashboard-test-audience',
+  ACCESS_APPROVED_EMAIL: 'founder@example.test',
 };
 const cycleID = '11111111-1111-4111-8111-111111111111';
 const concurrentlyCreatedCycleID = '33333333-3333-4333-8333-333333333333';

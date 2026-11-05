@@ -1,5 +1,7 @@
 import { verifyToken } from '@clerk/backend';
 import { diffCatalog, validateCatalogSource, type CatalogSource } from './catalog-validation';
+import { verifyCloudflareAccess, type AccessConfiguration } from './cloudflare-access';
+import type { JWTVerifyGetKey } from 'jose';
 
 export interface CatalogDatabase {
   query(sql: string, params?: string[]): Promise<Record<string, unknown>[]>;
@@ -11,6 +13,9 @@ export interface CatalogConfiguration {
   CLERK_JWT_KEY: string;
   CLERK_AUTHORIZED_PARTIES: string;
   CATALOG_PUBLISH_TOKEN: string;
+  ACCESS_TEAM_DOMAIN: string;
+  ACCESS_AUDIENCE: string;
+  ACCESS_APPROVED_EMAIL: string;
 }
 
 interface PublicationState {
@@ -261,13 +266,41 @@ async function readCatalog(
   return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
 }
 
+async function readCatalogSource(
+  request: Request,
+  env: CatalogConfiguration & AccessConfiguration,
+  database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
+): Promise<Response> {
+  if (request.method !== 'GET') return error('METHOD_NOT_ALLOWED', 405);
+  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUDIENCE || !env.ACCESS_APPROVED_EMAIL) {
+    return error('TEMPORARY_FAILURE', 503);
+  }
+  if (!(await verifyCloudflareAccess(request, env, controlledAccessKeySource))) return error('AUTH_REQUIRED', 401);
+  const state = await readState(database);
+  if (!state?.source_document || !state.publication_id || !state.source_fingerprint) {
+    return error('CATALOG_UNAVAILABLE', 503);
+  }
+  const source = checkedPrevious(state.source_document);
+  if (!source) return error('CATALOG_UNAVAILABLE', 503);
+  return json({
+    source,
+    publication_id: state.publication_id,
+    source_fingerprint: state.source_fingerprint,
+  });
+}
+
 export async function handleCatalogRequest(
   request: Request,
   env: CatalogConfiguration,
   database: CatalogDatabase,
+  controlledAccessKeySource?: JWTVerifyGetKey,
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
   try {
+    if (path === '/v1/maintenance/catalog/source') {
+      return await readCatalogSource(request, env, database, controlledAccessKeySource);
+    }
     if (path === '/v1/maintenance/catalog/preview') return await reviewCatalog(request, env, database);
     if (path === '/v1/maintenance/catalog/publish') return await publishCatalog(request, env, database);
     if (path === '/v1/catalog' || path === '/v1/catalog/programs'
@@ -277,6 +310,7 @@ export async function handleCatalogRequest(
     return error('NOT_FOUND', 404);
   } catch {
     console.error(JSON.stringify({ event: 'catalog_request_failed' }));
-    return error(path.startsWith('/v1/catalog') ? 'CATALOG_UNAVAILABLE' : 'TEMPORARY_FAILURE', 503);
+    return error(path.startsWith('/v1/catalog') || path === '/v1/maintenance/catalog/source'
+      ? 'CATALOG_UNAVAILABLE' : 'TEMPORARY_FAILURE', 503);
   }
 }

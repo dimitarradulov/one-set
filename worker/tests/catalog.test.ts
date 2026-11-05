@@ -14,6 +14,9 @@ const environment = {
   CLERK_JWT_KEY: await exportSPKI(keys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CATALOG_PUBLISH_TOKEN: 'publisher-secret-separate-from-user-tokens',
+  ACCESS_TEAM_DOMAIN: 'https://oneset-test.cloudflareaccess.com',
+  ACCESS_AUDIENCE: 'catalog-dashboard-test-audience',
+  ACCESS_APPROVED_EMAIL: 'founder@example.test',
 };
 
 async function userToken(subject = 'catalog-user') {

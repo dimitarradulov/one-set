@@ -14,7 +14,10 @@
   },
   "vars": {
     "CLERK_ISSUER": "https://YOUR_INSTANCE.clerk.accounts.dev",
-    "CLERK_AUTHORIZED_PARTIES": "https://YOUR_WEB_ORIGIN.example"
+    "CLERK_AUTHORIZED_PARTIES": "https://YOUR_WEB_ORIGIN.example",
+    "ACCESS_TEAM_DOMAIN": "https://misty-flower-edfe.cloudflareaccess.com",
+    "ACCESS_AUDIENCE": "cea4eb9b4f3e93c40ca65d1cb6ed6a697ba62115630b202af82c57cca15e5026",
+    "ACCESS_APPROVED_EMAIL": "dimitarradulovv@gmail.com"
   },
   "env": {
     "development": {
@@ -22,7 +25,10 @@
       "workers_dev": true,
       "vars": {
         "CLERK_ISSUER": "https://exact-liger-3356.clerk.accounts.dev",
-        "CLERK_AUTHORIZED_PARTIES": "https://oneset-api-development.dimitarradulovv.workers.dev"
+        "CLERK_AUTHORIZED_PARTIES": "https://oneset-api-development.dimitarradulovv.workers.dev",
+        "ACCESS_TEAM_DOMAIN": "https://misty-flower-edfe.cloudflareaccess.com",
+        "ACCESS_AUDIENCE": "cea4eb9b4f3e93c40ca65d1cb6ed6a697ba62115630b202af82c57cca15e5026",
+        "ACCESS_APPROVED_EMAIL": "dimitarradulovv@gmail.com"
       }
     }
   }
