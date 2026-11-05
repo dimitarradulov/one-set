@@ -63,6 +63,11 @@ h3 { margin-bottom: 4px; font-size: 16px; font-weight: 650; }
 .removed-slot { color: #e8b0aa; }
 .shared-exercises { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 30px; }
 .shared-exercises article { padding: 16px 0; border-top: 1px solid var(--border); }
+.exercise-heading, .exercise-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.exercise-heading { margin: 26px 0 8px; }
+.exercise-heading h2 { margin: 0; }
+.exercise-card-heading { margin-bottom: 7px; }
+.exercise-card-heading form { flex: 0 0 auto; }
 .shared-exercises h3 { display: inline-block; margin-right: 8px; }
 .shared-exercises p { margin: 6px 0 0; color: #d1ccc4; font-size: 12px; }
 .row-index { align-self: start; padding-top: 27px; color: #d79b4a; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -86,6 +91,11 @@ h3 { margin-bottom: 4px; font-size: 16px; font-weight: 650; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
 .panel-heading p { font-size: 12px; }
 .editor-form { display: grid; gap: 18px; padding-top: 21px; }
+.exercise-editor { gap: 16px; }
+.exercise-panel { max-width: 860px; margin: 0 auto; }
+.field-label { color: #e1ddd6; font-size: 13px; font-weight: 600; }
+.rep-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 15px; border: 1px solid var(--border); border-radius: 8px; }
+.rep-range legend { padding: 0 6px; color: #e1ddd6; font-size: 13px; font-weight: 600; }
 .field { display: grid; gap: 7px; }
 .field label { color: #e1ddd6; font-size: 13px; font-weight: 600; }
 .field input, .field textarea, .field select { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #57534d; border-radius: 7px; color: var(--ink); background: #191919; }
@@ -105,6 +115,8 @@ h3 { margin-bottom: 4px; font-size: 16px; font-weight: 650; }
 .change-kind { color: #f0bd70; font-size: 12px; font-weight: 700; text-transform: capitalize; }
 .diff-row p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .affected { padding: 16px 0 12px; }
+.affected ul { display: grid; gap: 4px; margin: 5px 0 0; padding-left: 18px; }
+.affected li { overflow-wrap: anywhere; }
 .affected h3 { margin-bottom: 3px; font-size: 12px; color: var(--muted); }
 .affected p { margin: 0; }
 .review-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: #1c1c1c; }
@@ -149,6 +161,7 @@ h3 { margin-bottom: 4px; font-size: 16px; font-weight: 650; }
   .editor-panel, .review-block { padding: 19px 16px; }
   .review-heading { flex-direction: column; gap: 13px; }
   .review-values { grid-template-columns: 1fr; }
+  .rep-range { grid-template-columns: 1fr; }
   .diff-row { grid-template-columns: 72px 1fr; }
   .read-workout { grid-template-columns: 1fr; gap: 6px; }
   .shared-exercises { grid-template-columns: 1fr; }

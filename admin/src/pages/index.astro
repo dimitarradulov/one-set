@@ -9,6 +9,9 @@ const actionResults = [
   Astro.getActionResult(actions.editProgram),
   Astro.getActionResult(actions.reviewProgram),
   Astro.getActionResult(actions.publishProgram),
+  Astro.getActionResult(actions.editExercise),
+  Astro.getActionResult(actions.reviewExercise),
+  Astro.getActionResult(actions.publishExercise),
 ];
 let result: DashboardResult | undefined;
 const failedAction = actionResults.find(item => item?.error);
@@ -34,7 +37,10 @@ let document = renderDashboard(result, sourceData, environment);
 document = document
   .replaceAll('action="@editProgram"', `action="${actions.editProgram.queryString}"`)
   .replaceAll('action="@reviewProgram"', `action="${actions.reviewProgram.queryString}"`)
-  .replaceAll('action="@publishProgram"', `action="${actions.publishProgram.queryString}"`);
+  .replaceAll('action="@publishProgram"', `action="${actions.publishProgram.queryString}"`)
+  .replaceAll('action="@editExercise"', `action="${actions.editExercise.queryString}"`)
+  .replaceAll('action="@reviewExercise"', `action="${actions.reviewExercise.queryString}"`)
+  .replaceAll('action="@publishExercise"', `action="${actions.publishExercise.queryString}"`);
 Astro.response.status = result?.view === 'error' ? result.status : 200;
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 ---

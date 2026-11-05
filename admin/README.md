@@ -1,6 +1,6 @@
 # Private catalog dashboard
 
-The dashboard in this directory is a server-rendered Astro site for laptop catalog maintenance. It reads the full published source through the protected maintenance API, edits program name, format, emphasis, and recommended training weeks in native HTML forms, and uses Astro Actions to review and explicitly publish to the development catalog. It does not save drafts or use browser storage. It is deployed to `https://oneset-catalog-dashboard.dimitarradulovv.workers.dev` behind a hostname-specific Cloudflare Access application. Preview URLs and custom domain routes are disabled.
+The dashboard in this directory is a server-rendered Astro site for laptop catalog maintenance. It reads the full published source through the protected maintenance API, edits program details and shared exercise guidance in native HTML forms, and uses Astro Actions to review and explicitly publish to the development catalog. Shared exercise edits include name, technique, stopping and warmup guidance, rest duration, and default reps. The review lists every affected program by name and stable key. It does not save drafts or use browser storage. It is deployed to `https://oneset-catalog-dashboard.dimitarradulovv.workers.dev` behind a hostname-specific Cloudflare Access application. Preview URLs and custom domain routes are disabled.
 
 ## Local development and checks
 
@@ -14,7 +14,7 @@ npm run build
 npm test
 ```
 
-The Worker request integration runs with signed test tokens and a controlled key source, then calls the real maintenance source-read, preview, and publish handlers over HTTP with an isolated PGlite database. Dashboard checks cover the edit → review → edit → publish journey, validation feedback, origin and Access rejection, stale review, rollback, retry, unknown metadata and identity preservation, and the resulting app-facing catalog. The browser journey uses the installed Chrome executable; set `DASHBOARD_CHROME_BIN` if it is outside the default macOS path. These local checks simulate Access token verification. They do not perform a Cloudflare login or verify a deployed Access application.
+The Worker request integration runs with signed test tokens and a controlled key source, then calls the real maintenance source-read, preview, and publish handlers over HTTP with an isolated PGlite database. Dashboard checks cover program and shared exercise edit → review → publish journeys, field validation, direct-action authorization, stale review, transaction rollback, idempotent retry, unknown metadata and identity preservation, affected-program reporting, unchanged slot prescriptions, and the resulting app-facing catalog. The browser journey uses the installed Chrome executable; set `DASHBOARD_CHROME_BIN` if it is outside the default macOS path. These local checks simulate Access token verification. They do not perform a Cloudflare login or verify a deployed Access application.
 
 ## Cloudflare Access setup
 

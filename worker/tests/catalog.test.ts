@@ -5,7 +5,7 @@ import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { handleCatalogRequest, type CatalogDatabase } from '../src/catalog.ts';
-import { validateCatalogSource, type CatalogSource } from '../src/catalog-validation.ts';
+import { diffCatalog, validateCatalogSource, type CatalogSource } from '../src/catalog-validation.ts';
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -60,6 +60,21 @@ const source = {
     }],
   }],
 };
+
+test('catalog review reports a newly added shared exercise', () => {
+  const next = structuredClone(source) as CatalogSource;
+  next.exercises.push({
+    key: 'distinct-row-variation', name: 'Distinct Row Variation',
+    instructions: 'Pull with control.', stopping_guidance: 'Stop when form breaks.',
+    warmup_guidance: 'Warm up progressively.', rest_seconds: 120,
+    default_reps: { minimum: 8, maximum: 12 },
+  });
+  const result = diffCatalog(source as CatalogSource, next);
+  assert.deepEqual(result.changes.filter(change => change.kind === 'add shared exercise'), [{
+    kind: 'add shared exercise', name: 'Distinct Row Variation', detail: 'Added shared exercise distinct-row-variation',
+  }]);
+  assert.deepEqual(result.affectedPrograms, []);
+});
 
 const sourceFingerprint = createHash('sha256').update(JSON.stringify(source)).digest('hex');
 const databaseEngine = new PGlite();

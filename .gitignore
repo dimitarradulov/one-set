@@ -13,6 +13,7 @@ xcuserdata/
 /worker/node_modules/
 /admin/node_modules/
 /admin/.astro/
+/admin/.codex/
 /admin/dist/
 /admin/.dev.vars
 /admin/.wrangler/

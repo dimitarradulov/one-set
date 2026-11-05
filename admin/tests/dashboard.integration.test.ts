@@ -11,7 +11,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { exportJWK, exportSPKI, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
 import { chromium } from 'playwright-core';
 import { parse } from 'yaml';
-import { handleDashboardAction, loadDashboard, renderDashboard, type DashboardEnvironment, type DashboardResult, type ProgramFields } from '../src/dashboard.ts';
+import { handleDashboardAction, loadDashboard, renderDashboard, type DashboardEnvironment, type DashboardResult, type ExerciseFields, type ProgramFields } from '../src/dashboard.ts';
 import { handleCatalogRequest, type CatalogDatabase, type CatalogConfiguration } from '../../worker/src/catalog.ts';
 import { verifyCloudflareAccess } from '../../worker/src/cloudflare-access.ts';
 import type { CatalogSource } from '../../worker/src/catalog-validation.ts';
@@ -53,6 +53,10 @@ const source: CatalogSource = {
   programs: await Promise.all(programFiles.map(async name => parse(await readFile(
     join(new URL('../../worker/catalog/programs/', import.meta.url).pathname, name), 'utf8')) as CatalogSource['programs'][number])),
 };
+for (const exercise of source.exercises) {
+  exercise.video_key = `integration/${exercise.key}.mp4`;
+  exercise.future_editor_metadata = { retained_for: exercise.key };
+}
 source.release_note = 'Metadata from a future authoring tool';
 source.programs[0]!.editor_hint = { preserve: true };
 source.programs[0]!.removed = true;
@@ -104,6 +108,45 @@ function form(fields: Partial<ProgramFields> & Record<string, string> = {}): For
   return result;
 }
 
+function exerciseForm(fields: Partial<ExerciseFields> & Record<string, string> = {}, catalogSource: CatalogSource = source,
+  publicationFingerprint = fingerprint): FormData {
+  const selected = catalogSource.exercises[0]!;
+  const values: Record<string, string> = {
+    exercise_key: selected.key,
+    is_new: 'false',
+    name: `${selected.name} revised`,
+    instructions: 'Use the revised full controlled range of motion.',
+    stopping_guidance: 'Stop when another controlled repetition is not possible.',
+    warmup_guidance: 'Prepare with gradually heavier warmup sets.',
+    rest_seconds: String(selected.rest_seconds + 15),
+    default_reps_minimum: String(selected.default_reps.minimum + 1),
+    default_reps_maximum: String(selected.default_reps.maximum + 1),
+    catalog_source: JSON.stringify(catalogSource),
+    publication_fingerprint: publicationFingerprint,
+    ...fields,
+  };
+  const result = new FormData();
+  for (const [key, value] of Object.entries(values)) result.set(key, value);
+  return result;
+}
+
+function cloneForm(input: FormData): FormData {
+  const result = new FormData();
+  for (const [key, value] of input.entries()) result.set(key, String(value));
+  return result;
+}
+
+async function publishExerciseFields(review: Extract<DashboardResult, { view: 'review'; contentKind: 'exercise' }>,
+  fields: FormData): Promise<FormData> {
+  const result = new FormData();
+  for (const [key, value] of fields.entries()) result.set(key, String(value));
+  result.set('catalog_source', JSON.stringify(review.candidateSource));
+  result.set('source_fingerprint', review.reviewSourceFingerprint);
+  result.set('preview_id', review.previewID);
+  result.set('backend_fingerprint', review.backendFingerprint);
+  return result;
+}
+
 async function dashboardRequest(action: string, fields: FormData, accessToken?: string, origin = 'https://dashboard.test', submittedOrigin = origin) {
   const body = new URLSearchParams();
   for (const [key, value] of fields.entries()) body.append(key, String(value));
@@ -119,7 +162,7 @@ async function dashboardRequest(action: string, fields: FormData, accessToken?: 
   });
 }
 
-async function publishFields(review: Extract<DashboardResult, { view: 'review' }>): Promise<FormData> {
+async function publishFields(review: Extract<DashboardResult, { view: 'review'; contentKind: 'program' }>): Promise<FormData> {
   const published = { ...review.source, programs: review.source.programs.map(program => program.key === review.fields.program_key ? {
     ...program, name: review.fields.name, format: review.fields.format, emphasis: review.fields.emphasis,
     recommended_weeks: Number(review.fields.recommended_weeks),
@@ -204,7 +247,7 @@ test('protected edit → review → edit → publish → app catalog keeps unkno
   const reviewResult = await handleDashboardAction('review', await dashboardRequest('reviewProgram', reviewForm, accessToken), reviewForm,
     environment, { keySource: accessKeySource });
   assert.equal(reviewResult.view, 'review');
-  if (reviewResult.view !== 'review') return;
+  if (reviewResult.view !== 'review' || reviewResult.contentKind !== 'program') return;
   assert.ok(reviewResult.changes.length > 0);
   assert.ok(reviewResult.affectedPrograms.some(item => item.includes(selected.key)));
   assert.equal((await readCurrentSource()).source.programs[1]!.name, selected.name, 'review must not mutate published source');
@@ -212,12 +255,12 @@ test('protected edit → review → edit → publish → app catalog keeps unkno
   const returnedToEdit = await handleDashboardAction('edit', await dashboardRequest('editProgram', reviewForm, accessToken), reviewForm,
     environment, { keySource: accessKeySource });
   assert.equal(returnedToEdit.view, 'edit');
-  if (returnedToEdit.view === 'edit') assert.equal(returnedToEdit.fields.emphasis, 'Balanced strength with a tested emphasis.');
+  if (returnedToEdit.view === 'edit' && returnedToEdit.contentKind === 'program') assert.equal(returnedToEdit.fields.emphasis, 'Balanced strength with a tested emphasis.');
 
   const exactReview = await handleDashboardAction('review', await dashboardRequest('reviewProgram', reviewForm, accessToken), reviewForm,
     environment, { keySource: accessKeySource });
   assert.equal(exactReview.view, 'review');
-  if (exactReview.view !== 'review') return;
+  if (exactReview.view !== 'review' || exactReview.contentKind !== 'program') return;
   const submitted = await publishFields(exactReview);
   const published = await handleDashboardAction('publish', await dashboardRequest('publishProgram', submitted, accessToken), submitted,
     environment, { keySource: accessKeySource });
@@ -239,6 +282,105 @@ test('protected edit → review → edit → publish → app catalog keeps unkno
   assert.equal(catalog.catalog.programs.find(program => program.key === selected.key)?.name, 'Upper / Lower Updated');
   assert.equal(catalog.catalog.programs.find(program => program.key === source.programs[0]!.key)?.removed, true,
     'removed program identity remains available to current followers with its unavailable marker');
+});
+
+test('shared exercise edit and creation publish through the complete-source review while preserving slot prescriptions', async () => {
+  const accessToken = await token();
+  const baseline = await readCurrentSource();
+  const usage = (catalog: CatalogSource, exerciseKey: string) => catalog.programs.flatMap(program =>
+    program.removed === true ? [] : program.workouts.flatMap(workout => workout.removed === true ? [] :
+      workout.exercises.filter(slot => slot.removed !== true && slot.exercise === exerciseKey).map(slot => ({ program, workout, slot }))));
+  const selected = baseline.source.exercises.find(exercise => new Set(usage(baseline.source, exercise.key).map(row => row.program.key)).size > 1);
+  assert.ok(selected, 'fixture contains a shared exercise used by multiple programs');
+  const selectedUses = usage(baseline.source, selected.key);
+  const originalSlots = baseline.source.programs.map(program => ({ key: program.key, workouts: program.workouts.map(workout => ({
+    key: workout.key, exercises: workout.exercises.map(slot => ({ key: slot.key, exercise: slot.exercise, reps: slot.reps, scope: slot.scope })),
+  })) }));
+
+  const invalid = exerciseForm({ exercise_key: selected.key, name: selected.name, instructions: '   ' }, baseline.source, baseline.source_fingerprint);
+  const invalidResult = await handleDashboardAction('review-exercise', await dashboardRequest('reviewExercise', invalid, accessToken), invalid,
+    environment, { keySource: accessKeySource });
+  assert.equal(invalidResult.view, 'edit');
+  if (invalidResult.view === 'edit' && invalidResult.contentKind === 'exercise') {
+    assert.equal(invalidResult.errors?.instructions, 'Enter technique instructions.');
+  }
+
+  const editedFields = exerciseForm({ exercise_key: selected.key, name: 'Shared Movement Updated',
+    instructions: 'Use the updated controlled range.', stopping_guidance: 'Stop at a technical limit.',
+    warmup_guidance: 'Use progressive warmup sets.', rest_seconds: '210', default_reps_minimum: '7', default_reps_maximum: '11' },
+  baseline.source, baseline.source_fingerprint);
+  const reviewResult = await handleDashboardAction('review-exercise', await dashboardRequest('reviewExercise', editedFields, accessToken), editedFields,
+    environment, { keySource: accessKeySource });
+  assert.equal(reviewResult.view, 'review');
+  if (reviewResult.view !== 'review' || reviewResult.contentKind !== 'exercise') return;
+  for (const programKey of new Set(selectedUses.map(row => row.program.key))) {
+    assert.ok(reviewResult.affectedPrograms.some(item => item.includes(programKey)), `review identifies affected program ${programKey}`);
+  }
+  const reviewHTML = renderDashboard(reviewResult, undefined, environment);
+  assert.match(reviewHTML, /Review shared exercise changes/);
+  for (const programKey of new Set(selectedUses.map(row => row.program.key))) assert.match(reviewHTML, new RegExp(programKey));
+  assert.equal(JSON.stringify((await readCurrentSource()).source), JSON.stringify(baseline.source), 'review leaves the published source unchanged');
+
+  const publishForm = await publishExerciseFields(reviewResult, editedFields);
+  const publicationCountBefore = await database.query(`SELECT count(*)::text AS count FROM public.catalog_publications`);
+  const uncertain = await handleDashboardAction('publish-exercise', await dashboardRequest('publishExercise', publishForm, accessToken), publishForm,
+    environment, { keySource: accessKeySource, fetcher: async (input, init) => {
+      const response = await fetch(input, init);
+      if (new URL(String(input)).pathname.endsWith('/publish')) throw new Error('simulated lost response after shared exercise commit');
+      return response;
+    } });
+  assert.equal(uncertain.view, 'error', 'the dashboard reports an interrupted publication response');
+  const published = await handleDashboardAction('publish-exercise', await dashboardRequest('publishExercise', publishForm, accessToken), publishForm,
+    environment, { keySource: accessKeySource });
+  assert.equal(published.view, 'success');
+  const publicationCountAfterRetry = await database.query(`SELECT count(*)::text AS count FROM public.catalog_publications`);
+  assert.equal(Number(publicationCountAfterRetry[0]?.count), Number(publicationCountBefore[0]?.count) + 1,
+    'the exercise retry reuses the reviewed publication identity');
+  const afterEdit = await readCurrentSource();
+  const updated = afterEdit.source.exercises.find(exercise => exercise.key === selected.key)!;
+  assert.equal(updated.name, 'Shared Movement Updated');
+  assert.equal(updated.instructions, 'Use the updated controlled range.');
+  assert.equal(updated.rest_seconds, 210);
+  assert.deepEqual(updated.default_reps, { minimum: 7, maximum: 11 });
+  assert.equal(updated.video_key, `integration/${selected.key}.mp4`);
+  assert.deepEqual(updated.future_editor_metadata, { retained_for: selected.key },
+    'shared exercise edits retain media identifiers and metadata added by other authoring versions');
+  assert.deepEqual(afterEdit.source.programs.map(program => ({ key: program.key, workouts: program.workouts.map(workout => ({
+    key: workout.key, exercises: workout.exercises.map(slot => ({ key: slot.key, exercise: slot.exercise, reps: slot.reps, scope: slot.scope })),
+  })) })), originalSlots, 'shared guidance changes leave slot rep bounds and unilateral scope unchanged');
+
+  const newBaseline = await readCurrentSource();
+  const addedFields = exerciseForm({ exercise_key: 'integration-distinct-movement', is_new: 'true', name: 'Integration Distinct Movement',
+    instructions: 'Move through a controlled range.', stopping_guidance: 'Stop before control is lost.',
+    warmup_guidance: 'Use lighter warmup sets first.', rest_seconds: '120', default_reps_minimum: '8', default_reps_maximum: '12' },
+  newBaseline.source, newBaseline.source_fingerprint);
+  const invalidNew = cloneForm(addedFields);
+  invalidNew.set('warmup_guidance', '');
+  const invalidNewResult = await handleDashboardAction('review-exercise', await dashboardRequest('reviewExercise', invalidNew, accessToken), invalidNew,
+    environment, { keySource: accessKeySource });
+  assert.equal(invalidNewResult.view, 'edit');
+  if (invalidNewResult.view === 'edit' && invalidNewResult.contentKind === 'exercise') {
+    assert.equal(invalidNewResult.errors?.warmup_guidance, 'Enter warmup guidance.');
+  }
+  const conflict = cloneForm(addedFields);
+  conflict.set('exercise_key', selected.key);
+  const conflictResult = await handleDashboardAction('review-exercise', await dashboardRequest('reviewExercise', conflict, accessToken), conflict,
+    environment, { keySource: accessKeySource });
+  assert.equal(conflictResult.view, 'edit');
+  if (conflictResult.view === 'edit' && conflictResult.contentKind === 'exercise') {
+    assert.match(conflictResult.errors?.exercise_key ?? '', /already used/);
+  }
+
+  const addedReview = await handleDashboardAction('review-exercise', await dashboardRequest('reviewExercise', addedFields, accessToken), addedFields,
+    environment, { keySource: accessKeySource });
+  assert.equal(addedReview.view, 'review');
+  if (addedReview.view !== 'review' || addedReview.contentKind !== 'exercise') return;
+  const addedPublishForm = await publishExerciseFields(addedReview, addedFields);
+  const addedPublished = await handleDashboardAction('publish-exercise', await dashboardRequest('publishExercise', addedPublishForm, accessToken), addedPublishForm,
+    environment, { keySource: accessKeySource });
+  assert.equal(addedPublished.view, 'success');
+  assert.equal((await readCurrentSource()).source.exercises.find(exercise => exercise.key === 'integration-distinct-movement')?.name,
+    'Integration Distinct Movement');
 });
 
 test('direct, cross-origin, and wrong-identity actions cannot reach the publisher', async () => {
@@ -280,13 +422,13 @@ test('stale reviews and transaction failures report errors and preserve the prev
   const review = await handleDashboardAction('review', await dashboardRequest('reviewProgram', fields, accessToken), fields,
     environment, { keySource: accessKeySource });
   assert.equal(review.view, 'review');
-  if (review.view !== 'review') return;
+  if (review.view !== 'review' || review.contentKind !== 'program') return;
 
   const competitorFields = form({ publication_fingerprint: baseline.source_fingerprint, name: 'CLI Candidate' });
   const competitorReview = await handleDashboardAction('review', await dashboardRequest('reviewProgram', competitorFields, accessToken), competitorFields,
     environment, { keySource: accessKeySource });
   assert.equal(competitorReview.view, 'review');
-  if (competitorReview.view !== 'review') return;
+  if (competitorReview.view !== 'review' || competitorReview.contentKind !== 'program') return;
   const competitorPublishForm = await publishFields(competitorReview);
   const competitorPublished = await handleDashboardAction('publish', await dashboardRequest('publishProgram', competitorPublishForm, accessToken), competitorPublishForm,
     environment, { keySource: accessKeySource });
@@ -303,7 +445,7 @@ test('stale reviews and transaction failures report errors and preserve the prev
   const rollbackReview = await handleDashboardAction('review', await dashboardRequest('reviewProgram', rollbackFields, accessToken), rollbackFields,
     environment, { keySource: accessKeySource });
   assert.equal(rollbackReview.view, 'review');
-  if (rollbackReview.view !== 'review') return;
+  if (rollbackReview.view !== 'review' || rollbackReview.contentKind !== 'program') return;
   transactionFailure = true;
   const rollbackForm = await publishFields(rollbackReview);
   const failed = await handleDashboardAction('publish', await dashboardRequest('publishProgram', rollbackForm, accessToken), rollbackForm,
@@ -321,7 +463,7 @@ test('same reviewed publish retry is idempotent after the dashboard loses the fi
   const review = await handleDashboardAction('review', await dashboardRequest('reviewProgram', fields, accessToken), fields,
     environment, { keySource: accessKeySource });
   assert.equal(review.view, 'review');
-  if (review.view !== 'review') return;
+  if (review.view !== 'review' || review.contentKind !== 'program') return;
   const retryForm = await publishFields(review);
   const before = await engine.query<{ count: string }>(`SELECT count(*)::text AS count FROM public.catalog_publications`);
   const uncertain = await handleDashboardAction('publish', await dashboardRequest('publishProgram', retryForm, accessToken), retryForm,
@@ -356,7 +498,7 @@ test('visual artifacts can be captured for edit, review, success, and error stat
   const selected = loaded.source!.source.programs[1]!;
   const fields: ProgramFields = { program_key: selected.key, name: 'A considered program name', format: selected.format,
     emphasis: selected.emphasis, recommended_weeks: String(selected.recommended_weeks) };
-  const edit: DashboardResult = { view: 'edit', source: loaded.source!.source, publicationID: loaded.source!.publication_id,
+  const edit: DashboardResult = { view: 'edit', contentKind: 'program', source: loaded.source!.source, publicationID: loaded.source!.publication_id,
     sourceFingerprint: loaded.source!.source_fingerprint, fields };
   const reviewRequest = form({ ...fields, publication_fingerprint: loaded.source!.source_fingerprint });
   const reviewed = await handleDashboardAction('review', await dashboardRequest('reviewProgram', reviewRequest), reviewRequest,
@@ -462,6 +604,62 @@ test('real browser submits native Astro Action forms through edit → review →
     await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-60-browser-success.png'), fullPage: true });
     assert.equal((await readCurrentSource()).source.programs[1]!.name, 'Browser publication complete');
+
+    await page.goto(`${origin}/`, { waitUntil: 'networkidle' });
+    await page.locator('.full-catalog summary').click();
+    const liveSource = (await readCurrentSource()).source;
+    const shared = liveSource.exercises.find(exercise => new Set(liveSource.programs.flatMap(program => program.removed === true ? [] :
+      program.workouts.flatMap(workout => workout.removed === true ? [] : workout.exercises
+        .filter(slot => slot.removed !== true && slot.exercise === exercise.key).map(() => program.key)))).size > 1);
+    assert.ok(shared, 'browser fixture has an exercise used by multiple programs');
+    const exerciseCard = page.locator('.shared-exercises article').filter({ has: page.getByRole('heading', { name: shared.name, exact: true }) });
+    await exerciseCard.getByRole('button', { name: 'Edit guidance' }).click();
+    await page.getByLabel('Technique instructions').waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-63-browser-exercise-edit.png'), fullPage: true });
+    await page.getByLabel('Stopping guidance').evaluate(input => input.removeAttribute('required'));
+    await page.getByLabel('Stopping guidance').fill('');
+    await page.getByRole('button', { name: 'Review changes' }).click();
+    await page.getByText('Enter stopping guidance.').waitFor();
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-63-browser-exercise-error.png'), fullPage: true });
+    await page.getByLabel('Stopping guidance').fill('Stop when controlled repetitions are no longer possible.');
+    await page.getByLabel('Exercise name').fill('Browser Shared Movement');
+    await page.getByLabel('Technique instructions').fill('Use the full controlled range during the movement.');
+    await page.getByRole('button', { name: 'Review changes' }).click();
+    await page.getByRole('heading', { name: 'Review shared exercise changes' }).waitFor();
+    const affectedText = await page.locator('.affected').innerText();
+    const affectedProgramKeys = new Set(liveSource.programs.flatMap(program => program.removed === true ? [] :
+      program.workouts.flatMap(workout => workout.removed === true ? [] : workout.exercises
+        .filter(slot => slot.removed !== true && slot.exercise === shared.key).map(() => program.key))));
+    for (const programKey of affectedProgramKeys) assert.match(affectedText, new RegExp(programKey));
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-63-browser-exercise-review.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Publish to development' }).click();
+    await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
+    const browserUpdatedSource = (await readCurrentSource()).source;
+    assert.equal(browserUpdatedSource.exercises.find(exercise => exercise.key === shared.key)?.name, 'Browser Shared Movement');
+
+    await page.goto(`${origin}/`, { waitUntil: 'networkidle' });
+    await page.locator('.full-catalog summary').click();
+    await page.getByRole('button', { name: 'Add shared exercise' }).click();
+    await page.getByLabel('Stable identity').fill('browser-new-movement');
+    await page.getByLabel('Exercise name').fill('Browser New Movement');
+    await page.getByLabel('Technique instructions').fill('Keep every repetition controlled.');
+    await page.getByLabel('Stopping guidance').fill('Stop when form starts to change.');
+    await page.getByLabel('Warmup guidance').fill('Prepare with lighter warmup sets.');
+    await page.getByLabel('Rest duration (seconds)').fill('135');
+    await page.getByLabel('Minimum reps').fill('8');
+    await page.getByLabel('Maximum reps').fill('12');
+    const submittedExerciseFields = await page.locator('form.exercise-editor').evaluate(formElement =>
+      Object.fromEntries(Array.from(new FormData(formElement as HTMLFormElement).entries()).map(([key, value]) => [key, String(value)])));
+    assert.equal((submittedExerciseFields as Record<string, string>).exercise_key, 'browser-new-movement',
+      `new exercise form should submit its stable identity: ${JSON.stringify(submittedExerciseFields)}`);
+    await page.getByRole('button', { name: 'Review changes' }).click();
+    await page.getByRole('heading', { name: 'Review shared exercise changes' }).waitFor();
+    await page.getByRole('button', { name: 'Publish to development' }).click();
+    await page.waitForLoadState('networkidle');
+    const addResult = await page.locator('body').innerText();
+    assert.match(addResult, /Catalog published/, `new exercise publication should succeed; received: ${addResult}`);
+    assert.equal((await readCurrentSource()).source.exercises.find(exercise => exercise.key === 'browser-new-movement')?.name,
+      'Browser New Movement');
   } finally {
     await browser?.close();
     worker.kill('SIGTERM');
