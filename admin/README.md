@@ -1,6 +1,6 @@
 # Private catalog dashboard
 
-The dashboard in this directory is a server-rendered Astro site for laptop browsing of the complete published catalog. It uses the existing API and Neon publication record. It has no editor, draft storage, or client application framework. It is deployed to `https://oneset-catalog-dashboard.dimitarradulovv.workers.dev` behind a hostname-specific Cloudflare Access application. Preview URLs and custom domain routes are disabled.
+The dashboard in this directory is a server-rendered Astro site for laptop catalog maintenance. It reads the full published source through the protected maintenance API, edits program name, format, emphasis, and recommended training weeks in native HTML forms, and uses Astro Actions to review and explicitly publish to the development catalog. It does not save drafts or use browser storage. It is deployed to `https://oneset-catalog-dashboard.dimitarradulovv.workers.dev` behind a hostname-specific Cloudflare Access application. Preview URLs and custom domain routes are disabled.
 
 ## Local development and checks
 
@@ -14,7 +14,7 @@ npm run build
 npm test
 ```
 
-The Worker request integration runs with signed test tokens and a controlled key source, then calls the real maintenance source-read handler over HTTP. It covers removed catalog records, the publication identity, denied identities, and storage failure. These local checks simulate Access token verification. They do not perform a Cloudflare login or verify a deployed Access application.
+The Worker request integration runs with signed test tokens and a controlled key source, then calls the real maintenance source-read, preview, and publish handlers over HTTP with an isolated PGlite database. Dashboard checks cover the edit → review → edit → publish journey, validation feedback, origin and Access rejection, stale review, rollback, retry, unknown metadata and identity preservation, and the resulting app-facing catalog. The browser journey uses the installed Chrome executable; set `DASHBOARD_CHROME_BIN` if it is outside the default macOS path. These local checks simulate Access token verification. They do not perform a Cloudflare login or verify a deployed Access application.
 
 ## Cloudflare Access setup
 
@@ -38,7 +38,9 @@ Use the Cloudflare Zero Trust dashboard on the Free plan before adding a public 
    ../worker/node_modules/.bin/wrangler deploy
    ```
 
-The API still needs its existing `DATABASE_URL`, `CLERK_JWT_KEY`, and `CATALOG_PUBLISH_TOKEN` secrets. The dashboard reads only the configured `CATALOG_API_BASE_URL` and `CATALOG_ENVIRONMENT`; both values are server-side Worker variables. The deployment must point to the intended API explicitly. If the database cannot be read, the page returns an unavailable response rather than rendering an empty catalog.
+The API still needs its existing `DATABASE_URL`, `CLERK_JWT_KEY`, and `CATALOG_PUBLISH_TOKEN` secrets. Set the same publisher token as a server-side secret on the dashboard Worker with `npx wrangler secret put CATALOG_PUBLISH_TOKEN`; never add it to `wrangler.jsonc`, client markup, or browser code. It is used only by the dashboard server to call the maintenance preview/publish endpoints. The dashboard reads the configured `CATALOG_API_BASE_URL` and `CATALOG_ENVIRONMENT`; both values are server-side Worker variables. The dashboard currently permits writes only when that environment is exactly `development`; its configured target must stay bound to the development API until the complete parent scope is delivered and validated. The deployment must point to the intended API explicitly. If the database cannot be read, the page returns an unavailable response rather than rendering an empty catalog.
+
+Every Astro Action verifies the signed Cloudflare Access assertion and requires a same-origin `POST` with an HTML form content type. The server uses the publisher token for the existing maintenance API. The review is bound to the exact source fingerprint, backend fingerprint, and preview ID returned by the Worker. At publish time the Worker rejects a stale preview or changed catalog. Unpublished values exist only in the submitted form and action response; returning to review/edit keeps them for that visit, while a fresh visit starts from the currently published source.
 
 The dashboard Worker enables Cloudflare's `global_fetch_strictly_public` compatibility flag. This is required for its server-side request to reach the API Worker through the public `workers.dev` route in the same Cloudflare zone.
 

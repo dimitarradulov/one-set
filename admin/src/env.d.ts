@@ -10,4 +10,5 @@ interface Env {
   ACCESS_TEAM_DOMAIN: string;
   ACCESS_AUDIENCE: string;
   ACCESS_APPROVED_EMAIL: string;
+  CATALOG_PUBLISH_TOKEN: string;
 }
