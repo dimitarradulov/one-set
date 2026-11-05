@@ -156,6 +156,7 @@ struct AppDependencies {
       let catalogService: (any ProgramCatalogService)? =
         catalogSeed
         ? PreviewProgramCatalogService(editedProgram: arguments.contains("--ui-catalog-seed-edited")) : nil
+      let switchSync = PreviewSwitchSyncService(online: arguments.contains("--ui-switch-online"))
       return AppDependencies(
         catalog: ProgramCatalog(
           programs: bundledPrograms,
@@ -185,11 +186,11 @@ struct AppDependencies {
           storageDirectory: storage.directory
         ),
         accountCycles: arguments.contains("--ui-replacement-device") ? PreviewRestoredCycles()
-          : (arguments.contains("--ui-switch-test") ? PreviewCycleService() : nil),
+          : (arguments.contains("--ui-switch-test") ? switchSync : nil),
         previousPerformance: PreviewPreviousPerformanceService(),
         accountProgress: arguments.contains("--ui-replacement-device") ? PreviewRestoredProgress()
           : (progressRestoreError ? PreviewAccountProgressService(fails: true) : nil),
-        completedSessionUpload: nil,
+        completedSessionUpload: arguments.contains("--ui-switch-online") ? switchSync : nil,
         sessionHistory: PreviewSessionHistoryService(
           pages: arguments.contains("--ui-history-pagination")
             ? [[Self.previewDownloadedHistorySession(
@@ -392,15 +393,28 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
 
 #if DEBUG
 @MainActor
-private struct PreviewCycleService: AccountCycleService {
-  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws { throw AccountCycleError.unavailable }
+private final class PreviewSwitchSyncService: AccountCycleService, CompletedSessionUploadService {
+  let online: Bool
+  private var created: Set<UUID> = []
+
+  init(online: Bool) { self.online = online }
+
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {
+    if !online { throw AccountCycleError.unavailable }
+  }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
     return AccountCycles(cycles: [AccountCycle(cycleID: current, programID: "machine-full-body",
       startedAt: "2026-01-01T00:00:00Z")], selectedCycleID: current)
   }
   func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {
-    throw AccountCycleError.unavailable
+    if !online { throw AccountCycleError.unavailable }
+    created.insert(cycle.cycleID)
+  }
+  func upload(_ pending: PendingSessionUpload, for user: AuthenticatedUser) async throws {
+    guard online, let json = try? JSONSerialization.jsonObject(with: pending.body) as? [String: Any],
+          let id = json["cycle_id"] as? String, let cycleID = UUID(uuidString: id),
+          created.contains(cycleID) else { throw CompletedSessionUploadError.temporary(retryAfter: nil) }
   }
 }
 #endif

@@ -511,6 +511,42 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func delayedProgressFromPreviousAccountCannotChangeNewAccountStorage() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let previous = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    let service = RecordingCycleService()
+    service.knownCycles = [previous]
+    let delayed = SuspendedCycleProgressService(summary: AccountProgress(cycleID: previous.cycleID,
+      programID: previous.programID, currentTrainingWeek: 3, completedOccurrences: [],
+      workoutPeriods: [], requiredWorkoutIDs: []), active: AccountProgress(cycleID: setup.cycleID,
+      programID: setup.programID, currentTrainingWeek: 1, completedOccurrences: [],
+      workoutPeriods: [], requiredWorkoutIDs: []))
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: CycleServiceWithSetup(service, setup: setup), progressService: delayed,
+      progressStore: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")),
+      workoutRepository: repository)
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    await model.resolveAccountSetup(using: auth)
+    let refresh = Task { await model.refreshCycleKnowledge(using: auth) }
+    await delayed.waitUntilRequested()
+    await auth.signOut()
+    await model.resolveAccountSetup(using: auth)
+    await auth.signInWithGoogle()
+    await model.resolveAccountSetup(using: auth)
+    delayed.resume()
+    await refresh.value
+    #expect(auth.signedInUser?.id == "preview-google")
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.restoredCycleID == setup.cycleID)
+    #expect(try !repository.hasRestoredCycleSummary(accountID: "preview-google", cycleID: previous.cycleID))
+    #expect(try !repository.hasRestoredCycleSummary(accountID: "preview-user", cycleID: previous.cycleID))
+  }
+
+  @Test
   func failedResumeSaveKeepsCurrentCycleAndAllowsRetry() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }

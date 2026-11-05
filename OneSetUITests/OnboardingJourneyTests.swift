@@ -55,6 +55,58 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertNotEqual(app.staticTexts["overview.title"].label, "Bro Split")
   }
 
+  func testOfflineSwitchTrainRelaunchAndReconnectUploadsWorkout() {
+    relaunch(with: ["--ui-switch-test", "--ui-progress-keep", "--ui-workouts-reset"])
+    XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
+    app.buttons["overview.switch"].tap()
+    XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
+    programCard("bro-split").tap()
+    app.buttons["program.detail.select"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    app.buttons["overview.day.1.preview"].tap()
+    XCTAssertTrue(app.buttons["workoutPreview.start"].waitForExistence(timeout: 5))
+    app.buttons["workoutPreview.start"].tap()
+    let weight = firstRecordingField(suffix: ".weight")
+    XCTAssertTrue(weight.waitForExistence(timeout: 5))
+    weight.tap()
+    weight.typeText("50")
+    let reps = firstRecordingField(suffix: ".reps")
+    reps.tap()
+    reps.typeText("8")
+    app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
+    app.buttons["recording.finish"].tap()
+    app.buttons["finish.confirm"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+
+    relaunch(with: ["--ui-switch-test", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+    mainTab("History").tap()
+    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")).firstMatch.waitForExistence(timeout: 5))
+
+    relaunch(with: ["--ui-switch-test", "--ui-switch-online", "--ui-progress-keep"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
+    mainTab("Settings").tap()
+    let confirmation = app.alerts["Sign out of OneSet?"]
+    let deadline = Date().addingTimeInterval(60)
+    repeat {
+      app.buttons["account.signOut"].tap()
+      XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+      if confirmation.exists { break }
+      let pending = app.alerts["Keep workouts on this device?"]
+      XCTAssertTrue(pending.exists, app.debugDescription)
+      pending.buttons["Cancel"].tap()
+    } while Date() < deadline
+    XCTAssertTrue(confirmation.exists, app.debugDescription)
+    confirmation.buttons["Sign out"].tap()
+    XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 5))
+  }
+
   func testReplacementDeviceResumesRestoredProgramProgress() {
     relaunch(with: ["--ui-replacement-device", "--ui-progress-keep"])
     XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
