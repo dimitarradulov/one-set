@@ -20,4 +20,4 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --prefix worker
-      - run: ./scripts/validate.sh
+      - run: ./scripts/validate.sh --ci

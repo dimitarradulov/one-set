@@ -19,15 +19,17 @@ if [[ "${1:-}" == --focused ]]; then
     fi
     TEST_FILTERS+=("-only-testing:$selector")
   done
+elif [[ "$#" -eq 1 && "$1" == --ci ]]; then
+  VALIDATION_MODE=ci
 elif [[ "$#" -ne 0 ]]; then
-  echo "Usage: ./scripts/validate.sh [--focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
+  echo "Usage: ./scripts/validate.sh [--ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
   exit 1
 fi
 export VALIDATION_MODE
 
 oneset_toolchain
 oneset_artifacts
-if [[ "$VALIDATION_MODE" == full ]]; then
+if [[ "$VALIDATION_MODE" != focused ]]; then
   python3 -m unittest discover -s scripts/tests -v
   npm ci --prefix admin
   npm --prefix admin run check
@@ -36,6 +38,14 @@ if [[ "$VALIDATION_MODE" == full ]]; then
   npm --prefix worker run typecheck
   npm --prefix worker test
 fi
+if [[ "$VALIDATION_MODE" == ci ]]; then
+  oneset_xcodebuild "$ONESET_ARTIFACTS_DIR/validation/ci-build.log" \
+    -project OneSet.xcodeproj -scheme OneSet \
+    -destination 'generic/platform=iOS Simulator' \
+    -derivedDataPath "$ONESET_ARTIFACTS_DIR/build/ci" CODE_SIGNING_ALLOWED=NO build
+  exit
+fi
+
 oneset_run() {
   DESTINATION="platform=iOS Simulator,id=$SIMULATOR_UDID"
   RUN_DIR="$ONESET_ARTIFACTS_DIR/validation/$(date +%Y%m%d-%H%M%S)-$$"
