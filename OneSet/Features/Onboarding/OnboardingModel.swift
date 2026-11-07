@@ -47,6 +47,7 @@ final class OnboardingModel {
   private let cycleService: (any AccountCycleService)?
   private let cycleSyncCoordinator: ProgramCycleSyncCoordinator
   private var cycleKnowledgeGeneration = 0
+  private var cycleDiscoveryGeneration = 0
   private(set) var cycleMessage: String?
   var cycleConflictMessage: String? {
     #if DEBUG
@@ -151,6 +152,7 @@ final class OnboardingModel {
     setupResolution = .loading
     var discoveryReservation: OnboardingProgress?
     var discoveryReturned = false
+    var discoveryStorageFailure = false
     do {
       await catalog.refresh()
       savedProgress = try progressStore?.load(accountID: user.id)
@@ -166,8 +168,10 @@ final class OnboardingModel {
         local.pendingRemoteSelection = AccountSetup(preferredUnit: local.weightUnit,
           trainingDays: local.trainingDays, programID: local.cycles?.selectedProgramID ?? completed.setup.programID,
           cycleID: local.cycles?.selectedCycleID ?? completed.setup.cycleID)
-        try progressStore.save(local, accountID: user.id)
         savedProgress = local
+        discoveryStorageFailure = true
+        try progressStore.save(local, accountID: user.id)
+        discoveryStorageFailure = false
       }
       let setup = try await setupService.lookup(for: user)
       discoveryReturned = true
@@ -185,7 +189,9 @@ final class OnboardingModel {
           } else if discoveryReservation != nil {
             local.pendingRemoteSelection = nil
           }
+          discoveryStorageFailure = true
           try progressStore?.save(local, accountID: user.id)
+          discoveryStorageFailure = false
           savedProgress = local
           discoveryReservation = nil
         }
@@ -230,7 +236,9 @@ final class OnboardingModel {
         }
         }
       } else if let original = discoveryReservation {
+        discoveryStorageFailure = true
         try progressStore?.save(original, accountID: user.id)
+        discoveryStorageFailure = false
         savedProgress = original
         discoveryReservation = nil
         restore(original)
@@ -261,14 +269,17 @@ final class OnboardingModel {
     } catch {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
-      if !discoveryReturned, let original = discoveryReservation, let progressStore,
+      if !discoveryStorageFailure, !discoveryReturned, let original = discoveryReservation, let progressStore,
          (try? progressStore.save(original, accountID: user.id)) != nil {
         savedProgress = original
       }
       if let savedProgress, (try? validate(savedProgress)) != nil,
-         !(error is CocoaError), !(error is DecodingError),
+         (discoveryStorageFailure || !(error is CocoaError)), !(error is DecodingError),
          (error as? AccountSetupError) != .invalidSetup {
         restore(savedProgress)
+        if discoveryStorageFailure {
+          programUpdateMessage = "Your program status couldn’t be saved. Free space on this device and try Update again."
+        }
         resolvedAccountID = user.id
         do {
           activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
@@ -573,6 +584,8 @@ final class OnboardingModel {
           let progressStore else { return }
     let generation = lookupGeneration
     let cycleGeneration = cycleKnowledgeGeneration
+    cycleDiscoveryGeneration += 1
+    let discoveryGeneration = cycleDiscoveryGeneration
     var discoveryReservation: OnboardingProgress?
     var discoveryReturned = false
     do {
@@ -590,6 +603,7 @@ final class OnboardingModel {
       let remote = try await cycleService.lookup(for: user)
       discoveryReturned = true
       guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration,
             authentication.signedInUser?.id == user.id, var latest = savedProgress else { return }
       var state = latest.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
         selectedCycleID: setup.cycleID, knownCycles: [], discoveryComplete: false, pendingCreations: [])
@@ -624,19 +638,22 @@ final class OnboardingModel {
           do {
             let summary = try await progressService.lookup(cycleID: cycle.cycleID, for: user)
             guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+                  discoveryGeneration == cycleDiscoveryGeneration,
                   authentication.signedInUser?.id == user.id else { return }
             guard let summary, summary.cycleID == cycle.cycleID,
                   summary.programID == cycle.programID else { continue }
             try workoutRepository.restoreProgress(summary, accountID: user.id)
           } catch {
             guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+                  discoveryGeneration == cycleDiscoveryGeneration,
                   authentication.signedInUser?.id == user.id else { return }
             // A failed read is not an empty cycle. Existing cached progress stays usable.
           }
         }
       }
     } catch {
-      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, authentication.signedInUser?.id == user.id else { return }
       if !discoveryReturned, let original = discoveryReservation,
          (try? progressStore.save(original, accountID: user.id)) != nil {
         savedProgress = original
