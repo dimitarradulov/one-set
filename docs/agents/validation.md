@@ -31,6 +31,12 @@ When simulator access or a Swift macro plugin reports a host sandbox denial, ret
 
 Derive application workflow acceptance checks from the approved [requirements](../requirements.md). Track unfinished verification and release decisions in GitHub Issues.
 
+## Orchestrator validation
+
+The orchestrator uses `scripts/validate-orchestrator.py` to choose local checks from the committed diff. Known artwork changes capture the affected screen. Mapped iOS changes run focused simulator tests and capture screenshots where a preview route exists. Worker and dashboard changes run their package checks. Unmapped or cross-project changes run the full suite. GitHub still runs `./scripts/validate.sh --ci` for every PR.
+
+Use the latest [Issue Orchestrator](https://github.com/dimitarradulov/issue-orchestrator) build. It supplies the commit range and passes any captured screenshots to the independent reviewer.
+
 ## UI test storage
 
 The UI test setup assigns a fresh `ONESET_UI_TEST_ID` UUID to every test. App composition uses that identity for workout databases, onboarding progress, catalog caches, mock backend files, and preview authentication preferences. App relaunches within a test keep the same identity; another test gets separate storage automatically. Set an explicit second identity only when a journey intentionally models another isolated installation. Existing reset/keep launch flags control state within one journey and are not required to isolate different tests. The environment override is active only in Debug builds.

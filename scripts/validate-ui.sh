@@ -55,7 +55,8 @@ oneset_run() {
   # A not-running app is expected; install/launch errors still fail validation.
   xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl launch "$SIMULATOR_UDID" "$BUNDLE_ID" "$UI_ROUTE"
-  sleep 2
+  # A fresh simulator launch can still be rendering after simctl returns.
+  sleep 8
   oneset_capture_screenshot "$SCREENSHOT_NAME"
   echo "==> UI validation ready for inspection; build log: $RUN_DIR/build.log"
 }

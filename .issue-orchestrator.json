@@ -6,8 +6,7 @@
     "review": { "model": "gpt-6.1-sol", "reasoningEffort": "high" }
   },
   "verify": [
-    ["npm", "ci", "--prefix", "worker"],
-    ["./scripts/validate.sh"]
+    ["python3", "scripts/validate-orchestrator.py"]
   ],
   "requiredChecks": ["OneSet validation"],
   "sensitivePaths": [
