@@ -332,13 +332,24 @@ struct ProgramCatalogOnboardingTests {
       knownCycles: [old], discoveryComplete: true, pendingCreations: [], locallyKnownProgressCycleIDs: [old.cycleID])
     try store.save(progress, accountID: "preview-user")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let oldSetup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: old.programID, cycleID: old.cycleID)
+    let control = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: oldSetup),
+      workoutRepository: repository)
+    await control.resolveAccountSetup(using: auth)
+    let workoutID = try #require(control.program(id: old.programID)?.workouts.first?.id)
+    control.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
+    #expect(control.activeWorkoutSession != nil)
+    control.discardActiveWorkout(accountID: "preview-user")
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: server),
-      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: server), progressStore: store)
+      cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: server), progressStore: store,
+      workoutRepository: repository)
     await model.resolveAccountSetup(using: auth)
     #expect(model.selectedProgramID == old.programID)
     #expect(model.restoredCycleID == old.cycleID)
     #expect(model.requiresProgramUpdate)
-    model.startWorkout(programID: old.programID, workoutID: "irrelevant", accountID: "preview-user")
+    model.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
     #expect(model.activeWorkoutSession == nil)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
       progressStore: store)
@@ -378,6 +389,105 @@ struct ProgramCatalogOnboardingTests {
     #expect(model.selectedProgramID == remote.programID)
     #expect(model.restoredCycleID == remote.cycleID)
     #expect(model.currentWorkoutWeek(programID: remote.programID) == 3)
+  }
+
+  @Test
+  func supersededRemoteSelectionCanBeConfirmedBackToCurrentCycle() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let old = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let changed = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "bro-split", cycleID: UUID())
+    var progress = OnboardingProgress(weightUnit: old.preferredUnit, trainingDays: old.trainingDays,
+      selectedProgramID: old.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: old, needsUpload: false)
+    try store.save(progress, accountID: "preview-user")
+    let cycle = AccountCycle(cycleID: old.cycleID, programID: old.programID, startedAt: "2026-01-01T00:00:00Z")
+    let summary = AccountProgress(cycleID: old.cycleID, programID: old.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [],
+      requiredWorkoutIDs: ["machine-full-body-workout-a"])
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: changed),
+      cycleService: SelectedCycleService(cycle: cycle),
+      progressService: PerCycleProgressService(summaries: [old.cycleID: summary], active: summary),
+      progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    await model.resolveAccountSetup(using: auth)
+    #expect(model.requiresProgramUpdate)
+    await model.refreshCycleKnowledge(using: auth)
+    #expect(model.requiresProgramUpdate)
+    await model.updateRemoteProgram(using: auth)
+    #expect(!model.requiresProgramUpdate)
+    #expect(model.restoredCycleID == old.cycleID)
+  }
+
+  @Test
+  func failedDiscoverySaveKeepsDurableReservationAcrossOfflineRestart() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let file = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let store = FailAfterReservationStore(file: file)
+    let old = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let changed = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "bro-split", cycleID: UUID())
+    var progress = OnboardingProgress(weightUnit: old.preferredUnit, trainingDays: old.trainingDays,
+      selectedProgramID: old.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: old, needsUpload: false)
+    try file.save(progress, accountID: "preview-user")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: changed),
+      progressStore: store)
+    await model.resolveAccountSetup(using: auth)
+    #expect(try file.load(accountID: "preview-user")?.pendingRemoteSelection != nil)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
+      progressStore: file)
+    await reopened.resolveAccountSetup(using: auth)
+    #expect(reopened.requiresProgramUpdate)
+    #expect(reopened.selectedProgramID == old.programID)
+  }
+
+  @Test
+  func detectedChangePreservesActiveWorkoutUntilDiscardAndExplicitUpdate() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = SwitchFailingStore(file: FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json")))
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let target = AccountCycle(cycleID: UUID(), programID: "bro-split", startedAt: "2026-01-01T00:00:00Z")
+    let summary = AccountProgress(cycleID: target.cycleID, programID: target.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
+    let service = MutableSelectedCycleService(cycle: target)
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    try store.file.save(progress, accountID: "preview-user")
+    let initial = AccountProgress(cycleID: setup.cycleID, programID: setup.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
+    let workable = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: setup),
+      cycleService: service, progressService: PerCycleProgressService(summaries: [target.cycleID: summary], active: initial),
+      progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    await workable.resolveAccountSetup(using: auth)
+    workable.previewWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a")
+    workable.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    let sessionID = try #require(workable.activeWorkoutSession?.id)
+    await workable.refreshCycleKnowledge(using: auth)
+    #expect(workable.requiresProgramUpdate)
+    await workable.updateRemoteProgram(using: auth)
+    #expect(workable.activeWorkoutSession?.id == sessionID)
+    #expect(workable.programUpdateMessage?.contains("Finish or discard") == true)
+    workable.discardActiveWorkout(accountID: "preview-user")
+    #expect(workable.requiresProgramUpdate)
+    store.fails = true
+    await workable.updateRemoteProgram(using: auth)
+    #expect(workable.requiresProgramUpdate)
+    #expect(workable.selectedProgramID == setup.programID)
+    store.fails = false
+    await workable.updateRemoteProgram(using: auth)
+    #expect(!workable.requiresProgramUpdate)
+    #expect(workable.restoredCycleID == target.cycleID)
   }
 
   @Test
@@ -1288,6 +1398,31 @@ private final class MutableCatalogService: ProgramCatalogService {
 @MainActor
 private struct SelectedCycleService: AccountCycleService {
   let cycle: AccountCycle
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [cycle], selectedCycleID: cycle.cycleID)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {}
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
+}
+
+@MainActor
+private final class FailAfterReservationStore: OnboardingProgressStore {
+  let file: FileOnboardingProgressStore
+  var saves = 0
+  init(file: FileOnboardingProgressStore) { self.file = file }
+  func load(accountID: String) throws -> OnboardingProgress? { try file.load(accountID: accountID) }
+  func save(_ progress: OnboardingProgress, accountID: String) throws {
+    saves += 1
+    if saves > 1 { throw CocoaError(.fileWriteOutOfSpace) }
+    try file.save(progress, accountID: accountID)
+  }
+  func remove(accountID: String) throws { try file.remove(accountID: accountID) }
+}
+
+@MainActor
+private final class MutableSelectedCycleService: AccountCycleService {
+  var cycle: AccountCycle
+  init(cycle: AccountCycle) { self.cycle = cycle }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     AccountCycles(cycles: [cycle], selectedCycleID: cycle.cycleID)
   }

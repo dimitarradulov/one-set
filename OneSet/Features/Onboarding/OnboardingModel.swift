@@ -149,25 +149,45 @@ final class OnboardingModel {
     lookupGeneration += 1
     let generation = lookupGeneration
     setupResolution = .loading
+    var discoveryReservation: OnboardingProgress?
+    var discoveryReturned = false
     do {
       await catalog.refresh()
       savedProgress = try progressStore?.load(accountID: user.id)
       if let savedProgress { try validate(savedProgress) }
+      // Persist a fail-closed reservation before asking the server. A crash or a
+      // failed subsequent write must not turn a discovered change into offline access.
+      if var local = savedProgress, local.pendingRemoteSelection == nil,
+         let completed = local.completed, !completed.needsUpload,
+         local.cycles?.pendingCreations.isEmpty != false,
+         (local.cycles?.pendingActivations ?? []).isEmpty {
+        guard let progressStore else { throw AccountSetupError.unavailable }
+        discoveryReservation = local
+        local.pendingRemoteSelection = AccountSetup(preferredUnit: local.weightUnit,
+          trainingDays: local.trainingDays, programID: local.cycles?.selectedProgramID ?? completed.setup.programID,
+          cycleID: local.cycles?.selectedCycleID ?? completed.setup.cycleID)
+        try progressStore.save(local, accountID: user.id)
+        savedProgress = local
+      }
       let setup = try await setupService.lookup(for: user)
+      discoveryReturned = true
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
       if let setup {
         if var local = savedProgress, let completed = local.completed,
-           !completed.needsUpload,
-           local.cycles?.pendingCreations.isEmpty != false,
+           !completed.needsUpload, local.cycles?.pendingCreations.isEmpty != false,
            (local.cycles?.pendingActivations ?? []).isEmpty {
           let currentProgram = local.cycles?.selectedProgramID ?? completed.setup.programID
           let currentCycle = local.cycles?.selectedCycleID ?? completed.setup.cycleID
-          if setup.programID != currentProgram || setup.cycleID != currentCycle {
+          let changed = setup.programID != currentProgram || setup.cycleID != currentCycle
+          if changed || discoveryReservation == nil && local.pendingRemoteSelection != nil {
             local.pendingRemoteSelection = setup
-            savedProgress = local
-            try progressStore?.save(local, accountID: user.id)
+          } else if discoveryReservation != nil {
+            local.pendingRemoteSelection = nil
           }
+          try progressStore?.save(local, accountID: user.id)
+          savedProgress = local
+          discoveryReservation = nil
         }
         if let local = savedProgress, local.pendingRemoteSelection != nil {
           restore(local)
@@ -209,6 +229,11 @@ final class OnboardingModel {
           }
         }
         }
+      } else if let original = discoveryReservation {
+        try progressStore?.save(original, accountID: user.id)
+        savedProgress = original
+        discoveryReservation = nil
+        restore(original)
       } else if let savedProgress {
         restore(savedProgress)
       } else {
@@ -236,6 +261,10 @@ final class OnboardingModel {
     } catch {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
+      if !discoveryReturned, let original = discoveryReservation, let progressStore,
+         (try? progressStore.save(original, accountID: user.id)) != nil {
+        savedProgress = original
+      }
       if let savedProgress, (try? validate(savedProgress)) != nil,
          !(error is CocoaError), !(error is DecodingError),
          (error as? AccountSetupError) != .invalidSetup {
@@ -544,8 +573,22 @@ final class OnboardingModel {
           let progressStore else { return }
     let generation = lookupGeneration
     let cycleGeneration = cycleKnowledgeGeneration
+    var discoveryReservation: OnboardingProgress?
+    var discoveryReturned = false
     do {
+      if progress.pendingRemoteSelection == nil, progress.completed?.needsUpload != true,
+         progress.cycles?.pendingCreations.isEmpty != false,
+         (progress.cycles?.pendingActivations ?? []).isEmpty {
+        discoveryReservation = progress
+        let state = progress.cycles
+        progress.pendingRemoteSelection = AccountSetup(preferredUnit: progress.weightUnit,
+          trainingDays: progress.trainingDays, programID: state?.selectedProgramID ?? setup.programID,
+          cycleID: state?.selectedCycleID ?? setup.cycleID)
+        try progressStore.save(progress, accountID: user.id)
+        savedProgress = progress
+      }
       let remote = try await cycleService.lookup(for: user)
+      discoveryReturned = true
       guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
             authentication.signedInUser?.id == user.id, var latest = savedProgress else { return }
       var state = latest.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
@@ -553,10 +596,16 @@ final class OnboardingModel {
       if latest.completed?.needsUpload != true, state.pendingCreations.isEmpty,
          (state.pendingActivations ?? []).isEmpty,
          let selectedID = remote.selectedCycleID,
-         let selected = remote.cycles.first(where: { $0.cycleID == selectedID }),
-         selected.cycleID != state.selectedCycleID || selected.programID != state.selectedProgramID {
-        latest.pendingRemoteSelection = AccountSetup(preferredUnit: latest.weightUnit,
-          trainingDays: latest.trainingDays, programID: selected.programID, cycleID: selected.cycleID)
+         let selected = remote.cycles.first(where: { $0.cycleID == selectedID }) {
+        if selected.cycleID != state.selectedCycleID || selected.programID != state.selectedProgramID
+            || (latest.pendingRemoteSelection != nil && discoveryReservation == nil) {
+          latest.pendingRemoteSelection = AccountSetup(preferredUnit: latest.weightUnit,
+            trainingDays: latest.trainingDays, programID: selected.programID, cycleID: selected.cycleID)
+        } else if discoveryReservation != nil {
+          latest.pendingRemoteSelection = nil
+        }
+      } else if discoveryReservation != nil {
+        latest.pendingRemoteSelection = nil
       }
       state.knownCycles = remote.cycles
       for cycle in state.pendingCreations where !state.knownCycles.contains(where: { $0.cycleID == cycle.cycleID }) {
@@ -564,10 +613,9 @@ final class OnboardingModel {
       }
       state.discoveryComplete = true
       latest.cycles = state
-      // Keep the in-memory gate closed even if writing the discovery fails.
-      if latest.pendingRemoteSelection != nil { savedProgress = latest }
       try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
+      discoveryReservation = nil
       cycleMessage = nil
       // Each response is scoped to the verified owner and fixed cycle identity. Do not
       // let a late response modify storage after a selection or account transition.
@@ -589,6 +637,10 @@ final class OnboardingModel {
       }
     } catch {
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      if !discoveryReturned, let original = discoveryReservation,
+         (try? progressStore.save(original, accountID: user.id)) != nil {
+        savedProgress = original
+      }
       if progress.cycles?.discoveryComplete != true {
         cycleMessage = "Your program history couldn’t be checked. Connect and try again."
       }
@@ -612,11 +664,11 @@ final class OnboardingModel {
       let remote = try await cycleService.lookup(for: user)
       guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
             authentication.signedInUser?.id == user.id, activeWorkoutSession == nil else { return }
-      guard remote.selectedCycleID == pending.cycleID,
-            remote.cycles.contains(where: { $0.cycleID == pending.cycleID && $0.programID == pending.programID }),
-            catalog.program(id: pending.programID) != nil,
-            let summary = try await progressService.lookup(cycleID: pending.cycleID, for: user),
-            summary.cycleID == pending.cycleID, summary.programID == pending.programID else {
+      guard let selectedID = remote.selectedCycleID,
+            let selected = remote.cycles.first(where: { $0.cycleID == selectedID }),
+            catalog.program(id: selected.programID) != nil,
+            let summary = try await progressService.lookup(cycleID: selectedID, for: user),
+            summary.cycleID == selectedID, summary.programID == selected.programID else {
         throw AccountSetupError.unavailable
       }
       guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
@@ -624,10 +676,10 @@ final class OnboardingModel {
             var latest = savedProgress, latest.pendingRemoteSelection?.cycleID == pending.cycleID,
             latest.pendingRemoteSelection?.programID == pending.programID else { return }
       try workoutRepository.restoreProgress(summary, accountID: user.id)
-      var state = latest.cycles ?? ProgramCycleState(selectedProgramID: pending.programID,
-        selectedCycleID: pending.cycleID, knownCycles: [], discoveryComplete: true, pendingCreations: [])
-      state.selectedProgramID = pending.programID
-      state.selectedCycleID = pending.cycleID
+      var state = latest.cycles ?? ProgramCycleState(selectedProgramID: selected.programID,
+        selectedCycleID: selectedID, knownCycles: [], discoveryComplete: true, pendingCreations: [])
+      state.selectedProgramID = selected.programID
+      state.selectedCycleID = selectedID
       state.knownCycles = remote.cycles
       state.discoveryComplete = true
       latest.cycles = state
@@ -635,10 +687,10 @@ final class OnboardingModel {
       try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
       cycleKnowledgeGeneration += 1
-      selectedProgramID = pending.programID
-      restoredCycleID = pending.cycleID
+      selectedProgramID = selected.programID
+      restoredCycleID = selectedID
       programPath = []
-      path = [.programOverview(pending.programID)]
+      path = [.programOverview(selected.programID)]
       programUpdateMessage = nil
     } catch {
       guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
