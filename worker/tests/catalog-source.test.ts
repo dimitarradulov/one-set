@@ -148,7 +148,10 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
     for (const line of text.split('\n')) {
       const heading = line.match(/^## (.+)$/);
       if (heading) {
-        workoutName = heading[1];
+        // These published programs use the library's day prefix for ordering only.
+        workoutName = key === 'powerhouse' || key === 'classic-physique'
+          ? heading[1]!.replace(/^Day \d+ - /, '')
+          : heading[1]!;
         sourceWorkouts.set(workoutName, []);
         continue;
       }
