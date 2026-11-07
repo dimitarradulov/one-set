@@ -326,6 +326,20 @@ Hierarchy:
 
 Workout card content should prioritize: day/workout name → completion state → completed/total exercises → disclosure to preview. Avoid oversized hero art; this screen is an operational dashboard.
 
+#### Program switching
+
+Approved interaction decisions:
+
+- Place a compact `Switch` action at the top right of the Program screen's native navigation bar, without adding a content row.
+- Push the program list onto the Program tab's navigation stack, using normal Back navigation. Let users review program details before committing. Use an explicit `Switch to this program` action for a program they have not followed, or `Resume this program` for a previously followed program. Browsing or going back leaves the current program unchanged.
+- Block entry to the chooser while a session is unfinished. The user must finish the workout or confirm discard through the workout flow before browsing other programs.
+- Allow switching offline, including to a program not previously followed, using the catalog available on the device. Save the choice locally and sync automatically when connectivity returns.
+- Hide all removed programs from the chooser, including previously followed programs. A removed program can remain the current program, but switching away prevents returning to it while it remains removed. Preserve its training history.
+
+The [requirements](docs/requirements.md) govern progress preservation: returning to an available program resumes its previous cycle and completion marks.
+
+Retain the existing program cards and frequency-first ordering without changing the user's training-frequency preference. Label the current program and prevent reselecting it from creating a cycle. After a successful switch, return to the selected program's overview: a new program begins at training week 1, while a returning program resumes its saved progress. Starting a new cycle remains a separate action. If an unfinished session blocks `Switch`, explain the requirement and offer to return to the workout. If saving the new choice locally fails, keep the current program and let the user retry.
+
 ### Week selector
 
 - Horizontally scrollable when needed.

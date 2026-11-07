@@ -6,10 +6,12 @@ OneSet guides lifters through curated HIT programs and keeps a reliable record o
 
 **Catalog**: The curated collection of programs, workout templates, exercises, and prescriptions supplied by OneSet.
 
+**Catalog publication**: A complete catalog version made available to lifters after review.
+
 **Program**: A named training plan containing an ordered rotation of workouts.
 _Avoid_: Plan (when referring to a different concept)
 
-**Removed program**: A program no longer offered for new selection, which existing followers can continue and whose training history remains available.
+**Removed program**: A program unavailable in program choosers, which users can continue while it remains their current program and whose training history remains available.
 
 **Enrollment**: A user's lasting relationship with a program, including remembered exercise preferences.
 _Avoid_: Cycle
@@ -30,6 +32,10 @@ _Avoid_: Session
 _Avoid_: Workout template
 
 **Completed session**: A session explicitly finished after completing at least one working set. It may include unperformed exercises.
+
+**Training history**: The record of a user's completed sessions across programs and cycles, including sessions with unperformed exercises. Active and discarded attempts are excluded.
+
+**Session duration**: The elapsed time from starting a session to explicitly finishing it, including rests and interruptions.
 
 **Exercise slot**: A prescribed place for an exercise in a workout, retained as a recognizable place when a replacement is chosen.
 

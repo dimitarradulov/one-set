@@ -21,7 +21,9 @@ All ten gym-only programs in the [program library](docs/HIT_Workout_Program_Libr
 
 Use one training device at a time; synced history can be restored on a replacement device. Current templates are editable and started/completed sessions keep their recorded content.
 
-Deferred: nutrition, social feeds, custom programs/exercises, charts, Apple Watch, warmup logging, extra working sets/intensity-technique logging, CSV export, soft deletion/recovery UI, admin app, and session replay.
+Deferred: nutrition, social feeds, custom programs/exercises, charts, Apple Watch, warmup logging, extra working sets/intensity-technique logging, CSV export, soft deletion/recovery UI, administration beyond the founder's catalog dashboard, and session replay.
+
+A separate, laptop-first web dashboard hosted on Cloudflare for the founder's complete text-catalog maintenance workflow is approved for design and is not yet implemented. Edit, review, and publish during one visit, with no saved drafts or autosave. Cloudflare Access will restrict entry to the founder's exact email using email-code login, with sessions configured for up to one month. Technical design must automate consistency between the catalog files, published content, and bundled fallback. The current YAML and preview/publish commands remain available; see [catalog publishing](docs/catalog-publishing.md).
 
 ## Documentation
 

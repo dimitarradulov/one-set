@@ -98,4 +98,22 @@ The founder's [program library](HIT_Workout_Program_Library.md) is the source fo
 
 Before import, verify program names, frequency, order, rep bounds, warmup exceptions, replacement guidance and video coverage. Preserve IDs across compatible edits. A removed template entry gets a null position so historical sessions and offline snapshots can still refer to it; never reuse its ID for another movement. Produce a readable catalog diff, validate in a disposable environment, and commit the complete catalog change in one transaction. Started sessions keep their copied content; future sessions use the new template.
 
-Prepare short mobile-friendly videos, record checksums and MIME types, and upload immutable objects to private R2 keys. Verify playback and range requests through the authorized Worker before making a video selectable. Keep source masters separately. Publication credentials must be distinct from ordinary user API access. No admin application is planned for launch.
+Prepare short mobile-friendly videos, record checksums and MIME types, and upload immutable objects to private R2 keys. Verify playback and range requests through the authorized Worker before making a video selectable. Keep source masters separately. Publication credentials must be distinct from ordinary user API access. A separate, laptop-first web dashboard hosted on Cloudflare and restricted to the founder is approved for design, covering the existing text-catalog workflow. Edit, review, and publish during one visit without saved drafts or autosave. Cloudflare Access restricts entry to the founder's exact email through email-code login, with sessions configured for up to one month on the Free plan. Technical design must automate consistency with YAML and the bundled fallback. Video upload remains deferred for that dashboard. See [the dashboard boundary decision](adr/0002-separate-catalog-dashboard.md).
+
+### Accepted dashboard stack
+
+The founder accepted this stack. The dashboard is not implemented yet:
+
+| Responsibility | Choice |
+| --- | --- |
+| Pages and server rendering | Astro with TypeScript, using server rendering and the official Cloudflare adapter |
+| Hosting | A dedicated Cloudflare Worker for the dashboard, in an `admin/` directory in the same repository as the existing API |
+| Editing and submission | Native HTML forms and Astro Actions; small browser scripts for adding and reordering rows where helpful |
+| Styling | Plain CSS |
+| Administrator access | Cloudflare Access, with server verification of the Access token for privileged requests |
+| Catalog validation and publication | Reuse the existing Worker publisher and its validation, change previews, stale-preview checks, and atomic publication |
+| Data | Existing Neon catalog and publication records; no separate dashboard database or saved drafts |
+
+Astro supports server-rendered pages on Cloudflare and form submissions to server actions without a client application framework. Browser interactions do not require a single-page application. Keep maintenance credentials in server secrets and keep existing Clerk authentication for the iOS API. The concrete automation connecting catalog publication to repository files and the bundled fallback remains to be designed.
+
+References: [Cloudflare adapter](https://docs.astro.build/en/guides/integrations-guide/cloudflare/), [HTML form actions](https://docs.astro.build/en/guides/actions/#call-actions-from-an-html-form-action).

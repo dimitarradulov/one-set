@@ -1,5 +1,19 @@
 # Catalog publishing
 
+## Dashboard direction
+
+Implementation specification: [private catalog dashboard #58](https://github.com/dimitarradulov/one-set/issues/58).
+
+The founder approved a separate, laptop-first web dashboard restricted to the founder, covering every capability of the current text-catalog workflow without routine YAML editing or command-line publication. This includes program and shared exercise authoring, workout and slot ordering, validation, change previews, publication, explicit removals and restorations, and correction using earlier content. Video upload remains deferred. See [FR-26](requirements.md) and [the dashboard boundary decision](adr/0002-separate-catalog-dashboard.md).
+
+The dashboard will be hosted on Cloudflare. The founder edits, reviews, and publishes changes during one editing visit. There are no saved drafts or autosave; unpublished edits are not retained after leaving. Reviewing changes does not change the catalog delivered to lifters.
+
+Preserve the current authoring, preview, and publication workflow through the UI. The dashboard must automate the manual maintenance steps, including keeping catalog files, published content, and the generated bundled fallback consistent. Their synchronization is a technical design responsibility, not an additional maintenance task for the founder.
+
+Cloudflare Access will restrict entry to the founder's exact email through email-code login, with sessions configured for up to one month on the Free plan. Protect the dashboard and every editing endpoint; publishing credentials remain server-side. The dashboard is not implemented, and technical design must automate consistency with YAML and the bundled fallback. The sections below describe the existing operational workflow.
+
+The accepted stack is Astro with TypeScript and server rendering, native HTML forms and Astro Actions, and plain CSS, hosted as a dedicated Cloudflare Worker from `admin/` in this repository. Reuse the existing catalog publisher and Neon database. See [the accepted dashboard stack](system-design.md#accepted-dashboard-stack).
+
 The catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16), and compatible editing and correction behavior in [issue #18](https://github.com/dimitarradulov/one-set/issues/18). This is the implementation reference for [issue #15](https://github.com/dimitarradulov/one-set/issues/15). The founder maintains the text catalog in `worker/catalog/`; structural changes and whole-program removal use the separate catalog maintenance workflow.
 
 ## Files and source of truth
