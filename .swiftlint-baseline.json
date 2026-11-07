@@ -1,0 +1,3076 @@
+[
+  {
+    "violation": {
+      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 346 lines",
+      "location": {
+        "character": 1,
+        "line": 4,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct AppDependencies {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 15",
+      "location": {
+        "character": 3,
+        "line": 44,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  static func live("
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 216 lines",
+      "location": {
+        "character": 10,
+        "line": 44,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  static func live("
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 69,
+        "line": 108,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "          ? UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 74,
+        "line": 118,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "        cycleID: UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 80,
+        "line": 219,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "              cycleID: UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!,"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 80,
+        "line": 226,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "              cycleID: UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!,"
+  },
+  {
+    "violation": {
+      "reason": "Tuples should have at most 2 members",
+      "location": {
+        "character": 19,
+        "line": 299,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "large_tuple",
+      "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
+      "severity": "error",
+      "ruleName": "Large Tuple"
+    },
+    "text": "    let samples: [(String, UUID, Date, Bool)] = ["
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 104,
+        "line": 300,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      (\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\", UUID(uuidString: \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\")!,"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 65,
+        "line": 301,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "       ISO8601DateFormatter().date(from: \"2026-10-18T10:00:00Z\")!, false),"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 104,
+        "line": 302,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      (\"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\", UUID(uuidString: \"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\")!,"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 65,
+        "line": 303,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "       ISO8601DateFormatter().date(from: \"2026-10-29T18:30:00Z\")!, true),"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 73,
+        "line": 303,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "       ISO8601DateFormatter().date(from: \"2026-10-29T18:30:00Z\")!, true),"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 74,
+        "line": 339,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let program = ProgramCatalog.bundled.program(id: \"machine-full-body\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 99,
+        "line": 342,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      accountID: \"preview-user\", cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!,"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 406,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 81,
+        "line": 425,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "  private let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 82,
+        "line": 426,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "  private let previous = UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 81,
+        "line": 439,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "  private let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 82,
+        "line": 440,
+        "file": "OneSet/App/AppDependencies.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "  private let previous = UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 22",
+      "location": {
+        "character": 3,
+        "line": 30,
+        "file": "OneSet/App/AppLaunchConfiguration.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "error",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  init(arguments: [String]) {"
+  },
+  {
+    "violation": {
+      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 150 lines",
+      "location": {
+        "character": 3,
+        "line": 30,
+        "file": "OneSet/App/AppLaunchConfiguration.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  init(arguments: [String]) {"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 72,
+        "line": 195,
+        "file": "OneSet/App/AppLaunchConfiguration.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "      \"--ui-workout-banner-arms\": (\"bro-split\", \"bro-split-day-5-arms\"),"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'h1' should be between 3 and 40 characters long",
+      "location": {
+        "character": 14,
+        "line": 6,
+        "file": "OneSet/DesignSystem/OneSetTypography.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "  static let h1 = custom(\"BebasNeue-Regular\", size: 32, relativeTo: .largeTitle, fallback: .default)"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'h2' should be between 3 and 40 characters long",
+      "location": {
+        "character": 14,
+        "line": 7,
+        "file": "OneSet/DesignSystem/OneSetTypography.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "  static let h2 = custom(\"BebasNeue-Regular\", size: 24, relativeTo: .title2, fallback: .default)"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 8,
+        "file": "OneSet/Domain/AccountProgress.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 19,
+        "file": "OneSet/Domain/AccountProgress.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 13,
+        "file": "OneSet/Domain/OnboardingProgress.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var completed: CompletedOnboarding? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 15,
+        "file": "OneSet/Domain/OnboardingProgress.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var cycles: ProgramCycleState? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 19,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var locallyKnownProgressCycleIDs: [UUID]? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 21,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var pendingActivations: [UUID]? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 23,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var rejectedCycleIDs: [UUID]? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 25,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var rejectedActivationIDs: [UUID]? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 27,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var unavailableAtPublication: [String: String]? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 28,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var retry: CycleRetryState? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 29,
+        "file": "OneSet/Domain/ProgramCycleState.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var authenticationDeferred: Bool? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 21,
+        "file": "OneSet/Domain/WorkoutSession.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    struct WarmupRange: Hashable, Sendable {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 13,
+        "line": 68,
+        "file": "OneSet/Domain/WorkoutSession.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    private enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 11",
+      "location": {
+        "character": 3,
+        "line": 71,
+        "file": "OneSet/Features/History/HistoryModel.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func reload() async {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 16",
+      "location": {
+        "character": 11,
+        "line": 123,
+        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  private func programDestination(for route: OnboardingRoute) -> some View {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 100 lines",
+      "location": {
+        "character": 11,
+        "line": 123,
+        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  private func programDestination(for route: OnboardingRoute) -> some View {"
+  },
+  {
+    "violation": {
+      "reason": "Trailing closure syntax should not be used when passing more than one closure argument",
+      "location": {
+        "character": 114,
+        "line": 183,
+        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
+      },
+      "ruleIdentifier": "multiple_closures_with_trailing_closure",
+      "ruleDescription": "Trailing closure syntax should not be used when passing more than one closure argument",
+      "severity": "warning",
+      "ruleName": "Multiple Closures with Trailing Closure"
+    },
+    "text": "          onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {"
+  },
+  {
+    "violation": {
+      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 325 lines",
+      "location": {
+        "character": 1,
+        "line": 3,
+        "file": "OneSet/Features/Onboarding/OnboardingFlowView.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct OnboardingFlowView: View {"
+  },
+  {
+    "violation": {
+      "reason": "Trailing closure syntax should not be used when passing more than one closure argument",
+      "location": {
+        "character": 120,
+        "line": 274,
+        "file": "OneSet/Features/Onboarding/OnboardingFlowView.swift"
+      },
+      "ruleIdentifier": "multiple_closures_with_trailing_closure",
+      "ruleDescription": "Trailing closure syntax should not be used when passing more than one closure argument",
+      "severity": "warning",
+      "ruleName": "Multiple Closures with Trailing Closure"
+    },
+    "text": "                onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {"
+  },
+  {
+    "violation": {
+      "reason": "Don't include vertical whitespace (empty line) before closing braces",
+      "location": {
+        "character": 1,
+        "line": 334,
+        "file": "OneSet/Features/Onboarding/OnboardingFlowView.swift"
+      },
+      "ruleIdentifier": "vertical_whitespace_closing_braces",
+      "ruleDescription": "Don't include vertical whitespace (empty line) before closing braces",
+      "severity": "warning",
+      "ruleName": "Vertical Whitespace before Closing Braces"
+    },
+    "text": ""
+  },
+  {
+    "violation": {
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1142 lines",
+      "location": {
+        "character": 7,
+        "line": 6,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "final class OnboardingModel {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 22",
+      "location": {
+        "character": 3,
+        "line": 139,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "error",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func resolveAccountSetup(using authentication: AuthenticationModel) async {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 102 lines",
+      "location": {
+        "character": 3,
+        "line": 139,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func resolveAccountSetup(using authentication: AuthenticationModel) async {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 19",
+      "location": {
+        "character": 3,
+        "line": 249,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func signOut("
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 96 lines",
+      "location": {
+        "character": 3,
+        "line": 249,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func signOut("
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 12",
+      "location": {
+        "character": 3,
+        "line": 521,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func refreshCycleKnowledge(using authentication: AuthenticationModel) async {"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 12",
+      "location": {
+        "character": 3,
+        "line": 573,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 65 lines",
+      "location": {
+        "character": 3,
+        "line": 573,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 923,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)"
+  },
+  {
+    "violation": {
+      "reason": "File should contain 1000 lines or less: currently contains 1226",
+      "location": {
+        "character": 1,
+        "line": 1226,
+        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
+      },
+      "ruleIdentifier": "file_length",
+      "ruleDescription": "Files should not span too many lines.",
+      "severity": "error",
+      "ruleName": "File Length"
+    },
+    "text": "}"
+  },
+  {
+    "violation": {
+      "reason": "Tuples should have at most 2 members",
+      "location": {
+        "character": 29,
+        "line": 9,
+        "file": "OneSet/Features/Onboarding/SettingsDestination.swift"
+      },
+      "ruleIdentifier": "large_tuple",
+      "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
+      "severity": "warning",
+      "ruleName": "Large Tuple"
+    },
+    "text": "  private var presentation: (title: String, explanation: String, symbol: String) {"
+  },
+  {
+    "violation": {
+      "reason": "Don't include vertical whitespace (empty line) before closing braces",
+      "location": {
+        "character": 1,
+        "line": 58,
+        "file": "OneSet/Features/Onboarding/TrainingPreferencesScreen.swift"
+      },
+      "ruleIdentifier": "vertical_whitespace_closing_braces",
+      "ruleDescription": "Don't include vertical whitespace (empty line) before closing braces",
+      "severity": "warning",
+      "ruleName": "Vertical Whitespace before Closing Braces"
+    },
+    "text": ""
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 9,
+        "file": "OneSet/Features/Programs/ProgramDetailScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var onPreviewWorkout: ((WorkoutTemplate) -> Void)? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Files should have a single trailing newline",
+      "location": {
+        "line": 109,
+        "file": "OneSet/Features/Programs/ProgramDetailScreen.swift"
+      },
+      "ruleIdentifier": "trailing_newline",
+      "ruleDescription": "Files should have a single trailing newline",
+      "severity": "warning",
+      "ruleName": "Trailing Newline"
+    },
+    "text": ""
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 96 lines",
+      "location": {
+        "character": 3,
+        "line": 7,
+        "file": "OneSet/Features/Programs/ProgramIcon.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func path(in rect: CGRect) -> Path {"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 5,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var uploadMessage: String? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 6,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var onRetryUpload: (() -> Void)? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 7,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var preferencesSummary: String? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 8,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var activeSession: WorkoutSession? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 9,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var onResumeWorkout: (() -> Void)? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 12,
+        "file": "OneSet/Features/Programs/ProgramOverviewScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var completedWorkoutsForWeek: ((Int) -> Set<String>)? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 7,
+        "file": "OneSet/Features/Programs/ProgramSelectionScreen.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var recoveryMessage: String? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 32,
+        "line": 14,
+        "file": "OneSet/Features/Programs/WorkoutBanner.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "    \"arms\": \"WorkoutBannerArms\","
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 66,
+        "line": 68,
+        "file": "OneSet/Features/Programs/WorkoutBanner.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "                  .init(color: .black.opacity(0.88), location: 1),"
+  },
+  {
+    "violation": {
+      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 349 lines",
+      "location": {
+        "character": 1,
+        "line": 3,
+        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct WorkoutRecordingScreen: View {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 29,
+        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum Name { case weight, reps }"
+  },
+  {
+    "violation": {
+      "reason": "Else and catch should be on the same line, one space after the previous declaration",
+      "location": {
+        "character": 57,
+        "line": 162,
+        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
+      },
+      "ruleIdentifier": "statement_position",
+      "ruleDescription": "Else and catch should be on the same line, one space after the previous declaration",
+      "severity": "warning",
+      "ruleName": "Statement Position"
+    },
+    "text": "        if completed == 0 { confirmsEmptyDiscard = true }"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 86 lines",
+      "location": {
+        "character": 11,
+        "line": 182,
+        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  private func exerciseRow(_ exercise: WorkoutSession.Exercise) -> some View {"
+  },
+  {
+    "violation": {
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 759 lines",
+      "location": {
+        "character": 7,
+        "line": 29,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "final class WorkoutRepository {"
+  },
+  {
+    "violation": {
+      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 111 lines",
+      "location": {
+        "character": 3,
+        "line": 61,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  init(databaseURL: URL) throws {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 64,
+        "line": 68,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"create-workout-sessions-v1\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 64,
+        "line": 82,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"workout-week-membership-v2\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 66,
+        "line": 92,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"completed-session-uploads-v3\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 71,
+        "line": 104,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"completed-session-upload-retry-v4\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 75,
+        "line": 112,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"backfill-completed-session-uploads-v5\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 77,
+        "line": 115,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"workout-setup-cycle-upload-conflicts-v6\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 64,
+        "line": 124,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"restored-cycle-progress-v7\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 70,
+        "line": 157,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"restored-previous-performance-v8\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 67,
+        "line": 164,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"downloaded-session-history-v9\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 176,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 62,
+        "line": 192,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "  nonisolated static func backfillCompletedSessionUploads(in db: Database) throws {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 45,
+        "line": 226,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    guard let payload = try database.read({ db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 234,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 250,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Tuples should have at most 2 members",
+      "location": {
+        "character": 55,
+        "line": 256,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "large_tuple",
+      "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
+      "severity": "warning",
+      "ruleName": "Large Tuple"
+    },
+    "text": "                      workoutIDs: [String]) throws -> (week: Int, day: Int, workoutID: String) {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 257,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 34,
+        "line": 263,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "  private func nextOccurrence(in db: Database, accountID: String, cycleID: UUID,"
+  },
+  {
+    "violation": {
+      "reason": "Tuples should have at most 2 members",
+      "location": {
+        "character": 8,
+        "line": 265,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "large_tuple",
+      "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
+      "severity": "warning",
+      "ruleName": "Large Tuple"
+    },
+    "text": "    -> (week: Int, day: Int, workoutID: String) {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 292,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 338,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 357,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 58,
+        "line": 362,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "  private static func hasUnresolvedSetupCycleConflict(in db: Database, accountID: String) throws -> Bool {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 378,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 399,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 410,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 424,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 455,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 473,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 485,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 496,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 507,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 520,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 531,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 547,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 584,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 592,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 40,
+        "line": 605,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let payloads = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 25,
+        "line": 621,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 643,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 63,
+        "line": 661,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "            payload, session.finishedAt?.timeIntervalSince1970,"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 40,
+        "line": 684,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let payloads = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 47,
+        "line": 688,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let restoredPayload = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 736,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 829,
+        "file": "OneSet/Persistence/WorkoutRepository.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 45,
+        "file": "OneSet/Services/Account/AccountCycleService.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var preferenceSourceCycleID: UUID? = nil"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 7,
+        "line": 22,
+        "file": "OneSet/Services/Account/HTTPAccountCycleService.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "      enum CodingKeys: String, CodingKey { case cycleID = \"cycle_id\", result }"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 7,
+        "line": 36,
+        "file": "OneSet/Services/Account/HTTPAccountCycleService.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "      enum CodingKeys: String, CodingKey { case cycleID = \"cycle_id\", result }"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 12",
+      "location": {
+        "character": 11,
+        "line": 44,
+        "file": "OneSet/Services/Account/HTTPAccountCycleService.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  private func send(path: String, method: String, body: Data?, for user: AuthenticatedUser) async throws -> Data {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 9,
+        "line": 74,
+        "file": "OneSet/Services/Account/HTTPAccountCycleService.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "        struct APIError: Decodable { let code: String }"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 115,
+        "line": 20,
+        "file": "OneSet/Services/Account/HTTPAccountProgressService.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    var components = URLComponents(url: baseURL.appending(path: \"v1/me/progress\"), resolvingAgainstBaseURL: false)!"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 7,
+        "line": 44,
+        "file": "OneSet/Services/Account/HTTPAccountSetupService.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "      enum CodingKeys: CodingKey { case setup }"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 61,
+        "file": "OneSet/Services/Account/PreviewAccountSetupService.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Don't include vertical whitespace (empty line) before closing braces",
+      "location": {
+        "character": 1,
+        "line": 86,
+        "file": "OneSet/Services/Account/PreviewAccountSetupService.swift"
+      },
+      "ruleIdentifier": "vertical_whitespace_closing_braces",
+      "ruleDescription": "Don't include vertical whitespace (empty line) before closing braces",
+      "severity": "warning",
+      "ruleName": "Vertical Whitespace before Closing Braces"
+    },
+    "text": ""
+  },
+  {
+    "violation": {
+      "reason": "File should contain 1000 lines or less: currently contains 2050",
+      "location": {
+        "character": 1,
+        "line": 2050,
+        "file": "OneSet/Services/Catalog/BundledProgramCatalog.swift"
+      },
+      "ruleIdentifier": "file_length",
+      "ruleDescription": "Files should not span too many lines.",
+      "severity": "error",
+      "ruleName": "File Length"
+    },
+    "text": "}"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 65 lines",
+      "location": {
+        "character": 3,
+        "line": 12,
+        "file": "OneSet/Services/Catalog/CatalogProgramDocument.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func model(exercises: [String: CatalogExerciseDocument]) throws -> TrainingProgram {"
+  },
+  {
+    "violation": {
+      "reason": "Prefer implicit returns in closures, functions and getters",
+      "location": {
+        "character": 5,
+        "line": 16,
+        "file": "OneSet/Services/Workout/CompletedSessionUploadService.swift"
+      },
+      "ruleIdentifier": "implicit_return",
+      "ruleDescription": "Prefer implicit returns in closures, functions and getters",
+      "severity": "warning",
+      "ruleName": "Implicit Return"
+    },
+    "text": "    return switch status {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 227,
+        "file": "OneSet/Services/Workout/SessionHistoryService.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 68,
+        "file": "OneSet/Sync/CompletedSessionUpload.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Types should be nested at most 1 level deep",
+      "location": {
+        "character": 5,
+        "line": 103,
+        "file": "OneSet/Sync/CompletedSessionUpload.swift"
+      },
+      "ruleIdentifier": "nesting",
+      "ruleDescription": "Types should be nested at most 1 level deep, and functions should be nested at most 2 levels deep.",
+      "severity": "warning",
+      "ruleName": "Nesting"
+    },
+    "text": "    enum CodingKeys: String, CodingKey {"
+  },
+  {
+    "violation": {
+      "reason": "Initializer body should span 60 lines or less excluding comments and whitespace: currently spans 61 lines",
+      "location": {
+        "character": 3,
+        "line": 163,
+        "file": "OneSet/Sync/CompletedSessionUpload.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  init(session: WorkoutSession) throws {"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 57,
+        "line": 222,
+        "file": "OneSet/Sync/CompletedSessionUpload.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "        completedAt: isCompleted ? Self.timestamp(result!.completedAt!) : nil"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 70,
+        "line": 222,
+        "file": "OneSet/Sync/CompletedSessionUpload.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "        completedAt: isCompleted ? Self.timestamp(result!.completedAt!) : nil"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 22",
+      "location": {
+        "character": 3,
+        "line": 31,
+        "file": "OneSet/Sync/CompletedSessionUploadCoordinator.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "error",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func drain("
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 77 lines",
+      "location": {
+        "character": 3,
+        "line": 31,
+        "file": "OneSet/Sync/CompletedSessionUploadCoordinator.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func drain("
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'cycle_id' should only contain alphanumeric and other allowed characters",
+      "location": {
+        "character": 46,
+        "line": 72,
+        "file": "OneSet/Sync/CompletedSessionUploadCoordinator.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "error",
+      "ruleName": "Identifier Name"
+    },
+    "text": "      struct CycleReference: Decodable { let cycle_id: UUID }"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 92,
+        "line": 74,
+        "file": "OneSet/Sync/CompletedSessionUploadCoordinator.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      guard blockedCycleIDs.isEmpty || (cycleID != nil && !blockedCycleIDs.contains(cycleID!)),"
+  },
+  {
+    "violation": {
+      "reason": "Function should have complexity 10 or less; currently complexity is 19",
+      "location": {
+        "character": 3,
+        "line": 8,
+        "file": "OneSet/Sync/ProgramCycleSyncCoordinator.swift"
+      },
+      "ruleIdentifier": "cyclomatic_complexity",
+      "ruleDescription": "Complexity of function bodies should be limited.",
+      "severity": "warning",
+      "ruleName": "Cyclomatic Complexity"
+    },
+    "text": "  func upload("
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 66 lines",
+      "location": {
+        "character": 3,
+        "line": 8,
+        "file": "OneSet/Sync/ProgramCycleSyncCoordinator.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func upload("
+  },
+  {
+    "violation": {
+      "reason": "Function should have 5 parameters or less: it currently has 10",
+      "location": {
+        "character": 3,
+        "line": 8,
+        "file": "OneSet/Sync/ProgramCycleSyncCoordinator.swift"
+      },
+      "ruleIdentifier": "function_parameter_count",
+      "ruleDescription": "Number of function parameters should be low.",
+      "severity": "error",
+      "ruleName": "Function Parameter Count"
+    },
+    "text": "  func upload("
+  },
+  {
+    "violation": {
+      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 944 lines",
+      "location": {
+        "character": 1,
+        "line": 6,
+        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct ProgramCatalogOnboardingTests {"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 904,
+        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 938,
+        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Optional should be implicitly initialized without nil",
+      "location": {
+        "character": 7,
+        "line": 1069,
+        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
+      },
+      "ruleIdentifier": "implicit_optional_initialization",
+      "ruleDescription": "Optionals should be consistently initialized, either with `= nil` or without.",
+      "severity": "warning",
+      "ruleName": "Implicit Optional Initialization"
+    },
+    "text": "  var saveError: AccountSetupError? = nil"
+  },
+  {
+    "violation": {
+      "reason": "File should contain 1000 lines or less: currently contains 1246",
+      "location": {
+        "character": 1,
+        "line": 1246,
+        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
+      },
+      "ruleIdentifier": "file_length",
+      "ruleDescription": "Files should not span too many lines.",
+      "severity": "error",
+      "ruleName": "File Length"
+    },
+    "text": "}"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 55,
+        "line": 16,
+        "file": "OneSetTests/Features/History/HistoryModelTests.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "        repTarget: RepTarget(minimum: 8, maximum: 12)),"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 78,
+        "line": 78,
+        "file": "OneSetTests/Features/History/HistoryModelTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let importedID = UUID(uuidString: \"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\")!"
+  },
+  {
+    "violation": {
+      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 913 lines",
+      "location": {
+        "character": 1,
+        "line": 6,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct CompletedSessionUploadTests {"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 13,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 77,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\")!"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 86 lines",
+      "location": {
+        "character": 3,
+        "line": 233,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func establishedCycleConflictRetainsOnlyItsSessionsAndSurvivesRestart() async throws {"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 240,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 245,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"cccccccc-cccc-4ccc-8ccc-cccccccccccc\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 333,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"dddddddd-dddd-4ddd-8ddd-dddddddddddd\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 401,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"ffffffff-ffff-4fff-8fff-ffffffffffff\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 437,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"abababab-abab-4bab-8bab-abababababab\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 456,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 481,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 572,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"55555555-5555-4555-8555-555555555555\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 612,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"cccccccc-cccc-4ccc-8ccc-cccccccccccc\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 644,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"66666666-6666-4666-8666-666666666666\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 694,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"77777777-7777-4777-8777-777777777777\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 730,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"88888888-8888-4888-8888-888888888888\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 767,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 807,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"99999999-9999-4999-8999-999999999999\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 846,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 881,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 934,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 969,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let cycleID = UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!"
+  },
+  {
+    "violation": {
+      "reason": "File should contain 1000 lines or less: currently contains 1209",
+      "location": {
+        "character": 1,
+        "line": 1209,
+        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
+      },
+      "ruleIdentifier": "file_length",
+      "ruleDescription": "Files should not span too many lines.",
+      "severity": "error",
+      "ruleName": "File Length"
+    },
+    "text": "}"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 17,
+        "file": "OneSetTests/Features/Workouts/PreviousPerformanceRestoreTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 72,
+        "line": 56,
+        "file": "OneSetTests/Features/Workouts/PreviousPerformanceRestoreTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "      cycleID: UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
+  },
+  {
+    "violation": {
+      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 752 lines",
+      "location": {
+        "character": 1,
+        "line": 7,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "struct WorkoutRepositorySetTests {"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 38,
+        "line": 32,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let before = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 36,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 49,
+        "line": 45,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let fixtureMigrations = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 39,
+        "line": 54,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "      let after = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 44,
+        "line": 60,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "      let migrations = try database.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 75,
+        "line": 135,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let firstID = UUID(uuidString: \"00000000-0000-4000-8000-000000000001\")!"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 76,
+        "line": 136,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    let secondID = UUID(uuidString: \"00000000-0000-4000-8000-000000000002\")!"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 278,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 52,
+        "line": 294,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let freshMigrations = try freshDatabase.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 34,
+        "line": 306,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try existingDatabase.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 53,
+        "line": 313,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let beforeUpgrade = try existingDatabase.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 58,
+        "line": 321,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    let upgradedMigrations = try upgradedDatabase.read { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 394,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try sabotage.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 408,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try sabotage.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 439,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try sabotage.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 64,
+        "line": 779,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"create-workout-sessions-v1\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 64,
+        "line": 793,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    migrator.registerMigration(\"workout-week-membership-v2\") { db in"
+  },
+  {
+    "violation": {
+      "reason": "Variable name 'db' should be between 3 and 40 characters long",
+      "location": {
+        "character": 26,
+        "line": 804,
+        "file": "OneSetTests/Features/Workouts/WorkoutRepositorySetTests.swift"
+      },
+      "ruleIdentifier": "identifier_name",
+      "ruleDescription": "Identifier names should only contain alphanumeric characters and start with a lowercase character or should only contain capital letters. In an exception to the above, variable names may start with a capital letter when they are declared as static. Variable names should not be too long or too short.",
+      "severity": "warning",
+      "ruleName": "Identifier Name"
+    },
+    "text": "    try database.write { db in"
+  },
+  {
+    "violation": {
+      "reason": "Force unwrapping should be avoided",
+      "location": {
+        "character": 26,
+        "line": 39,
+        "file": "OneSetUITests/InlineRestTimerTests.swift"
+      },
+      "ruleIdentifier": "force_unwrapping",
+      "ruleDescription": "Force unwrapping should be avoided",
+      "severity": "warning",
+      "ruleName": "Force Unwrapping"
+    },
+    "text": "    complete(slotIDs.last!, expectsRest: false)"
+  },
+  {
+    "violation": {
+      "reason": "Else and catch should be on the same line, one space after the previous declaration",
+      "location": {
+        "character": 64,
+        "line": 96,
+        "file": "OneSetUITests/InlineRestTimerTests.swift"
+      },
+      "ruleIdentifier": "statement_position",
+      "ruleDescription": "Else and catch should be on the same line, one space after the previous declaration",
+      "severity": "warning",
+      "ruleName": "Statement Position"
+    },
+    "text": "      if element.frame.minY < app.frame.midY { app.swipeDown() }"
+  },
+  {
+    "violation": {
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1481 lines",
+      "location": {
+        "character": 7,
+        "line": 4,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "type_body_length",
+      "ruleDescription": "Type bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Type Body Length"
+    },
+    "text": "final class OnboardingJourneyTests: XCTestCase {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 106 lines",
+      "location": {
+        "character": 3,
+        "line": 581,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "error",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func testTrialBypassOpensSelectedProgramOverviewAndSwitchesRotationWeeks() {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 61 lines",
+      "location": {
+        "character": 3,
+        "line": 796,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func testRecordingShowsEmptyAndPreviousPerformanceWithCapturedGuidance() {"
+  },
+  {
+    "violation": {
+      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 61 lines",
+      "location": {
+        "character": 3,
+        "line": 997,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "function_body_length",
+      "ruleDescription": "Function bodies should not span too many lines",
+      "severity": "warning",
+      "ruleName": "Function Body Length"
+    },
+    "text": "  func testCompletedAccountRestoresOverviewFromEmail() {"
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 24,
+        "line": 1021,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "      \"account.signOut\","
+  },
+  {
+    "violation": {
+      "reason": "Tuples should have at most 2 members",
+      "location": {
+        "character": 24,
+        "line": 1031,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "large_tuple",
+      "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
+      "severity": "warning",
+      "ruleName": "Large Tuple"
+    },
+    "text": "    let destinations: [(String, String, String)] = ["
+  },
+  {
+    "violation": {
+      "reason": "Collection literals should not have trailing commas",
+      "location": {
+        "character": 103,
+        "line": 1037,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "trailing_comma",
+      "ruleDescription": "Trailing commas in arrays and dictionaries should be avoided/enforced.",
+      "severity": "warning",
+      "ruleName": "Trailing Comma"
+    },
+    "text": "      (\"settings.row.accountDeletion\", \"Account deletion\", \"Delete your OneSet account and its data.\"),"
+  },
+  {
+    "violation": {
+      "reason": "File should contain 1000 lines or less: currently contains 1668",
+      "location": {
+        "character": 1,
+        "line": 1668,
+        "file": "OneSetUITests/OnboardingJourneyTests.swift"
+      },
+      "ruleIdentifier": "file_length",
+      "ruleDescription": "Files should not span too many lines.",
+      "severity": "error",
+      "ruleName": "File Length"
+    },
+    "text": "}"
+  }
+]

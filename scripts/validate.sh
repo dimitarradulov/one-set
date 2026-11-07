@@ -30,6 +30,11 @@ export VALIDATION_MODE
 oneset_toolchain
 oneset_artifacts
 if [[ "$VALIDATION_MODE" != focused ]]; then
+  if ! command -v swiftlint >/dev/null 2>&1; then
+    echo "SwiftLint is required for full validation. Install SwiftLint 0.65.1; see README.md." >&2
+    exit 1
+  fi
+  swiftlint lint --no-cache
   python3 -m unittest discover -s scripts/tests -v
   npm ci --prefix admin
   npm --prefix admin run check

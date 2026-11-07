@@ -86,6 +86,7 @@ oneset_xcodebuild() {
 }
 python3() { echo python-checks; }
 npm() { echo "npm $*"; }
+swiftlint() { echo "swiftlint $*"; }
 ''')
         with tempfile.TemporaryDirectory() as path:
             environment = os.environ.copy()
@@ -104,10 +105,12 @@ npm() { echo "npm $*"; }
                             self.assertIn(f"<-only-testing:{selector}>", result.stdout)
                         self.assertIn("/build/focused/test-device>", result.stdout)
                         self.assertNotIn("python-checks", result.stdout)
+                        self.assertNotIn("swiftlint ", result.stdout)
                         self.assertNotIn("npm ", result.stdout)
                     else:
                         self.assertIn("/build/validation/test-device>", result.stdout)
                         self.assertIn("python-checks", result.stdout)
+                        self.assertIn("swiftlint lint --no-cache", result.stdout)
                         self.assertIn("npm --prefix worker run typecheck", result.stdout)
                         self.assertIn("npm --prefix worker test", result.stdout)
                         self.assertNotIn("-only-testing:", result.stdout)
