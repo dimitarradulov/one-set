@@ -74,6 +74,14 @@ Nutrition/supplements, social feeds, challenges, body tracking, AI coaching, cus
 
 ### Authentication and interrupted onboarding
 
+Approved startup behavior (implementation pending):
+
+- After restoring the signed-in identity, open directly into the app when usable completed setup and training progress are saved for that account on this device. Refresh account state and catalog in the background rather than waiting for network requests before opening saved content.
+- When local data cannot safely establish the account's current program and progress, use a minimal in-app loading screen matching the app background. Remove the routine account-setup heading and immediate Sign out action. Show a subtle spinner after one second if still loading. Offer Retry and Sign out on failure, including when restoration has not completed within 15 seconds. Do not impose a minimum splash duration.
+- The native iOS launch screen is distinct from this in-app loading state. Signing in on a new device can require loading even when the account has already completed setup.
+- If background refresh discovers that another device selected a different program, keep the currently displayed program and show a message with an Update button. Block starting a new workout until the user applies the discovered program selection by tapping Update. Do not switch programs automatically. If a workout is already active, allow it to finish or be discarded before applying the update; preserve its captured program, cycle and recorded work.
+- Before a remote program change is known, allow workout starts from usable saved data, including while refresh is in flight or the device is offline, subject to existing access rules. Do not require an online program-selection check before every start. A detected change blocks subsequent starts until Update is applied, but never interrupts an active workout.
+
 - Email authentication uses a verification code.
 - Email entry and verification screens use OneSet's existing fonts, colors, and button styles. Support changing the email, resending the code, and clear invalid or expired code errors; do not add a name or profile questionnaire.
 - Continue with email supports new and existing accounts. An unregistered email offers explicit account creation rather than automatically creating an account after verification.
