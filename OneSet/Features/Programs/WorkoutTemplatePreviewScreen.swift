@@ -8,6 +8,7 @@ struct WorkoutTemplatePreviewScreen: View {
   let day: Int
   let onStartWorkout: () -> Void
   var isBrowsingProgram = false
+  var requiresProgramUpdate = false
 
   var body: some View {
     ScrollView {
@@ -66,6 +67,8 @@ struct WorkoutTemplatePreviewScreen: View {
           .contentShape(RoundedRectangle(cornerRadius: 12))
       }
       .buttonStyle(.plain)
+      .disabled(requiresProgramUpdate)
+      .accessibilityHint(requiresProgramUpdate ? "Update your program before starting a workout." : "")
       .accessibilityIdentifier("workoutPreview.start")
       .frame(maxWidth: 720)
       .padding(.horizontal, 20)

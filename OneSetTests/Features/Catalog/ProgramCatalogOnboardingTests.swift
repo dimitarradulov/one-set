@@ -318,7 +318,7 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
-  func restoredServerSelectionReplacesStaleLocalCycleSelection() async throws {
+  func restoredServerSelectionRequiresExplicitUpdate() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
     let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
@@ -335,9 +335,49 @@ struct ProgramCatalogOnboardingTests {
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: server),
       cycleService: CycleServiceWithSetup(OfflineCycleService(), setup: server), progressStore: store)
     await model.resolveAccountSetup(using: auth)
-    model.switchToProgram(old.programID, using: auth)
     #expect(model.selectedProgramID == old.programID)
     #expect(model.restoredCycleID == old.cycleID)
+    #expect(model.requiresProgramUpdate)
+    model.startWorkout(programID: old.programID, workoutID: "irrelevant", accountID: "preview-user")
+    #expect(model.activeWorkoutSession == nil)
+    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
+      progressStore: store)
+    await reopened.resolveAccountSetup(using: auth)
+    #expect(reopened.selectedProgramID == old.programID)
+    #expect(reopened.requiresProgramUpdate)
+  }
+
+  @Test
+  func remoteUpdateRestoresProgressOnlyAfterExplicitAction() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
+    let old = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "bro-split", cycleID: UUID())
+    let remote = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    var progress = OnboardingProgress(weightUnit: old.preferredUnit, trainingDays: old.trainingDays,
+      selectedProgramID: old.programID, nextStep: .overview)
+    progress.completed = CompletedOnboarding(setup: old, needsUpload: false)
+    try store.save(progress, accountID: "preview-user")
+    let summary = AccountProgress(cycleID: remote.cycleID, programID: remote.programID,
+      currentTrainingWeek: 3, completedOccurrences: [], workoutPeriods: [],
+      requiredWorkoutIDs: ["machine-full-body-workout-a"])
+    let cycle = AccountCycle(cycleID: remote.cycleID, programID: remote.programID,
+      startedAt: "2026-01-01T00:00:00Z")
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: remote),
+      cycleService: SelectedCycleService(cycle: cycle),
+      progressService: PerCycleProgressService(summaries: [remote.cycleID: summary], active: summary),
+      progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    await model.resolveAccountSetup(using: auth)
+    #expect(model.requiresProgramUpdate)
+    #expect(model.selectedProgramID == old.programID)
+    await model.updateRemoteProgram(using: auth)
+    #expect(!model.requiresProgramUpdate)
+    #expect(model.selectedProgramID == remote.programID)
+    #expect(model.restoredCycleID == remote.cycleID)
+    #expect(model.currentWorkoutWeek(programID: remote.programID) == 3)
   }
 
   @Test
@@ -1243,4 +1283,14 @@ private final class RejectingCycleService: AccountCycleService {
 private final class MutableCatalogService: ProgramCatalogService {
   var result: ProgramCatalogFetchResult = .notModified
   func fetchCatalog(ifNoneMatch: String?) async throws -> ProgramCatalogFetchResult { result }
+}
+
+@MainActor
+private struct SelectedCycleService: AccountCycleService {
+  let cycle: AccountCycle
+  func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
+    AccountCycles(cycles: [cycle], selectedCycleID: cycle.cycleID)
+  }
+  func create(_ cycle: AccountCycle, for user: AuthenticatedUser) async throws {}
+  func activate(_ cycleID: UUID, for user: AuthenticatedUser) async throws {}
 }

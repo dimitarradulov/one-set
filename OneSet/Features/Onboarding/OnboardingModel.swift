@@ -30,6 +30,8 @@ final class OnboardingModel {
   private var pendingSessionSignOutAccountID: String?
   private(set) var uploadMessage: String?
   private(set) var programSelectionMessage: String?
+  var requiresProgramUpdate: Bool { savedProgress?.pendingRemoteSelection != nil }
+  private(set) var programUpdateMessage: String?
   private var uploadingGeneration: Int?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
   var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
@@ -155,6 +157,21 @@ final class OnboardingModel {
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
       if let setup {
+        if var local = savedProgress, let completed = local.completed,
+           !completed.needsUpload,
+           local.cycles?.pendingCreations.isEmpty != false,
+           (local.cycles?.pendingActivations ?? []).isEmpty {
+          let currentProgram = local.cycles?.selectedProgramID ?? completed.setup.programID
+          let currentCycle = local.cycles?.selectedCycleID ?? completed.setup.cycleID
+          if setup.programID != currentProgram || setup.cycleID != currentCycle {
+            local.pendingRemoteSelection = setup
+            savedProgress = local
+            try progressStore?.save(local, accountID: user.id)
+          }
+        }
+        if let local = savedProgress, local.pendingRemoteSelection != nil {
+          restore(local)
+        } else {
         if let pending = savedProgress?.completed, pending.needsUpload,
            pending.setup.cycleID != setup.cycleID {
           _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
@@ -190,6 +207,7 @@ final class OnboardingModel {
               return
             }
           }
+        }
         }
       } else if let savedProgress {
         restore(savedProgress)
@@ -431,6 +449,7 @@ final class OnboardingModel {
     uploadMessage = nil
     cycleMessage = nil
     programSelectionMessage = nil
+    programUpdateMessage = nil
     signOutConfirmationPresented = false
     signOutConfirmationAccountID = nil
     discardSetupPresented = false
@@ -508,6 +527,7 @@ final class OnboardingModel {
   }
 
   func showProgramSwitcher() {
+    guard !requiresProgramUpdate else { return }
     guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
     guard activeWorkoutSession == nil else {
       switchBlockedPresented = true
@@ -530,12 +550,22 @@ final class OnboardingModel {
             authentication.signedInUser?.id == user.id, var latest = savedProgress else { return }
       var state = latest.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
         selectedCycleID: setup.cycleID, knownCycles: [], discoveryComplete: false, pendingCreations: [])
+      if latest.completed?.needsUpload != true, state.pendingCreations.isEmpty,
+         (state.pendingActivations ?? []).isEmpty,
+         let selectedID = remote.selectedCycleID,
+         let selected = remote.cycles.first(where: { $0.cycleID == selectedID }),
+         selected.cycleID != state.selectedCycleID || selected.programID != state.selectedProgramID {
+        latest.pendingRemoteSelection = AccountSetup(preferredUnit: latest.weightUnit,
+          trainingDays: latest.trainingDays, programID: selected.programID, cycleID: selected.cycleID)
+      }
       state.knownCycles = remote.cycles
       for cycle in state.pendingCreations where !state.knownCycles.contains(where: { $0.cycleID == cycle.cycleID }) {
         state.knownCycles.append(cycle)
       }
       state.discoveryComplete = true
       latest.cycles = state
+      // Keep the in-memory gate closed even if writing the discovery fails.
+      if latest.pendingRemoteSelection != nil { savedProgress = latest }
       try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
       cycleMessage = nil
@@ -565,12 +595,64 @@ final class OnboardingModel {
     }
   }
 
+  func updateRemoteProgram(using authentication: AuthenticationModel) async {
+    guard let user = authentication.signedInUser, user.id == resolvedAccountID,
+          let pending = savedProgress?.pendingRemoteSelection, !isSigningOut else { return }
+    guard activeWorkoutSession == nil else {
+      programUpdateMessage = "Finish or discard your current workout before updating your program."
+      return
+    }
+    guard let cycleService, let progressService, let progressStore, let workoutRepository else {
+      programUpdateMessage = "Connect and try Update again to restore your program."
+      return
+    }
+    let generation = lookupGeneration
+    let cycleGeneration = cycleKnowledgeGeneration
+    do {
+      let remote = try await cycleService.lookup(for: user)
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
+            authentication.signedInUser?.id == user.id, activeWorkoutSession == nil else { return }
+      guard remote.selectedCycleID == pending.cycleID,
+            remote.cycles.contains(where: { $0.cycleID == pending.cycleID && $0.programID == pending.programID }),
+            catalog.program(id: pending.programID) != nil,
+            let summary = try await progressService.lookup(cycleID: pending.cycleID, for: user),
+            summary.cycleID == pending.cycleID, summary.programID == pending.programID else {
+        throw AccountSetupError.unavailable
+      }
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
+            authentication.signedInUser?.id == user.id, activeWorkoutSession == nil,
+            var latest = savedProgress, latest.pendingRemoteSelection?.cycleID == pending.cycleID,
+            latest.pendingRemoteSelection?.programID == pending.programID else { return }
+      try workoutRepository.restoreProgress(summary, accountID: user.id)
+      var state = latest.cycles ?? ProgramCycleState(selectedProgramID: pending.programID,
+        selectedCycleID: pending.cycleID, knownCycles: [], discoveryComplete: true, pendingCreations: [])
+      state.selectedProgramID = pending.programID
+      state.selectedCycleID = pending.cycleID
+      state.knownCycles = remote.cycles
+      state.discoveryComplete = true
+      latest.cycles = state
+      latest.pendingRemoteSelection = nil
+      try progressStore.save(latest, accountID: user.id)
+      savedProgress = latest
+      cycleKnowledgeGeneration += 1
+      selectedProgramID = pending.programID
+      restoredCycleID = pending.cycleID
+      programPath = []
+      path = [.programOverview(pending.programID)]
+      programUpdateMessage = nil
+    } catch {
+      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      programUpdateMessage = "Your program couldn’t be updated safely. Connect and try Update again."
+    }
+  }
+
   func hasFollowedProgram(_ programID: String) -> Bool {
     savedProgress?.cycles?.knownCycles.contains(where: { $0.programID == programID }) == true
       || savedProgress?.completed?.setup.programID == programID
   }
 
   func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {
+    guard !requiresProgramUpdate else { return }
     guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
     guard activeWorkoutSession == nil else { switchBlockedPresented = true; return }
     guard let user = authentication.signedInUser, user.id == resolvedAccountID,
@@ -902,6 +984,11 @@ final class OnboardingModel {
   }
 
   func startWorkout(programID: String, workoutID: String, accountID: String) {
+    guard !requiresProgramUpdate, accountID == resolvedAccountID, programID == selectedProgramID else {
+      workoutErrorMessage = "Update your program before starting a workout."
+      workoutErrorPresented = true
+      return
+    }
     guard let workoutRepository = ensureWorkoutRepository(), let cycleID = restoredCycleID,
           let program = catalog.program(id: programID),
           let index = program.workouts.firstIndex(where: { $0.id == workoutID }) else {

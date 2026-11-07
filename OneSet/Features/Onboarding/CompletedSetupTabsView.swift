@@ -67,6 +67,9 @@ struct CompletedSetupTabsView: View {
         if let programID = model.selectedProgramID, let program = model.program(id: programID) {
           ProgramOverviewScreen(
             program: program,
+            updateMessage: model.requiresProgramUpdate
+              ? (model.programUpdateMessage ?? "Your program changed on another device. Update to start new workouts.") : nil,
+            onUpdate: { Task { await model.updateRemoteProgram(using: authentication) } },
             uploadMessage: model.cycleConflictMessage ?? model.cycleMessage ?? model.uploadMessage,
             onRetryUpload: model.cycleConflictMessage == nil ? { Task {
               await model.uploadCompletedSetup(using: authentication)
@@ -168,7 +171,8 @@ struct CompletedSetupTabsView: View {
           onStartWorkout: {
             guard let accountID = authentication.signedInUser?.id else { return }
             model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
-          }
+          },
+          requiresProgramUpdate: model.requiresProgramUpdate
         )
         .navigationTitle("Workout preview")
         .navigationBarTitleDisplayMode(.inline)
