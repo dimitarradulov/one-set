@@ -2,8 +2,8 @@
   "baseBranch": "main",
   "readyLabel": "ready-for-agent",
   "models": {
-    "implementation": { "model": "gpt-6.1-sol", "reasoningEffort": "medium" },
-    "review": { "model": "gpt-6.1-sol", "reasoningEffort": "high" }
+    "implementation": { "model": "gpt-6.1-terra", "reasoningEffort": "medium" },
+    "review": { "model": "gpt-6.1-sol", "reasoningEffort": "medium" }
   },
   "verify": [
     ["python3", "scripts/validate-orchestrator.py"]
