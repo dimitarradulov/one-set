@@ -56,8 +56,8 @@ final class OnboardingJourneyTests: XCTestCase {
 
   func testSwitchExplainsUnfinishedWorkoutAndReturnsToIt() {
     relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset"])
-    XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 5))
-    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(navigationBack().waitForExistence(timeout: 5))
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["overview.switch"].waitForExistence(timeout: 5))
     app.buttons["overview.switch"].tap()
     XCTAssertTrue(app.alerts["Finish your workout first"].waitForExistence(timeout: 5))
@@ -73,7 +73,7 @@ final class OnboardingJourneyTests: XCTestCase {
     programCard("bro-split").tap()
     XCTAssertTrue(app.staticTexts["program.detail.title"].waitForExistence(timeout: 5))
     XCTAssertEqual(app.staticTexts["program.detail.title"].label, "Bro Split")
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
     programCard("bro-split").tap()
     XCTAssertTrue(app.buttons["program.detail.select"].waitForExistence(timeout: 5))
@@ -188,7 +188,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: [])
     app.buttons["continue.development"].tap()
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 5))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     tapAccountSignOut()
@@ -199,7 +199,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: [])
     app.buttons["continue.development"].tap()
     completeSetupFromPreferences()
-    app.tabBars.buttons["History"].tap()
+    mainTab("History").tap()
 
     XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.staticTexts["Complete your first workout to see it here."].exists)
@@ -258,7 +258,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
     relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep", "--ui-setup-offline"])
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     tapAccountSignOut()
@@ -304,7 +304,7 @@ final class OnboardingJourneyTests: XCTestCase {
 
     relaunch(with: ["--ui-auth-persist-session-test", "--ui-progress-keep", "--ui-setup-offline"])
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     tapAccountSignOut()
@@ -459,7 +459,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["login.sendCode"].exists)
     XCTAssertEqual(app.secureTextFields.count, 0)
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["continue.google"].exists)
     XCTAssertTrue(app.buttons["continue.email"].exists)
@@ -485,7 +485,7 @@ final class OnboardingJourneyTests: XCTestCase {
     poundOption.tap()
     XCTAssertTrue(poundOption.isSelected)
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     app.buttons["continue.google"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
@@ -520,7 +520,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(programCard("machine-full-body").exists)
     XCTAssertTrue(app.staticTexts["programs.format.machine-full-body"].exists)
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     app.buttons["preferences.days.5"].tap()
     app.buttons["preferences.continue"].tap()
@@ -585,7 +585,7 @@ final class OnboardingJourneyTests: XCTestCase {
     machineProgram.tap()
 
     XCTAssertTrue(app.staticTexts["program.detail.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 3))
+    XCTAssertTrue(navigationBack().waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["program.detail.format"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["program.detail.emphasis"].exists)
     XCTAssertTrue(app.staticTexts["Workout split"].exists)
@@ -607,7 +607,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["workoutPreview.exercise.1.reps"].label, "6–10 reps")
     XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     app.terminate()
     app.launch()
@@ -633,9 +633,9 @@ final class OnboardingJourneyTests: XCTestCase {
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Full Body")
-    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
-    XCTAssertTrue(app.tabBars.buttons["History"].exists)
-    XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+    XCTAssertTrue(mainTab("Program").isSelected)
+    XCTAssertTrue(mainTab("History").exists)
+    XCTAssertTrue(mainTab("Settings").exists)
     XCTAssertTrue(app.staticTexts["overview.frequency"].label.contains("3 days per week"))
     XCTAssertTrue(app.staticTexts["Recommended training weeks"].exists)
     XCTAssertTrue(app.buttons["overview.week.1"].exists)
@@ -723,14 +723,14 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(recordsTab.isSelected)
     XCTAssertTrue(app.staticTexts["exerciseDetail.heaviestWeightValue"].exists)
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(firstExercise.frame.minY, previewRowPosition, accuracy: 2)
     XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
 
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.week.4"].isSelected)
     XCTAssertTrue(app.buttons["overview.day.1.preview"].exists)
@@ -780,7 +780,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("handles start around mid-chest"))
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["workoutPreview.notStarted"].exists)
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
@@ -864,7 +864,7 @@ final class OnboardingJourneyTests: XCTestCase {
         app.swipeUp()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Approximate warm-up loads'")).firstMatch.exists)
         attachScreenshot(named: "recording-exercise-detail")
-        app.navigationBars.buttons.firstMatch.tap()
+        navigationBack().tap()
         XCTAssertEqual(firstRecordingField(suffix: ".weight").value as? String, "100")
         XCTAssertEqual(firstRecordingField(suffix: ".reps").value as? String, "10")
         XCTAssertTrue(app.buttons["recording.set.toggle.machine-full-body-workout-a-hack-squat-machine"].label.contains("Undo"))
@@ -1042,16 +1042,16 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
     XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
-    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+    XCTAssertTrue(mainTab("Program").isSelected)
     XCTAssertFalse(app.buttons["account.signOut"].exists)
-    XCTAssertTrue(app.tabBars.buttons["History"].exists)
-    XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+    XCTAssertTrue(mainTab("History").exists)
+    XCTAssertTrue(mainTab("Settings").exists)
     XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'step 4 of 4'")).firstMatch.exists)
 
-    app.tabBars.buttons["History"].tap()
+    mainTab("History").tap()
     XCTAssertTrue(app.navigationBars["History"].exists)
 
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.training"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.downloads"].exists)
@@ -1086,19 +1086,19 @@ final class OnboardingJourneyTests: XCTestCase {
       XCTAssertTrue(app.staticTexts.matching(
         NSPredicate(format: "label == %@", explanation)
       ).firstMatch.exists)
-      app.navigationBars.buttons.firstMatch.tap()
+      navigationBack().tap()
       XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     }
 
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertTrue(app.staticTexts["overview.title"].exists)
-    app.tabBars.buttons["History"].tap()
+    mainTab("History").tap()
     XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     tapAccountSignOut()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
   }
@@ -1106,16 +1106,16 @@ final class OnboardingJourneyTests: XCTestCase {
   func testCompletedSetupDevelopmentRoutesSelectTabsAndDestinations() {
     relaunch(with: ["--ui-main-history"])
     XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.tabBars.buttons["History"].isSelected)
+    XCTAssertTrue(mainTab("History").isSelected)
 
     relaunch(with: ["--ui-main-settings-units"])
     XCTAssertTrue(app.staticTexts["settings.destination.comingSoon"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.navigationBars["Units"].exists)
-    XCTAssertTrue(app.tabBars.buttons["Settings"].isSelected)
+    XCTAssertTrue(mainTab("Settings").isSelected)
 
     relaunch(with: ["--ui-main-workout-preview"])
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+    XCTAssertTrue(mainTab("Program").isSelected)
   }
 
   func testHistoryPreviewRoutesShowPopulatedPartialEmptyAndRetryStates() {
@@ -1229,24 +1229,24 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(exerciseHistoryTab.isSelected)
     let performancePanelPosition = exerciseHistoryTab.frame.minY
 
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
-    app.tabBars.buttons["History"].tap()
+    mainTab("History").tap()
     XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["exerciseDetail.historyTab"].isSelected)
     XCTAssertEqual(app.buttons["exerciseDetail.historyTab"].frame.minY, performancePanelPosition, accuracy: 2)
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
 
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].exists)
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
 
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertEqual(app.staticTexts["overview.selectedWeek"].label, "Week 4")
   }
@@ -1260,19 +1260,19 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["workoutPreview.exercise.machine-full-body-workout-a-machine-chest-press.open"].tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
 
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     tapAccountSignOut()
     XCTAssertTrue(app.buttons["continue.apple"].waitForExistence(timeout: 3))
 
     app.buttons["continue.apple"].tap()
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.tabBars.buttons["Program"].isSelected)
+    XCTAssertTrue(mainTab("Program").isSelected)
     XCTAssertFalse(app.staticTexts["exerciseDetail.title"].exists)
 
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.navigationBars["Units"].exists)
     XCTAssertFalse(app.staticTexts["Change between kilograms and pounds here."].exists)
@@ -1331,11 +1331,11 @@ final class OnboardingJourneyTests: XCTestCase {
   func testFailedSignOutExplainsFailureAndKeepsTheCurrentProgram() {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-auth-signout-error", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     tapAccountSignOut()
     XCTAssertTrue(app.alerts["Couldn’t sign out"].waitForExistence(timeout: 3))
     app.alerts.buttons["OK"].tap()
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
   }
 
@@ -1379,7 +1379,7 @@ final class OnboardingJourneyTests: XCTestCase {
   func testSignedInWelcomeEntryReturnsToResolvedPreferences() {
     relaunch(with: ["--ui-auth-restored"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     app.buttons["continue.email"].tap()
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["login.signedInTitle"].exists)
@@ -1396,7 +1396,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-offline", "--ui-progress-keep"])
     XCTAssertTrue(programCard("bro-split").waitForExistence(timeout: 3))
     XCTAssertEqual(firstProgramCardID(), "programs.card.bro-split")
-    app.navigationBars.buttons.firstMatch.tap()
+    navigationBack().tap()
     XCTAssertTrue(app.buttons["preferences.unit.lb"].isSelected)
     XCTAssertTrue(app.buttons["preferences.days.5"].isSelected)
     app.buttons["preferences.days.2"].tap()
@@ -1510,9 +1510,9 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.alerts["Discard setup awaiting upload?"].waitForExistence(timeout: 3))
     app.alerts.buttons["Cancel"].tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
-    app.tabBars.buttons["Program"].tap()
+    mainTab("Program").tap()
     XCTAssertTrue(app.staticTexts["overview.title"].exists)
-    app.tabBars.buttons["Settings"].tap()
+    mainTab("Settings").tap()
     tapSettingsSignOut()
     app.alerts.buttons["Sign out and discard"].tap()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
@@ -1586,6 +1586,11 @@ final class OnboardingJourneyTests: XCTestCase {
     tapAccountSignOut()
     relaunch(with: ["--ui-auth-restored", "--ui-progress-keep"])
     XCTAssertTrue(app.staticTexts["preferences.title"].waitForExistence(timeout: 3))
+  }
+
+  private func navigationBack() -> XCUIElement {
+    let standard = app.navigationBars.buttons.firstMatch
+    return standard.exists ? standard : app.buttons["BackButton"]
   }
 
   private func mainTab(_ name: String) -> XCUIElement {
