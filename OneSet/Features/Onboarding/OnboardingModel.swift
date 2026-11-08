@@ -31,6 +31,11 @@ final class OnboardingModel {
   private(set) var uploadMessage: String?
   private(set) var programSelectionMessage: String?
   var requiresProgramUpdate: Bool { savedProgress?.pendingRemoteSelection != nil }
+  var programUpdateDefaultMessage: String {
+    savedProgress?.remoteSelectionDiscoveryPending == true
+      ? "Your program couldn’t be checked. Update to check before starting a workout."
+      : "Your program changed on another device. Update to start new workouts."
+  }
   private(set) var programUpdateMessage: String?
   private var uploadingGeneration: Int?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
@@ -168,6 +173,7 @@ final class OnboardingModel {
         local.pendingRemoteSelection = AccountSetup(preferredUnit: local.weightUnit,
           trainingDays: local.trainingDays, programID: local.cycles?.selectedProgramID ?? completed.setup.programID,
           cycleID: local.cycles?.selectedCycleID ?? completed.setup.cycleID)
+        local.remoteSelectionDiscoveryPending = true
         savedProgress = local
         discoveryStorageFailure = true
         try progressStore.save(local, accountID: user.id)
@@ -184,11 +190,13 @@ final class OnboardingModel {
           let currentProgram = local.cycles?.selectedProgramID ?? completed.setup.programID
           let currentCycle = local.cycles?.selectedCycleID ?? completed.setup.cycleID
           let changed = setup.programID != currentProgram || setup.cycleID != currentCycle
-          if changed || discoveryReservation == nil && local.pendingRemoteSelection != nil {
+          if changed || discoveryReservation == nil && local.pendingRemoteSelection != nil
+              && local.remoteSelectionDiscoveryPending != true {
             local.pendingRemoteSelection = setup
-          } else if discoveryReservation != nil {
+          } else if discoveryReservation != nil || local.remoteSelectionDiscoveryPending == true {
             local.pendingRemoteSelection = nil
           }
+          local.remoteSelectionDiscoveryPending = nil
           discoveryStorageFailure = true
           try progressStore?.save(local, accountID: user.id)
           discoveryStorageFailure = false
@@ -597,8 +605,8 @@ final class OnboardingModel {
         progress.pendingRemoteSelection = AccountSetup(preferredUnit: progress.weightUnit,
           trainingDays: progress.trainingDays, programID: state?.selectedProgramID ?? setup.programID,
           cycleID: state?.selectedCycleID ?? setup.cycleID)
+        progress.remoteSelectionDiscoveryPending = true
         try progressStore.save(progress, accountID: user.id)
-        savedProgress = progress
       }
       let remote = try await cycleService.lookup(for: user)
       discoveryReturned = true
@@ -621,14 +629,15 @@ final class OnboardingModel {
       } else if discoveryReservation != nil {
         latest.pendingRemoteSelection = nil
       }
+      latest.remoteSelectionDiscoveryPending = nil
       state.knownCycles = remote.cycles
       for cycle in state.pendingCreations where !state.knownCycles.contains(where: { $0.cycleID == cycle.cycleID }) {
         state.knownCycles.append(cycle)
       }
       state.discoveryComplete = true
       latest.cycles = state
-      try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
+      try progressStore.save(latest, accountID: user.id)
       discoveryReservation = nil
       cycleMessage = nil
       // Each response is scoped to the verified owner and fixed cycle identity. Do not
@@ -658,6 +667,9 @@ final class OnboardingModel {
          (try? progressStore.save(original, accountID: user.id)) != nil {
         savedProgress = original
       }
+      if discoveryReturned, savedProgress?.pendingRemoteSelection != nil {
+        programUpdateMessage = "Your program status couldn’t be saved. Free space on this device and try Update again."
+      }
       if progress.cycles?.discoveryComplete != true {
         cycleMessage = "Your program history couldn’t be checked. Connect and try again."
       }
@@ -677,9 +689,12 @@ final class OnboardingModel {
     }
     let generation = lookupGeneration
     let cycleGeneration = cycleKnowledgeGeneration
+    cycleDiscoveryGeneration += 1
+    let discoveryGeneration = cycleDiscoveryGeneration
     do {
       let remote = try await cycleService.lookup(for: user)
-      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, !isSigningOut,
             authentication.signedInUser?.id == user.id, activeWorkoutSession == nil else { return }
       guard let selectedID = remote.selectedCycleID,
             let selected = remote.cycles.first(where: { $0.cycleID == selectedID }),
@@ -688,7 +703,8 @@ final class OnboardingModel {
             summary.cycleID == selectedID, summary.programID == selected.programID else {
         throw AccountSetupError.unavailable
       }
-      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration, !isSigningOut,
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, !isSigningOut,
             authentication.signedInUser?.id == user.id, activeWorkoutSession == nil,
             var latest = savedProgress, latest.pendingRemoteSelection?.cycleID == pending.cycleID,
             latest.pendingRemoteSelection?.programID == pending.programID else { return }
@@ -701,6 +717,7 @@ final class OnboardingModel {
       state.discoveryComplete = true
       latest.cycles = state
       latest.pendingRemoteSelection = nil
+      latest.remoteSelectionDiscoveryPending = nil
       try progressStore.save(latest, accountID: user.id)
       savedProgress = latest
       cycleKnowledgeGeneration += 1
@@ -710,7 +727,9 @@ final class OnboardingModel {
       path = [.programOverview(selected.programID)]
       programUpdateMessage = nil
     } catch {
-      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
+      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, !isSigningOut,
+            authentication.signedInUser?.id == user.id else { return }
       programUpdateMessage = "Your program couldn’t be updated safely. Connect and try Update again."
     }
   }

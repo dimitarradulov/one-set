@@ -68,7 +68,7 @@ struct CompletedSetupTabsView: View {
           ProgramOverviewScreen(
             program: program,
             updateMessage: model.requiresProgramUpdate
-              ? (model.programUpdateMessage ?? "Your program changed on another device. Update to start new workouts.") : nil,
+              ? (model.programUpdateMessage ?? model.programUpdateDefaultMessage) : nil,
             onUpdate: { Task { await model.updateRemoteProgram(using: authentication) } },
             uploadMessage: model.cycleConflictMessage ?? model.cycleMessage ?? model.uploadMessage,
             onRetryUpload: model.cycleConflictMessage == nil ? { Task {
