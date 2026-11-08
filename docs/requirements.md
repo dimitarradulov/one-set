@@ -74,7 +74,7 @@ Nutrition/supplements, social feeds, challenges, body tracking, AI coaching, cus
 
 ### Authentication and interrupted onboarding
 
-Approved startup behavior (implementation pending):
+Approved startup behavior:
 
 - After restoring the signed-in identity, open directly into the app when usable completed setup and training progress are saved for that account on this device. Refresh account state and catalog in the background rather than waiting for network requests before opening saved content.
 - When local data cannot safely establish the account's current program and progress, use a minimal in-app loading screen matching the app background. Remove the routine account-setup heading and immediate Sign out action. Show a subtle spinner after one second if still loading. Offer Retry and Sign out on failure, including when restoration has not completed within 15 seconds. Do not impose a minimum splash duration.

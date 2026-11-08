@@ -5,6 +5,68 @@ import Testing
 @MainActor
 struct AccountRestorationTimingTests {
   @Test
+  func savedProgressOpensAndAllowsStartingWhileRefreshIsSuspended() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    try store.save(saved, accountID: "preview-user")
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    try repository.restoreProgress(AccountProgress(cycleID: setup.cycleID, programID: setup.programID,
+      currentTrainingWeek: 3, completedOccurrences: [], workoutPeriods: [],
+      requiredWorkoutIDs: ["machine-full-body-workout-a"]), accountID: "preview-user")
+    let service = SuspendedSetupService()
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: service, progressStore: store,
+      workoutRepository: repository)
+    let attempt = Task { await model.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.currentWorkoutWeek(programID: setup.programID) == 3)
+    if case .idle = model.setupResolution {} else { Issue.record("Saved content should be available") }
+    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    #expect(model.activeWorkoutSession != nil)
+    let remote = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "bro-split", cycleID: UUID())
+    service.complete(remote)
+    await attempt.value
+    while !model.requiresProgramUpdate { await Task.yield() }
+    #expect(model.selectedProgramID == setup.programID)
+    #expect(model.activeWorkoutSession != nil)
+    #expect(try store.load(accountID: "preview-user")?.pendingRemoteSelection?.cycleID == remote.cycleID)
+  }
+
+  @Test
+  func completedSetupAloneCannotOpenWhenProgressIsMissing() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    try store.save(saved, accountID: "preview-user")
+    let service = SuspendedSetupService()
+    let model = OnboardingModel(catalog: .bundled, setupService: service, progressStore: store,
+      workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let attempt = Task { await model.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    if case .loading = model.setupResolution {} else { Issue.record("Unsafe progress must keep loading") }
+    service.complete()
+    await attempt.value
+    if case .failed = model.setupResolution {} else { Issue.record("Missing progress must offer recovery") }
+    #expect(model.restoredCycleID == nil)
+  }
+
+  @Test
   func timeoutOffersRecoveryAndIgnoresLateLookup() async {
     let clock = RestorationClock()
     let service = SuspendedSetupService()
@@ -117,7 +179,7 @@ private final class SuspendedSetupService: AccountSetupService {
     await withCheckedContinuation { continuations.append($0) }
   }
   func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup { setup }
-  func complete() { continuations.removeFirst().resume(returning: nil) }
+  func complete(_ setup: AccountSetup? = nil) { continuations.removeFirst().resume(returning: setup) }
 }
 
 @MainActor

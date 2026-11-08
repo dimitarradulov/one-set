@@ -996,7 +996,9 @@ final class OnboardingJourneyTests: XCTestCase {
     ).firstMatch.exists)
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-history", "--ui-progress-keep"])
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs"])
+    // The setup service remains suspended for 20 seconds on this launch; saved
+    // progress must open before the remote request completes.
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs", "--ui-progress-keep", "--ui-setup-timeout"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
     XCTAssertTrue(app.buttons["overview.day.2.preview"].label.contains("Not started"))

@@ -352,7 +352,7 @@ struct ProgramCatalogOnboardingTests {
     model.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
     #expect(model.activeWorkoutSession == nil)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
-      progressStore: store)
+      progressStore: store, workoutRepository: repository)
     await reopened.resolveAccountSetup(using: auth)
     #expect(reopened.selectedProgramID == old.programID)
     #expect(reopened.requiresProgramUpdate)
@@ -437,12 +437,15 @@ struct ProgramCatalogOnboardingTests {
     progress.completed = CompletedOnboarding(setup: old, needsUpload: false)
     try file.save(progress, accountID: "preview-user")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    try repository.restoreProgress(AccountProgress(cycleID: old.cycleID, programID: old.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: []), accountID: "preview-user")
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: changed),
-      progressStore: store)
+      progressStore: store, workoutRepository: repository)
     await model.resolveAccountSetup(using: auth)
     #expect(try file.load(accountID: "preview-user")?.pendingRemoteSelection != nil)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
-      progressStore: file)
+      progressStore: file, workoutRepository: repository)
     await reopened.resolveAccountSetup(using: auth)
     #expect(reopened.requiresProgramUpdate)
     #expect(reopened.selectedProgramID == old.programID)
@@ -527,9 +530,10 @@ struct ProgramCatalogOnboardingTests {
     let progress = SelectivelySuspendedProgressService(active: active, suspended: other)
     let cycles = MutableSelectedCycleService(cycle: otherCycle)
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    try repository.restoreProgress(active, accountID: "preview-user")
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil), cycleService: cycles,
-      progressService: progress, progressStore: store,
-      workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+      progressService: progress, progressStore: store, workoutRepository: repository)
     await model.resolveAccountSetup(using: auth)
     let update = Task { await model.updateRemoteProgram(using: auth) }
     await progress.waitUntilRequested()
