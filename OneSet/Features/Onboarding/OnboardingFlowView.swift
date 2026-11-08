@@ -93,6 +93,10 @@ struct OnboardingFlowView: View {
         }
       }
       #endif
+    }
+    .task(id: model.resolvedAccountID) {
+      guard model.resolvedAccountID == authentication.signedInUser?.id,
+            model.resolvedAccountID != nil else { return }
       await model.resumeDeferredSessionUploads(using: authentication)
       await model.retryCompletedUploads(using: authentication)
     }

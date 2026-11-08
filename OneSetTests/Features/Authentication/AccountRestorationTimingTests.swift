@@ -43,6 +43,44 @@ struct AccountRestorationTimingTests {
   }
 
   @Test
+  func pendingLocalSetupRemainsRestorableAfterUpload() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: setup, needsUpload: true)
+    try store.save(saved, accountID: "preview-user")
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let service = SuspendedSetupService()
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: service, progressStore: store,
+      workoutRepository: repository)
+    let attempt = Task { await model.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    #expect(model.selectedProgramID == setup.programID)
+    if case .idle = model.setupResolution {} else { Issue.record("Locally created setup must be usable offline") }
+    await model.uploadCompletedSetup(using: auth)
+    service.complete(setup)
+    await attempt.value
+    let persisted = try #require(try store.load(accountID: "preview-user"))
+    #expect(persisted.completed?.needsUpload == false)
+    #expect(persisted.cycles?.locallyKnownProgressCycleIDs?.contains(setup.cycleID) == true)
+    let offline = SuspendedSetupService()
+    let reopened = OnboardingModel(catalog: .bundled, setupService: offline, progressStore: store,
+      workoutRepository: repository)
+    let restart = Task { await reopened.resolveAccountSetup(using: auth) }
+    while !offline.isWaiting { await Task.yield() }
+    #expect(reopened.selectedProgramID == setup.programID)
+    if case .idle = reopened.setupResolution {} else { Issue.record("Uploaded local cycle must remain usable") }
+    offline.complete(nil)
+    await restart.value
+  }
+
+  @Test
   func completedSetupAloneCannotOpenWhenProgressIsMissing() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

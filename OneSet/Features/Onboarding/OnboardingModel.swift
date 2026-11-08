@@ -71,7 +71,7 @@ final class OnboardingModel {
   private let progressService: (any AccountProgressService)?
   private var lookupGeneration = 0
   private var backgroundRestoration: Task<Void, Never>?
-  private var resolvedAccountID: String?
+  private(set) var resolvedAccountID: String?
   private let catalog: ProgramCatalog
   private var workoutRepository: WorkoutRepository?
   private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -369,11 +369,6 @@ final class OnboardingModel {
         backgroundRestoration = Task { [weak self] in
           await self?.reconcileSavedAccount(user: user, generation: generation, authentication: authentication)
         }
-        // Uploads must not wait for a suspended account refresh.
-        Task { [weak self] in
-          await self?.resumeDeferredSessionUploads(using: authentication)
-          await self?.retryCompletedUploads(using: authentication)
-        }
         await backgroundRestoration?.value
         return true
       }
@@ -384,7 +379,8 @@ final class OnboardingModel {
   private func hasSafeLocalProgress(_ progress: OnboardingProgress, accountID: String) -> Bool {
     guard let completed = progress.completed else { return false }
     let cycleID = progress.cycles?.selectedCycleID ?? completed.setup.cycleID
-    return progress.cycles?.pendingCreations.contains(where: { $0.cycleID == cycleID }) == true
+    return (completed.needsUpload && completed.setup.cycleID == cycleID)
+      || progress.cycles?.pendingCreations.contains(where: { $0.cycleID == cycleID }) == true
       || progress.cycles?.locallyKnownProgressCycleIDs?.contains(cycleID) == true
       || (try? workoutRepository?.hasRestorableProgress(accountID: accountID, cycleID: cycleID)) == true
   }
@@ -1093,6 +1089,16 @@ final class OnboardingModel {
                                        selectedProgramID: setup.programID, nextStep: .overview)
     progress.completed = CompletedOnboarding(setup: setup, needsUpload: needsUpload)
     progress.cycles = savedProgress?.cycles
+    let isLocallyCreatedCycle = needsUpload || (savedProgress?.completed?.needsUpload == true
+      && savedProgress?.completed?.setup.cycleID == setup.cycleID)
+    if isLocallyCreatedCycle {
+      var state = progress.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
+        selectedCycleID: setup.cycleID, knownCycles: [], discoveryComplete: false, pendingCreations: [])
+      var known = state.locallyKnownProgressCycleIDs ?? []
+      if !known.contains(setup.cycleID) { known.append(setup.cycleID) }
+      state.locallyKnownProgressCycleIDs = known
+      progress.cycles = state
+    }
     if var state = progress.cycles, state.pendingCreations.isEmpty,
        (state.pendingActivations ?? []).isEmpty {
       state.selectedProgramID = setup.programID

@@ -676,7 +676,7 @@
   },
   {
     "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1432 lines",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1439 lines",
       "location": {
         "character": 7,
         "line": 6,
@@ -781,10 +781,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1526",
+      "reason": "File should contain 1000 lines or less: currently contains 1532",
       "location": {
         "character": 1,
-        "line": 1526,
+        "line": 1532,
         "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
       },
       "ruleIdentifier": "file_length",
