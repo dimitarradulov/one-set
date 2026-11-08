@@ -32,7 +32,7 @@ struct WorkoutRecordingScreen: View {
             .foregroundStyle(OneSetColors.textSecondary)
           ForEach(session.exercises, id: \.slotID) { exercise in
             exerciseRow(exercise)
-            if exercise.slotID == restSlotID, let deadline = session.restDeadline {
+            if exercise.slotID == session.restSlotID, let deadline = session.restDeadline {
               RestCountdownView(deadline: deadline, onAdjust: model.adjustWorkoutRest, onSkip: model.skipWorkoutRest)
                 .accessibilityValue("After \(exercise.name)")
                 .id("active-rest")
@@ -98,19 +98,6 @@ struct WorkoutRecordingScreen: View {
     guard model.activeWorkoutSession?.id == session.id,
           authentication.signedInUser?.id == session.accountID else { return }
     model.discardActiveWorkout(accountID: session.accountID)
-  }
-
-  private var restSlotID: String? {
-    guard session.exercises.contains(where: { session.setEntries[$0.slotID]?.completedAt == nil }) else {
-      return nil
-    }
-    let latestCompleted = session.exercises
-      .filter { session.setEntries[$0.slotID]?.completedAt != nil }
-      .max {
-        (session.setEntries[$0.slotID]?.completedAt ?? .distantPast)
-          < (session.setEntries[$1.slotID]?.completedAt ?? .distantPast)
-      }?.slotID
-    return latestCompleted == session.exercises.last?.slotID ? nil : latestCompleted
   }
 
   private var finishReview: some View {

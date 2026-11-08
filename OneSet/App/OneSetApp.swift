@@ -3,6 +3,7 @@ import ClerkKit
 
 @main
 struct OneSetApp: App {
+  private let restAlerts: WorkoutRestAlerts?
   @State private var onboarding: OnboardingModel
   @State private var authentication: AuthenticationModel
 
@@ -16,6 +17,12 @@ struct OneSetApp: App {
     let arguments = ProcessInfo.processInfo.arguments
     let dependencies = AppDependencies.live(arguments: arguments)
     let launch = AppLaunchConfiguration(arguments: arguments)
+    #if DEBUG
+    let restAlerts = ProcessInfo.processInfo.environment["ONESET_UI_TEST_ID"] == nil ? WorkoutRestAlerts() : nil
+    #else
+    let restAlerts = WorkoutRestAlerts()
+    #endif
+    self.restAlerts = restAlerts
     let model = OnboardingModel(
       catalog: dependencies.catalog,
       setupService: dependencies.accountSetup,
@@ -26,6 +33,7 @@ struct OneSetApp: App {
       sessionHistoryService: dependencies.sessionHistory,
       progressStore: dependencies.onboardingProgress,
       workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
+      restAlerts: restAlerts,
       initialPath: launch.onboardingPath,
       initialSelectedProgramID: launch.selectedProgramID,
       initialProgramPath: launch.programPath,
@@ -53,7 +61,8 @@ struct OneSetApp: App {
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
         progressStore: dependencies.onboardingProgress,
-        workoutRepositoryFactory: dependencies.workoutRepositoryFactory
+        workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
+        restAlerts: restAlerts
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
       isDevelopmentSession = true
@@ -70,7 +79,8 @@ struct OneSetApp: App {
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
         progressStore: dependencies.onboardingProgress,
-        workoutRepositoryFactory: dependencies.workoutRepositoryFactory
+        workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
+        restAlerts: restAlerts
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
       isDevelopmentSession = false
