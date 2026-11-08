@@ -31,7 +31,7 @@
   },
   {
     "violation": {
-      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 216 lines",
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 232 lines",
       "location": {
         "character": 10,
         "line": 44,
@@ -301,10 +301,10 @@
   },
   {
     "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 22",
+      "reason": "Function should have complexity 10 or less; currently complexity is 23",
       "location": {
         "character": 3,
-        "line": 30,
+        "line": 31,
         "file": "OneSet/App/AppLaunchConfiguration.swift"
       },
       "ruleIdentifier": "cyclomatic_complexity",
@@ -316,10 +316,10 @@
   },
   {
     "violation": {
-      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 150 lines",
+      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 152 lines",
       "location": {
         "character": 3,
-        "line": 30,
+        "line": 31,
         "file": "OneSet/App/AppLaunchConfiguration.swift"
       },
       "ruleIdentifier": "function_body_length",
@@ -676,7 +676,7 @@
   },
   {
     "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1142 lines",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1432 lines",
       "location": {
         "character": 7,
         "line": 6,
@@ -688,36 +688,6 @@
       "ruleName": "Type Body Length"
     },
     "text": "final class OnboardingModel {"
-  },
-  {
-    "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 22",
-      "location": {
-        "character": 3,
-        "line": 139,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "cyclomatic_complexity",
-      "ruleDescription": "Complexity of function bodies should be limited.",
-      "severity": "error",
-      "ruleName": "Cyclomatic Complexity"
-    },
-    "text": "  func resolveAccountSetup(using authentication: AuthenticationModel) async {"
-  },
-  {
-    "violation": {
-      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 102 lines",
-      "location": {
-        "character": 3,
-        "line": 139,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "function_body_length",
-      "ruleDescription": "Function bodies should not span too many lines",
-      "severity": "error",
-      "ruleName": "Function Body Length"
-    },
-    "text": "  func resolveAccountSetup(using authentication: AuthenticationModel) async {"
   },
   {
     "violation": {
@@ -811,10 +781,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1226",
+      "reason": "File should contain 1000 lines or less: currently contains 1526",
       "location": {
         "character": 1,
-        "line": 1226,
+        "line": 1526,
         "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
       },
       "ruleIdentifier": "file_length",
@@ -2160,7 +2130,7 @@
   },
   {
     "violation": {
-      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 944 lines",
+      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 1216 lines",
       "location": {
         "character": 1,
         "line": 6,
@@ -2220,10 +2190,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1246",
+      "reason": "File should contain 1000 lines or less: currently contains 1622",
       "location": {
         "character": 1,
-        "line": 1246,
+        "line": 1622,
         "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
       },
       "ruleIdentifier": "file_length",
@@ -2955,7 +2925,7 @@
   },
   {
     "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1481 lines",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1519 lines",
       "location": {
         "character": 7,
         "line": 4,
@@ -3060,10 +3030,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1668",
+      "reason": "File should contain 1000 lines or less: currently contains 1711",
       "location": {
         "character": 1,
-        "line": 1668,
+        "line": 1711,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "file_length",
