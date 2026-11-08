@@ -48,7 +48,8 @@ def version(value):
 
 
 def prepare(family, udid, minimum, boot_timeout, lease=None):
-    runtimes = [r for r in simctl(["list", "runtimes", "-j"])["runtimes"]
+    # The first query may need to start CoreSimulator on a fresh host.
+    runtimes = [r for r in simctl(["list", "runtimes", "-j"], timeout=120)["runtimes"]
                 if r.get("isAvailable") and r.get("name", "").startswith("iOS ")
                 and version(r["version"]) >= version(str(minimum))]
     runtimes.sort(key=lambda r: version(r["version"]), reverse=True)

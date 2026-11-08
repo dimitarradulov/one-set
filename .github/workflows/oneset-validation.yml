@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: oneset-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -11,7 +15,7 @@ jobs:
   validate:
     name: OneSet validation
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
         with:
@@ -27,3 +31,13 @@ jobs:
           echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
       - run: npm ci --prefix worker
       - run: ./scripts/validate.sh --ci
+        timeout-minutes: 55
+        env:
+          ONESET_ARTIFACTS_DIR: ${{ runner.temp }}/oneset-artifacts
+      - name: Upload simulator test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oneset-simulator-results
+          path: ${{ runner.temp }}/oneset-artifacts/validation/
+          retention-days: 7

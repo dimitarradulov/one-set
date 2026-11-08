@@ -43,13 +43,6 @@ if [[ "$VALIDATION_MODE" != focused ]]; then
   npm --prefix worker run typecheck
   npm --prefix worker test
 fi
-if [[ "$VALIDATION_MODE" == ci ]]; then
-  oneset_xcodebuild "$ONESET_ARTIFACTS_DIR/validation/ci-build.log" \
-    -project OneSet.xcodeproj -scheme OneSet \
-    -destination 'generic/platform=iOS Simulator' \
-    -derivedDataPath "$ONESET_ARTIFACTS_DIR/build/ci" CODE_SIGNING_ALLOWED=NO build
-  exit
-fi
 
 oneset_run() {
   DESTINATION="platform=iOS Simulator,id=$SIMULATOR_UDID"
@@ -59,21 +52,22 @@ oneset_run() {
     BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/focused/$SIMULATOR_UDID"
   fi
 
-  echo "==> Building"
-  oneset_xcodebuild "$RUN_DIR/build.log" \
-    -project OneSet.xcodeproj \
-    -scheme OneSet \
-    -destination "$DESTINATION" \
-    -derivedDataPath "$BUILD_DIR" \
-    build
+  local xcode_args=(
+    -project OneSet.xcodeproj
+    -scheme OneSet
+    -destination "$DESTINATION"
+    -derivedDataPath "$BUILD_DIR"
+  )
+  if [[ "$VALIDATION_MODE" == ci ]]; then
+    xcode_args+=(CODE_SIGNING_ALLOWED=NO)
+  else
+    echo "==> Building"
+    oneset_xcodebuild "$RUN_DIR/build.log" "${xcode_args[@]}" build
+  fi
 
   echo "==> Running tests"
   local test_status=0
-  oneset_xcodebuild "$RUN_DIR/test.log" \
-    -project OneSet.xcodeproj \
-    -scheme OneSet \
-    -destination "$DESTINATION" \
-    -derivedDataPath "$BUILD_DIR" \
+  oneset_xcodebuild "$RUN_DIR/test.log" "${xcode_args[@]}" \
     -parallel-testing-enabled NO \
     -resultBundlePath "$RUN_DIR/tests.xcresult" \
     "$@" test || test_status=$?
