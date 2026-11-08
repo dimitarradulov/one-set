@@ -71,7 +71,7 @@ final class OnboardingModel {
   private let progressService: (any AccountProgressService)?
   private var lookupGeneration = 0
   private var backgroundRestoration: Task<Void, Never>?
-  private var resolvedAccountID: String?
+  private(set) var resolvedAccountID: String?
   private let catalog: ProgramCatalog
   private var workoutRepository: WorkoutRepository?
   private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -368,11 +368,6 @@ final class OnboardingModel {
         setupResolution = .idle
         backgroundRestoration = Task { [weak self] in
           await self?.reconcileSavedAccount(user: user, generation: generation, authentication: authentication)
-        }
-        // Uploads must not wait for a suspended account refresh.
-        Task { [weak self] in
-          await self?.resumeDeferredSessionUploads(using: authentication)
-          await self?.retryCompletedUploads(using: authentication)
         }
         await backgroundRestoration?.value
         return true
