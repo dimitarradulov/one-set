@@ -67,7 +67,7 @@ struct AppDependencies {
     let completionSaveError = arguments.contains("--ui-completion-save-error")
     let progressRestoreError = arguments.contains("--ui-progress-restore-error")
     let mainTabsPreview = launch.includesMainTabsPreview
-    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
+    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-timeout")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || progressRestoreError
