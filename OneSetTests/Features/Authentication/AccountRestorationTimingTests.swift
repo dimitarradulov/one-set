@@ -147,8 +147,8 @@ struct AccountRestorationTimingTests {
       currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
     try repository.restoreProgress(current, accountID: "preview-user")
     let sabotage = try DatabaseQueue(path: databaseURL.path)
-    try await sabotage.write { db in
-      try db.execute(sql: """
+    try await sabotage.write { database in
+      try database.execute(sql: """
         CREATE TRIGGER fail_progress BEFORE INSERT ON restored_cycle_progress
         BEGIN SELECT RAISE(ABORT, 'storage unavailable'); END
         """)

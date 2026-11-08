@@ -174,8 +174,7 @@ struct CompletedSetupTabsView: View {
           },
           requiresProgramUpdate: model.requiresProgramUpdate
         )
-        .navigationTitle("Workout preview")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Workout preview").navigationBarTitleDisplayMode(.inline)
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
