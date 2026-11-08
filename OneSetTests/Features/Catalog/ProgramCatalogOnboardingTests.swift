@@ -374,12 +374,14 @@ struct ProgramCatalogOnboardingTests {
     let summary = AccountProgress(cycleID: remote.cycleID, programID: remote.programID,
       currentTrainingWeek: 3, completedOccurrences: [], workoutPeriods: [],
       requiredWorkoutIDs: ["machine-full-body-workout-a"])
+    let oldSummary = AccountProgress(cycleID: old.cycleID, programID: old.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
     let cycle = AccountCycle(cycleID: remote.cycleID, programID: remote.programID,
       startedAt: "2026-01-01T00:00:00Z")
     let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: remote),
       cycleService: SelectedCycleService(cycle: cycle),
-      progressService: PerCycleProgressService(summaries: [remote.cycleID: summary], active: summary),
+      progressService: PerCycleProgressService(summaries: [old.cycleID: oldSummary, remote.cycleID: summary], active: summary),
       progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
     await model.resolveAccountSetup(using: auth)
     #expect(model.requiresProgramUpdate)
@@ -423,11 +425,11 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
-  func failedDiscoverySaveKeepsDurableReservationAcrossOfflineRestart() async throws {
+  func failedDiscoverySaveKeepsConfirmedChangeBlockedInCurrentSession() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
     let file = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
-    let store = FailAfterReservationStore(file: file)
+    let store = FailDiscoverySaveStore(file: file)
     let old = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
       programID: "machine-full-body", cycleID: UUID())
     let changed = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
@@ -443,12 +445,10 @@ struct ProgramCatalogOnboardingTests {
     let model = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: changed),
       progressStore: store, workoutRepository: repository)
     await model.resolveAccountSetup(using: auth)
-    #expect(try file.load(accountID: "preview-user")?.pendingRemoteSelection != nil)
-    let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: nil),
-      progressStore: file, workoutRepository: repository)
-    await reopened.resolveAccountSetup(using: auth)
-    #expect(reopened.requiresProgramUpdate)
-    #expect(reopened.selectedProgramID == old.programID)
+    #expect(model.requiresProgramUpdate)
+    #expect(model.programUpdateMessage != nil)
+    #expect(model.selectedProgramID == old.programID)
+    #expect(try file.load(accountID: "preview-user")?.pendingRemoteSelection == nil)
   }
 
   @Test(arguments: [false, true])
@@ -499,6 +499,7 @@ struct ProgramCatalogOnboardingTests {
     await model.resolveAccountSetup(using: auth)
     let first = Task { await model.refreshCycleKnowledge(using: auth) }
     await service.waitForRequests(1)
+    #expect(try store.load(accountID: "preview-user")?.pendingRemoteSelection == nil)
     let second = Task { await model.refreshCycleKnowledge(using: auth) }
     await service.waitForRequests(2)
     let unchanged = AccountCycles(cycles: [current], selectedCycleID: current.cycleID)
@@ -546,8 +547,8 @@ struct ProgramCatalogOnboardingTests {
     #expect(try store.load(accountID: "preview-user")?.pendingRemoteSelection?.cycleID == pending.cycleID)
   }
 
-  @Test(arguments: [1, 2])
-  func discoveryWriteFailureRestoresActiveWorkout(failOnSave: Int) async throws {
+  @Test
+  func discoveryWriteFailureRestoresActiveWorkout() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
     let file = FileOnboardingProgressStore(fileURL: directory.appending(path: "progress.json"))
@@ -562,7 +563,7 @@ struct ProgramCatalogOnboardingTests {
     await original.resolveAccountSetup(using: auth)
     original.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     let sessionID = try #require(original.activeWorkoutSession?.id)
-    let store = FailOnSaveStore(file: file, failOnSave: failOnSave)
+    let store = FailOnSaveStore(file: file, failOnSave: 1)
     let reopened = OnboardingModel(catalog: .bundled, setupService: StubAccountSetupService(setup: remote),
       progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await reopened.resolveAccountSetup(using: auth)
@@ -1535,15 +1536,12 @@ private struct SelectedCycleService: AccountCycleService {
 }
 
 @MainActor
-private final class FailAfterReservationStore: OnboardingProgressStore {
+private final class FailDiscoverySaveStore: OnboardingProgressStore {
   let file: FileOnboardingProgressStore
-  var saves = 0
   init(file: FileOnboardingProgressStore) { self.file = file }
   func load(accountID: String) throws -> OnboardingProgress? { try file.load(accountID: accountID) }
   func save(_ progress: OnboardingProgress, accountID: String) throws {
-    saves += 1
-    if saves > 1 { throw CocoaError(.fileWriteOutOfSpace) }
-    try file.save(progress, accountID: accountID)
+    throw CocoaError(.fileWriteOutOfSpace)
   }
   func remove(accountID: String) throws { try file.remove(accountID: accountID) }
 }
