@@ -176,7 +176,7 @@ struct AppDependencies {
         authentication: PreviewAuthenticationService(
           defaults: storage.authenticationDefaults,
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
-          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-auth-restored")
+          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-setup-timeout") || arguments.contains("--ui-auth-restored")
             || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
             || arguments.contains("--ui-progress-save-error") || progressRestoreError,
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),

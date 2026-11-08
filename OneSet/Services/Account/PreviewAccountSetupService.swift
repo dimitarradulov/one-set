@@ -9,6 +9,7 @@ final class PreviewAccountSetupService: AccountSetupService {
   private let backendURL: URL?
   private let completed: Bool
   private let delayed: Bool
+  private let timeoutPreview: Bool
   private let invalidProgram: Bool
   private let removedProgramUpload: Bool
   private var shouldFail: Bool
@@ -35,6 +36,7 @@ final class PreviewAccountSetupService: AccountSetupService {
           && !arguments.contains("--ui-session-signout-confirmation")
           && !arguments.contains("--ui-session-signout-error"))
     delayed = arguments.contains("--ui-setup-delayed")
+    timeoutPreview = arguments.contains("--ui-setup-timeout")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
     removedProgramUpload = arguments.contains("--ui-setup-upload-removed")
     shouldFail = arguments.contains("--ui-setup-retry") || (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
@@ -42,7 +44,9 @@ final class PreviewAccountSetupService: AccountSetupService {
   }
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
-    if delayed {
+    if timeoutPreview && user.id == "preview-user" {
+      await Task { try? await Task.sleep(for: .seconds(20)) }.value
+    } else if delayed {
       // Intentionally ignore cancellation to exercise late responses from adapters.
       await Task { try? await Task.sleep(for: .seconds(8)) }.value
     }

@@ -1294,8 +1294,10 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testSignOutDuringLookupPreventsLateAccountSetupFromAffectingAnotherAccount() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-delayed", "--ui-auth-existing", "--ui-workouts-reset"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-setup-timeout", "--ui-auth-existing", "--ui-workouts-reset"])
     XCTAssertTrue(app.descendants(matching: .any)["setup.loading"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.buttons["account.signOut"].exists)
+    XCTAssertTrue(app.buttons["account.signOut"].waitForExistence(timeout: 17))
     tapAccountSignOut()
     XCTAssertTrue(app.buttons["continue.email"].waitForExistence(timeout: 3))
     authenticateExistingEmail(using: "continue.email", email: "other@example.com")

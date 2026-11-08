@@ -19,6 +19,8 @@ final class OnboardingModel {
   }
 
   private(set) var setupResolution: SetupResolution = .idle
+  private(set) var showsSetupSpinner = false
+  private let waitForSetupDelay: @MainActor (TimeInterval) async throws -> Void
   private(set) var restoredCycleID: UUID?
   var switchBlockedPresented = false
   var signOutConfirmationPresented = false
@@ -96,6 +98,9 @@ final class OnboardingModel {
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
+    waitForSetupDelay: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
+      try await Task.sleep(for: .seconds(delay))
+    },
     progressStore: (any OnboardingProgressStore)? = nil,
     workoutRepository: WorkoutRepository? = nil,
     workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)? = nil,
@@ -106,6 +111,7 @@ final class OnboardingModel {
     initialMainTab: MainTab = .program
   ) {
     self.catalog = catalog
+    self.waitForSetupDelay = waitForSetupDelay
     self.setupService = setupService
     self.cycleService = cycleService
     self.cycleSyncCoordinator = cycleSyncCoordinator
@@ -158,8 +164,30 @@ final class OnboardingModel {
     var discoveryReservation: OnboardingProgress?
     var discoveryReturned = false
     var discoveryStorageFailure = false
+    showsSetupSpinner = false
+    let spinnerTask = Task { @MainActor in
+      do { try await waitForSetupDelay(1) } catch { return }
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            case .loading = setupResolution else { return }
+      showsSetupSpinner = true
+    }
+    let deadlineTask = Task { @MainActor in
+      do { try await waitForSetupDelay(15) } catch { return }
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            case .loading = setupResolution else { return }
+      lookupGeneration += 1
+      setupResolution = .failed("Your account is taking longer than expected to load. Retry to continue.")
+    }
+    defer {
+      spinnerTask.cancel()
+      deadlineTask.cancel()
+    }
     do {
       await catalog.refresh()
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id else { return }
       savedProgress = try progressStore?.load(accountID: user.id)
       if let savedProgress { try validate(savedProgress) }
       // Persist a fail-closed reservation before asking the server. A crash or a
@@ -206,24 +234,11 @@ final class OnboardingModel {
         if let local = savedProgress, local.pendingRemoteSelection != nil {
           restore(local)
         } else {
-        if let pending = savedProgress?.completed, pending.needsUpload,
-           pending.setup.cycleID != setup.cycleID {
-          _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
-            accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
-          )
-        }
-        try storeCompleted(setup, needsUpload: false, accountID: user.id)
-        apply(setup)
-        if let cycles = savedProgress?.cycles,
-           !cycles.pendingCreations.isEmpty || !(cycles.pendingActivations ?? []).isEmpty {
-          selectedProgramID = cycles.selectedProgramID
-          restoredCycleID = cycles.selectedCycleID
-          path = [.programOverview(cycles.selectedProgramID)]
-          if cycles.authenticationDeferred == true {
-            cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
-          }
-        }
-        if let progressService, restoredCycleID == setup.cycleID {
+        let pendingCycles = savedProgress?.cycles
+        let hasPendingCycles = pendingCycles.map {
+          !$0.pendingCreations.isEmpty || !($0.pendingActivations ?? []).isEmpty
+        } ?? false
+        if let progressService, !hasPendingCycles || pendingCycles?.selectedCycleID == setup.cycleID {
           do {
             let summary = try await progressService.lookup(for: user)
             guard !Task.isCancelled, generation == lookupGeneration,
@@ -240,6 +255,22 @@ final class OnboardingModel {
               setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
               return
             }
+          }
+        }
+        if let pending = savedProgress?.completed, pending.needsUpload,
+           pending.setup.cycleID != setup.cycleID {
+          _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
+            accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
+          )
+        }
+        try storeCompleted(setup, needsUpload: false, accountID: user.id)
+        apply(setup)
+        if let cycles = pendingCycles, hasPendingCycles {
+          selectedProgramID = cycles.selectedProgramID
+          restoredCycleID = cycles.selectedCycleID
+          path = [.programOverview(cycles.selectedProgramID)]
+          if cycles.authenticationDeferred == true {
+            cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
           }
         }
         }
@@ -489,6 +520,7 @@ final class OnboardingModel {
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle
+    showsSetupSpinner = false
     restoredCycleID = nil
     activeWorkoutSession = nil
     savedProgress = nil
