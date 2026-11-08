@@ -12,6 +12,7 @@ final class PreviewAccountSetupService: AccountSetupService {
   private let timeoutPreview: Bool
   private let invalidProgram: Bool
   private let removedProgramUpload: Bool
+  private let establishedCycleConflict: Bool
   private var shouldFail: Bool
   private let alwaysFails: Bool
 
@@ -39,6 +40,7 @@ final class PreviewAccountSetupService: AccountSetupService {
     timeoutPreview = arguments.contains("--ui-setup-timeout")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
     removedProgramUpload = arguments.contains("--ui-setup-upload-removed")
+    establishedCycleConflict = arguments.contains("--ui-setup-cycle-conflict")
     shouldFail = arguments.contains("--ui-setup-retry") || (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
     alwaysFails = (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
   }
@@ -75,6 +77,12 @@ final class PreviewAccountSetupService: AccountSetupService {
     }
     if removedProgramUpload { throw AccountSetupError.programUnavailable }
     guard !uploadOffline else { throw AccountSetupError.unavailable }
+    if establishedCycleConflict {
+      return AccountSetup(
+        preferredUnit: .pounds, trainingDays: 5, programID: "machine-full-body",
+        cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+      )
+    }
     guard let backendURL else { return setup }
     try FileManager.default.createDirectory(
       at: backendURL.deletingLastPathComponent(), withIntermediateDirectories: true
