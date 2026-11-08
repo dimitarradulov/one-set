@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: oneset-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -27,3 +31,10 @@ jobs:
           echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
       - run: npm ci --prefix worker
       - run: ./scripts/validate.sh --ci
+      - name: Upload simulator test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oneset-simulator-results
+          path: .codex/validation/
+          retention-days: 7

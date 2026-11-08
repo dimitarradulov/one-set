@@ -93,14 +93,20 @@ swiftlint() { echo "swiftlint $*"; }
             environment["ONESET_TEST_ARTIFACTS"] = path
             selectors = ["OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome",
                          "OneSetTests/AppStorageTests"]
-            for arguments in ([], ["--focused", *selectors]):
+            for arguments in ([], ["--ci"], ["--focused", *selectors]):
                 with self.subTest(arguments=arguments):
                     result = subprocess.run(["bash", "-c", harness, "validate.sh", *arguments],
                                             env=environment, capture_output=True, text=True, timeout=10)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn("<build>", result.stdout)
                     self.assertIn("<test>", result.stdout)
-                    if arguments:
+                    self.assertIn("<-destination> <platform=iOS Simulator,id=test-device>", result.stdout)
+                    if arguments == ["--ci"]:
+                        self.assertIn("<CODE_SIGNING_ALLOWED=NO>", result.stdout)
+                        self.assertNotIn("<build>", result.stdout)
+                    else:
+                        self.assertIn("<build>", result.stdout)
+                        self.assertNotIn("CODE_SIGNING_ALLOWED", result.stdout)
+                    if arguments and arguments[0] == "--focused":
                         for selector in selectors:
                             self.assertIn(f"<-only-testing:{selector}>", result.stdout)
                         self.assertIn("/build/focused/test-device>", result.stdout)
