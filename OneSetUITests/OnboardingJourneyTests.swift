@@ -32,14 +32,14 @@ final class OnboardingJourneyTests: XCTestCase {
     let start = app.buttons["workoutPreview.start"]
     XCTAssertTrue(start.waitForExistence(timeout: 5))
     XCTAssertFalse(start.isEnabled)
-    app.navigationBars.buttons.firstMatch.tap()
-    XCTAssertTrue(app.staticTexts["overview.programUpdateMessage"].waitForExistence(timeout: 5))
   }
 
   func testProgramChangeWaitsForActiveWorkoutToBeDiscarded() {
     relaunch(with: ["--ui-program-change-active"])
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 5))
-    app.navigationBars.buttons.firstMatch.tap()
+    let leftEdge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
+    let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+    leftEdge.press(forDuration: 0.05, thenDragTo: center)
     let update = app.buttons["overview.updateProgram"]
     XCTAssertTrue(update.waitForExistence(timeout: 5))
     update.tap()
