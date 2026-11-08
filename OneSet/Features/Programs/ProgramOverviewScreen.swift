@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ProgramOverviewScreen: View {
   let program: TrainingProgram
+  var updateMessage: String? = nil
+  var onUpdate: (() -> Void)? = nil
   var uploadMessage: String? = nil
   var onRetryUpload: (() -> Void)? = nil
   var preferencesSummary: String? = nil
@@ -47,6 +49,23 @@ struct ProgramOverviewScreen: View {
               .fixedSize(horizontal: false, vertical: true)
               .accessibilityIdentifier("overview.preferences")
           }
+        }
+
+        if let updateMessage, let onUpdate {
+          VStack(alignment: .leading, spacing: 12) {
+            Text(updateMessage)
+              .font(OneSetTypography.body)
+              .foregroundStyle(OneSetColors.textPrimary)
+              .fixedSize(horizontal: false, vertical: true)
+              .accessibilityIdentifier("overview.programUpdateMessage")
+            Button("Update", action: onUpdate)
+              .font(OneSetTypography.button)
+              .frame(minHeight: 44)
+              .accessibilityIdentifier("overview.updateProgram")
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(16)
+          .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
         }
 
         if let uploadMessage {

@@ -15,6 +15,45 @@ final class OnboardingJourneyTests: XCTestCase {
     // Each test launches once with its initial arguments.
   }
 
+  func testProgramChangeRequiresUpdateAndRestoresRemoteProgram() {
+    relaunch(with: ["--ui-program-change"])
+    XCTAssertTrue(app.staticTexts["overview.programUpdateMessage"].waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts["overview.title"].label, "Bro Split")
+    app.buttons["overview.updateProgram"].tap()
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    let title = app.staticTexts["overview.title"]
+    let changed = expectation(for: NSPredicate(format: "label == %@", "Machine Full Body"), evaluatedWith: title)
+    wait(for: [changed], timeout: 5)
+    XCTAssertFalse(app.staticTexts["overview.programUpdateMessage"].exists)
+  }
+
+  func testProgramChangeBlocksStartFromOpenPreview() {
+    relaunch(with: ["--ui-program-change-preview"])
+    let start = app.buttons["workoutPreview.start"]
+    XCTAssertTrue(start.waitForExistence(timeout: 5))
+    XCTAssertFalse(start.isEnabled)
+  }
+
+  func testProgramChangeWaitsForActiveWorkoutToBeDiscarded() {
+    relaunch(with: ["--ui-program-change-active"])
+    XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 5))
+    let leftEdge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
+    let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+    leftEdge.press(forDuration: 0.05, thenDragTo: center)
+    let update = app.buttons["overview.updateProgram"]
+    XCTAssertTrue(update.waitForExistence(timeout: 5))
+    update.tap()
+    XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", "Finish or discard")).firstMatch.waitForExistence(timeout: 5))
+    app.buttons["overview.resumeWorkout"].tap()
+    app.buttons["recording.discard"].tap()
+    app.alerts.buttons["Discard workout"].tap()
+    XCTAssertTrue(update.waitForExistence(timeout: 5))
+    update.tap()
+    let title = app.staticTexts["overview.title"]
+    let changed = expectation(for: NSPredicate(format: "label == %@", "Machine Full Body"), evaluatedWith: title)
+    wait(for: [changed], timeout: 5)
+  }
+
   func testSwitchExplainsUnfinishedWorkoutAndReturnsToIt() {
     relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset"])
     XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 5))

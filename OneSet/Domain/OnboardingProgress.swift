@@ -13,4 +13,8 @@ struct OnboardingProgress: Codable, Sendable {
   var completed: CompletedOnboarding? = nil
   // Optional so existing setup files migrate without fabricating cycle metadata.
   var cycles: ProgramCycleState? = nil
+  // Account-scoped remote selection awaiting explicit confirmation.
+  var pendingRemoteSelection: AccountSetup? = nil
+  // A persisted lookup reservation is uncertain, rather than a confirmed change.
+  var remoteSelectionDiscoveryPending: Bool? = nil
 }

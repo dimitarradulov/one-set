@@ -52,6 +52,8 @@ struct AppDependencies {
       || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
       || arguments.contains("--ui-setup-cycle-conflict")
     let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
+    let programChangePreview = arguments.contains("--ui-program-change")
+      || arguments.contains("--ui-program-change-preview") || arguments.contains("--ui-program-change-active")
     let sessionSignOutPreview = arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
     let historyPreview = arguments.contains("--ui-history-populated")
@@ -89,7 +91,7 @@ struct AppDependencies {
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
     if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
-      || sessionSignOutPreview || progressRestoreError {
+      || sessionSignOutPreview || progressRestoreError || programChangePreview {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -109,6 +111,13 @@ struct AppDependencies {
           : UUID()
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
+    }
+    if programChangePreview {
+      let old = AccountSetup(preferredUnit: .pounds, trainingDays: 3, programID: "bro-split",
+        cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!)
+      var saved = OnboardingProgress(weightUnit: .pounds, trainingDays: 3, selectedProgramID: old.programID, nextStep: .overview)
+      saved.completed = CompletedOnboarding(setup: old, needsUpload: false)
+      try? fileStore.save(saved, accountID: "preview-user")
     }
     if sessionSignOutPreview {
       var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
@@ -185,10 +194,10 @@ struct AppDependencies {
           includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
           storageDirectory: storage.directory
         ),
-        accountCycles: arguments.contains("--ui-replacement-device") ? PreviewRestoredCycles()
+        accountCycles: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredCycles()
           : (arguments.contains("--ui-switch-test") ? switchSync : nil),
         previousPerformance: PreviewPreviousPerformanceService(),
-        accountProgress: arguments.contains("--ui-replacement-device") ? PreviewRestoredProgress()
+        accountProgress: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredProgress()
           : (progressRestoreError ? PreviewAccountProgressService(fails: true) : nil),
         completedSessionUpload: arguments.contains("--ui-switch-online") ? switchSync : nil,
         sessionHistory: PreviewSessionHistoryService(
@@ -213,6 +222,13 @@ struct AppDependencies {
             throw CocoaError(.fileReadNoPermission)
           }
           let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
+          if arguments.contains("--ui-program-change-active"),
+             let program = ProgramCatalog.bundled.program(id: "bro-split"), let workout = program.workouts.first {
+            let session = WorkoutSession(accountID: "preview-user",
+              cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+              program: program, workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: .now)
+            _ = try repository.start(session)
+          }
           if sessionSignOutPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
