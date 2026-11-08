@@ -1589,8 +1589,8 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   private func navigationBack() -> XCUIElement {
-    let standard = app.navigationBars.buttons.firstMatch
-    return standard.exists ? standard : app.buttons["BackButton"]
+    let floating = app.buttons["BackButton"]
+    return floating.exists ? floating : app.navigationBars.buttons.firstMatch
   }
 
   private func mainTab(_ name: String) -> XCUIElement {
