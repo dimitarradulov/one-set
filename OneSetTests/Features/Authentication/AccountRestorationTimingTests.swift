@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import OneSet
 
@@ -64,6 +65,105 @@ struct AccountRestorationTimingTests {
     await attempt.value
     if case .failed = model.setupResolution {} else { Issue.record("Missing progress must offer recovery") }
     #expect(model.restoredCycleID == nil)
+  }
+
+  @Test
+  func changedRemoteSelectionDoesNotOpenUnsafeSavedProgress() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let old = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let remote = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "bro-split", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: old.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: old, needsUpload: false)
+    try store.save(saved, accountID: "preview-user")
+    let service = SuspendedSetupService()
+    let model = OnboardingModel(catalog: .bundled, setupService: service, progressStore: store,
+      workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let attempt = Task { await model.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    service.complete(remote)
+    await attempt.value
+    if case .failed = model.setupResolution {} else { Issue.record("Unsafe progress must offer recovery") }
+    #expect(model.restoredCycleID == nil)
+  }
+
+  @Test
+  func interruptedUnconfirmedRefreshDoesNotBlockOfflineRelaunch() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    try store.save(saved, accountID: "preview-user")
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    try repository.restoreProgress(AccountProgress(cycleID: setup.cycleID, programID: setup.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [],
+      requiredWorkoutIDs: ["machine-full-body-workout-a"]), accountID: "preview-user")
+    let service = SuspendedSetupService()
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let first = OnboardingModel(catalog: .bundled, setupService: service, progressStore: store,
+      workoutRepository: repository)
+    let attempt = Task { await first.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    let offline = SuspendedSetupService()
+    let reopened = OnboardingModel(catalog: .bundled, setupService: offline, progressStore: store,
+      workoutRepository: repository)
+    let retry = Task { await reopened.resolveAccountSetup(using: auth) }
+    while !offline.isWaiting { await Task.yield() }
+    #expect(!reopened.requiresProgramUpdate)
+    reopened.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    #expect(reopened.activeWorkoutSession != nil)
+    service.complete(setup)
+    offline.complete(setup)
+    await attempt.value
+    await retry.value
+  }
+
+  @Test
+  func backgroundProgressSaveFailureIsVisibleAndRetainsSavedProgress() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
+      programID: "machine-full-body", cycleID: UUID())
+    let store = FileOnboardingProgressStore(fileURL: directory.appending(path: "setup.json"))
+    var saved = OnboardingProgress(weightUnit: .kilograms, trainingDays: 3,
+      selectedProgramID: setup.programID, nextStep: .overview)
+    saved.completed = CompletedOnboarding(setup: setup, needsUpload: false)
+    try store.save(saved, accountID: "preview-user")
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: databaseURL)
+    let current = AccountProgress(cycleID: setup.cycleID, programID: setup.programID,
+      currentTrainingWeek: 1, completedOccurrences: [], workoutPeriods: [], requiredWorkoutIDs: [])
+    try repository.restoreProgress(current, accountID: "preview-user")
+    let sabotage = try DatabaseQueue(path: databaseURL.path)
+    try await sabotage.write { db in
+      try db.execute(sql: """
+        CREATE TRIGGER fail_progress BEFORE INSERT ON restored_cycle_progress
+        BEGIN SELECT RAISE(ABORT, 'storage unavailable'); END
+        """)
+    }
+    let service = SuspendedSetupService()
+    let auth = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
+    let model = OnboardingModel(catalog: .bundled, setupService: service,
+      progressService: FixedProgressService(summary: current), progressStore: store, workoutRepository: repository)
+    let attempt = Task { await model.resolveAccountSetup(using: auth) }
+    while !service.isWaiting { await Task.yield() }
+    service.complete(setup)
+    await attempt.value
+    #expect(model.workoutErrorPresented)
+    #expect(model.currentWorkoutWeek(programID: setup.programID) == 1)
+    #expect(model.selectedProgramID == setup.programID)
   }
 
   @Test
@@ -190,4 +290,11 @@ private final class SuspendedProgressService: AccountProgressService {
     await withCheckedContinuation { continuation = $0 }
   }
   func complete() { continuation?.resume(returning: nil); continuation = nil }
+}
+
+@MainActor
+private final class FixedProgressService: AccountProgressService {
+  let summary: AccountProgress
+  init(summary: AccountProgress) { self.summary = summary }
+  func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? { summary }
 }
