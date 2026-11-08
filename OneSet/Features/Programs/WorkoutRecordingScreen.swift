@@ -2,24 +2,15 @@ import SwiftUI
 
 struct WorkoutRecordingScreen: View {
   let session: WorkoutSession
+  let model: OnboardingModel
+  let authentication: AuthenticationModel
   let previousPerformances: [String: WorkoutRepository.PreviousPerformance]
-  let previousPerformanceUnavailable: Bool
-  let onRetryPreviousPerformance: () -> Void
-  let onDiscard: () -> Void
-  let onSaveDraft: (String, String, String) -> Bool
-  let onComplete: (String) -> Bool
-  let onUpdate: (String, String, String) -> Bool
-  let onUnmark: (String) -> Bool
-  let onFinish: (String?) -> Bool
-  let onAdjustRest: (Int) -> Bool
-  let onSkipRest: () -> Bool
   @State private var confirmsDiscard = false
   @State private var showsFinishReview = false
   @State private var confirmsEmptyDiscard = false
   @State private var noteExpanded = false
   @State private var note = ""
-  @State private var inputs: [String: WorkoutSession.SetEntry]
-  @State private var failedSaves: [String: FailedSave] = [:]
+  @State private var failedCompletions: Set<String> = []
   @FocusState private var focusedField: Field?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -27,39 +18,6 @@ struct WorkoutRecordingScreen: View {
     let slotID: String
     let name: Name
     enum Name { case weight, reps }
-  }
-
-  private enum FailedSave: Equatable {
-    case draft
-    case complete
-    case update
-    case unmark
-  }
-
-  init(session: WorkoutSession, previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:],
-       previousPerformanceUnavailable: Bool = false,
-       onRetryPreviousPerformance: @escaping () -> Void = {},
-       onDiscard: @escaping () -> Void,
-       onSaveDraft: @escaping (String, String, String) -> Bool = { _, _, _ in true },
-       onComplete: @escaping (String) -> Bool = { _ in true },
-       onUpdate: @escaping (String, String, String) -> Bool = { _, _, _ in true },
-       onUnmark: @escaping (String) -> Bool = { _ in true },
-       onAdjustRest: @escaping (Int) -> Bool = { _ in true },
-       onSkipRest: @escaping () -> Bool = { true },
-       onFinish: @escaping (String?) -> Bool = { _ in true }) {
-    self.session = session
-    self.previousPerformances = previousPerformances
-    self.previousPerformanceUnavailable = previousPerformanceUnavailable
-    self.onRetryPreviousPerformance = onRetryPreviousPerformance
-    self.onDiscard = onDiscard
-    self.onSaveDraft = onSaveDraft
-    self.onComplete = onComplete
-    self.onUpdate = onUpdate
-    self.onUnmark = onUnmark
-    self.onFinish = onFinish
-    self.onAdjustRest = onAdjustRest
-    self.onSkipRest = onSkipRest
-    _inputs = State(initialValue: session.setEntries)
   }
 
   var body: some View {
@@ -75,7 +33,7 @@ struct WorkoutRecordingScreen: View {
           ForEach(session.exercises, id: \.slotID) { exercise in
             exerciseRow(exercise)
             if exercise.slotID == restSlotID, let deadline = session.restDeadline {
-              RestCountdownView(deadline: deadline, onAdjust: onAdjustRest, onSkip: onSkipRest)
+              RestCountdownView(deadline: deadline, onAdjust: model.adjustWorkoutRest, onSkip: model.skipWorkoutRest)
                 .accessibilityValue("After \(exercise.name)")
                 .id("active-rest")
                 .onAppear {
@@ -86,7 +44,15 @@ struct WorkoutRecordingScreen: View {
                 }
             }
           }
-          Button("Finish workout") { showsFinishReview = true }
+          Button("Finish workout") {
+            Task {
+              _ = await model.applyWorkoutEdit(sessionID: session.id) {
+                focusedField = nil
+                showsFinishReview = true
+                return true
+              }
+            }
+          }
             .font(OneSetTypography.button)
             .foregroundStyle(Color.black)
             .frame(maxWidth: .infinity, minHeight: 52)
@@ -105,7 +71,7 @@ struct WorkoutRecordingScreen: View {
       .navigationTitle(session.workoutName)
       .navigationBarTitleDisplayMode(.inline)
       .alert("Discard this unfinished workout?", isPresented: $confirmsDiscard) {
-        Button("Discard workout", role: .destructive, action: onDiscard)
+        Button("Discard workout", role: .destructive, action: discard)
         Button("Keep workout", role: .cancel) {}
       } message: {
         Text("Your completed program progress will not change.")
@@ -116,12 +82,22 @@ struct WorkoutRecordingScreen: View {
           .presentationDragIndicator(.visible)
       }
       .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
-        Button("Discard workout", role: .destructive, action: onDiscard)
+        Button("Discard workout", role: .destructive, action: discard)
         Button("Keep recording", role: .cancel) {}
       } message: {
         Text("An empty workout cannot be saved as completed.")
       }
     }
+    .disabled(model.isApplyingWorkoutEdit)
+    .onDisappear {
+      Task { await model.flushWorkoutEdits(sessionID: session.id) }
+    }
+  }
+
+  private func discard() {
+    guard model.activeWorkoutSession?.id == session.id,
+          authentication.signedInUser?.id == session.accountID else { return }
+    model.discardActiveWorkout(accountID: session.accountID)
   }
 
   private var restSlotID: String? {
@@ -159,8 +135,17 @@ struct WorkoutRecordingScreen: View {
       .font(OneSetTypography.label)
       .tint(OneSetColors.accent)
       Button(completed == 0 ? "Discard empty workout" : "Save completed workout") {
-        if completed == 0 { confirmsEmptyDiscard = true }
-        else if onFinish(note) { showsFinishReview = false }
+        if completed == 0 {
+          confirmsEmptyDiscard = true
+        } else {
+          Task {
+            if await model.applyWorkoutEdit(sessionID: session.id, action: {
+              model.finishActiveWorkout(note: note, using: authentication)
+            }) {
+              showsFinishReview = false
+            }
+          }
+        }
       }
       .font(OneSetTypography.button)
       .foregroundStyle(Color.black)
@@ -180,7 +165,10 @@ struct WorkoutRecordingScreen: View {
   }
 
   private func exerciseRow(_ exercise: WorkoutSession.Exercise) -> some View {
-    let entry = inputs[exercise.slotID] ?? .init()
+    let slotID = exercise.slotID
+    let entry = session.setEntries[slotID] ?? .init()
+    let saveFailed = model.workoutDraftSaves.failures[slotID] != nil
+    let needsRetry = saveFailed || failedCompletions.contains(slotID)
     let isComplete = entry.completedAt != nil
     return VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
@@ -218,28 +206,16 @@ struct WorkoutRecordingScreen: View {
         input(title: "Reps", text: repsBinding(exercise.slotID),
               field: .init(slotID: exercise.slotID, name: .reps), keyboard: .numberPad)
         Button {
-          if failedSaves[exercise.slotID] != nil {
-            retrySave(for: exercise.slotID)
-            return
-          }
           if isComplete {
-            guard onUnmark(exercise.slotID) else { failedSaves[exercise.slotID] = .unmark; return }
-            var updated = inputs[exercise.slotID] ?? .init()
-            updated.completedAt = nil
-            inputs[exercise.slotID] = updated
-            failedSaves[exercise.slotID] = nil
-          } else if onComplete(exercise.slotID) {
-            var updated = inputs[exercise.slotID] ?? .init()
-            updated.completedAt = .now
-            inputs[exercise.slotID] = updated
-            failedSaves[exercise.slotID] = nil
-            focusedField = nil
+            if model.unmarkWorkoutSet(slotID: slotID), saveFailed {
+              Task { await model.flushWorkoutEdits(sessionID: session.id, slotID: slotID) }
+            }
           } else {
-            failedSaves[exercise.slotID] = .complete
+            complete(slotID)
           }
         } label: {
-          Label(failedSaves[exercise.slotID] == nil ? (isComplete ? "Undo" : "Complete") : "Retry",
-                systemImage: failedSaves[exercise.slotID] == nil ? (isComplete ? "arrow.uturn.backward" : "checkmark") : "arrow.clockwise")
+          Label(needsRetry && !isComplete ? "Retry" : (isComplete ? "Undo" : "Complete"),
+                systemImage: isComplete ? "arrow.uturn.backward" : (needsRetry ? "arrow.clockwise" : "checkmark"))
             .labelStyle(.iconOnly)
             .font(.system(size: 18, weight: .semibold))
             .frame(width: 48, height: 48)
@@ -249,14 +225,20 @@ struct WorkoutRecordingScreen: View {
         .accessibilityLabel(isComplete ? "Undo completion for \(exercise.name)" : "Complete set for \(exercise.name)")
         .accessibilityIdentifier("recording.set.toggle.\(exercise.slotID)")
       }
-      if failedSaves[exercise.slotID] != nil {
-        Button("Retry saving this set") { retrySave(for: exercise.slotID) }
+      if needsRetry {
+        Button("Retry saving this set") {
+          if failedCompletions.contains(slotID) {
+            complete(slotID)
+          } else {
+            Task { await model.flushWorkoutEdits(sessionID: session.id, slotID: slotID) }
+          }
+        }
           .font(OneSetTypography.label)
           .frame(minHeight: 44)
           .accessibilityIdentifier("recording.set.retry.\(exercise.slotID)")
       }
       previousPerformanceView(for: exercise)
-      if let guidance = exercise.progressionGuidance(for: entry.repsInput) {
+      if let guidance = exercise.progressionGuidance(for: input(for: slotID).reps) {
         Label(guidance, systemImage: "arrow.trend.up")
           .font(OneSetTypography.caption)
           .foregroundStyle(OneSetColors.textSecondary)
@@ -288,13 +270,13 @@ struct WorkoutRecordingScreen: View {
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier("recording.previous.\(exercise.slotID)")
     } else {
-      if previousPerformanceUnavailable {
+      if model.previousPerformanceUnavailable {
         VStack(alignment: .leading, spacing: 4) {
           Text("Previous result unavailable")
             .font(OneSetTypography.caption)
             .foregroundStyle(OneSetColors.textSecondary)
             .accessibilityIdentifier("recording.previous.unavailable.\(exercise.slotID)")
-          Button("Retry previous results", action: onRetryPreviousPerformance)
+          Button("Retry previous results", action: { Task { await model.retryPreviousPerformances(using: authentication) } })
             .font(OneSetTypography.caption)
         }
       } else {
@@ -320,48 +302,42 @@ struct WorkoutRecordingScreen: View {
     .frame(maxWidth: .infinity)
   }
 
+  private func input(for slotID: String) -> WorkoutDraftSaves.Input {
+    let current = model.activeWorkoutSession
+    let entry = current?.id == session.id ? current?.setEntries[slotID] : session.setEntries[slotID]
+    let draft = current?.id == session.id ? model.workoutDraftSaves.input(for: slotID) : nil
+    return draft ?? .init(weight: entry?.weightInput ?? "", reps: entry?.repsInput ?? "")
+  }
+
   private func weightBinding(_ slotID: String) -> Binding<String> {
-    Binding(get: { inputs[slotID]?.weightInput ?? "" }, set: { update(slotID, weight: $0) })
+    binding(slotID, keyPath: \.weight)
   }
 
   private func repsBinding(_ slotID: String) -> Binding<String> {
-    Binding(get: { inputs[slotID]?.repsInput ?? "" }, set: { update(slotID, reps: $0) })
+    binding(slotID, keyPath: \.reps)
   }
 
-  private func update(_ slotID: String, weight: String? = nil, reps: String? = nil) {
-    var entry = inputs[slotID] ?? .init()
-    if let weight { entry.weightInput = weight }
-    if let reps { entry.repsInput = reps }
-    inputs[slotID] = entry
-    let didSave = entry.completedAt == nil
-      ? onSaveDraft(slotID, entry.weightInput, entry.repsInput)
-      : onUpdate(slotID, entry.weightInput, entry.repsInput)
-    failedSaves[slotID] = didSave ? nil : (entry.completedAt == nil ? .draft : .update)
-  }
-
-  private func retrySave(for slotID: String) {
-    guard let entry = inputs[slotID], let failure = failedSaves[slotID] else { return }
-    let didSave: Bool
-    switch failure {
-    case .draft:
-      didSave = onSaveDraft(slotID, entry.weightInput, entry.repsInput)
-    case .complete:
-      didSave = onComplete(slotID)
-    case .update:
-      didSave = onUpdate(slotID, entry.weightInput, entry.repsInput)
-    case .unmark:
-      didSave = onUnmark(slotID)
+  private func binding(_ slotID: String, keyPath: WritableKeyPath<WorkoutDraftSaves.Input, String>) -> Binding<String> {
+    Binding {
+      input(for: slotID)[keyPath: keyPath]
+    } set: { value in
+      var edit = input(for: slotID)
+      guard edit[keyPath: keyPath] != value else { return }
+      edit[keyPath: keyPath] = value
+      model.scheduleWorkoutEdit(sessionID: session.id, slotID: slotID, input: edit)
     }
-    if didSave {
-      failedSaves[slotID] = nil
-      if failure == .complete {
-        var updated = entry
-        updated.completedAt = .now
-        inputs[slotID] = updated
-      } else if failure == .unmark {
-        var updated = entry
-        updated.completedAt = nil
-        inputs[slotID] = updated
+  }
+
+  private func complete(_ slotID: String) {
+    Task {
+      let saved = await model.applyWorkoutEdit(sessionID: session.id, slotID: slotID) {
+        model.completeWorkoutSet(slotID: slotID)
+      }
+      if saved {
+        failedCompletions.remove(slotID)
+        focusedField = nil
+      } else {
+        failedCompletions.insert(slotID)
       }
     }
   }

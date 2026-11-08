@@ -79,7 +79,16 @@ final class OnboardingModel {
   private let sessionHistoryService: (any SessionHistoryService)?
   private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
   private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
-  private(set) var activeWorkoutSession: WorkoutSession?
+  private(set) var activeWorkoutSession: WorkoutSession? {
+    didSet {
+      if oldValue?.id != activeWorkoutSession?.id {
+        workoutDraftSaves.cancel()
+        workoutDraftSaves = WorkoutDraftSaves()
+      }
+    }
+  }
+  private(set) var workoutDraftSaves = WorkoutDraftSaves()
+  private(set) var isApplyingWorkoutEdit = false
   var workoutErrorPresented = false
   private(set) var workoutErrorMessage = ""
   var sessionUploadErrorPresented = false
@@ -1270,17 +1279,47 @@ final class OnboardingModel {
     }
   }
 
-  func saveWorkoutDraft(slotID: String, weightInput: String, repsInput: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.saveDraft(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID,
-        weightInput: weightInput, repsInput: repsInput
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
+  func scheduleWorkoutEdit(sessionID: UUID, slotID: String, input: WorkoutDraftSaves.Input) {
+    guard !isApplyingWorkoutEdit, let save = workoutDraftWriter(sessionID: sessionID) else { return }
+    workoutDraftSaves.schedule(input, for: slotID, save: save)
+  }
+
+  @discardableResult
+  func flushWorkoutEdits(sessionID: UUID, slotID: String? = nil) async -> Bool {
+    guard let save = workoutDraftWriter(sessionID: sessionID) else { return false }
+    let saved = await workoutDraftSaves.flush(slotID: slotID, save: save)
+    return saved && activeWorkoutSession?.id == sessionID
+  }
+
+  func applyWorkoutEdit(sessionID: UUID, slotID: String? = nil, action: () -> Bool) async -> Bool {
+    guard !isApplyingWorkoutEdit else { return false }
+    isApplyingWorkoutEdit = true
+    defer { isApplyingWorkoutEdit = false }
+    guard await flushWorkoutEdits(sessionID: sessionID, slotID: slotID) else {
+      let failures = workoutDraftSaves.failures
+      if activeWorkoutSession?.id == sessionID,
+         let message = slotID.flatMap({ failures[$0] }) ?? failures.values.first {
+        workoutErrorMessage = message
+        workoutErrorPresented = true
+      }
       return false
+    }
+    return action()
+  }
+
+  private func workoutDraftWriter(sessionID: UUID) -> WorkoutDraftSaves.Save? {
+    guard let session = activeWorkoutSession, session.id == sessionID, let workoutRepository else { return nil }
+    let accountID = session.accountID
+    return { [weak self] slotID, input in
+      try await workoutRepository.saveRecordingInput(sessionID: sessionID, accountID: accountID, slotID: slotID,
+                                                     weightInput: input.weight, repsInput: input.reps)
+      guard let self, var current = activeWorkoutSession, current.id == sessionID else { return }
+      // Keep completion and rest changes made while the write was in flight.
+      var entry = current.setEntries[slotID] ?? .init()
+      entry.weightInput = input.weight
+      entry.repsInput = input.reps
+      current.setEntries[slotID] = entry
+      activeWorkoutSession = current
     }
   }
 
@@ -1290,20 +1329,6 @@ final class OnboardingModel {
       let restSeconds = session.exercises.first(where: { $0.slotID == slotID })?.restSeconds
       activeWorkoutSession = try workoutRepository.completeSet(
         sessionID: session.id, accountID: session.accountID, slotID: slotID, restSeconds: restSeconds
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func updateWorkoutSet(slotID: String, weightInput: String, repsInput: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.updateSet(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID,
-        weightInput: weightInput, repsInput: repsInput
       )
       return true
     } catch {

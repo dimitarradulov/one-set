@@ -280,7 +280,9 @@ struct CompletedSessionUploadTests {
     )
     let activeSession = try #require(model.activeWorkoutSession)
     let activeExercise = try #require(activeSession.exercises.first)
-    #expect(model.saveWorkoutDraft(slotID: activeExercise.slotID, weightInput: "55", repsInput: "8"))
+    model.scheduleWorkoutEdit(sessionID: activeSession.id, slotID: activeExercise.slotID,
+                              input: .init(weight: "55", reps: "8"))
+    #expect(await model.flushWorkoutEdits(sessionID: activeSession.id))
     #expect(model.completeWorkoutSet(slotID: activeExercise.slotID))
 
     await model.uploadCompletedSetup(using: authentication)
@@ -908,11 +910,16 @@ struct CompletedSessionUploadTests {
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
     model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
-    #expect(model.saveWorkoutDraft(slotID: slot.id, weightInput: "72.5", repsInput: "10"))
-    #expect(model.completeWorkoutSet(slotID: slot.id))
     let sessionID = try #require(model.activeWorkoutSession?.id)
+    model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "72.5", reps: "10"))
+    #expect(await model.applyWorkoutEdit(sessionID: sessionID, slotID: slot.id) {
+      model.completeWorkoutSet(slotID: slot.id)
+    })
 
-    #expect(model.finishActiveWorkout(note: "Felt strong", using: authentication))
+    model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "75", reps: "10"))
+    #expect(await model.applyWorkoutEdit(sessionID: sessionID) {
+      model.finishActiveWorkout(note: "Felt strong", using: authentication)
+    })
     for _ in 0..<100 where service.uploads.isEmpty { await Task.yield() }
     for _ in 0..<100 where !(try repository.pendingSessionUploads(accountID: "preview-user").isEmpty) {
       await Task.yield()
@@ -921,6 +928,9 @@ struct CompletedSessionUploadTests {
     let uploaded = try #require(service.uploads.first)
     #expect(uploaded.sessionID == sessionID)
     #expect(uploaded.accountID == "preview-user")
+    let finished = try #require(repository.completedSessions(accountID: "preview-user").first)
+    #expect(finished.setEntries[slot.id]?.weightInput == "75")
+    #expect(finished.setEntries[slot.id]?.repsInput == "10")
     #expect(try repository.pendingSessionUploads(accountID: "preview-user").isEmpty)
     #expect(model.workoutErrorPresented == false)
   }
@@ -947,9 +957,11 @@ struct CompletedSessionUploadTests {
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
     model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
-    #expect(model.saveWorkoutDraft(slotID: slot.id, weightInput: "0", repsInput: "8"))
-    #expect(model.completeWorkoutSet(slotID: slot.id))
     let sessionID = try #require(model.activeWorkoutSession?.id)
+    model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "0", reps: "8"))
+    #expect(await model.applyWorkoutEdit(sessionID: sessionID, slotID: slot.id) {
+      model.completeWorkoutSet(slotID: slot.id)
+    })
 
     #expect(model.finishActiveWorkout(note: nil, using: authentication))
     for _ in 0..<100 where service.uploads.isEmpty { await Task.yield() }
@@ -983,7 +995,8 @@ struct CompletedSessionUploadTests {
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
     model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
-    #expect(model.saveWorkoutDraft(slotID: slot.id, weightInput: "70", repsInput: "8"))
+    let sessionID = try #require(model.activeWorkoutSession?.id)
+    model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "70", reps: "8"))
     #expect(!model.finishActiveWorkout(note: nil, using: authentication))
     #expect(service.uploads.isEmpty)
     #expect(model.activeWorkoutSession != nil)

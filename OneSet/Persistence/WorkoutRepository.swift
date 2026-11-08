@@ -753,6 +753,20 @@ final class WorkoutRepository {
     }
   }
 
+  @concurrent
+  func saveRecordingInput(sessionID: UUID, accountID: String, slotID: String,
+                          weightInput: String, repsInput: String) async throws {
+    _ = try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
+      var entry = session.setEntries[slotID] ?? .init()
+      if entry.completedAt != nil {
+        try Self.validateSetInput(weightInput: weightInput, repsInput: repsInput)
+      }
+      entry.weightInput = weightInput
+      entry.repsInput = repsInput
+      session.setEntries[slotID] = entry
+    }
+  }
+
   @discardableResult
   func completeSet(sessionID: UUID, accountID: String, slotID: String,
                    restSeconds: Int? = nil,
@@ -762,11 +776,7 @@ final class WorkoutRepository {
         throw WorkoutRepositoryError.sessionNotFound
       }
       var entry = session.setEntries[slotID] ?? .init()
-      guard let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-            weight.isFinite, weight >= 0 else { throw WorkoutRepositoryError.invalidWeight }
-      guard let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else {
-        throw WorkoutRepositoryError.invalidReps
-      }
+      try Self.validateSetInput(weightInput: entry.weightInput, repsInput: entry.repsInput)
       // Retrying a completion is idempotent and does not create another completion event.
       guard entry.completedAt == nil else { return }
       entry.completedAt = date
@@ -782,11 +792,7 @@ final class WorkoutRepository {
       guard var entry = session.setEntries[slotID], entry.completedAt != nil else {
         throw WorkoutRepositoryError.sessionNotFound
       }
-      guard let weight = Double(weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-            weight.isFinite, weight >= 0 else { throw WorkoutRepositoryError.invalidWeight }
-      guard let reps = Int(repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else {
-        throw WorkoutRepositoryError.invalidReps
-      }
+      try Self.validateSetInput(weightInput: weightInput, repsInput: repsInput)
       entry.weightInput = weightInput
       entry.repsInput = repsInput
       session.setEntries[slotID] = entry
@@ -822,7 +828,15 @@ final class WorkoutRepository {
     }
   }
 
-  private func updateActiveSession(
+  private nonisolated static func validateSetInput(weightInput: String, repsInput: String) throws {
+    guard let weight = Double(weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
+          weight.isFinite, weight >= 0 else { throw WorkoutRepositoryError.invalidWeight }
+    guard let reps = Int(repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else {
+      throw WorkoutRepositoryError.invalidReps
+    }
+  }
+
+  private nonisolated func updateActiveSession(
     sessionID: UUID, accountID: String,
     change: (inout WorkoutSession) throws -> Void
   ) throws -> WorkoutSession {

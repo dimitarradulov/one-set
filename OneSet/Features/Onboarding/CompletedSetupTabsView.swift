@@ -181,25 +181,8 @@ struct CompletedSetupTabsView: View {
     case .workoutRecording(let sessionID):
       if let session = model.activeWorkoutSession, session.id == sessionID,
          let accountID = authentication.signedInUser?.id {
-        WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session),
-          previousPerformanceUnavailable: model.previousPerformanceUnavailable,
-          onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {
-          model.discardActiveWorkout(accountID: accountID)
-        } onSaveDraft: { slotID, weight, reps in
-          model.saveWorkoutDraft(slotID: slotID, weightInput: weight, repsInput: reps)
-        } onComplete: { slotID in
-          model.completeWorkoutSet(slotID: slotID)
-        } onUpdate: { slotID, weight, reps in
-          model.updateWorkoutSet(slotID: slotID, weightInput: weight, repsInput: reps)
-        } onUnmark: { slotID in
-          model.unmarkWorkoutSet(slotID: slotID)
-        } onAdjustRest: { seconds in
-          model.adjustWorkoutRest(by: seconds)
-        } onSkipRest: {
-          model.skipWorkoutRest()
-        } onFinish: { note in
-          model.finishActiveWorkout(note: note, using: authentication)
-        }
+        WorkoutRecordingScreen(session: session, model: model, authentication: authentication,
+          previousPerformances: model.previousPerformances(for: session))
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
