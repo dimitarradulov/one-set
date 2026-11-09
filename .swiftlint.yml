@@ -21,7 +21,6 @@ opt_in_rules:
   - orphaned_doc_comment
   - prefer_zero_over_explicit_init
   - toggle_bool
-  - unused_capture_list
   - vertical_whitespace_closing_braces
   - vertical_whitespace_opening_braces
   - weak_delegate

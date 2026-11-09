@@ -1,6 +1,19 @@
 #if DEBUG
 import Foundation
 
+enum PreviewCycleID {
+  static let current = fixed("11111111-1111-4111-8111-111111111111")
+  static let previous = fixed("22222222-2222-4222-8222-222222222222")
+  static let pendingSignOut = fixed("33333333-3333-4333-8333-333333333333")
+
+  private static func fixed(_ value: String) -> UUID {
+    guard let id = UUID(uuidString: value) else {
+      preconditionFailure("Invalid preview cycle ID: \(value)")
+    }
+    return id
+  }
+}
+
 @MainActor
 final class PreviewAccountSetupService: AccountSetupService {
   private var uploadFailsOnce: Bool
@@ -64,7 +77,7 @@ final class PreviewAccountSetupService: AccountSetupService {
     return AccountSetup(
       preferredUnit: .pounds, trainingDays: 5,
       programID: invalidProgram ? "unavailable" : "machine-full-body",
-      cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+      cycleID: PreviewCycleID.current
     )
   }
   func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup {
@@ -80,7 +93,7 @@ final class PreviewAccountSetupService: AccountSetupService {
     if establishedCycleConflict {
       return AccountSetup(
         preferredUnit: .pounds, trainingDays: 5, programID: "machine-full-body",
-        cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        cycleID: PreviewCycleID.current
       )
     }
     guard let backendURL else { return setup }

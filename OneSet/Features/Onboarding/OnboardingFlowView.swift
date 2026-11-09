@@ -154,7 +154,9 @@ struct OnboardingFlowView: View {
     #endif
     return screen
   }
+}
 
+extension OnboardingFlowView {
   private var journey: some View {
     NavigationStack(path: $model.path) {
       welcomeScreen

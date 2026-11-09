@@ -131,26 +131,7 @@ struct CompletedSetupTabsView: View {
         .navigationTitle("Programs")
         .navigationBarTitleDisplayMode(.inline)
     case .programDetail(let programID):
-      if let program = model.program(id: programID), program.isOffered {
-        ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
-          onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, previouslyFollowed: hasFollowedProgram(programID), onPreviewWorkout: { workout in
-            model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
-          })
-          .navigationTitle(program.name)
-          .navigationBarTitleDisplayMode(.inline)
-          .alert("Program switch", isPresented: Binding(
-            get: { model.cycleMessage != nil },
-            set: { if !$0 { model.clearCycleMessage() } }
-          )) {
-            Button("Retry") { Task {
-              await model.refreshCycleKnowledge(using: authentication)
-              model.switchToProgram(programID, using: authentication)
-            } }
-            Button("OK", role: .cancel) { model.clearCycleMessage() }
-          } message: { Text(model.cycleMessage ?? "") }
-      } else {
-        ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
-      }
+      programDetailDestination(programID)
     case .switchingWorkoutPreview(let programID, let workoutID):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
@@ -161,6 +142,14 @@ struct CompletedSetupTabsView: View {
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
+    default:
+      workoutDestination(for: route)
+    }
+  }
+
+  @ViewBuilder
+  private func workoutDestination(for route: OnboardingRoute) -> some View {
+    switch route {
     case .workoutPreview(let programID, let workoutID):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
@@ -206,6 +195,30 @@ struct CompletedSetupTabsView: View {
       }
     default:
       ContentUnavailableView("Page unavailable", systemImage: "dumbbell")
+    }
+  }
+
+  @ViewBuilder
+  private func programDetailDestination(_ programID: String) -> some View {
+    if let program = model.program(id: programID), program.isOffered {
+      ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
+        onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, previouslyFollowed: hasFollowedProgram(programID), onPreviewWorkout: { workout in
+          model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
+        })
+        .navigationTitle(program.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Program switch", isPresented: Binding(
+          get: { model.cycleMessage != nil },
+          set: { if !$0 { model.clearCycleMessage() } }
+        )) {
+          Button("Retry") { Task {
+            await model.refreshCycleKnowledge(using: authentication)
+            model.switchToProgram(programID, using: authentication)
+          } }
+          Button("OK", role: .cancel) { model.clearCycleMessage() }
+        } message: { Text(model.cycleMessage ?? "") }
+    } else {
+      ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
     }
   }
 }

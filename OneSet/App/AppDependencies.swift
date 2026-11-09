@@ -107,14 +107,14 @@ struct AppDependencies {
       progress.completed = CompletedOnboarding(setup: AccountSetup(
         preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
         cycleID: setupCycleConflictPreview
-          ? UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+          ? PreviewCycleID.previous
           : UUID()
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
     }
     if programChangePreview {
       let old = AccountSetup(preferredUnit: .pounds, trainingDays: 3, programID: "bro-split",
-        cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!)
+        cycleID: PreviewCycleID.previous)
       var saved = OnboardingProgress(weightUnit: .pounds, trainingDays: 3, selectedProgramID: old.programID, nextStep: .overview)
       saved.completed = CompletedOnboarding(setup: old, needsUpload: false)
       try? fileStore.save(saved, accountID: "preview-user")
@@ -124,7 +124,7 @@ struct AppDependencies {
                                         selectedProgramID: "machine-full-body", nextStep: .overview)
       progress.completed = CompletedOnboarding(setup: AccountSetup(
         preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
-        cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        cycleID: PreviewCycleID.pendingSignOut
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
     }
@@ -225,21 +225,21 @@ struct AppDependencies {
           if arguments.contains("--ui-program-change-active"),
              let program = ProgramCatalog.bundled.program(id: "bro-split"), let workout = program.workouts.first {
             let session = WorkoutSession(accountID: "preview-user",
-              cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+              cycleID: PreviewCycleID.previous,
               program: program, workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: .now)
             _ = try repository.start(session)
           }
           if sessionSignOutPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
-              cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+              cycleID: PreviewCycleID.pendingSignOut,
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
           if setupCycleConflictPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
-              cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+              cycleID: PreviewCycleID.previous,
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
@@ -355,7 +355,7 @@ struct AppDependencies {
     let program = ProgramCatalog.bundled.program(id: "machine-full-body")!
     let workout = program.workouts.first(where: { $0.id == workoutID }) ?? program.workouts[0]
     var session = WorkoutSession(
-      accountID: "preview-user", cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+      accountID: "preview-user", cycleID: PreviewCycleID.current,
       program: program, workout: workout, week: 2, day: day,
       weightUnit: .kilograms, startedAt: startedAt, id: id
     )
@@ -419,7 +419,7 @@ private final class PreviewSwitchSyncService: AccountCycleService, CompletedSess
     if !online { throw AccountCycleError.unavailable }
   }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
-    let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+    let current = PreviewCycleID.current
     return AccountCycles(cycles: [AccountCycle(cycleID: current, programID: "machine-full-body",
       startedAt: "2026-01-01T00:00:00Z")], selectedCycleID: current)
   }
@@ -438,8 +438,8 @@ private final class PreviewSwitchSyncService: AccountCycleService, CompletedSess
 #if DEBUG
 @MainActor
 private struct PreviewRestoredCycles: AccountCycleService {
-  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  private let current = PreviewCycleID.current
+  private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     AccountCycles(cycles: [
       AccountCycle(cycleID: current, programID: "machine-full-body", startedAt: "2026-02-01T00:00:00Z"),
@@ -452,8 +452,8 @@ private struct PreviewRestoredCycles: AccountCycleService {
 
 @MainActor
 private struct PreviewRestoredProgress: AccountProgressService {
-  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  private let current = PreviewCycleID.current
+  private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {
     try await lookup(cycleID: current, for: user)
   }

@@ -325,7 +325,11 @@ final class WorkoutRepository {
       return session
     }
   }
+}
 
+// MARK: - Completed session uploads
+
+extension WorkoutRepository {
   /// Keeps uploads for a locally-created cycle blocked after setup resolves to another cycle.
   /// The block and existing queue state commit together so relaunch cannot send the wrong cycle.
   @discardableResult
@@ -526,7 +530,11 @@ final class WorkoutRepository {
         """, arguments: [reason.rawValue, sessionID.uuidString, accountID])
     }
   }
+}
 
+// MARK: - History and restored progress
+
+extension WorkoutRepository {
   func completedOccurrenceIDs(accountID: String, cycleID: UUID, week: Int) throws -> Set<String> {
     try database.read { db in
       let local = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_sessions WHERE account_id = ? AND cycle_id = ? AND week = ? AND finished_at IS NOT NULL", arguments: [accountID, cycleID.uuidString, week])
@@ -741,7 +749,11 @@ final class WorkoutRepository {
         """, arguments: [accountID, payload, date.timeIntervalSince1970])
     }
   }
+}
 
+// MARK: - Active session edits
+
+extension WorkoutRepository {
   @discardableResult
   func saveDraft(sessionID: UUID, accountID: String, slotID: String,
                  weightInput: String, repsInput: String) throws -> WorkoutSession {

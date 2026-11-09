@@ -1,36 +1,6 @@
 [
   {
     "violation": {
-      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 346 lines",
-      "location": {
-        "character": 1,
-        "line": 4,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Type Body Length"
-    },
-    "text": "struct AppDependencies {"
-  },
-  {
-    "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 15",
-      "location": {
-        "character": 3,
-        "line": 44,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "cyclomatic_complexity",
-      "ruleDescription": "Complexity of function bodies should be limited.",
-      "severity": "warning",
-      "ruleName": "Cyclomatic Complexity"
-    },
-    "text": "  static func live("
-  },
-  {
-    "violation": {
       "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 232 lines",
       "location": {
         "character": 10,
@@ -43,66 +13,6 @@
       "ruleName": "Function Body Length"
     },
     "text": "  static func live("
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 69,
-        "line": 108,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "          ? UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 74,
-        "line": 118,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "        cycleID: UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 80,
-        "line": 219,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "              cycleID: UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!,"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 80,
-        "line": 226,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "              cycleID: UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!,"
   },
   {
     "violation": {
@@ -208,96 +118,6 @@
       "ruleName": "Force Unwrapping"
     },
     "text": "    let program = ProgramCatalog.bundled.program(id: \"machine-full-body\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 99,
-        "line": 342,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      accountID: \"preview-user\", cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!,"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 75,
-        "line": 406,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "    let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 81,
-        "line": 425,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "  private let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 82,
-        "line": 426,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "  private let previous = UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 81,
-        "line": 439,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "  private let current = UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 82,
-        "line": 440,
-        "file": "OneSet/App/AppDependencies.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "  private let previous = UUID(uuidString: \"22222222-2222-4222-8222-222222222222\")!"
   },
   {
     "violation": {
@@ -586,81 +406,6 @@
   },
   {
     "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 16",
-      "location": {
-        "character": 11,
-        "line": 123,
-        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
-      },
-      "ruleIdentifier": "cyclomatic_complexity",
-      "ruleDescription": "Complexity of function bodies should be limited.",
-      "severity": "warning",
-      "ruleName": "Cyclomatic Complexity"
-    },
-    "text": "  private func programDestination(for route: OnboardingRoute) -> some View {"
-  },
-  {
-    "violation": {
-      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 100 lines",
-      "location": {
-        "character": 11,
-        "line": 123,
-        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
-      },
-      "ruleIdentifier": "function_body_length",
-      "ruleDescription": "Function bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Function Body Length"
-    },
-    "text": "  private func programDestination(for route: OnboardingRoute) -> some View {"
-  },
-  {
-    "violation": {
-      "reason": "Trailing closure syntax should not be used when passing more than one closure argument",
-      "location": {
-        "character": 114,
-        "line": 183,
-        "file": "OneSet/Features/Onboarding/CompletedSetupTabsView.swift"
-      },
-      "ruleIdentifier": "multiple_closures_with_trailing_closure",
-      "ruleDescription": "Trailing closure syntax should not be used when passing more than one closure argument",
-      "severity": "warning",
-      "ruleName": "Multiple Closures with Trailing Closure"
-    },
-    "text": "          onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {"
-  },
-  {
-    "violation": {
-      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 325 lines",
-      "location": {
-        "character": 1,
-        "line": 3,
-        "file": "OneSet/Features/Onboarding/OnboardingFlowView.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Type Body Length"
-    },
-    "text": "struct OnboardingFlowView: View {"
-  },
-  {
-    "violation": {
-      "reason": "Trailing closure syntax should not be used when passing more than one closure argument",
-      "location": {
-        "character": 120,
-        "line": 274,
-        "file": "OneSet/Features/Onboarding/OnboardingFlowView.swift"
-      },
-      "ruleIdentifier": "multiple_closures_with_trailing_closure",
-      "ruleDescription": "Trailing closure syntax should not be used when passing more than one closure argument",
-      "severity": "warning",
-      "ruleName": "Multiple Closures with Trailing Closure"
-    },
-    "text": "                onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {"
-  },
-  {
-    "violation": {
       "reason": "Don't include vertical whitespace (empty line) before closing braces",
       "location": {
         "character": 1,
@@ -673,21 +418,6 @@
       "ruleName": "Vertical Whitespace before Closing Braces"
     },
     "text": ""
-  },
-  {
-    "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1439 lines",
-      "location": {
-        "character": 7,
-        "line": 6,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "error",
-      "ruleName": "Type Body Length"
-    },
-    "text": "final class OnboardingModel {"
   },
   {
     "violation": {
@@ -718,81 +448,6 @@
       "ruleName": "Function Body Length"
     },
     "text": "  func signOut("
-  },
-  {
-    "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 12",
-      "location": {
-        "character": 3,
-        "line": 521,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "cyclomatic_complexity",
-      "ruleDescription": "Complexity of function bodies should be limited.",
-      "severity": "warning",
-      "ruleName": "Cyclomatic Complexity"
-    },
-    "text": "  func refreshCycleKnowledge(using authentication: AuthenticationModel) async {"
-  },
-  {
-    "violation": {
-      "reason": "Function should have complexity 10 or less; currently complexity is 12",
-      "location": {
-        "character": 3,
-        "line": 573,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "cyclomatic_complexity",
-      "ruleDescription": "Complexity of function bodies should be limited.",
-      "severity": "warning",
-      "ruleName": "Cyclomatic Complexity"
-    },
-    "text": "  func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {"
-  },
-  {
-    "violation": {
-      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 65 lines",
-      "location": {
-        "character": 3,
-        "line": 573,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "function_body_length",
-      "ruleDescription": "Function bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Function Body Length"
-    },
-    "text": "  func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 923,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)"
-  },
-  {
-    "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1532",
-      "location": {
-        "character": 1,
-        "line": 1532,
-        "file": "OneSet/Features/Onboarding/OnboardingModel.swift"
-      },
-      "ruleIdentifier": "file_length",
-      "ruleDescription": "Files should not span too many lines.",
-      "severity": "error",
-      "ruleName": "File Length"
-    },
-    "text": "}"
   },
   {
     "violation": {
@@ -1005,21 +660,6 @@
   },
   {
     "violation": {
-      "reason": "Struct body should span 300 lines or less excluding comments and whitespace: currently spans 349 lines",
-      "location": {
-        "character": 1,
-        "line": 3,
-        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Type Body Length"
-    },
-    "text": "struct WorkoutRecordingScreen: View {"
-  },
-  {
-    "violation": {
       "reason": "Types should be nested at most 1 level deep",
       "location": {
         "character": 5,
@@ -1032,51 +672,6 @@
       "ruleName": "Nesting"
     },
     "text": "    enum Name { case weight, reps }"
-  },
-  {
-    "violation": {
-      "reason": "Else and catch should be on the same line, one space after the previous declaration",
-      "location": {
-        "character": 57,
-        "line": 162,
-        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
-      },
-      "ruleIdentifier": "statement_position",
-      "ruleDescription": "Else and catch should be on the same line, one space after the previous declaration",
-      "severity": "warning",
-      "ruleName": "Statement Position"
-    },
-    "text": "        if completed == 0 { confirmsEmptyDiscard = true }"
-  },
-  {
-    "violation": {
-      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 86 lines",
-      "location": {
-        "character": 11,
-        "line": 182,
-        "file": "OneSet/Features/Programs/WorkoutRecordingScreen.swift"
-      },
-      "ruleIdentifier": "function_body_length",
-      "ruleDescription": "Function bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Function Body Length"
-    },
-    "text": "  private func exerciseRow(_ exercise: WorkoutSession.Exercise) -> some View {"
-  },
-  {
-    "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 759 lines",
-      "location": {
-        "character": 7,
-        "line": 29,
-        "file": "OneSet/Persistence/WorkoutRepository.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "error",
-      "ruleName": "Type Body Length"
-    },
-    "text": "final class WorkoutRepository {"
   },
   {
     "violation": {
@@ -1860,21 +1455,6 @@
   },
   {
     "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 61,
-        "file": "OneSet/Services/Account/PreviewAccountSetupService.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"11111111-1111-4111-8111-111111111111\")!"
-  },
-  {
-    "violation": {
       "reason": "Don't include vertical whitespace (empty line) before closing braces",
       "location": {
         "character": 1,
@@ -2130,21 +1710,6 @@
   },
   {
     "violation": {
-      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 1216 lines",
-      "location": {
-        "character": 1,
-        "line": 6,
-        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "error",
-      "ruleName": "Type Body Length"
-    },
-    "text": "struct ProgramCatalogOnboardingTests {"
-  },
-  {
-    "violation": {
       "reason": "Force unwrapping should be avoided",
       "location": {
         "character": 72,
@@ -2190,21 +1755,6 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1622",
-      "location": {
-        "character": 1,
-        "line": 1622,
-        "file": "OneSetTests/Features/Catalog/ProgramCatalogOnboardingTests.swift"
-      },
-      "ruleIdentifier": "file_length",
-      "ruleDescription": "Files should not span too many lines.",
-      "severity": "error",
-      "ruleName": "File Length"
-    },
-    "text": "}"
-  },
-  {
-    "violation": {
       "reason": "Collection literals should not have trailing commas",
       "location": {
         "character": 55,
@@ -2235,21 +1785,6 @@
   },
   {
     "violation": {
-      "reason": "Struct body should span 500 lines or less excluding comments and whitespace: currently spans 913 lines",
-      "location": {
-        "character": 1,
-        "line": 6,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "type_body_length",
-      "ruleDescription": "Type bodies should not span too many lines",
-      "severity": "error",
-      "ruleName": "Type Body Length"
-    },
-    "text": "struct CompletedSessionUploadTests {"
-  },
-  {
-    "violation": {
       "reason": "Force unwrapping should be avoided",
       "location": {
         "character": 72,
@@ -2277,126 +1812,6 @@
       "ruleName": "Force Unwrapping"
     },
     "text": "      cycleID: UUID(uuidString: \"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\")!"
-  },
-  {
-    "violation": {
-      "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 86 lines",
-      "location": {
-        "character": 3,
-        "line": 233,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "function_body_length",
-      "ruleDescription": "Function bodies should not span too many lines",
-      "severity": "warning",
-      "ruleName": "Function Body Length"
-    },
-    "text": "  func establishedCycleConflictRetainsOnlyItsSessionsAndSurvivesRestart() async throws {"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 240,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 245,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"cccccccc-cccc-4ccc-8ccc-cccccccccccc\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 333,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"dddddddd-dddd-4ddd-8ddd-dddddddddddd\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 401,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"ffffffff-ffff-4fff-8fff-ffffffffffff\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 437,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"abababab-abab-4bab-8bab-abababababab\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 456,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd\")!"
-  },
-  {
-    "violation": {
-      "reason": "Force unwrapping should be avoided",
-      "location": {
-        "character": 72,
-        "line": 481,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "force_unwrapping",
-      "ruleDescription": "Force unwrapping should be avoided",
-      "severity": "warning",
-      "ruleName": "Force Unwrapping"
-    },
-    "text": "      cycleID: UUID(uuidString: \"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\")!"
   },
   {
     "violation": {
@@ -2562,21 +1977,6 @@
       "ruleName": "Force Unwrapping"
     },
     "text": "    let cycleID = UUID(uuidString: \"33333333-3333-4333-8333-333333333333\")!"
-  },
-  {
-    "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1209",
-      "location": {
-        "character": 1,
-        "line": 1209,
-        "file": "OneSetTests/Features/Workouts/CompletedSessionUploadTests.swift"
-      },
-      "ruleIdentifier": "file_length",
-      "ruleDescription": "Files should not span too many lines.",
-      "severity": "error",
-      "ruleName": "File Length"
-    },
-    "text": "}"
   },
   {
     "violation": {

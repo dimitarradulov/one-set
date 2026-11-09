@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ProgramOverviewScreen: View {
   let program: TrainingProgram
-  var updateMessage: String? = nil
-  var onUpdate: (() -> Void)? = nil
+  var updateMessage: String?
+  var onUpdate: (() -> Void)?
   var uploadMessage: String? = nil
   var onRetryUpload: (() -> Void)? = nil
   var preferencesSummary: String? = nil

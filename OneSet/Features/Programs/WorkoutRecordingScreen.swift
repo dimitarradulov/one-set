@@ -158,35 +158,7 @@ struct WorkoutRecordingScreen: View {
     let needsRetry = saveFailed || failedCompletions.contains(slotID)
     let isComplete = entry.completedAt != nil
     return VStack(alignment: .leading, spacing: 12) {
-      NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
-        HStack(alignment: .top, spacing: 12) {
-          Text(String(format: "%02d", exercise.order + 1))
-            .font(OneSetTypography.caption)
-            .foregroundStyle(OneSetColors.textSecondary)
-          VStack(alignment: .leading, spacing: 4) {
-            Text(exercise.name).font(OneSetTypography.bodyStrong).foregroundStyle(OneSetColors.textPrimary)
-            Text("Target: \(exercise.repTarget.label)")
-              .font(OneSetTypography.label).foregroundStyle(OneSetColors.textSecondary)
-          }
-          Spacer()
-          if isComplete {
-            Label("Set complete", systemImage: "checkmark.circle.fill")
-              .font(OneSetTypography.caption)
-              .foregroundStyle(OneSetColors.accent)
-              .accessibilityIdentifier("recording.set.complete.\(exercise.slotID)")
-          }
-          Image(systemName: "chevron.right")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(OneSetColors.textSecondary)
-            .accessibilityHidden(true)
-        }
-        .frame(minHeight: 44)
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-      .accessibilityHint("Opens exercise instructions, video, and warm-up guidance.")
-      .accessibilityIdentifier("recording.exercise.\(exercise.slotID).open")
+      exerciseLink(exercise, isComplete: isComplete)
       HStack(spacing: 10) {
         input(title: "Weight (\(session.weightUnit.rawValue))", text: weightBinding(exercise.slotID),
               field: .init(slotID: exercise.slotID, name: .weight), keyboard: .decimalPad)
@@ -235,6 +207,40 @@ struct WorkoutRecordingScreen: View {
     }
     .padding(.vertical, 14)
     .overlay(alignment: .bottom) { Rectangle().fill(OneSetColors.border).frame(height: 1) }
+  }
+}
+
+extension WorkoutRecordingScreen {
+  private func exerciseLink(_ exercise: WorkoutSession.Exercise, isComplete: Bool) -> some View {
+    NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
+      HStack(alignment: .top, spacing: 12) {
+        Text(String(format: "%02d", exercise.order + 1))
+          .font(OneSetTypography.caption)
+          .foregroundStyle(OneSetColors.textSecondary)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(exercise.name).font(OneSetTypography.bodyStrong).foregroundStyle(OneSetColors.textPrimary)
+          Text("Target: \(exercise.repTarget.label)")
+            .font(OneSetTypography.label).foregroundStyle(OneSetColors.textSecondary)
+        }
+        Spacer()
+        if isComplete {
+          Label("Set complete", systemImage: "checkmark.circle.fill")
+            .font(OneSetTypography.caption)
+            .foregroundStyle(OneSetColors.accent)
+            .accessibilityIdentifier("recording.set.complete.\(exercise.slotID)")
+        }
+        Image(systemName: "chevron.right")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityHidden(true)
+      }
+      .frame(minHeight: 44)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+    .accessibilityHint("Opens exercise instructions, video, and warm-up guidance.")
+    .accessibilityIdentifier("recording.exercise.\(exercise.slotID).open")
   }
 
   @ViewBuilder
