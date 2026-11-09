@@ -257,7 +257,7 @@ extension WorkoutRecordingScreen {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-    .accessibilityHint("Opens exercise instructions, video, and warm-up guidance.")
+    .accessibilityHint("Opens exercise instructions, video, and performance.")
     .accessibilityIdentifier("recording.exercise.\(exercise.slotID).open")
   }
 

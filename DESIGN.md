@@ -353,6 +353,8 @@ Keep exercise order and rep targets easy to scan. Video availability, guidance, 
 
 Primary action: `Start workout`, shown as a full-width button pinned above the bottom safe area while preview content scrolls.
 
+Each exercise has a `Warmup` link opening its guidance and percentage ranges in a sheet. Label any previous working weight as a starting estimate; allow an optional planned weight to calculate loads. Without a previous weight, show percentages until a weight is entered. This guidance never logs warmup sets or changes working-set inputs.
+
 #### Banner artwork
 
 [Issue #26](https://github.com/dimitarradulov/one-set/issues/26) records the approved Variant A layout: a full-width photo beneath native navigation, with the day, workout title, and program name over its faded lower edge.
@@ -380,7 +382,7 @@ Mixed-focus templates select the closest appropriate banner through their explic
 Approved through the exercise-screen prototype: Variant C, with heaviest weight as the main statistic. [Issue #23](https://github.com/dimitarradulov/one-set/issues/23) tracks implementation and links the archived prototype variants and verdict.
 
 - Open by tapping an exercise in the workout preview. Standard back navigation returns to the same preview position; no next/previous exercise controls.
-- Show the exercise name, video area, expandable technique/stopping instructions and warmup guidance, then personal performance.
+- Show the exercise name, video area, expandable technique/stopping instructions, then personal performance.
 - Omit the program/day subtitle and workout prescription block (working-set count, rep target, and rest summary). Rep targets remain in the workout preview.
 - Use `Records` and `History` tabs below the guidance. Records emphasizes **Heaviest weight** as the large primary value, with estimated one-rep max and the most recent result as smaller summaries. Include supporting reps/dates and clearly label the estimate. History shows dated past results, newest first, with program/workout context.
 - Personal performance combines the same exercise across programs; different exercise variations retain separate results. Use completed working sets from finished sessions, excluding drafts and warmups. Historical edits and deletions update the statistics.
@@ -402,7 +404,8 @@ Each compact exercise row should contain:
 - weight input;
 - reps input;
 - explicit completion control;
-- tappable exercise heading with a chevron opening instructions, video, and warmup guidance on the exercise detail screen.
+- tappable exercise heading with a chevron opening instructions, video, and performance on the exercise detail screen;
+- a `Warmup` link opening the exercise-specific guidance sheet described above, using captured session guidance.
 
 Recommended hierarchy inside a row:
 

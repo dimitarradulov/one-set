@@ -690,8 +690,8 @@ final class OnboardingJourneyTests: XCTestCase {
     techniqueDisclosure.tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("Lower the weight under control"))
-    app.buttons["exerciseDetail.warmupDisclosure"].tap()
-    XCTAssertTrue(app.staticTexts["exerciseDetail.warmupGuidance"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.buttons["exerciseDetail.warmupDisclosure"].exists)
+    XCTAssertFalse(app.staticTexts["exerciseDetail.warmupGuidance"].exists)
     app.scrollViews.firstMatch.swipeUp()
 
     let recordsTab = app.buttons["exerciseDetail.recordsTab"]
@@ -860,9 +860,8 @@ final class OnboardingJourneyTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["exerciseDetail.techniqueGuidance"].label.contains("Set the machine so your back remains supported"))
         XCTAssertTrue(app.staticTexts["exerciseDetail.videoPlaceholder"].exists)
         attachScreenshot(named: "recording-exercise-instructions")
-        app.buttons["exerciseDetail.warmupDisclosure"].tap()
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Approximate warm-up loads'")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["exerciseDetail.warmupDisclosure"].exists)
+        XCTAssertFalse(app.staticTexts["exerciseDetail.warmupLoads"].exists)
         attachScreenshot(named: "recording-exercise-detail")
         navigationBack().tap()
         XCTAssertEqual(firstRecordingField(suffix: ".weight").value as? String, "100")

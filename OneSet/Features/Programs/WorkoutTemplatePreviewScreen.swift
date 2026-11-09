@@ -42,7 +42,7 @@ struct WorkoutTemplatePreviewScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-                .accessibilityHint("Opens exercise instructions and warmup guidance.")
+                .accessibilityHint("Opens exercise instructions, video, and performance.")
                 .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
 
                 Button("Warmup") { warmupExercise = exercise }
