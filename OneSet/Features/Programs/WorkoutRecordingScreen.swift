@@ -281,21 +281,10 @@ extension WorkoutRecordingScreen {
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier("recording.previous.\(exercise.slotID)")
     } else {
-      if model.previousPerformanceUnavailable {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Previous result unavailable")
-            .font(OneSetTypography.caption)
-            .foregroundStyle(OneSetColors.textSecondary)
-            .accessibilityIdentifier("recording.previous.unavailable.\(exercise.slotID)")
-          Button("Retry previous results", action: { Task { await model.retryPreviousPerformances(using: authentication) } })
-            .font(OneSetTypography.caption)
-        }
-      } else {
-        Text("No previous result yet")
-          .font(OneSetTypography.caption)
-          .foregroundStyle(OneSetColors.textSecondary)
-          .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
-      }
+      Text("No previous result yet")
+        .font(OneSetTypography.caption)
+        .foregroundStyle(OneSetColors.textSecondary)
+        .accessibilityIdentifier("recording.previous.empty.\(exercise.slotID)")
     }
   }
 
