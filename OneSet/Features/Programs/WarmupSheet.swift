@@ -49,12 +49,9 @@ struct WarmupSheet: View {
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("warmup.range.\(index)")
           }
-          Text(exercise.warmupGuidance)
+          Text("Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure.")
             .font(OneSetTypography.body)
             .fixedSize(horizontal: false, vertical: true)
-          ForEach(exercise.warmupSteps, id: \.self) { step in
-            Text(step).font(OneSetTypography.body).fixedSize(horizontal: false, vertical: true)
-          }
         }
         .foregroundStyle(OneSetColors.textPrimary)
         .frame(maxWidth: .infinity, alignment: .leading)
