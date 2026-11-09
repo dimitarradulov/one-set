@@ -1220,6 +1220,7 @@ final class OnboardingJourneyTests: XCTestCase {
     preview.tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
 
+    app.scrollViews.firstMatch.swipeUp()
     app.buttons["workoutPreview.exercise.machine-full-body-workout-a-machine-chest-press.open"].tap()
     XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
     app.scrollViews.firstMatch.swipeUp()

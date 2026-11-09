@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutTemplatePreviewScreen: View {
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @State private var warmupExercise: WorkoutExercise?
 
   let program: TrainingProgram
   let workout: WorkoutTemplate
@@ -9,6 +10,8 @@ struct WorkoutTemplatePreviewScreen: View {
   let onStartWorkout: () -> Void
   var isBrowsingProgram = false
   var requiresProgramUpdate = false
+  var weightUnit: WeightUnit = .kilograms
+  var previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:]
 
   var body: some View {
     ScrollView {
@@ -31,17 +34,27 @@ struct WorkoutTemplatePreviewScreen: View {
             sectionHeading
 
             ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-              NavigationLink(value: OnboardingRoute.exerciseDetail(
-                programID: program.id,
-                workoutID: workout.id,
-                exerciseID: exercise.id
-              )) {
-                exerciseRow(exercise, order: index + 1)
+              VStack(alignment: .leading, spacing: 0) {
+                NavigationLink(value: OnboardingRoute.exerciseDetail(
+                  programID: program.id, workoutID: workout.id, exerciseID: exercise.id
+                )) {
+                  exerciseRow(exercise, order: index + 1)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+                .accessibilityHint("Opens exercise instructions and warmup guidance.")
+                .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+
+                Button("Warmup") { warmupExercise = exercise }
+                  .font(OneSetTypography.label)
+                  .foregroundStyle(OneSetColors.textPrimary)
+                  .frame(minHeight: 44)
+                  .accessibilityLabel("Warmup for \(exercise.name)")
+                  .accessibilityIdentifier("workoutPreview.warmup.\(exercise.id)")
               }
-              .buttonStyle(.plain)
-              .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-              .accessibilityHint("Opens exercise instructions and warmup guidance.")
-              .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+              .overlay(alignment: .bottom) {
+                Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+              }
             }
           }
         }
@@ -51,6 +64,10 @@ struct WorkoutTemplatePreviewScreen: View {
         .padding(.bottom, 32)
         .frame(maxWidth: .infinity, alignment: .top)
       }
+    }
+    .sheet(item: $warmupExercise) { exercise in
+      WarmupSheet(exercise: WorkoutSession.Exercise(slot: exercise, order: 0),
+        unit: weightUnit, previous: previousPerformances[exercise.id])
     }
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
@@ -144,12 +161,6 @@ struct WorkoutTemplatePreviewScreen: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.vertical, 12)
-    .overlay(alignment: .bottom) {
-      Rectangle()
-        .fill(OneSetColors.border)
-        .frame(height: 1)
-        .accessibilityHidden(true)
-    }
     .accessibilityElement(children: .contain)
   }
 }

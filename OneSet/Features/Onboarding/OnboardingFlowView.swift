@@ -268,7 +268,9 @@ extension OnboardingFlowView {
                 onStartWorkout: {
                   guard let accountID = authentication.signedInUser?.id else { return }
                   model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
-                }
+                },
+                weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
+                  for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id)
               )
               .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)

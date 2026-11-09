@@ -10,6 +10,27 @@ final class WarmupSheetTests: XCTestCase {
     app.launchEnvironment["ONESET_UI_TEST_ID"] = UUID().uuidString
   }
 
+  func testPreviewWarmupIsSeparateFromExerciseDetailsAndDoesNotStartWorkout() {
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    XCTAssertTrue(app.buttons["overview.day.1.preview"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
+    let warmup = app.buttons["workoutPreview.warmup.machine-full-body-workout-a-hack-squat-machine"]
+    XCTAssertTrue(warmup.waitForExistence(timeout: 3))
+    warmup.tap()
+    XCTAssertTrue(app.staticTexts["warmup.range.0"].label.contains("40–50%"))
+    let planned = app.textFields["warmup.plannedWeight"]
+    planned.tap()
+    planned.typeText("100")
+    XCTAssertTrue(app.staticTexts["warmup.range.0"].label.contains("40–50 lb"))
+    app.buttons["warmup.close"].tap()
+    app.buttons["workoutPreview.exercise.machine-full-body-workout-a-hack-squat-machine.open"].tap()
+    XCTAssertTrue(app.staticTexts["exerciseDetail.title"].waitForExistence(timeout: 3))
+    navigationBack().tap()
+    app.buttons["workoutPreview.start"].tap()
+    XCTAssertTrue(firstRecordingField(suffix: ".weight").waitForExistence(timeout: 3))
+    XCTAssertEqual(firstRecordingField(suffix: ".weight").value as? String, "-")
+  }
+
   func testRecordingShowsEmptyAndPreviousPerformanceWithCapturedGuidance() {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
@@ -82,6 +103,10 @@ final class WarmupSheetTests: XCTestCase {
 
     // Completing the three required days opens Week 2, where Day 1 has a useful prior set.
     app.buttons["overview.day.1.preview"].tap()
+    app.buttons["workoutPreview.warmup.machine-full-body-workout-a-hack-squat-machine"].tap()
+    XCTAssertTrue(app.staticTexts["warmup.estimate"].label.contains("100 lb"))
+    XCTAssertTrue(app.staticTexts["warmup.range.0"].label.contains("40–50 lb"))
+    app.buttons["warmup.close"].tap()
     app.buttons["workoutPreview.start"].tap()
     let previous = app.descendants(matching: .any)["recording.previous.machine-full-body-workout-a-hack-squat-machine"]
     XCTAssertTrue(previous.waitForExistence(timeout: 3))

@@ -137,7 +137,9 @@ struct CompletedSetupTabsView: View {
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
         WorkoutTemplatePreviewScreen(program: program, workout: program.workouts[workoutIndex],
-          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true)
+          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true,
+          weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
+            for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id))
           .navigationTitle("Workout preview")
           .navigationBarTitleDisplayMode(.inline)
       } else {
@@ -162,7 +164,9 @@ struct CompletedSetupTabsView: View {
             guard let accountID = authentication.signedInUser?.id else { return }
             model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
           },
-          requiresProgramUpdate: model.requiresProgramUpdate
+          requiresProgramUpdate: model.requiresProgramUpdate,
+          weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
+            for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id)
         )
         .navigationTitle("Workout preview").navigationBarTitleDisplayMode(.inline)
       } else {

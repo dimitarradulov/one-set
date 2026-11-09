@@ -272,6 +272,14 @@ extension OnboardingModel {
     }
   }
 
+  func previousPerformances(for workout: WorkoutTemplate, programID: String,
+                            accountID: String?) -> [String: WorkoutRepository.PreviousPerformance] {
+    guard let accountID, accountID == resolvedAccountID, let workoutRepository else { return [:] }
+    return (try? workoutRepository.previousPerformances(accountID: accountID,
+      exercises: workout.exercises.map { .init(slotID: $0.id, exerciseKey: $0.exerciseKey) },
+      programID: programID, workoutID: workout.id)) ?? [:]
+  }
+
   func previousPerformances(for session: WorkoutSession) -> [String: WorkoutRepository.PreviousPerformance] {
     guard let workoutRepository else { return [:] }
     return (try? workoutRepository.previousPerformances(accountID: session.accountID,
