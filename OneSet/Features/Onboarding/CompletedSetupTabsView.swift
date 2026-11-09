@@ -50,7 +50,8 @@ struct CompletedSetupTabsView: View {
     }
     #if DEBUG
     .task {
-      if ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording"),
+      if (ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording")
+        || ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet")),
          model.activeWorkoutSession == nil, let accountID = authentication.signedInUser?.id {
         model.startWorkout(programID: "machine-full-body", workoutID: "machine-full-body-workout-a", accountID: accountID)
       }

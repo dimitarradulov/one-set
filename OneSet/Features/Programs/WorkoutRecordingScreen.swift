@@ -11,6 +11,7 @@ struct WorkoutRecordingScreen: View {
   @State private var noteExpanded = false
   @State private var note = ""
   @State private var failedCompletions: Set<String> = []
+  @State private var warmupExercise: WorkoutSession.Exercise?
   @FocusState private var focusedField: Field?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -81,6 +82,11 @@ struct WorkoutRecordingScreen: View {
           .presentationDetents([.medium, .large])
           .presentationDragIndicator(.visible)
       }
+      .sheet(isPresented: Binding(get: { warmupExercise != nil }, set: { if !$0 { warmupExercise = nil } })) {
+        if let exercise = warmupExercise {
+          WarmupSheet(exercise: exercise, unit: session.weightUnit, previous: previousPerformances[exercise.slotID])
+        }
+      }
       .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
         Button("Discard workout", role: .destructive, action: discard)
         Button("Keep recording", role: .cancel) {}
@@ -89,6 +95,13 @@ struct WorkoutRecordingScreen: View {
       }
     }
     .disabled(model.isApplyingWorkoutEdit)
+    #if DEBUG
+    .onAppear {
+      if ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet") {
+        warmupExercise = session.exercises.first
+      }
+    }
+    #endif
     .onDisappear {
       Task { await model.flushWorkoutEdits(sessionID: session.id) }
     }
@@ -197,6 +210,11 @@ struct WorkoutRecordingScreen: View {
           .accessibilityIdentifier("recording.set.retry.\(exercise.slotID)")
       }
       previousPerformanceView(for: exercise)
+      Button("Warmup") { warmupExercise = exercise }
+        .font(OneSetTypography.label)
+        .frame(minHeight: 44)
+        .accessibilityLabel("Warmup for \(exercise.name)")
+        .accessibilityIdentifier("recording.warmup.\(exercise.slotID)")
       if let guidance = exercise.progressionGuidance(for: input(for: slotID).reps) {
         Label(guidance, systemImage: "arrow.trend.up")
           .font(OneSetTypography.caption)
