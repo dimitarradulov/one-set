@@ -68,36 +68,37 @@ workouts:
           minimum: 6
         exercise: romanian-deadlift
         position: 2
-      - key: powerhouse-day-2-thighs-posterior-chain-traps-leg-press
-        reps:
-          maximum: 15
-          minimum: 10
-        exercise: leg-press
-        position: 3
       - key: powerhouse-day-2-thighs-posterior-chain-traps-seated-leg-curl
         reps:
           maximum: 12
           minimum: 8
         exercise: seated-leg-curl
-        position: 4
+        position: 3
       - key: powerhouse-day-2-thighs-posterior-chain-traps-dumbbell-shrug
         reps:
           maximum: 12
           minimum: 8
         exercise: dumbbell-shrug
-        position: 5
+        position: 4
       - key: powerhouse-day-2-thighs-posterior-chain-traps-machine-neck-extension
         reps:
           maximum: 20
           minimum: 12
         exercise: machine-neck-extension
-        position: 6
+        position: 5
       - key: powerhouse-day-2-thighs-posterior-chain-traps-cable-crunch
         reps:
           maximum: 15
           minimum: 10
         exercise: cable-crunch
-        position: 7
+        position: 6
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-leg-press
+        reps:
+          maximum: 15
+          minimum: 10
+        removed: true
+        exercise: leg-press
+        position: 3
   - key: powerhouse-day-3-upper-back-shoulder-girdle-traps
     name: Upper Back + Shoulder Girdle + Traps
     banner: back-pull

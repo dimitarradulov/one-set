@@ -1323,15 +1323,6 @@ extension ProgramCatalog {
                     videoKey: nil
                   ),
                   WorkoutExercise(
-                    id: "powerhouse-day-2-thighs-posterior-chain-traps-leg-press", exerciseKey: "leg-press",
-                    name: "Leg Press", repTarget: RepTarget(minimum: 10, maximum: 15, scope: .reps),
-                    instructions: "Place your feet in a comfortable stance and lower the platform only as far as your pelvis stays supported. Press through the whole foot without bouncing or forcefully locking your knees.",
-                    stoppingGuidance: "Continue until you cannot complete another full rep through the planned range with controlled form.",
-                    warmupGuidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure.",
-                    restSeconds: 210, defaultRepTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
-                    videoKey: nil
-                  ),
-                  WorkoutExercise(
                     id: "powerhouse-day-2-thighs-posterior-chain-traps-seated-leg-curl", exerciseKey: "seated-leg-curl",
                     name: "Seated Leg Curl", repTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
                     instructions: "Align your knees with the machine pivot and secure the pads comfortably. Curl the pad down without lifting your hips, then return slowly.",
