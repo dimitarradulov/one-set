@@ -69,8 +69,7 @@ struct WorkoutRecordingScreen: View {
       }
       .safeAreaInset(edge: .top, spacing: 0) {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-          let elapsed = max(0, Int(context.date.timeIntervalSince(session.startedAt)))
-          Text("Duration · \(String(format: "%d:%02d", elapsed / 60, elapsed % 60))")
+          Text("Duration · \(durationLabel(at: context.date))")
             .font(OneSetTypography.label)
             .monospacedDigit()
             .foregroundStyle(OneSetColors.textSecondary)
@@ -113,6 +112,8 @@ struct WorkoutRecordingScreen: View {
     .onAppear {
       if ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet") {
         warmupExercise = session.exercises.first
+      } else if ProcessInfo.processInfo.arguments.contains("--ui-finish-review") {
+        showsFinishReview = true
       }
     }
     #endif
@@ -137,9 +138,13 @@ struct WorkoutRecordingScreen: View {
         .font(OneSetTypography.bodyStrong)
         .foregroundStyle(OneSetColors.textPrimary)
         .accessibilityIdentifier("finish.summary.count")
-      Text("Duration · \(durationLabel)")
-        .font(OneSetTypography.label)
-        .foregroundStyle(OneSetColors.textSecondary)
+      TimelineView(.periodic(from: .now, by: 1)) { context in
+        Text("Duration · \(durationLabel(at: context.date))")
+          .font(OneSetTypography.label)
+          .monospacedDigit()
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityIdentifier("finish.duration")
+      }
       DisclosureGroup("Add note", isExpanded: $noteExpanded) {
         TextField("Optional workout note", text: $note, axis: .vertical)
           .lineLimit(2...5)
@@ -173,8 +178,8 @@ struct WorkoutRecordingScreen: View {
     .background(OneSetColors.background)
   }
 
-  private var durationLabel: String {
-    let elapsed = max(0, Int(Date.now.timeIntervalSince(session.startedAt)))
+  private func durationLabel(at date: Date) -> String {
+    let elapsed = max(0, Int(date.timeIntervalSince(session.startedAt)))
     return String(format: "%d:%02d", elapsed / 60, elapsed % 60)
   }
 

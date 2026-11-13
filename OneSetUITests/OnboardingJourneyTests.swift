@@ -999,6 +999,18 @@ final class OnboardingJourneyTests: XCTestCase {
     reps.typeText("8")
     app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
     app.buttons["recording.finish"].tap()
+    let reviewDuration = app.staticTexts["finish.duration"]
+    XCTAssertTrue(reviewDuration.waitForExistence(timeout: 3))
+    let initialDuration = reviewDuration.label
+    let advances = expectation(for: NSPredicate(format: "label != %@", initialDuration), evaluatedWith: reviewDuration)
+    wait(for: [advances], timeout: 5)
+    attachScreenshot(named: "finish-review-duration")
+    app.swipeDown()
+    let recordingDuration = app.staticTexts["recording.duration"]
+    XCTAssertTrue(recordingDuration.waitForExistence(timeout: 3))
+    XCTAssertGreaterThanOrEqual(durationSeconds(recordingDuration.label), durationSeconds(initialDuration))
+    app.buttons["recording.finish"].tap()
+    XCTAssertTrue(app.staticTexts["finish.duration"].waitForExistence(timeout: 3))
     app.buttons["finish.confirm"].tap()
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
@@ -1011,12 +1023,20 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(historyRow.label.contains("1 of"))
     historyRow.tap()
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.detail").firstMatch.waitForExistence(timeout: 3))
+    let historyDuration = app.descendants(matching: .any)["history.duration"]
+    XCTAssertTrue(historyDuration.waitForExistence(timeout: 3))
+    let savedDuration = historyDuration.label
+    XCTAssertFalse(savedDuration.isEmpty)
     XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "50 lb")).firstMatch.exists)
     XCTAssertTrue(app.descendants(matching: .any).matching(
       NSPredicate(format: "label CONTAINS %@", "Not performed")
     ).firstMatch.exists)
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-history", "--ui-progress-keep"])
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
+    XCTAssertTrue(historyRow.waitForExistence(timeout: 3))
+    historyRow.tap()
+    XCTAssertTrue(historyDuration.waitForExistence(timeout: 3))
+    XCTAssertEqual(historyDuration.label, savedDuration)
     // The setup service remains suspended for 20 seconds on this launch; saved
     // progress must open before the remote request completes.
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs", "--ui-progress-keep", "--ui-setup-timeout"])
@@ -1050,6 +1070,15 @@ final class OnboardingJourneyTests: XCTestCase {
     app.launchEnvironment["ONESET_UI_TEST_ID"] = originalID
     relaunch(with: arguments)
     XCTAssertTrue(app.buttons["recording.finish"].waitForExistence(timeout: 5))
+  }
+
+  private func durationSeconds(_ label: String) -> Int {
+    let parts = label.replacingOccurrences(of: "Duration · ", with: "").split(separator: ":")
+    guard parts.count == 2, let minutes = Int(parts[0]), let seconds = Int(parts[1]) else {
+      XCTFail("Unexpected duration: \(label)")
+      return -1
+    }
+    return minutes * 60 + seconds
   }
 
   private func firstRecordingField(suffix: String) -> XCUIElement {
