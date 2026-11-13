@@ -85,11 +85,13 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = progressRestoreError ? "progress-restore-error-workouts.sqlite"
+    let previewWorkoutFile = arguments.contains("--ui-finish-review") ? "finish-review-workouts.sqlite"
+      : progressRestoreError ? "progress-restore-error-workouts.sqlite"
       : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-switch-programs")
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review")
+      || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
       || sessionSignOutPreview || progressRestoreError || programChangePreview {
       for suffix in ["", "-wal", "-shm"] {

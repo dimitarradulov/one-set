@@ -67,6 +67,19 @@ struct WorkoutRecordingScreen: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .top)
       }
+      .safeAreaInset(edge: .top, spacing: 0) {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+          Text("Duration · \(durationLabel(at: context.date))")
+            .font(OneSetTypography.label)
+            .monospacedDigit()
+            .foregroundStyle(OneSetColors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(OneSetColors.background)
+            .accessibilityIdentifier("recording.duration")
+        }
+      }
       .scrollDismissesKeyboard(.interactively)
       .background(OneSetColors.background)
       .navigationTitle(session.workoutName)
@@ -99,6 +112,8 @@ struct WorkoutRecordingScreen: View {
     .onAppear {
       if ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet") {
         warmupExercise = session.exercises.first
+      } else if ProcessInfo.processInfo.arguments.contains("--ui-finish-review") {
+        showsFinishReview = true
       }
     }
     #endif
@@ -123,9 +138,13 @@ struct WorkoutRecordingScreen: View {
         .font(OneSetTypography.bodyStrong)
         .foregroundStyle(OneSetColors.textPrimary)
         .accessibilityIdentifier("finish.summary.count")
-      Text("Duration · \(durationLabel)")
-        .font(OneSetTypography.label)
-        .foregroundStyle(OneSetColors.textSecondary)
+      TimelineView(.periodic(from: .now, by: 1)) { context in
+        Text("Duration · \(durationLabel(at: context.date))")
+          .font(OneSetTypography.label)
+          .monospacedDigit()
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityIdentifier("finish.duration")
+      }
       DisclosureGroup("Add note", isExpanded: $noteExpanded) {
         TextField("Optional workout note", text: $note, axis: .vertical)
           .lineLimit(2...5)
@@ -159,8 +178,8 @@ struct WorkoutRecordingScreen: View {
     .background(OneSetColors.background)
   }
 
-  private var durationLabel: String {
-    let elapsed = max(0, Int(Date.now.timeIntervalSince(session.startedAt)))
+  private func durationLabel(at date: Date) -> String {
+    let elapsed = max(0, Int(date.timeIntervalSince(session.startedAt)))
     return String(format: "%d:%02d", elapsed / 60, elapsed % 60)
   }
 

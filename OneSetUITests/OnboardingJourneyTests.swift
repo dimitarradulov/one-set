@@ -932,9 +932,10 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-elapsed-session"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
+    XCTAssertFalse(app.staticTexts["recording.duration"].exists)
     app.buttons["workoutPreview.start"].tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
@@ -948,6 +949,7 @@ final class OnboardingJourneyTests: XCTestCase {
     mainTab("Program").tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
+    XCTAssertGreaterThanOrEqual(durationSeconds(app.staticTexts["recording.duration"].label), 120)
     app.buttons["recording.discard"].tap()
     let keepWorkout = app.alerts.buttons.matching(
       NSPredicate(format: "label CONTAINS[c] 'Keep'")
@@ -963,7 +965,14 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["recording.discard"].tap()
     app.alerts.buttons["Discard workout"].tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    mainTab("History").tap()
+    XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")).firstMatch.exists)
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
     app.buttons["workoutPreview.start"].tap()
+    XCTAssertLessThan(durationSeconds(app.staticTexts["recording.duration"].label), 60)
     let weight = firstRecordingField(suffix: ".weight")
     XCTAssertTrue(weight.waitForExistence(timeout: 3))
     weight.tap()
@@ -984,7 +993,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testFinishedOfflineWorkoutSurvivesRelaunchWithoutSyncStatus() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-main-tabs"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-main-tabs", "--ui-elapsed-session"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
     app.buttons["workoutPreview.start"].tap()
@@ -998,7 +1007,21 @@ final class OnboardingJourneyTests: XCTestCase {
     reps.typeText("8")
     app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recording.set.toggle.")).firstMatch.tap()
     app.buttons["recording.finish"].tap()
+    let reviewDuration = app.staticTexts["finish.duration"]
+    XCTAssertTrue(reviewDuration.waitForExistence(timeout: 3))
+    let initialDuration = reviewDuration.label
+    XCTAssertGreaterThanOrEqual(durationSeconds(initialDuration), 120)
+    let advances = expectation(for: NSPredicate(format: "label != %@", initialDuration), evaluatedWith: reviewDuration)
+    wait(for: [advances], timeout: 5)
+    attachScreenshot(named: "finish-review-duration")
+    app.swipeDown()
+    let recordingDuration = app.staticTexts["recording.duration"]
+    XCTAssertTrue(recordingDuration.waitForExistence(timeout: 3))
+    XCTAssertGreaterThanOrEqual(durationSeconds(recordingDuration.label), durationSeconds(initialDuration))
+    app.buttons["recording.finish"].tap()
+    XCTAssertTrue(app.staticTexts["finish.duration"].waitForExistence(timeout: 3))
     app.buttons["finish.confirm"].tap()
+    let confirmedAt = Date()
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
@@ -1010,12 +1033,26 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(historyRow.label.contains("1 of"))
     historyRow.tap()
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.detail").firstMatch.waitForExistence(timeout: 3))
+    let historyDuration = app.descendants(matching: .any)["history.duration"]
+    XCTAssertTrue(historyDuration.waitForExistence(timeout: 3))
+    let savedDuration = historyDuration.label
+    XCTAssertTrue(savedDuration.contains("2m") || savedDuration.contains("3m"), savedDuration)
     XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "50 lb")).firstMatch.exists)
     XCTAssertTrue(app.descendants(matching: .any).matching(
       NSPredicate(format: "label CONTAINS %@", "Not performed")
     ).firstMatch.exists)
+    // Reopen after a full minute so a duration still counting from the start
+    // would cross the history display's minute boundary.
+    let minutePassed = expectation(for: NSPredicate { _, _ in
+      Date().timeIntervalSince(confirmedAt) >= 65
+    }, evaluatedWith: app)
+    wait(for: [minutePassed], timeout: 75)
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-history", "--ui-progress-keep"])
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
+    XCTAssertTrue(historyRow.waitForExistence(timeout: 3))
+    historyRow.tap()
+    XCTAssertTrue(historyDuration.waitForExistence(timeout: 3))
+    XCTAssertEqual(historyDuration.label, savedDuration)
     // The setup service remains suspended for 20 seconds on this launch; saved
     // progress must open before the remote request completes.
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs", "--ui-progress-keep", "--ui-setup-timeout"])
@@ -1049,6 +1086,15 @@ final class OnboardingJourneyTests: XCTestCase {
     app.launchEnvironment["ONESET_UI_TEST_ID"] = originalID
     relaunch(with: arguments)
     XCTAssertTrue(app.buttons["recording.finish"].waitForExistence(timeout: 5))
+  }
+
+  private func durationSeconds(_ label: String) -> Int {
+    let parts = label.replacingOccurrences(of: "Duration · ", with: "").split(separator: ":")
+    guard parts.count == 2, let minutes = Int(parts[0]), let seconds = Int(parts[1]) else {
+      XCTFail("Unexpected duration: \(label)")
+      return -1
+    }
+    return minutes * 60 + seconds
   }
 
   private func firstRecordingField(suffix: String) -> XCUIElement {

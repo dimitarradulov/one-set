@@ -258,6 +258,7 @@ struct HistorySessionDetailScreen: View {
       Section("Session") {
         LabeledContent("Started", value: session.startedAt.formatted(date: .complete, time: .shortened))
         LabeledContent("Duration", value: duration)
+          .accessibilityIdentifier("history.duration")
       }
 
       Section("Exercises") {
