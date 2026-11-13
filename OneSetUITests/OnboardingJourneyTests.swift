@@ -935,6 +935,7 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
+    XCTAssertFalse(app.staticTexts["recording.duration"].exists)
     app.buttons["workoutPreview.start"].tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 

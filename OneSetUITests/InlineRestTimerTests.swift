@@ -60,6 +60,43 @@ final class InlineRestTimerTests: XCTestCase {
     XCTAssertTrue(app.buttons["finish.confirm"].waitForExistence(timeout: 3))
   }
 
+  func testSessionDurationAdvancesStaysVisibleAndSurvivesRestAndRelaunch() {
+    let duration = app.staticTexts["recording.duration"]
+    XCTAssertTrue(duration.waitForExistence(timeout: 5))
+    let initial = duration.label
+    let changed = expectation(for: NSPredicate(format: "label != %@", initial), evaluatedWith: duration)
+    wait(for: [changed], timeout: 5)
+
+    app.swipeUp()
+    XCTAssertTrue(duration.isHittable)
+    let headings = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'recording.exercise.'"))
+    let first = headings.element(boundBy: 0).identifier
+    let slotID = String(first.dropFirst("recording.exercise.".count).dropLast(".open".count))
+    complete(slotID)
+    let beforeRestAdjustment = seconds(duration.label)
+    app.buttons["recording.rest.add"].tap()
+    app.buttons["recording.rest.skip"].tap()
+    XCTAssertTrue(duration.isHittable)
+    XCTAssertGreaterThanOrEqual(seconds(duration.label), beforeRestAdjustment)
+
+    let beforeRelaunch = seconds(duration.label)
+    app.terminate()
+    app.launchArguments.removeAll { $0 == "--ui-workouts-reset" }
+    app.launch()
+    XCTAssertTrue(duration.waitForExistence(timeout: 5))
+    XCTAssertGreaterThanOrEqual(seconds(duration.label), beforeRelaunch)
+    XCTAssertLessThan(seconds(duration.label) - beforeRelaunch, 60)
+  }
+
+  private func seconds(_ label: String) -> Int {
+    let parts = label.replacingOccurrences(of: "Duration · ", with: "").split(separator: ":")
+    guard parts.count == 2, let minutes = Int(parts[0]), let seconds = Int(parts[1]) else {
+      XCTFail("Unexpected duration: \(label)")
+      return 0
+    }
+    return minutes * 60 + seconds
+  }
+
   private func complete(_ slotID: String, expectsRest: Bool = true) {
     let weight = app.textFields["recording.input.\(slotID).weight"]
     reveal(weight)

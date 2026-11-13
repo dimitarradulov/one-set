@@ -67,6 +67,20 @@ struct WorkoutRecordingScreen: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .top)
       }
+      .safeAreaInset(edge: .top, spacing: 0) {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+          let elapsed = max(0, Int(context.date.timeIntervalSince(session.startedAt)))
+          Text("Duration · \(String(format: "%d:%02d", elapsed / 60, elapsed % 60))")
+            .font(OneSetTypography.label)
+            .monospacedDigit()
+            .foregroundStyle(OneSetColors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(OneSetColors.background)
+            .accessibilityIdentifier("recording.duration")
+        }
+      }
       .scrollDismissesKeyboard(.interactively)
       .background(OneSetColors.background)
       .navigationTitle(session.workoutName)
