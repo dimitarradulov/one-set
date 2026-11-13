@@ -45,14 +45,28 @@ workouts:
           minimum: 8
         exercise: cable-triceps-pressdown
         position: 6
+      - key: slot-224df32a3ab745ed837a3c4d139462a4
+        reps:
+          maximum: 12
+          minimum: 8
+        exercise: dumbbell-shrug
+        position: 7
+      - key: slot-14182343aa7440d7b8cd2b319857384f
+        reps:
+          maximum: 12
+          minimum: 8
+        removed: true
+        exercise: 45-degree-back-extension
+        position: 7
       - key: powerhouse-day-1-torso-density-arms-dumbbell-wrist-curl
         reps:
           maximum: 20
           minimum: 12
+        removed: true
         exercise: dumbbell-wrist-curl
         position: 7
   - key: powerhouse-day-2-thighs-posterior-chain-traps
-    name: Thighs + Posterior Chain + Traps
+    name: Thighs + Posterior Chain + Forearms
     banner: lower-body
     position: 2
     exercises:
@@ -74,11 +88,11 @@ workouts:
           minimum: 8
         exercise: seated-leg-curl
         position: 3
-      - key: powerhouse-day-2-thighs-posterior-chain-traps-dumbbell-shrug
+      - key: slot-ba08b4f06c2348e39d69ec9f5c1a011a
         reps:
-          maximum: 12
-          minimum: 8
-        exercise: dumbbell-shrug
+          maximum: 20
+          minimum: 12
+        exercise: dumbbell-wrist-curl
         position: 4
       - key: powerhouse-day-2-thighs-posterior-chain-traps-machine-neck-extension
         reps:
@@ -92,6 +106,20 @@ workouts:
           minimum: 10
         exercise: cable-crunch
         position: 6
+      - key: powerhouse-day-2-thighs-posterior-chain-traps-dumbbell-shrug
+        reps:
+          maximum: 12
+          minimum: 8
+        removed: true
+        exercise: dumbbell-shrug
+        position: 5
+      - key: slot-ad08b49944c54df69d328d5bbaf915e8
+        reps:
+          maximum: 12
+          minimum: 8
+        removed: true
+        exercise: 45-degree-back-extension
+        position: 7
       - key: powerhouse-day-2-thighs-posterior-chain-traps-leg-press
         reps:
           maximum: 15
