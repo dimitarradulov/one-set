@@ -1,7 +1,7 @@
 [
   {
     "violation": {
-      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 232 lines",
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 234 lines",
       "location": {
         "character": 10,
         "line": 44,
@@ -1470,10 +1470,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 2050",
+      "reason": "File should contain 1000 lines or less: currently contains 2041",
       "location": {
         "character": 1,
-        "line": 2050,
+        "line": 2041,
         "file": "OneSet/Services/Catalog/BundledProgramCatalog.swift"
       },
       "ruleIdentifier": "file_length",
@@ -2325,7 +2325,7 @@
   },
   {
     "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1523 lines",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1586 lines",
       "location": {
         "character": 7,
         "line": 4,
@@ -2430,10 +2430,10 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1716",
+      "reason": "File should contain 1000 lines or less: currently contains 1783",
       "location": {
         "character": 1,
-        "line": 1716,
+        "line": 1783,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "file_length",
