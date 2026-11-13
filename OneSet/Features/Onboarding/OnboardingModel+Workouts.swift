@@ -36,8 +36,15 @@ extension OnboardingModel {
         workoutErrorPresented = true
         return
       }
+      #if DEBUG
+      let startedAt = ProcessInfo.processInfo.arguments.contains("--ui-elapsed-session")
+        ? Date.now.addingTimeInterval(-120) : .now
+      #else
+      let startedAt = Date.now
+      #endif
       let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
-        workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit)
+        workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit,
+        startedAt: startedAt)
       let startedSession = try workoutRepository.start(session)
       activeWorkoutSession = startedSession
       let route = OnboardingRoute.workoutRecording(startedSession.id)

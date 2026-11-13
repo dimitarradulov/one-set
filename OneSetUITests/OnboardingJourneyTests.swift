@@ -932,7 +932,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-elapsed-session"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
     XCTAssertFalse(app.staticTexts["recording.duration"].exists)
@@ -949,6 +949,7 @@ final class OnboardingJourneyTests: XCTestCase {
     mainTab("Program").tap()
     XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 3))
 
+    XCTAssertGreaterThanOrEqual(durationSeconds(app.staticTexts["recording.duration"].label), 120)
     app.buttons["recording.discard"].tap()
     let keepWorkout = app.alerts.buttons.matching(
       NSPredicate(format: "label CONTAINS[c] 'Keep'")
@@ -964,7 +965,14 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["recording.discard"].tap()
     app.alerts.buttons["Discard workout"].tap()
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
+    mainTab("History").tap()
+    XCTAssertTrue(app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.session.")).firstMatch.exists)
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-tabs"])
+    XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
+    app.buttons["overview.day.1.preview"].tap()
     app.buttons["workoutPreview.start"].tap()
+    XCTAssertLessThan(durationSeconds(app.staticTexts["recording.duration"].label), 60)
     let weight = firstRecordingField(suffix: ".weight")
     XCTAssertTrue(weight.waitForExistence(timeout: 3))
     weight.tap()
@@ -985,7 +993,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testFinishedOfflineWorkoutSurvivesRelaunchWithoutSyncStatus() {
-    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-main-tabs"])
+    relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-workouts-reset", "--ui-main-tabs", "--ui-elapsed-session"])
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 5))
     app.buttons["overview.day.1.preview"].tap()
     app.buttons["workoutPreview.start"].tap()
@@ -1002,6 +1010,7 @@ final class OnboardingJourneyTests: XCTestCase {
     let reviewDuration = app.staticTexts["finish.duration"]
     XCTAssertTrue(reviewDuration.waitForExistence(timeout: 3))
     let initialDuration = reviewDuration.label
+    XCTAssertGreaterThanOrEqual(durationSeconds(initialDuration), 120)
     let advances = expectation(for: NSPredicate(format: "label != %@", initialDuration), evaluatedWith: reviewDuration)
     wait(for: [advances], timeout: 5)
     attachScreenshot(named: "finish-review-duration")
@@ -1012,6 +1021,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["recording.finish"].tap()
     XCTAssertTrue(app.staticTexts["finish.duration"].waitForExistence(timeout: 3))
     app.buttons["finish.confirm"].tap()
+    let confirmedAt = Date()
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.buttons["overview.day.1.preview"].label.contains("Completed"))
@@ -1026,11 +1036,17 @@ final class OnboardingJourneyTests: XCTestCase {
     let historyDuration = app.descendants(matching: .any)["history.duration"]
     XCTAssertTrue(historyDuration.waitForExistence(timeout: 3))
     let savedDuration = historyDuration.label
-    XCTAssertFalse(savedDuration.isEmpty)
+    XCTAssertTrue(savedDuration.contains("2m") || savedDuration.contains("3m"), savedDuration)
     XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "50 lb")).firstMatch.exists)
     XCTAssertTrue(app.descendants(matching: .any).matching(
       NSPredicate(format: "label CONTAINS %@", "Not performed")
     ).firstMatch.exists)
+    // Reopen after a full minute so a duration still counting from the start
+    // would cross the history display's minute boundary.
+    let minutePassed = expectation(for: NSPredicate { _, _ in
+      Date().timeIntervalSince(confirmedAt) >= 65
+    }, evaluatedWith: app)
+    wait(for: [minutePassed], timeout: 75)
     relaunch(with: ["--ui-auth-restored", "--ui-setup-completed", "--ui-main-history", "--ui-progress-keep"])
     XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "history.list").firstMatch.exists)
     XCTAssertTrue(historyRow.waitForExistence(timeout: 3))
