@@ -79,6 +79,13 @@ final class InlineRestTimerTests: XCTestCase {
     XCTAssertTrue(duration.isHittable)
     XCTAssertGreaterThanOrEqual(seconds(duration.label), beforeRestAdjustment)
 
+    let beforeBackground = seconds(duration.label)
+    XCUIDevice.shared.press(.home)
+    app.activate()
+    XCTAssertTrue(duration.waitForExistence(timeout: 5))
+    XCTAssertGreaterThanOrEqual(seconds(duration.label), beforeBackground)
+    XCTAssertLessThan(seconds(duration.label) - beforeBackground, 60)
+
     let beforeRelaunch = seconds(duration.label)
     app.terminate()
     app.launchArguments.removeAll { $0 == "--ui-workouts-reset" }
