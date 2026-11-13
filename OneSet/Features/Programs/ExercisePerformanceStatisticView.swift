@@ -5,6 +5,7 @@ struct ExercisePerformanceStatisticView: View {
   let valueIdentifier: String
   let titleIdentifier: String
   let note: String
+  var value: String = "-"
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -13,7 +14,7 @@ struct ExercisePerformanceStatisticView: View {
         .foregroundStyle(OneSetColors.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(titleIdentifier)
-      Text("-")
+      Text(value)
         .font(OneSetTypography.metric)
         .foregroundStyle(OneSetColors.textPrimary)
         .accessibilityIdentifier(valueIdentifier)

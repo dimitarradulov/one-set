@@ -267,10 +267,16 @@ extension OnboardingFlowView {
                 day: workoutIndex + 1,
                 onStartWorkout: {
                   guard let accountID = authentication.signedInUser?.id else { return }
+                  if let session = model.activeWorkoutSession, session.accountID == accountID,
+                     session.programID == programID, session.workoutID == workoutID {
+                    model.path.append(.workoutRecording(session.id))
+                    return
+                  }
                   model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
                 },
-                weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
-                  for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id)
+                isActiveWorkout: model.activeWorkoutSession.map {
+                  $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
+                } ?? false
               )
               .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)
@@ -287,7 +293,7 @@ extension OnboardingFlowView {
             }
           case .recordingExerciseDetail(let sessionID, let slotID):
             if let session = model.activeWorkoutSession, session.id == sessionID {
-              RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+              RecordingExerciseDetailRouteView(session: session, slotID: slotID, model: model, authentication: authentication)
             } else {
               ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
             }
@@ -297,6 +303,7 @@ extension OnboardingFlowView {
               ExerciseDetailRouteView(
                 workout: workout,
                 exerciseID: exerciseID,
+                model: model, authentication: authentication,
                 initiallyExpanded: guidanceExpanded,
                 initiallyShowingHistory: initiallyShowingHistory
               )

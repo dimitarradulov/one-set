@@ -3,6 +3,8 @@ import SwiftUI
 struct RecordingExerciseDetailRouteView: View {
   let session: WorkoutSession
   let slotID: String
+  var model: OnboardingModel? = nil
+  var authentication: AuthenticationModel? = nil
 
   var body: some View {
     Group {
@@ -18,7 +20,8 @@ struct RecordingExerciseDetailRouteView: View {
             warmupGuidance: exercise.warmupGuidance,
             restSeconds: exercise.restSeconds
           ),
-          initiallyExpanded: true
+          initiallyExpanded: true,
+          performance: authentication.flatMap { model?.exercisePerformance(for: exercise.exerciseKey, using: $0) }
         )
       } else {
         ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")

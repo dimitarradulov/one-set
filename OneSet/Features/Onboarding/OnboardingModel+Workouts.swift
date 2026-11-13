@@ -287,6 +287,29 @@ extension OnboardingModel {
       programID: session.programID, workoutID: session.workoutID)) ?? [:]
   }
 
+  func exercisePerformance(for exerciseKey: String, using authentication: AuthenticationModel) -> ExercisePerformanceModel? {
+    guard let accountID = authentication.signedInUser?.id, resolvedAccountID == accountID else { return nil }
+    let fetchPage: (@MainActor (String?) async throws -> SessionHistoryPage)?
+    if canRefreshAccountHistory {
+      fetchPage = { cursor in
+        try await self.fetchHistoryPage(accountID: accountID, cursor: cursor, using: authentication)
+      }
+    } else {
+      fetchPage = nil
+    }
+    return ExercisePerformanceModel(exerciseKey: exerciseKey, unit: weightUnit,
+      loadLocal: { try self.completedHistorySessions(accountID: accountID) },
+      fetchPage: fetchPage,
+      resolveProgramName: { self.programName(id: $0) },
+      pendingIDs: {
+        Set(try self.historyRepository(accountID: accountID).sessionUploadQueue(accountID: accountID).map { $0.upload.sessionID })
+      },
+      cacheSessions: { sessions in
+        try self.historyRepository(accountID: accountID).cacheHistorySessions(sessions, accountID: accountID)
+      },
+      isCurrent: { authentication.signedInUser?.id == accountID && self.resolvedAccountID == accountID })
+  }
+
   func completedHistorySessions(accountID: String) throws -> [WorkoutSession] {
     guard resolvedAccountID == accountID else { throw HistoryDataError.accountUnavailable }
     if workoutRepository == nil {

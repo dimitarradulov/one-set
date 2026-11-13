@@ -2,16 +2,14 @@ import SwiftUI
 
 struct WorkoutTemplatePreviewScreen: View {
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-  @State private var warmupExercise: WorkoutExercise?
 
   let program: TrainingProgram
   let workout: WorkoutTemplate
   let day: Int
   let onStartWorkout: () -> Void
+  var isActiveWorkout = false
   var isBrowsingProgram = false
   var requiresProgramUpdate = false
-  var weightUnit: WeightUnit = .kilograms
-  var previousPerformances: [String: WorkoutRepository.PreviousPerformance] = [:]
 
   var body: some View {
     ScrollView {
@@ -34,24 +32,15 @@ struct WorkoutTemplatePreviewScreen: View {
             sectionHeading
 
             ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-              VStack(alignment: .leading, spacing: 0) {
-                NavigationLink(value: OnboardingRoute.exerciseDetail(
-                  programID: program.id, workoutID: workout.id, exerciseID: exercise.id
-                )) {
-                  exerciseRow(exercise, order: index + 1)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-                .accessibilityHint("Opens exercise instructions, video, and performance.")
-                .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
-
-                Button("Warmup") { warmupExercise = exercise }
-                  .font(OneSetTypography.label)
-                  .foregroundStyle(OneSetColors.textPrimary)
-                  .frame(minHeight: 44)
-                  .accessibilityLabel("Warmup for \(exercise.name)")
-                  .accessibilityIdentifier("workoutPreview.warmup.\(exercise.id)")
+              NavigationLink(value: OnboardingRoute.exerciseDetail(
+                programID: program.id, workoutID: workout.id, exerciseID: exercise.id
+              )) {
+                exerciseRow(exercise, order: index + 1)
               }
+              .buttonStyle(.plain)
+              .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+              .accessibilityHint("Opens exercise instructions, video, and performance.")
+              .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
               .overlay(alignment: .bottom) {
                 Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
               }
@@ -65,10 +54,6 @@ struct WorkoutTemplatePreviewScreen: View {
         .frame(maxWidth: .infinity, alignment: .top)
       }
     }
-    .sheet(item: $warmupExercise) { exercise in
-      WarmupSheet(exercise: WorkoutSession.Exercise(slot: exercise, order: 0),
-        unit: weightUnit, previous: previousPerformances[exercise.id])
-    }
     .scrollIndicators(.hidden)
     .background(OneSetColors.background)
     .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -76,7 +61,7 @@ struct WorkoutTemplatePreviewScreen: View {
       Button {
         onStartWorkout()
       } label: {
-        Text("Start workout")
+        Text(isActiveWorkout ? "Resume workout" : "Start workout")
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)
           .frame(maxWidth: .infinity, minHeight: 52)
@@ -84,8 +69,8 @@ struct WorkoutTemplatePreviewScreen: View {
           .contentShape(RoundedRectangle(cornerRadius: 12))
       }
       .buttonStyle(.plain)
-      .disabled(requiresProgramUpdate)
-      .accessibilityHint(requiresProgramUpdate ? "Update your program before starting a workout." : "")
+      .disabled(requiresProgramUpdate && !isActiveWorkout)
+      .accessibilityHint(requiresProgramUpdate && !isActiveWorkout ? "Update your program before starting a workout." : "")
       .accessibilityIdentifier("workoutPreview.start")
       .frame(maxWidth: 720)
       .padding(.horizontal, 20)

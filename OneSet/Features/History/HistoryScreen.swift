@@ -239,7 +239,7 @@ private struct HistorySessionRow: View {
   }
 }
 
-private struct HistorySessionDetailScreen: View {
+struct HistorySessionDetailScreen: View {
   let session: WorkoutSession
   let programName: String
   let displayWeight: (WorkoutSession.SetEntry) -> String?

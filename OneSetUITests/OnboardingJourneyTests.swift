@@ -54,6 +54,20 @@ final class OnboardingJourneyTests: XCTestCase {
     wait(for: [changed], timeout: 5)
   }
 
+  func testPreviewResumesActiveWorkout() {
+    relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset"])
+    XCTAssertTrue(navigationBack().waitForExistence(timeout: 5))
+    navigationBack().tap()
+    let preview = app.buttons["overview.day.1.preview"]
+    XCTAssertTrue(preview.waitForExistence(timeout: 5))
+    preview.tap()
+    let action = app.buttons["workoutPreview.start"]
+    XCTAssertTrue(action.waitForExistence(timeout: 5))
+    XCTAssertEqual(action.label, "Resume workout")
+    action.tap()
+    XCTAssertTrue(app.buttons["recording.discard"].waitForExistence(timeout: 5))
+  }
+
   func testSwitchExplainsUnfinishedWorkoutAndReturnsToIt() {
     relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset"])
     XCTAssertTrue(navigationBack().waitForExistence(timeout: 5))
@@ -897,6 +911,13 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(previous.label.contains("Previous in this workout"))
     XCTAssertTrue(firstRecordingField(suffix: ".weight").value as? String == "-")
     attachScreenshot(named: "recording-previous-performance")
+    app.buttons["recording.exercise.machine-full-body-workout-a-hack-squat-machine.open"].tap()
+    let heaviest = app.staticTexts["exerciseDetail.heaviestWeightValue"]
+    XCTAssertTrue(heaviest.waitForExistence(timeout: 5))
+    XCTAssertTrue(heaviest.label.contains("100 lb"), heaviest.label)
+    app.buttons["exerciseDetail.historyTab"].tap()
+    XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "100 lb × 10 reps")).firstMatch.waitForExistence(timeout: 5))
+    attachScreenshot(named: "exercise-performance-recorded-history")
   }
 
   func testWorkoutStorageOpenFailureExplainsRecoveryAndOffersRetry() {

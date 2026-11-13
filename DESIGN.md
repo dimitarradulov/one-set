@@ -349,11 +349,11 @@ Retain the existing program cards and frequency-first ordering without changing 
 
 ### Workout preview
 
-Keep exercise order and rep targets easy to scan. Video availability, guidance, and warmups are supporting information. **Preview must look distinct from an active workout** so users do not mistake browsing for recording.
+Keep exercise order and rep targets easy to scan. Video availability and exercise guidance are supporting information. **Preview must look distinct from an active workout** so users do not mistake browsing for recording.
 
 Primary action: `Start workout`, shown as a full-width button pinned above the bottom safe area while preview content scrolls.
 
-Each exercise has a `Warmup` link opening its guidance and percentage ranges in a sheet. Label any previous working weight as a starting estimate; allow an optional planned weight to calculate loads. Without a previous weight, show percentages until a weight is entered. This guidance never logs warmup sets or changes working-set inputs.
+Workout previews do not show `Warmup` controls. After starting or resuming a session, each exercise has a `Warmup` link opening its guidance and percentage ranges in a sheet. Label any previous working weight as a starting estimate; allow an optional planned weight to calculate loads. Without a previous weight, show percentages until a weight is entered. This guidance never logs warmup sets or changes working-set inputs.
 
 #### Banner artwork
 
@@ -390,7 +390,7 @@ Approved through the exercise-screen prototype: Variant C, with heaviest weight 
 - Until videos are supplied, show a static “Exercise video coming soon” placeholder without an inactive play button.
 - Until recorded results are available, show empty values and “No recorded sets yet.” Prototype sample results are fictional and must not appear as personal performance in the app. Charts remain deferred.
 
-The estimated-max calculation and eligibility rules remain to be specified before real statistics are implemented.
+Estimate one-rep max with the Epley formula (weight × (1 + reps / 30)), using completed sets of 1–10 reps. Display the highest eligible estimate in the preferred weight unit.
 
 ### Active workout
 

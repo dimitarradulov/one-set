@@ -3,6 +3,8 @@ import SwiftUI
 struct ExerciseDetailRouteView: View {
   let workout: WorkoutTemplate
   let exerciseID: WorkoutExercise.ID
+  var model: OnboardingModel? = nil
+  var authentication: AuthenticationModel? = nil
   var initiallyExpanded = false
   var initiallyShowingHistory = false
 
@@ -12,7 +14,8 @@ struct ExerciseDetailRouteView: View {
         ExerciseDetailScreen(
           exercise: exercise,
           initiallyExpanded: initiallyExpanded,
-          initiallyShowingHistory: initiallyShowingHistory
+          initiallyShowingHistory: initiallyShowingHistory,
+          performance: authentication.flatMap { model?.exercisePerformance(for: exercise.exerciseKey, using: $0) }
         )
       } else {
         ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")

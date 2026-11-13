@@ -137,9 +137,7 @@ struct CompletedSetupTabsView: View {
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
         WorkoutTemplatePreviewScreen(program: program, workout: program.workouts[workoutIndex],
-          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true,
-          weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
-            for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id))
+          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true)
           .navigationTitle("Workout preview")
           .navigationBarTitleDisplayMode(.inline)
       } else {
@@ -162,11 +160,17 @@ struct CompletedSetupTabsView: View {
           day: workoutIndex + 1,
           onStartWorkout: {
             guard let accountID = authentication.signedInUser?.id else { return }
+            if let session = model.activeWorkoutSession, session.accountID == accountID,
+               session.programID == programID, session.workoutID == workoutID {
+              model.programPath.append(.workoutRecording(session.id))
+              return
+            }
             model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
           },
-          requiresProgramUpdate: model.requiresProgramUpdate,
-          weightUnit: model.weightUnit, previousPerformances: model.previousPerformances(
-            for: program.workouts[workoutIndex], programID: programID, accountID: authentication.signedInUser?.id)
+          isActiveWorkout: model.activeWorkoutSession.map {
+            $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
+          } ?? false,
+          requiresProgramUpdate: model.requiresProgramUpdate
         )
         .navigationTitle("Workout preview").navigationBarTitleDisplayMode(.inline)
       } else {
@@ -182,7 +186,7 @@ struct CompletedSetupTabsView: View {
       }
     case .recordingExerciseDetail(let sessionID, let slotID):
       if let session = model.activeWorkoutSession, session.id == sessionID {
-        RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+        RecordingExerciseDetailRouteView(session: session, slotID: slotID, model: model, authentication: authentication)
       } else {
         ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
       }
@@ -192,6 +196,7 @@ struct CompletedSetupTabsView: View {
         ExerciseDetailRouteView(
           workout: workout,
           exerciseID: exerciseID,
+          model: model, authentication: authentication,
           initiallyExpanded: guidanceExpanded,
           initiallyShowingHistory: initiallyShowingHistory
         )

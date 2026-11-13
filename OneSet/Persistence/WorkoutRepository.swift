@@ -680,6 +680,39 @@ extension WorkoutRepository {
     }
   }
 
+  /// Cache sessions without advancing the global history pagination cursor.
+  func cacheHistorySessions(_ sessions: [WorkoutSession], accountID: String) throws {
+    guard sessions.allSatisfy({ $0.accountID == accountID && $0.finishedAt != nil }) else {
+      throw HistoryDataError.accountUnavailable
+    }
+    try database.write { db in
+      let encoder = JSONEncoder()
+      for session in sessions {
+        if let existing = try String.fetchOne(db, sql: "SELECT account_id FROM workout_sessions WHERE id = ?",
+          arguments: [session.id.uuidString]) {
+          guard existing == accountID else { throw HistoryDataError.accountUnavailable }
+          // A pending local upload must never be replaced by a server snapshot.
+          try db.execute(sql: """
+            UPDATE workout_sessions SET payload = ?, finished_at = ?
+            WHERE id = ? AND account_id = ? AND NOT EXISTS (
+              SELECT 1 FROM completed_session_uploads
+              WHERE session_id = ? AND account_id = ? AND state = 'pending'
+            )
+            """, arguments: [try encoder.encode(session), session.finishedAt?.timeIntervalSince1970,
+                             session.id.uuidString, accountID, session.id.uuidString, accountID])
+          continue
+        }
+        try db.execute(sql: """
+          INSERT INTO workout_sessions
+            (id, account_id, cycle_id, program_id, week, workout_id, day, started_at, payload, finished_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """, arguments: [session.id.uuidString, accountID, session.cycleID.uuidString, session.programID,
+                           session.week, session.workoutID, session.day, session.startedAt.timeIntervalSince1970,
+                           try encoder.encode(session), session.finishedAt?.timeIntervalSince1970])
+      }
+    }
+  }
+
   func previousPerformance(accountID: String, exerciseKey: String, slotID: String,
                            programID: String, workoutID: String) throws -> PreviousPerformance? {
     let query = PreviousPerformanceRequest(slotID: slotID, exerciseKey: exerciseKey)

@@ -4,11 +4,13 @@ struct ExerciseDetailScreen: View {
   let exercise: WorkoutExercise
   var initiallyExpanded = false
   var initiallyShowingHistory = false
+  var performance: ExercisePerformanceModel?
 
   @State private var guidanceExpanded: Bool
 
-  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false) {
+  init(exercise: WorkoutExercise, initiallyExpanded: Bool = false, initiallyShowingHistory: Bool = false, performance: ExercisePerformanceModel? = nil) {
     self.exercise = exercise
+    self.performance = performance
     self.initiallyExpanded = initiallyExpanded
     self.initiallyShowingHistory = initiallyShowingHistory
     _guidanceExpanded = State(initialValue: initiallyExpanded)
@@ -62,7 +64,7 @@ struct ExerciseDetailScreen: View {
             .strokeBorder(OneSetColors.border, lineWidth: 1)
         }
 
-        ExercisePerformanceSection(initiallyShowingHistory: initiallyShowingHistory)
+        ExercisePerformanceSection(initiallyShowingHistory: initiallyShowingHistory, model: performance)
       }
       .frame(maxWidth: 720, alignment: .leading)
       .padding(.horizontal, 20)
