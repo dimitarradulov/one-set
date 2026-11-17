@@ -146,9 +146,13 @@ workouts:
       exercises: sourceExercises.exercises,
       programs: await Promise.all(sourcePrograms.map(async file => {
         const program = parse(await readFile(join(sourceDirectory, 'programs', file), 'utf8')) as {
-          workouts: Array<unknown>;
+          workouts: Array<{ removed?: boolean; exercises: Array<{ removed?: boolean; position: number }> }>;
         };
-        return { ...program, training_days_per_week: program.workouts.length };
+        const workouts = program.workouts.filter(workout => !workout.removed).map(workout => ({
+          ...workout, exercises: workout.exercises.filter(slot => !slot.removed)
+            .sort((first, second) => first.position - second.position),
+        }));
+        return { ...program, workouts, training_days_per_week: workouts.length };
       })),
     };
     assert.deepEqual(result.catalog, expectedCatalog);

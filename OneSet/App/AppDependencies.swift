@@ -74,7 +74,7 @@ struct AppDependencies {
       || arguments.contains("--ui-google-auth-error")
       || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
       || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
-      || arguments.contains("--ui-workout-banner-legacy")
+      || arguments.contains("--ui-workout-banner-legacy") || arguments.contains("--ui-workout-preview-superset")
       || sessionSignOutPreview
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
@@ -144,6 +144,19 @@ struct AppDependencies {
             guard workout.id == "upper-lower-lower-a" else { return workout }
             let banner = arguments.contains("--ui-workout-banner-legacy") ? nil : "future-theme-v2"
             return WorkoutTemplate(id: workout.id, name: workout.name, banner: banner, exercises: workout.exercises)
+          }
+          return TrainingProgram(
+            id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,
+            workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
+          )
+        }
+        if arguments.contains("--ui-workout-preview-superset"), program.id == "machine-full-body" {
+          let workouts = program.workouts.map { workout in
+            guard workout.id == "machine-full-body-workout-a", workout.exercises.count >= 2 else { return workout }
+            return WorkoutTemplate(
+              id: workout.id, name: workout.name, banner: workout.banner, exercises: workout.exercises,
+              supersets: [SupersetPair(firstSlotID: workout.exercises[0].id, secondSlotID: workout.exercises[1].id)]
+            )
           }
           return TrainingProgram(
             id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,

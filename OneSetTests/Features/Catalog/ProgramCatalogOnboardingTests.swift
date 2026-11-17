@@ -66,6 +66,49 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func publishedSupersetDecodesStableSlotsAndSurvivesCatalogCache() throws {
+    let document = try JSONDecoder.catalogDecoder.decode(CatalogDocument.self, from: Data("""
+    {
+      "exercises": [
+        {
+          "key": "squat", "name": "Squat", "instructions": "Lower with control.",
+          "stopping_guidance": "Stop when form changes.", "warmup_guidance": "Warm up.",
+          "rest_seconds": 150, "default_reps": { "minimum": 6, "maximum": 10 }
+        },
+        {
+          "key": "row", "name": "Row", "instructions": "Pull with control.",
+          "stopping_guidance": "Stop when form changes.", "warmup_guidance": "Warm up.",
+          "rest_seconds": 210, "default_reps": { "minimum": 8, "maximum": 12 }
+        }
+      ],
+      "programs": [{
+        "key": "paired-plan", "name": "Paired Plan", "recommended_weeks": 8,
+        "format": "A", "emphasis": "Test published supersets.",
+        "workouts": [{
+          "key": "paired-workout", "name": "Paired Workout",
+          "exercises": [
+            { "key": "slot-squat", "exercise": "squat", "reps": { "minimum": 6, "maximum": 10 } },
+            { "key": "slot-row", "exercise": "row", "reps": { "minimum": 8, "maximum": 12 } }
+          ],
+          "supersets": [{ "first_slot_id": "slot-squat", "second_slot_id": "slot-row" }]
+        }]
+      }]
+    }
+    """.utf8))
+    let exercises = Dictionary(uniqueKeysWithValues: document.exercises.map { ($0.key, $0) })
+    let program = try #require(document.programs.first).model(exercises: exercises)
+    let expectedPair = SupersetPair(firstSlotID: "slot-squat", secondSlotID: "slot-row")
+    #expect(program.workouts.first?.supersets == [expectedPair])
+    #expect(program.workouts.first?.exercises.map(\.exerciseKey) == ["squat", "row"])
+
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let persistence = FileProgramCatalogPersistence(fileURL: directory.appending(path: "catalog.json"))
+    try persistence.save(snapshot("paired-publication", "paired-tag", [program]))
+    #expect(try persistence.load()?.programs.first?.workouts.first?.supersets == [expectedPair])
+  }
+
+  @Test
   func backendPublicationSurvivesOfflineRestartAndRestoresSyntheticChanges() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }

@@ -61,7 +61,18 @@ struct CatalogProgramDocument: Decodable, Sendable {
           videoKey: exercise.videoKey
         )
       }
-      return WorkoutTemplate(id: workout.key, name: workout.name, banner: workout.banner, exercises: slots)
+      var pairedSlots = Set<String>()
+      for pair in workout.supersets ?? [] {
+        guard let first = slots.firstIndex(where: { $0.id == pair.firstSlotID }),
+              slots.indices.contains(first + 1), slots[first + 1].id == pair.secondSlotID,
+              pairedSlots.insert(pair.firstSlotID).inserted,
+              pairedSlots.insert(pair.secondSlotID).inserted else {
+          throw ProgramCatalogServiceError.invalidResponse
+        }
+      }
+      return WorkoutTemplate(
+        id: workout.key, name: workout.name, banner: workout.banner, exercises: slots, supersets: workout.supersets
+      )
     }
     guard (1...5).contains(visibleWorkouts.count) else {
       throw ProgramCatalogServiceError.invalidResponse

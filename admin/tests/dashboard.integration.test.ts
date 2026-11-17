@@ -886,6 +886,50 @@ test('real browser creates, edits, removes, and restores complete catalog struct
     await workoutCards.nth(1).locator('[data-slot-field="maximum"]').fill('13');
     await workoutCards.nth(1).getByLabel('Scope').selectOption('each_leg');
     await workoutCards.nth(1).getByRole('button', { name: 'Move workout up' }).click();
+    const pairingCard = workoutCards.first();
+    await pairingCard.getByRole('button', { name: 'Add exercise slot' }).click();
+    await pairingCard.getByRole('button', { name: 'Add exercise slot' }).click();
+    const pairRows = pairingCard.locator('.slot-list > .slot-row');
+    const pairOrder = await pairRows.evaluateAll(rows => rows.map(row => row.getAttribute('data-slot')));
+    const [firstPairID, secondPairID] = pairOrder;
+    const firstPairRow = pairingCard.locator(`.slot-list [data-slot="${firstPairID}"]`);
+    const secondPairRow = pairingCard.locator(`.slot-list [data-slot="${secondPairID}"]`);
+    const pairExercise = (await readCurrentSource()).source.exercises[1]!;
+    await secondPairRow.locator('[data-slot-field="exercise"]').selectOption(pairExercise.key);
+    const pairSecondKey = await pairRows.nth(1).getAttribute('data-slot');
+    const firstExerciseKey = await firstPairRow.locator('[data-slot-field="exercise"]').inputValue();
+    const firstExerciseName = (await readCurrentSource()).source.exercises.find(item => item.key === firstExerciseKey)!.name;
+    await firstPairRow.getByRole('button', { name: 'Superset with next exercise' }).click();
+    assert.equal(await pairingCard.locator('[data-superset-label]:visible').count(), 1);
+    assert.equal(await pairRows.nth(1).getByRole('button', { name: 'Move superset down' }).count(), 0);
+    await firstPairRow.getByRole('button', { name: 'Move superset down' }).click();
+    assert.deepEqual(await pairRows.evaluateAll(rows => rows.map(row => row.getAttribute('data-slot'))),
+      [pairOrder[2], firstPairID, pairSecondKey]);
+    await firstPairRow.getByRole('button', { name: 'Move superset up' }).click();
+    await firstPairRow.getByRole('button', { name: 'Unpair' }).click();
+    assert.equal(await pairingCard.locator('[data-superset-label]:visible').count(), 0);
+    await firstPairRow.getByRole('button', { name: 'Superset with next exercise' }).click();
+    await pairRows.nth(2).getByRole('button', { name: 'Move exercise up' }).click();
+    assert.deepEqual(await pairRows.evaluateAll(rows => rows.map(row => row.getAttribute('data-slot'))),
+      [pairOrder[2], firstPairID, pairSecondKey], 'a standalone row cannot split another pair');
+    await firstPairRow.getByRole('button', { name: 'Move superset up' }).click();
+    const unpairedOption = (await readCurrentSource()).source.exercises[2]!;
+    await pairRows.nth(1).locator('[data-slot-field="exercise"]').selectOption(unpairedOption.key);
+    assert.equal(await pairingCard.locator('[data-superset-label]:visible').count(), 0,
+      'selecting a different exercise dissolves the pair immediately');
+    await pairRows.nth(1).locator('[data-slot-field="exercise"]').selectOption(pairExercise.key);
+    assert.equal(await pairingCard.locator('[data-superset-label]:visible').count(), 0,
+      'restoring the exercise choice does not re-pair the row');
+    const finalSecondSlotKey = await pairRows.nth(1).getAttribute('data-slot');
+    await firstPairRow.getByRole('button', { name: 'Superset with next exercise' }).click();
+    const pairControlsFit = () => pairingCard.evaluate(card => card.scrollWidth === card.clientWidth);
+    assert.equal(await pairControlsFit(), true);
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-editor.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await pairControlsFit(), true);
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-editor-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1100 });
+
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-edit.png'), fullPage: true });
 
     await page.getByLabel('Program name').evaluate(input => input.removeAttribute('required'));
@@ -899,6 +943,9 @@ test('real browser creates, edits, removes, and restores complete catalog struct
     await page.getByRole('button', { name: 'Review complete program' }).click();
     await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
     await page.locator('.proposed-structure').getByText('Banner issue-62-banner').waitFor();
+    assert.match(await page.locator('.diff-list').innerText(), /add superset/i);
+    assert.ok((await page.locator('.diff-list').innerText()).includes(`${firstExerciseName} + ${pairExercise.name}`));
+    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-review.png'), fullPage: true });
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-review.png'), fullPage: true });
 
     await page.getByRole('button', { name: 'Back to editing' }).click();
@@ -918,11 +965,14 @@ test('real browser creates, edits, removes, and restores complete catalog struct
     assert.equal(created.workouts[0]!.banner, 'issue-62-banner');
     assert.equal(created.workouts[0]!.exercises[0]!.reps.minimum, 9);
     assert.equal(created.workouts[0]!.exercises[0]!.scope, 'each_leg');
+    const publishedPair = [{ first_slot_id: firstPairID, second_slot_id: finalSecondSlotKey }];
+    assert.deepEqual(created.workouts[0]!.supersets, publishedPair);
     const appCreated = (await readAppCatalog()).programs.find(program => program.key === created.key)!;
     assert.deepEqual(appCreated.workouts.map(workout => workout.position), [1, 2]);
     assert.equal(appCreated.workouts[0]!.banner, 'issue-62-banner');
     assert.equal(appCreated.workouts[0]!.exercises[0]!.reps.minimum, 9);
     assert.equal(appCreated.workouts[0]!.exercises[0]!.scope, 'each_leg');
+    assert.deepEqual(appCreated.workouts[0]!.supersets, publishedPair);
 
     await page.getByRole('link', { name: 'Return to catalog' }).click();
     await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
@@ -970,19 +1020,29 @@ test('real browser creates, edits, removes, and restores complete catalog struct
       await page.getByRole('button', { name: 'Edit details' }).nth(1).click();
       await page.getByLabel('Program name').waitFor();
     };
-    const reviewAndPublish = async (changeKind: string) => {
+    const reviewAndPublish = async (changeKind: string, extraReview?: string) => {
       await page.getByRole('button', { name: 'Review complete program' }).click();
       await page.getByRole('heading', { name: 'Review complete catalog changes' }).waitFor();
       assert.ok((await page.locator('.diff-list').innerText()).toLowerCase().includes(changeKind),
         `review should explicitly show ${changeKind}`);
+      if (extraReview) assert.ok((await page.locator('.diff-list').innerText()).includes(extraReview));
       if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, `issue-64-${changeKind.replaceAll(' ', '-')}-review.png`), fullPage: true });
       await page.getByRole('button', { name: 'Publish to development' }).click();
       await page.getByRole('heading', { name: 'Catalog published' }).waitFor();
     };
 
     await openEditor();
-    await page.locator('.workout-card').first().locator('.slot-list .slot-row').first().getByRole('button', { name: 'Remove slot' }).click();
-    await reviewAndPublish('remove exercise slot');
+    const activeWorkout = page.locator(`.workout-card[data-workout="${stableWorkoutKey}"]`);
+    const activeSlots = activeWorkout.locator('.slot-list .slot-row');
+    const stablePairNames = await activeSlots.evaluateAll(rows => rows.slice(0, 2).map(row =>
+      row.querySelector('select')!.selectedOptions[0]!.label.split(' · ')[0]).join(' + '));
+    await activeSlots.first().getByRole('button', { name: 'Superset with next exercise' }).click();
+    await reviewAndPublish('add superset', stablePairNames);
+
+    await openEditor();
+    await activeSlots.first().getByRole('button', { name: 'Remove slot' }).click();
+    assert.equal(await activeWorkout.locator('[data-superset-label]:visible').count(), 0);
+    await reviewAndPublish('unpair superset', stablePairNames);
     let retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
     assert.equal(retained.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === stableSlotKey)?.removed, true,
       'removing a slot retains its original stable identity');
@@ -993,6 +1053,9 @@ test('real browser creates, edits, removes, and restores complete catalog struct
     await openEditor();
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-64-retained-slot-restore-control.png'), fullPage: true });
     await page.locator(`.retained-slot-rows [data-slot="${stableSlotKey}"]`).getByRole('button', { name: 'Restore slot' }).click();
+    assert.equal(await activeWorkout.locator('[data-superset-label]:visible').count(), 0);
+    assert.equal(await activeSlots.nth((await activeSlots.count()) - 2)
+      .getByRole('button', { name: 'Superset with next exercise' }).isVisible(), true);
     await reviewAndPublish('restore exercise slot');
     retained = (await readCurrentSource()).source.programs.find(program => program.key === stableProgramKey)!;
     assert.equal(retained.workouts.flatMap(workout => workout.exercises).find(slot => slot.key === stableSlotKey)?.removed, undefined,
@@ -1289,7 +1352,7 @@ test('repository synchronization reports generation failure, partial completion,
   });
 
   const baseline = await readCurrentSource();
-  const founderToken = await token(founder, apiOrigin);
+  const founderToken = await token(founder, syncEnvironment.ACCESS_TEAM_DOMAIN);
   const candidateFields = form({ publication_fingerprint: baseline.source_fingerprint, name: 'Database live while export failed' });
   const review = await handleDashboardAction('review', await dashboardRequest('reviewProgram', candidateFields, founderToken),
     candidateFields, syncEnvironment, { keySource: accessKeySource });
