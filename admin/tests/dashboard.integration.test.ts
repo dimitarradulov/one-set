@@ -926,8 +926,12 @@ test('real browser creates, edits, removes, and restores complete catalog struct
     assert.equal(await pairControlsFit(), true);
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-editor.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.locator('.editor-layout').evaluate(layout => layout.scrollWidth === layout.clientWidth), true);
     assert.equal(await pairControlsFit(), true);
-    if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-editor-mobile.png'), fullPage: true });
+    if (outputDirectory) {
+      await firstPairRow.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: resolve(outputDirectory, 'issue-86-paired-editor-mobile.png') });
+    }
     await page.setViewportSize({ width: 1440, height: 1100 });
 
     if (outputDirectory) await page.screenshot({ path: resolve(outputDirectory, 'issue-62-browser-edit.png'), fullPage: true });
