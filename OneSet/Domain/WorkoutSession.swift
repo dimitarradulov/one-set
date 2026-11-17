@@ -17,7 +17,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
       self.recordedWeightUnit = recordedWeightUnit
     }
   }
-  struct Exercise: Codable, Hashable, Sendable {
+  struct Exercise: Codable, Hashable, Identifiable, Sendable {
+    var id: String { slotID }
     struct WarmupRange: Hashable, Sendable {
       let minimumLoad: Double
       let maximumLoad: Double
@@ -115,24 +116,117 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
   let resolvedProgramName: String?
   let startedAt: Date
   let weightUnit: WeightUnit
-  let exercises: [Exercise]
+  private(set) var exercises: [Exercise]
+  let supersets: [SupersetPair]
+  private(set) var originalExercises: [Exercise]?
+  private(set) var startingExerciseKeys: [String: String]?
+
+  var newSubstitutions: [Exercise] {
+    exercises.filter { exercise in
+      guard let startingKey = startingExerciseKeys?[exercise.slotID] else { return false }
+      return exercise.exerciseKey != startingKey
+    }
+  }
+
+  func prescribedExercise(for slotID: String) -> Exercise? {
+    (originalExercises ?? exercises).first { $0.slotID == slotID }
+  }
+
+  mutating func applyRememberedExercises(_ keys: [String: String], library: [String: WorkoutExercise]) {
+    let prescribed = exercises
+    for exercise in prescribed {
+      guard let key = keys[exercise.slotID], let replacement = library[key] else { continue }
+      replaceExercise(slotID: exercise.slotID, with: replacement)
+    }
+    if originalExercises != nil { startingExerciseKeys = exerciseKeysBySlot }
+  }
+
+  private var exerciseKeysBySlot: [String: String] {
+    Dictionary(uniqueKeysWithValues: exercises.map { ($0.slotID, $0.exerciseKey) })
+  }
+
+  mutating func replaceExercise(slotID: String, with replacement: WorkoutExercise) {
+    guard setEntries[slotID]?.completedAt == nil,
+          let index = exercises.firstIndex(where: { $0.slotID == slotID }),
+          exercises[index].exerciseKey != replacement.exerciseKey else { return }
+    if originalExercises == nil {
+      originalExercises = exercises
+      startingExerciseKeys = exerciseKeysBySlot
+    }
+    let order = exercises[index].order
+    if let prescribed = prescribedExercise(for: slotID), prescribed.exerciseKey == replacement.exerciseKey {
+      exercises[index] = prescribed
+    } else {
+      exercises[index] = Exercise(
+        slotID: slotID, exerciseKey: replacement.exerciseKey, name: replacement.name, order: order,
+        repTarget: replacement.defaultRepTarget ?? replacement.repTarget, instructions: replacement.instructions,
+        stoppingGuidance: replacement.stoppingGuidance, warmupGuidance: replacement.warmupGuidance,
+        restSeconds: replacement.restSeconds, videoKey: replacement.videoKey
+      )
+    }
+    setEntries[slotID] = nil
+  }
   var setEntries: [String: SetEntry]
   var restDeadline: Date?
   var finishedAt: Date?
   var note: String?
   let requiredWorkoutIDs: [String]
 
-  var restSlotID: String? {
-    guard exercises.contains(where: { setEntries[$0.slotID]?.completedAt == nil }) else {
-      return nil
+  private(set) var restSlotID: String?
+
+  mutating func startRest(after slotID: String, seconds: Int, at date: Date) {
+    restSlotID = slotID
+    restDeadline = date.addingTimeInterval(TimeInterval(seconds))
+  }
+
+  mutating func clearRest() {
+    restSlotID = nil
+    restDeadline = nil
+  }
+
+  mutating func updateRest(afterCompleting slotID: String, standaloneSeconds: Int?, at date: Date) {
+    let pair = supersets.first { $0.contains(slotID: slotID) }
+    if let pair,
+       setEntries[pair.firstSlotID]?.completedAt == nil || setEntries[pair.secondSlotID]?.completedAt == nil {
+      return
     }
-    let latestCompleted = exercises
-      .filter { setEntries[$0.slotID]?.completedAt != nil }
+    guard let pair else {
+      restDeadline = standaloneSeconds.map { date.addingTimeInterval(TimeInterval($0)) }
+      restSlotID = restDeadline != nil && slotID != exercises.last?.slotID
+        && exercises.contains(where: { setEntries[$0.slotID]?.completedAt == nil }) ? slotID : nil
+      return
+    }
+    guard pair.secondSlotID != exercises.last?.slotID,
+          exercises.contains(where: { setEntries[$0.slotID]?.completedAt == nil }) else {
+      clearRest()
+      return
+    }
+    startRest(after: pair.secondSlotID, seconds: 180, at: date)
+  }
+
+  mutating func updateRest(afterUndoing slotID: String) {
+    if supersets.contains(where: {
+      $0.secondSlotID == restSlotID && $0.contains(slotID: slotID)
+    }) {
+      clearRest()
+    } else if restDeadline != nil && (restSlotID == slotID || restSlotID == nil) {
+      restSlotID = latestStandaloneRestAnchor
+    }
+  }
+
+  private var latestStandaloneRestAnchor: String? {
+    guard exercises.contains(where: { setEntries[$0.slotID]?.completedAt == nil }) else { return nil }
+    let latest = exercises
+      .filter { exercise in
+        setEntries[exercise.slotID]?.completedAt != nil && !supersets.contains {
+          $0.contains(slotID: exercise.slotID)
+        }
+      }
       .max {
         (setEntries[$0.slotID]?.completedAt ?? .distantPast)
           < (setEntries[$1.slotID]?.completedAt ?? .distantPast)
       }?.slotID
-    return latestCompleted == exercises.last?.slotID ? nil : latestCompleted
+    return latest == exercises.last?.slotID ? nil : latest
   }
 
   init(accountID: String, cycleID: UUID, program: TrainingProgram, workout: WorkoutTemplate,
@@ -150,6 +244,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     self.startedAt = startedAt
     self.weightUnit = weightUnit
     exercises = workout.exercises.enumerated().map { Exercise(slot: $0.element, order: $0.offset) }
+    supersets = workout.supersets ?? []
     setEntries = [:]
     restDeadline = nil
     finishedAt = nil
@@ -172,7 +267,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     note: String?,
     exercises: [Exercise],
     setEntries: [String: SetEntry],
-    weightUnit: WeightUnit
+    weightUnit: WeightUnit,
+    supersets: [SupersetPair] = []
   ) {
     self.id = id
     self.accountID = accountID
@@ -187,6 +283,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     self.startedAt = startedAt
     self.weightUnit = weightUnit
     self.exercises = exercises
+    self.supersets = supersets
     self.setEntries = setEntries
     restDeadline = nil
     self.finishedAt = finishedAt
@@ -197,7 +294,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
   private enum CodingKeys: String, CodingKey {
     case id, accountID, cycleID, programID, week, workoutID, day, historicalDayNumber
     case workoutName, resolvedProgramName, startedAt
-    case weightUnit, exercises, setEntries, restDeadline, finishedAt, note, requiredWorkoutIDs
+    case originalExercises, startingExerciseKeys
+    case weightUnit, exercises, supersets, setEntries, restDeadline, restSlotID, finishedAt, note, requiredWorkoutIDs
   }
 
   init(from decoder: Decoder) throws {
@@ -216,10 +314,15 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     startedAt = try values.decode(Date.self, forKey: .startedAt)
     weightUnit = try values.decodeIfPresent(WeightUnit.self, forKey: .weightUnit) ?? .kilograms
     exercises = try values.decode([Exercise].self, forKey: .exercises)
+    supersets = try values.decodeIfPresent([SupersetPair].self, forKey: .supersets) ?? []
+    originalExercises = try values.decodeIfPresent([Exercise].self, forKey: .originalExercises)
+    startingExerciseKeys = try values.decodeIfPresent([String: String].self, forKey: .startingExerciseKeys)
     setEntries = try values.decodeIfPresent([String: SetEntry].self, forKey: .setEntries) ?? [:]
     restDeadline = try values.decodeIfPresent(Date.self, forKey: .restDeadline)
     finishedAt = try values.decodeIfPresent(Date.self, forKey: .finishedAt)
     note = try values.decodeIfPresent(String.self, forKey: .note)
     requiredWorkoutIDs = try values.decodeIfPresent([String].self, forKey: .requiredWorkoutIDs) ?? [workoutID]
+    restSlotID = try values.decodeIfPresent(String.self, forKey: .restSlotID)
+    if restSlotID == nil, restDeadline != nil { restSlotID = latestStandaloneRestAnchor }
   }
 }

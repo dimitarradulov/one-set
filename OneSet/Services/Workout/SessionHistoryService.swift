@@ -64,6 +64,10 @@ struct HTTPSessionHistoryService: SessionHistoryService {
       throw SessionHistoryServiceError.unavailable
     }
 
+    return try Self.decodePage(data, accountID: user.id)
+  }
+
+  static func decodePage(_ data: Data, accountID: String) throws -> SessionHistoryPage {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .custom { decoder in
       let value = try decoder.singleValueContainer().decode(String.self)
@@ -84,7 +88,7 @@ struct HTTPSessionHistoryService: SessionHistoryService {
     guard responseBody.hasMore == (responseBody.nextCursor != nil) else {
       throw SessionHistoryServiceError.invalidResponse
     }
-    let sessions = try responseBody.sessions.map { try $0.workoutSession(accountID: user.id) }
+    let sessions = try responseBody.sessions.map { try $0.workoutSession(accountID: accountID) }
     return SessionHistoryPage(
       sessions: sessions, nextCursor: responseBody.nextCursor, hasMore: responseBody.hasMore
     )
@@ -137,7 +141,8 @@ private struct RemoteSession: Decodable {
       throw SessionHistoryServiceError.invalidResponse
     }
     let orderedSets = sets.sorted { $0.position < $1.position }
-    guard orderedSets.enumerated().allSatisfy({ index, set in
+    guard Set(orderedSets.map(\.workoutExerciseKey)).count == orderedSets.count,
+          orderedSets.enumerated().allSatisfy({ index, set in
       set.position == index + 1 && WeightUnit(rawValue: set.unit) != nil
         && (set.completedAt == nil ? set.weight == nil && set.reps == nil
           : set.weight != nil && set.reps.map { $0 > 0 } == true)
@@ -191,8 +196,24 @@ private struct RemoteSession: Decodable {
       note: note,
       exercises: exercises,
       setEntries: entries,
-      weightUnit: weightUnit
+      weightUnit: weightUnit,
+      supersets: try capturedSupersets(in: orderedSets)
     )
+  }
+
+  private func capturedSupersets(in orderedSets: [RemoteSet]) throws -> [SupersetPair] {
+    var pairs: [SupersetPair] = []
+    for (index, set) in orderedSets.enumerated() {
+      guard let nextSlot = set.prescription.supersetNextSlotKey else { continue }
+      guard orderedSets.indices.contains(index + 1),
+            orderedSets[index + 1].workoutExerciseKey == nextSlot,
+            nextSlot != set.workoutExerciseKey,
+            orderedSets[index + 1].prescription.supersetNextSlotKey == nil else {
+        throw SessionHistoryServiceError.invalidResponse
+      }
+      pairs.append(SupersetPair(firstSlotID: set.workoutExerciseKey, secondSlotID: nextSlot))
+    }
+    return pairs
   }
 }
 
@@ -223,6 +244,7 @@ private struct RemoteSet: Decodable {
     let repsMax: Int
     let repScope: String
     let restSeconds: Int?
+    let supersetNextSlotKey: String?
 
     enum CodingKeys: String, CodingKey {
       case name, instructions
@@ -233,6 +255,7 @@ private struct RemoteSet: Decodable {
       case repsMax = "reps_max"
       case repScope = "rep_scope"
       case restSeconds = "rest_seconds"
+      case supersetNextSlotKey = "superset_next_slot_key"
     }
 
     var repScopeValue: RepTarget.Scope? {

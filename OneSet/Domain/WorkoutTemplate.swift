@@ -3,12 +3,17 @@ struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
   let name: String
   let banner: String?
   let exercises: [WorkoutExercise]
+  let supersets: [SupersetPair]?
 
-  init(id: String? = nil, name: String, banner: String? = nil, exercises: [WorkoutExercise]) {
+  init(
+    id: String? = nil, name: String, banner: String? = nil,
+    exercises: [WorkoutExercise], supersets: [SupersetPair]? = nil
+  ) {
     self.id = id ?? name
     self.name = name
     self.banner = banner
     self.exercises = exercises
+    self.supersets = supersets
   }
 
   var movements: [String] {
@@ -58,6 +63,17 @@ struct WorkoutExercise: Codable, Hashable, Identifiable, Sendable {
     self.restSeconds = restSeconds
     self.defaultRepTarget = defaultRepTarget
     self.videoKey = videoKey
+  }
+
+  func replacementOption(authoredScope: RepTarget.Scope?) -> Self {
+    let defaults = defaultRepTarget ?? repTarget
+    let scope = authoredScope ?? defaults.scope
+    let target = RepTarget(minimum: defaults.minimum, maximum: defaults.maximum, scope: scope)
+    return Self(
+      id: id, exerciseKey: exerciseKey, name: name, repTarget: target,
+      instructions: instructions, stoppingGuidance: stoppingGuidance, warmupGuidance: warmupGuidance,
+      restSeconds: restSeconds, defaultRepTarget: target, videoKey: videoKey
+    )
   }
 }
 

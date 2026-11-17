@@ -53,6 +53,66 @@ struct HistoryModelTests {
   }
 
   @Test
+  func restoresCapturedPartialSupersetAndSubstitutedResultFromUploadSnapshot() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "source.sqlite"))
+    let pair = SupersetPair(firstSlotID: "slot-row", secondSlotID: "slot-press")
+    let workout = WorkoutTemplate(id: "captured-day", name: "Captured Day", exercises: [
+      WorkoutExercise(id: pair.firstSlotID, exerciseKey: "replacement-row", name: "Replacement Row",
+        repTarget: RepTarget(minimum: 8, maximum: 12)),
+      WorkoutExercise(id: pair.secondSlotID, exerciseKey: "press", name: "Captured Press",
+        repTarget: RepTarget(minimum: 8, maximum: 12)),
+    ], supersets: [pair])
+    let program = TrainingProgram(id: "old-program", name: "Old Program", format: "A",
+      emphasis: "Strength", workouts: [workout])
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    let session = WorkoutSession(accountID: "history-account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: start)
+    _ = try repository.start(session)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: pair.firstSlotID, weightInput: "100", repsInput: "8")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID,
+      slotID: pair.firstSlotID, at: start.addingTimeInterval(60))
+    _ = try repository.finish(sessionID: session.id, accountID: session.accountID,
+      note: nil, at: start.addingTimeInterval(120))
+
+    let upload = try #require(repository.pendingSessionUploads(accountID: session.accountID).first)
+    var snapshot = try #require(JSONSerialization.jsonObject(with: upload.body) as? [String: Any])
+    var sets = try #require(snapshot["sets"] as? [[String: Any]])
+    var firstPrescription = try #require(sets[0]["prescription"] as? [String: Any])
+    #expect(firstPrescription["superset_next_slot_key"] as? String == pair.secondSlotID)
+    let secondPrescription = try #require(sets[1]["prescription"] as? [String: Any])
+    #expect(secondPrescription["superset_next_slot_key"] == nil)
+
+    // History returns weights as decimal strings and includes the current program display name.
+    snapshot["program_name"] = "Renamed Program"
+    sets[0]["weight"] = "100.000"
+    snapshot["sets"] = sets
+    let page = try decodeHistorySnapshot(snapshot, accountID: session.accountID)
+    let restoredRepository = try WorkoutRepository(databaseURL: directory.appending(path: "restored.sqlite"))
+    try restoredRepository.saveHistoryPage(page, accountID: session.accountID)
+    let restored = try #require(restoredRepository.completedSessions(accountID: session.accountID).first)
+    #expect(restored.supersets == [pair])
+    #expect(restored.exercises[0].name == "Replacement Row")
+    #expect(restored.exercises[0].exerciseKey == "replacement-row")
+    #expect(restored.setEntries[pair.firstSlotID]?.repsInput == "8")
+    #expect(restored.setEntries[pair.secondSlotID]?.completedAt == nil)
+
+    firstPrescription["superset_next_slot_key"] = nil
+    sets[0]["prescription"] = firstPrescription
+    snapshot["sets"] = sets
+    #expect(try decodeHistorySnapshot(snapshot, accountID: session.accountID).sessions.first?.supersets == [])
+  }
+
+  private func decodeHistorySnapshot(_ snapshot: [String: Any], accountID: String) throws -> SessionHistoryPage {
+    let response = try JSONSerialization.data(withJSONObject: [
+      "sessions": [snapshot], "next_cursor": NSNull(), "has_more": false,
+    ])
+    return try HTTPSessionHistoryService.decodePage(response, accountID: accountID)
+  }
+
+  @Test
   func localReadFailureIsNotReportedAsAnEmptyHistory() async {
     let model = HistoryModel(
       accountID: "account",

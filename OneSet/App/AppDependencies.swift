@@ -74,7 +74,7 @@ struct AppDependencies {
       || arguments.contains("--ui-google-auth-error")
       || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
       || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
-      || arguments.contains("--ui-workout-banner-legacy")
+      || arguments.contains("--ui-workout-banner-legacy") || arguments.contains("--ui-workout-preview-superset")
       || sessionSignOutPreview
     let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
     if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
@@ -150,6 +150,20 @@ struct AppDependencies {
             workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
           )
         }
+        if program.id == "machine-full-body",
+           arguments.contains("--ui-workout-preview-superset") || arguments.contains("--ui-main-workout-superset") {
+          let workouts = program.workouts.map { workout in
+            guard workout.id == "machine-full-body-workout-a", workout.exercises.count >= 2 else { return workout }
+            return WorkoutTemplate(
+              id: workout.id, name: workout.name, banner: workout.banner, exercises: workout.exercises,
+              supersets: [SupersetPair(firstSlotID: workout.exercises[0].id, secondSlotID: workout.exercises[1].id)]
+            )
+          }
+          return TrainingProgram(
+            id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,
+            workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
+          )
+        }
         guard removedProgramPreview, program.id == "machine-full-body" else { return program }
         return TrainingProgram(
           id: program.id, name: program.name,
@@ -171,6 +185,7 @@ struct AppDependencies {
       return AppDependencies(
         catalog: ProgramCatalog(
           programs: bundledPrograms,
+          bundledExercises: ProgramCatalog.unassignedBundledExercises,
           service: catalogService,
           persistence: catalogSeed || arguments.contains("--ui-catalog-offline")
             ? FileProgramCatalogPersistence(fileURL: catalogURL) : nil
@@ -260,6 +275,7 @@ struct AppDependencies {
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
+      bundledExercises: ProgramCatalog.unassignedBundledExercises,
       service: HTTPProgramCatalogService(authentication: authentication),
       persistence: FileProgramCatalogPersistence(
         fileURL: catalogDirectory.appending(path: "published-catalog.json")
@@ -313,7 +329,7 @@ struct AppDependencies {
   private static func seedHistoryPreviewSessions(in repository: WorkoutRepository) throws {
     guard try repository.completedSessions(accountID: "preview-user").isEmpty,
           let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
-          let workout = program.workouts.first else { return }
+          let workout = program.workouts.first, workout.exercises.count >= 2 else { return }
     let samples: [(String, UUID, Date, Bool)] = [
       ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
        ISO8601DateFormatter().date(from: "2026-10-18T10:00:00Z")!, false),
@@ -321,8 +337,10 @@ struct AppDependencies {
        ISO8601DateFormatter().date(from: "2026-10-29T18:30:00Z")!, true),
     ]
     for (_, sessionID, startedAt, partial) in samples {
+      let capturedWorkout = partial ? WorkoutTemplate(id: workout.id, name: workout.name, exercises: workout.exercises,
+        supersets: [SupersetPair(firstSlotID: workout.exercises[0].id, secondSlotID: workout.exercises[1].id)]) : workout
       let session = WorkoutSession(
-        accountID: "preview-user", cycleID: UUID(), program: program, workout: workout,
+        accountID: "preview-user", cycleID: UUID(), program: program, workout: capturedWorkout,
         week: 1, day: 1, weightUnit: .pounds, startedAt: startedAt, id: sessionID
       )
       _ = try repository.start(session)
