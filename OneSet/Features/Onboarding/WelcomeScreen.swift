@@ -95,6 +95,13 @@ struct WelcomeScreen: View {
               .padding(.horizontal, 8)
               .disabled(isAuthenticating)
 
+              Text("Returning? Sign in to the account that holds your workout history. Different addresses can have separate histories.")
+                .font(OneSetTypography.caption)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("welcome.accountHelp")
+
               if isAuthenticating {
                 ProgressView("Signing in…")
                   .font(OneSetTypography.caption)

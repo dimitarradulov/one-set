@@ -1124,8 +1124,8 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.staticTexts["settings.section.account"].exists)
     let expectedRowOrder = [
       "settings.row.units", "settings.row.trainingFrequency", "settings.row.restAlerts",
-      "settings.row.downloadedVideos", "settings.row.subscription", "settings.row.accountDeletion",
-      "account.signOut",
+      "settings.row.downloadedVideos", "account.signOut", "settings.row.subscription",
+      "settings.row.accountDeletion",
     ]
     XCTAssertEqual(
       app.buttons.allElementsBoundByIndex
