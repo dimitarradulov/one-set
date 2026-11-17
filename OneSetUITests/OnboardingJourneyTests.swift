@@ -1119,13 +1119,15 @@ final class OnboardingJourneyTests: XCTestCase {
 
     mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
+    XCTAssertTrue(app.staticTexts["settings.account.email"].label.contains("existing@example.com"))
+    XCTAssertTrue(app.staticTexts["settings.account.historyHelp"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.training"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.downloads"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.account"].exists)
     let expectedRowOrder = [
       "settings.row.units", "settings.row.trainingFrequency", "settings.row.restAlerts",
-      "settings.row.downloadedVideos", "settings.row.subscription", "settings.row.accountDeletion",
-      "account.signOut",
+      "settings.row.downloadedVideos", "account.signOut", "settings.row.subscription",
+      "settings.row.accountDeletion",
     ]
     XCTAssertEqual(
       app.buttons.allElementsBoundByIndex
