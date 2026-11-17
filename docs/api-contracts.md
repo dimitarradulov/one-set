@@ -71,6 +71,8 @@ The app fetches discovered cycle summaries independently of History, validates e
 
 The body contains `session_id`, `cycle_id`, `program_key`, `workout_key`, `week_number`, optional positive `day_number` (nullable for sessions uploaded by older clients), `workout_name`, `started_at`, `completed_at`, nullable `note`, and an ordered `sets` array. Every captured slot appears once with `position` equal to its one-based array index. A completed slot has `weight`, entered `unit`, `reps`, and `completed_at`; an unperformed slot sends null for weight, reps, and set completion time. Each row also contains `workout_exercise_key`, actual `exercise_key`, and a `prescription` with captured `name`, `instructions`, `stopping_guidance`, `warmup_guidance`, nullable `video_key`, `reps_min`, `reps_max`, `rep_scope`, and nullable `rest_seconds`. Nullable fields must be present with explicit JSON `null`; omission is invalid. `warmup_guidance` contains `steps` and `note`. Rest countdown state and uncompleted draft strings stay on the device.
 
+A captured superset adds `superset_next_slot_key` to the first member’s `prescription`. The key must identify the immediately following captured slot. The second member omits the field, and each slot can participate in only one pair. Unpaired slots and older clients omit the field. History returns the captured marker even after the current catalog changes.
+
 For example, a completed row with no video key or customized rest still includes those keys:
 
 ```json

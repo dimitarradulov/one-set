@@ -329,7 +329,7 @@ struct AppDependencies {
   private static func seedHistoryPreviewSessions(in repository: WorkoutRepository) throws {
     guard try repository.completedSessions(accountID: "preview-user").isEmpty,
           let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
-          let workout = program.workouts.first else { return }
+          let workout = program.workouts.first, workout.exercises.count >= 2 else { return }
     let samples: [(String, UUID, Date, Bool)] = [
       ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
        ISO8601DateFormatter().date(from: "2026-10-18T10:00:00Z")!, false),
@@ -337,8 +337,10 @@ struct AppDependencies {
        ISO8601DateFormatter().date(from: "2026-10-29T18:30:00Z")!, true),
     ]
     for (_, sessionID, startedAt, partial) in samples {
+      let capturedWorkout = partial ? WorkoutTemplate(id: workout.id, name: workout.name, exercises: workout.exercises,
+        supersets: [SupersetPair(firstSlotID: workout.exercises[0].id, secondSlotID: workout.exercises[1].id)]) : workout
       let session = WorkoutSession(
-        accountID: "preview-user", cycleID: UUID(), program: program, workout: workout,
+        accountID: "preview-user", cycleID: UUID(), program: program, workout: capturedWorkout,
         week: 1, day: 1, weightUnit: .pounds, startedAt: startedAt, id: sessionID
       )
       _ = try repository.start(session)

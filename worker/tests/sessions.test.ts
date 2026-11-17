@@ -5,6 +5,8 @@ import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { handleCompletedSessionRequest, type SessionDatabase } from '../src/sessions.ts';
 import { handleSetupRequest } from '../src/setup.ts';
+import { handleHistoryRequest } from '../src/history.ts';
+
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -457,4 +459,56 @@ test('week-nine sessions persist and an old retry cannot rewind later progress',
       (SELECT current_training_week FROM user_programs WHERE id = $2) AS current_training_week`,
   [weekNineDayA.session_id, cycleID]);
   assert.deepEqual(retriedState, [{ session_count: 1, occurrence_marks: 1, current_training_week: 10 }]);
+});
+
+test('captured partial supersets round-trip with actual exercise and acknowledge retries', async () => {
+  const bearer = await token();
+  const body = sessionBody({
+    session_id: '45454545-4545-4545-8545-454545454545',
+    week_number: 15,
+    sets: sessionBody().sets.map((set, index) => index === 0 ? {
+      ...set, exercise_key: 'row-c',
+      prescription: { ...set.prescription, superset_next_slot_key: 'slot-b' },
+    } : set),
+  });
+  const saved = await handleCompletedSessionRequest(request(bearer, body), env, database);
+  assert.equal(saved.status, 201, await saved.text());
+  // Publication retires removed slots by clearing their active position.
+  await engine.exec('UPDATE workout_exercises SET position = NULL WHERE id = 101');
+  try {
+    const retry = await handleCompletedSessionRequest(request(bearer, body), env, database);
+    assert.equal(retry.status, 200);
+    const history = await handleHistoryRequest(new Request('https://api.oneset.test/v1/sessions', {
+      headers: { Authorization: `Bearer ${bearer}` },
+    }), env, database);
+    assert.equal(history.status, 200);
+    const { sessions } = await history.json() as { sessions: Array<{session_id: string; sets: typeof body.sets}> };
+    const restored = sessions.find(session => session.session_id === body.session_id);
+    assert.equal(restored?.sets[0]?.exercise_key, 'row-c');
+    assert.deepEqual(restored?.sets[0]?.prescription, {
+      ...sessionBody().sets[0]?.prescription, superset_next_slot_key: 'slot-b',
+    });
+    assert.equal(restored?.sets[0]?.reps, 10);
+    assert.equal(restored?.sets[1]?.completed_at, null);
+  } finally {
+    await engine.exec('UPDATE workout_exercises SET position = 2 WHERE id = 101');
+  }
+});
+
+test('captured supersets reject slot references that are self, missing, reversed, or overlapping', async () => {
+  const bearer = await token();
+  const base = sessionBody().sets;
+  const third = { ...base[1], workout_exercise_key: 'slot-c', position: 3 };
+  const cases = [['slot-a'], ['missing-slot'], ['slot-c'], [undefined, 'slot-a'], ['slot-b', 'slot-c']];
+  for (const targets of cases) {
+    const body = sessionBody({
+      sets: [...base, third].map((set, index) => ({ ...set, prescription: {
+        ...set.prescription, superset_next_slot_key: targets[index],
+      } })),
+    });
+    const response = await handleCompletedSessionRequest(request(bearer, body), env, {
+      query: async () => { assert.fail('Malformed capture must be rejected before SQL'); },
+    });
+    assert.equal(response.status, 400);
+  }
 });

@@ -1202,6 +1202,7 @@ final class OnboardingJourneyTests: XCTestCase {
     ).count, 2)
 
     relaunch(with: ["--ui-history-partial-detail"])
+    XCTAssertEqual(app.staticTexts.matching(identifier: "Superset").count, 1)
     XCTAssertTrue(app.descendants(matching: .any).matching(
       NSPredicate(format: "label CONTAINS %@", "Not performed")
     ).firstMatch.exists)
