@@ -2037,5 +2037,8 @@ extension ProgramCatalog {
             )
         ], recommendedWeeks: 8, isOffered: true
       )
-  ]) }
+  ], bundledExercises: unassignedBundledExercises) }
+
+  static let unassignedBundledExercises: [WorkoutExercise] = [
+  ]
 }

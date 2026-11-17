@@ -369,7 +369,10 @@ extension ProgramCatalogOnboardingTests {
     _ entityTag: String,
     _ programs: [TrainingProgram]
   ) -> PublishedProgramCatalogSnapshot {
-    PublishedProgramCatalogSnapshot(publicationID: publicationID, entityTag: entityTag, programs: programs)
+    PublishedProgramCatalogSnapshot(
+      publicationID: publicationID, entityTag: entityTag, programs: programs,
+      exerciseLibrary: programs.flatMap { $0.workouts.flatMap(\.exercises) }
+    )
   }
 
   func program(id: String, name: String, banner: String? = nil) -> TrainingProgram {

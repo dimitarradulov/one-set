@@ -48,7 +48,8 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
       throw ProgramCatalogServiceError.invalidResponse
     }
     return .snapshot(PublishedProgramCatalogSnapshot(
-      publicationID: publicationID, entityTag: entityTag, programs: programs
+      publicationID: publicationID, entityTag: entityTag, programs: programs,
+      exerciseLibrary: try document.exercises.map { try $0.model() }
     ))
   }
 }

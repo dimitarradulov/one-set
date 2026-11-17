@@ -150,7 +150,8 @@ struct AppDependencies {
             workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
           )
         }
-        if arguments.contains("--ui-workout-preview-superset"), program.id == "machine-full-body" {
+        if (arguments.contains("--ui-workout-preview-superset") || arguments.contains("--ui-main-workout-superset")),
+           program.id == "machine-full-body" {
           let workouts = program.workouts.map { workout in
             guard workout.id == "machine-full-body-workout-a", workout.exercises.count >= 2 else { return workout }
             return WorkoutTemplate(
@@ -184,6 +185,7 @@ struct AppDependencies {
       return AppDependencies(
         catalog: ProgramCatalog(
           programs: bundledPrograms,
+          bundledExercises: ProgramCatalog.unassignedBundledExercises,
           service: catalogService,
           persistence: catalogSeed || arguments.contains("--ui-catalog-offline")
             ? FileProgramCatalogPersistence(fileURL: catalogURL) : nil
@@ -273,6 +275,7 @@ struct AppDependencies {
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
+      bundledExercises: ProgramCatalog.unassignedBundledExercises,
       service: HTTPProgramCatalogService(authentication: authentication),
       persistence: FileProgramCatalogPersistence(
         fileURL: catalogDirectory.appending(path: "published-catalog.json")

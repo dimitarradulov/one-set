@@ -23,18 +23,7 @@ struct CatalogProgramDocument: Decodable, Sendable {
         throw ProgramCatalogServiceError.invalidResponse
       }
       let slots = try workout.exercises.filter { $0.removed != true }.map { slot in
-        guard CatalogValueValidation.isStableKey(slot.key), let exercise = exercises[slot.exercise],
-              CatalogValueValidation.isStableKey(exercise.key),
-              !exercise.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.stoppingGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.warmupGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              exercise.restSeconds > 0,
-              exercise.videoKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != true,
-              CatalogValueValidation.isValidRepRange(
-                minimum: exercise.defaultReps.minimum, maximum: exercise.defaultReps.maximum
-              ),
-              CatalogValueValidation.isValidRepRange(minimum: slot.reps.minimum, maximum: slot.reps.maximum) else {
+        guard CatalogValueValidation.isStableKey(slot.key), let exercise = exercises[slot.exercise] else {
           throw ProgramCatalogServiceError.invalidResponse
         }
         let scope: RepTarget.Scope
@@ -44,22 +33,10 @@ struct CatalogProgramDocument: Decodable, Sendable {
         case "each_side": scope = .eachSide
         default: throw ProgramCatalogServiceError.invalidResponse
         }
-        guard let target = RepTarget(validating: slot.reps, scope: scope),
-              let defaultTarget = RepTarget(validating: exercise.defaultReps) else {
+        guard let target = RepTarget(validating: slot.reps, scope: scope) else {
           throw ProgramCatalogServiceError.invalidResponse
         }
-        return WorkoutExercise(
-          id: slot.key,
-          exerciseKey: exercise.key,
-          name: exercise.name,
-          repTarget: target,
-          instructions: exercise.instructions,
-          stoppingGuidance: exercise.stoppingGuidance,
-          warmupGuidance: exercise.warmupGuidance,
-          restSeconds: exercise.restSeconds,
-          defaultRepTarget: defaultTarget,
-          videoKey: exercise.videoKey
-        )
+        return try exercise.model(slotID: slot.key, target: target)
       }
       var pairedSlots = Set<String>()
       for pair in workout.supersets ?? [] {

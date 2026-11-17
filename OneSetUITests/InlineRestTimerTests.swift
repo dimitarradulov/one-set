@@ -60,6 +60,77 @@ final class InlineRestTimerTests: XCTestCase {
     XCTAssertTrue(app.buttons["finish.confirm"].waitForExistence(timeout: 3))
   }
 
+  func testSupersetLogsLowerFirstAndAnchorsOneSharedRest() {
+    launchPairedWorkout()
+    let label = app.staticTexts["Superset"]
+    XCTAssertTrue(label.waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts.matching(identifier: "Superset").count, 1)
+    let upper = "machine-full-body-workout-a-hack-squat-machine"
+    let lower = "machine-full-body-workout-a-machine-chest-press"
+    let next = "machine-full-body-workout-a-neutral-grip-lat-pulldown"
+    let timer = app.otherElements["recording.rest.countdown"]
+    complete(lower, expectsRest: false)
+    app.terminate()
+    app.launchArguments.removeAll { $0 == "--ui-workouts-reset" }
+    app.launch()
+    XCTAssertTrue(label.waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["recording.set.toggle.\(lower)"].label.hasPrefix("Undo"))
+    XCTAssertFalse(timer.exists)
+
+    complete(upper)
+    assertTimer(after: lower, before: next)
+    XCTAssertTrue(timer.staticTexts.matching(NSPredicate(format: "label MATCHES '3:00|2:5[0-9]'")).firstMatch.exists)
+    app.buttons["recording.rest.add"].tap()
+    assertTimer(after: lower, before: next)
+    screenshot("inline-rest-superset")
+    app.terminate()
+    app.launch()
+    XCTAssertTrue(timer.waitForExistence(timeout: 5))
+    reveal(app.buttons["recording.rest.skip"])
+    assertTimer(after: lower, before: next)
+
+    let undo = app.buttons["recording.set.toggle.\(lower)"]
+    reveal(undo)
+    undo.tap()
+    XCTAssertFalse(timer.exists)
+    undo.tap()
+    XCTAssertTrue(timer.waitForExistence(timeout: 3))
+    assertTimer(after: lower, before: next)
+    app.buttons["recording.rest.skip"].tap()
+    XCTAssertFalse(timer.exists)
+  }
+
+  func testReplacementClearsInputsAndKeepsSuperset() {
+    launchPairedWorkout()
+    let slotID = "machine-full-body-workout-a-hack-squat-machine"
+    let heading = app.buttons["recording.exercise.\(slotID).open"]
+    XCTAssertTrue(heading.waitForExistence(timeout: 5))
+    let weight = app.textFields["recording.input.\(slotID).weight"]
+    weight.tap()
+    weight.typeText("80")
+    app.swipeDown()
+    let actions = app.buttons["recording.actions.\(slotID)"]
+    reveal(actions)
+    actions.tap()
+    app.buttons["Replace exercise"].tap()
+    let search = app.searchFields["Search exercises"]
+    XCTAssertTrue(search.waitForExistence(timeout: 5))
+    search.tap()
+    search.typeText("Dumbbell Wrist Curl")
+    app.buttons["replacement.exercise.dumbbell-wrist-curl"].tap()
+    XCTAssertTrue(heading.waitForExistence(timeout: 5))
+    XCTAssertTrue(heading.label.contains("Dumbbell Wrist Curl"))
+    XCTAssertEqual(weight.value as? String, "-")
+    XCTAssertTrue(app.staticTexts["Superset"].exists)
+    XCTAssertTrue(app.staticTexts["recording.previous.empty.\(slotID)"].exists)
+  }
+
+  private func launchPairedWorkout() {
+    app.terminate()
+    app.launchArguments.append("--ui-main-workout-superset")
+    app.launch()
+  }
+
   func testSessionDurationAdvancesStaysVisibleAndSurvivesRestAndRelaunch() {
     let duration = app.staticTexts["recording.duration"]
     XCTAssertTrue(duration.waitForExistence(timeout: 5))

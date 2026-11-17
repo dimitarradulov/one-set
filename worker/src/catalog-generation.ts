@@ -55,12 +55,28 @@ export function generateBundledSwift(catalog: CatalogSource): string {
       '    )',
     ].join('\n');
   });
+  const assignedKeys = new Set(catalog.programs.flatMap(program => program.workouts
+    .filter(workout => workout.removed !== true).flatMap(workout => workout.exercises
+      .filter(slot => slot.removed !== true).map(slot => slot.exercise))));
+  const unassignedExercises = catalog.exercises.filter(exercise => !assignedKeys.has(exercise.key)).map(exercise => [
+    '    WorkoutExercise(',
+    `      id: ${swiftString(exercise.key)}, name: ${swiftString(exercise.name)},`,
+    `      repTarget: ${swiftRepRange(exercise.default_reps)},`,
+    `      instructions: ${swiftString(exercise.instructions)},`,
+    `      stoppingGuidance: ${swiftString(exercise.stopping_guidance)},`,
+    `      warmupGuidance: ${swiftString(exercise.warmup_guidance)},`,
+    `      restSeconds: ${exercise.rest_seconds}, videoKey: ${typeof exercise.video_key === 'string' ? swiftString(exercise.video_key) : 'nil'}`,
+    '    )',
+  ].join('\n'));
   return [
     'import Foundation', '',
     'extension ProgramCatalog {',
     '  static var bundled: ProgramCatalog { ProgramCatalog(programs: [',
     programs.map(program => program.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
-    '  ]) }', '}', '',
+    '  ], bundledExercises: unassignedBundledExercises) }', '',
+    '  static let unassignedBundledExercises: [WorkoutExercise] = [',
+    ...(unassignedExercises.length ? [unassignedExercises.join(',\n')] : []),
+    '  ]', '}', '',
   ].join('\n');
 }
 

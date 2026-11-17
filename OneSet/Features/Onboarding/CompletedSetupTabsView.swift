@@ -51,6 +51,7 @@ struct CompletedSetupTabsView: View {
     #if DEBUG
     .task {
       if (ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording")
+        || ProcessInfo.processInfo.arguments.contains("--ui-main-workout-superset")
         || ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet")
         || ProcessInfo.processInfo.arguments.contains("--ui-finish-review")),
          model.activeWorkoutSession == nil, let accountID = authentication.signedInUser?.id {
