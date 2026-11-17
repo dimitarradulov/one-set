@@ -150,8 +150,8 @@ struct AppDependencies {
             workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
           )
         }
-        if (arguments.contains("--ui-workout-preview-superset") || arguments.contains("--ui-main-workout-superset")),
-           program.id == "machine-full-body" {
+        if program.id == "machine-full-body",
+           arguments.contains("--ui-workout-preview-superset") || arguments.contains("--ui-main-workout-superset") {
           let workouts = program.workouts.map { workout in
             guard workout.id == "machine-full-body-workout-a", workout.exercises.count >= 2 else { return workout }
             return WorkoutTemplate(

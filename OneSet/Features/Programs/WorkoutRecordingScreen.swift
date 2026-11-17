@@ -276,25 +276,7 @@ struct WorkoutRecordingScreen: View {
           .accessibilityIdentifier("recording.set.retry.\(exercise.slotID)")
       }
       previousPerformanceView(for: exercise)
-      HStack(spacing: 12) {
-        Button("Warmup") { warmupExercise = exercise }
-          .font(OneSetTypography.label)
-          .frame(minHeight: 44)
-          .accessibilityLabel("Warmup for \(exercise.name)")
-          .accessibilityIdentifier("recording.warmup.\(exercise.slotID)")
-        Spacer(minLength: 0)
-        Menu {
-          Button("Replace exercise", systemImage: "arrow.left.arrow.right") { replacementExercise = exercise }
-            .disabled(isComplete)
-        } label: {
-          Image(systemName: "ellipsis")
-            .font(.body.weight(.semibold))
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-        }
-        .accessibilityLabel("Actions for \(exercise.name)")
-        .accessibilityIdentifier("recording.actions.\(exercise.slotID)")
-      }
+      exerciseActions(for: exercise, isComplete: isComplete)
       if let guidance = exercise.progressionGuidance(for: input(for: slotID).reps) {
         Label(guidance, systemImage: "arrow.trend.up")
           .font(OneSetTypography.caption)
@@ -309,6 +291,28 @@ struct WorkoutRecordingScreen: View {
 }
 
 extension WorkoutRecordingScreen {
+  private func exerciseActions(for exercise: WorkoutSession.Exercise, isComplete: Bool) -> some View {
+    HStack(spacing: 12) {
+      Button("Warmup") { warmupExercise = exercise }
+        .font(OneSetTypography.label)
+        .frame(minHeight: 44)
+        .accessibilityLabel("Warmup for \(exercise.name)")
+        .accessibilityIdentifier("recording.warmup.\(exercise.slotID)")
+      Spacer(minLength: 0)
+      Menu {
+        Button("Replace exercise", systemImage: "arrow.left.arrow.right") { replacementExercise = exercise }
+          .disabled(isComplete)
+      } label: {
+        Image(systemName: "ellipsis")
+          .font(.body.weight(.semibold))
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
+      }
+      .accessibilityLabel("Actions for \(exercise.name)")
+      .accessibilityIdentifier("recording.actions.\(exercise.slotID)")
+    }
+  }
+
   private func exerciseLink(_ exercise: WorkoutSession.Exercise, isComplete: Bool) -> some View {
     NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
       HStack(alignment: .top, spacing: 12) {
