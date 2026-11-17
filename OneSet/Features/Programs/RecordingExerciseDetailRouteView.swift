@@ -3,6 +3,8 @@ import SwiftUI
 struct RecordingExerciseDetailRouteView: View {
   let session: WorkoutSession
   let slotID: String
+  var model: OnboardingModel? = nil
+  var authentication: AuthenticationModel? = nil
 
   var body: some View {
     Group {
@@ -19,9 +21,7 @@ struct RecordingExerciseDetailRouteView: View {
             restSeconds: exercise.restSeconds
           ),
           initiallyExpanded: true,
-          warmupLoads: exercise.warmupRanges(for: session.setEntries[slotID]?.weightInput ?? "").map { range in
-            "\(range.reps.lowerBound)–\(range.reps.upperBound) reps · \(formatted(range.minimumLoad))–\(formatted(range.maximumLoad)) \(session.weightUnit.rawValue)"
-          }
+          performance: authentication.flatMap { model?.exercisePerformance(for: exercise.exerciseKey, using: $0) }
         )
       } else {
         ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
@@ -30,9 +30,5 @@ struct RecordingExerciseDetailRouteView: View {
     .navigationTitle("Exercise")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.visible, for: .navigationBar)
-  }
-
-  private func formatted(_ value: Double) -> String {
-    value.formatted(.number.precision(.fractionLength(0...1)))
   }
 }

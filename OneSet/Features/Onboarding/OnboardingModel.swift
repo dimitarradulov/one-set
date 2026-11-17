@@ -10,7 +10,7 @@ final class OnboardingModel {
   var selectedMainTab: MainTab
   var weightUnit: WeightUnit = .kilograms
   var trainingDays = 3
-  private(set) var selectedProgramID: TrainingProgram.ID?
+  var selectedProgramID: TrainingProgram.ID?
 
   enum SetupResolution {
     case idle
@@ -19,7 +19,9 @@ final class OnboardingModel {
   }
 
   private(set) var setupResolution: SetupResolution = .idle
-  private(set) var restoredCycleID: UUID?
+  private(set) var showsSetupSpinner = false
+  private let waitForSetupDelay: @MainActor (TimeInterval) async throws -> Void
+  var restoredCycleID: UUID?
   var switchBlockedPresented = false
   var signOutConfirmationPresented = false
   private var signOutConfirmationAccountID: String?
@@ -30,6 +32,13 @@ final class OnboardingModel {
   private var pendingSessionSignOutAccountID: String?
   private(set) var uploadMessage: String?
   private(set) var programSelectionMessage: String?
+  var requiresProgramUpdate: Bool { savedProgress?.pendingRemoteSelection != nil }
+  var programUpdateDefaultMessage: String {
+    savedProgress?.remoteSelectionDiscoveryPending == true
+      ? "Your program couldn’t be checked. Update to check before starting a workout."
+      : "Your program changed on another device. Update to start new workouts."
+  }
+  var programUpdateMessage: String?
   private var uploadingGeneration: Int?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
   var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
@@ -37,15 +46,16 @@ final class OnboardingModel {
   private(set) var signOutErrorMessage = ""
   var progressErrorPresented = false
   private(set) var progressErrorMessage = ""
-  private let progressStore: (any OnboardingProgressStore)?
-  private var savedProgress: OnboardingProgress?
-  private var isSigningOut = false
+  let progressStore: (any OnboardingProgressStore)?
+  var savedProgress: OnboardingProgress?
+  private(set) var isSigningOut = false
   private var didResolveInitialAccount = false
   private let setupService: (any AccountSetupService)?
-  private let cycleService: (any AccountCycleService)?
-  private let cycleSyncCoordinator: ProgramCycleSyncCoordinator
-  private var cycleKnowledgeGeneration = 0
-  private(set) var cycleMessage: String?
+  let cycleService: (any AccountCycleService)?
+  let cycleSyncCoordinator: ProgramCycleSyncCoordinator
+  var cycleKnowledgeGeneration = 0
+  var cycleDiscoveryGeneration = 0
+  var cycleMessage: String?
   var cycleConflictMessage: String? {
     #if DEBUG
     if ProcessInfo.processInfo.arguments.contains("--ui-switch-conflict") {
@@ -57,24 +67,40 @@ final class OnboardingModel {
     return Self.cycleConflictText
   }
   private static let cycleConflictText = "A program change couldn’t be saved to your account. The program may no longer be available. Choose an available program and keep this device to preserve your workouts."
-  private let previousPerformanceService: (any PreviousPerformanceService)?
-  private let progressService: (any AccountProgressService)?
-  private var lookupGeneration = 0
-  private var resolvedAccountID: String?
-  private let catalog: ProgramCatalog
-  private var workoutRepository: WorkoutRepository?
-  private var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
+  let previousPerformanceService: (any PreviousPerformanceService)?
+  let progressService: (any AccountProgressService)?
+  var lookupGeneration = 0
+  private var backgroundRestoration: Task<Void, Never>?
+  private(set) var resolvedAccountID: String?
+  let catalog: ProgramCatalog
+  var workoutRepository: WorkoutRepository?
+  var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
   private let completedSessionUploadService: (any CompletedSessionUploadService)?
-  private let sessionHistoryService: (any SessionHistoryService)?
+  let sessionHistoryService: (any SessionHistoryService)?
   private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
-  private let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
-  private(set) var activeWorkoutSession: WorkoutSession?
+  let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
+  private let restAlerts: WorkoutRestAlerts?
+  var activeWorkoutSession: WorkoutSession? {
+    didSet {
+      if oldValue?.id != activeWorkoutSession?.id {
+        workoutDraftSaves.cancel()
+        workoutDraftSaves = WorkoutDraftSaves()
+      }
+      let previousDeadline = oldValue?.restSlotID == nil ? nil : oldValue?.restDeadline
+      let deadline = activeWorkoutSession?.restSlotID == nil ? nil : activeWorkoutSession?.restDeadline
+      if previousDeadline != deadline || oldValue?.id != activeWorkoutSession?.id {
+        restAlerts?.update(deadline: deadline, canRequestPermission: oldValue?.id == activeWorkoutSession?.id)
+      }
+    }
+  }
+  var workoutDraftSaves = WorkoutDraftSaves()
+  var isApplyingWorkoutEdit = false
   var workoutErrorPresented = false
-  private(set) var workoutErrorMessage = ""
+  var workoutErrorMessage = ""
   var sessionUploadErrorPresented = false
   private(set) var sessionUploadErrorMessage = ""
-  private(set) var workoutStorageOpenFailed = false
-  private(set) var previousPerformanceUnavailable = false
+  var workoutStorageOpenFailed = false
+  var previousPerformanceUnavailable = false
 
   init(
     catalog: ProgramCatalog,
@@ -88,9 +114,13 @@ final class OnboardingModel {
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
+    waitForSetupDelay: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
+      try await Task.sleep(for: .seconds(delay))
+    },
     progressStore: (any OnboardingProgressStore)? = nil,
     workoutRepository: WorkoutRepository? = nil,
     workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)? = nil,
+    restAlerts: WorkoutRestAlerts? = nil,
     initialPath: [OnboardingRoute] = [],
     initialSelectedProgramID: TrainingProgram.ID? = nil,
     initialProgramPath: [OnboardingRoute] = [],
@@ -98,6 +128,7 @@ final class OnboardingModel {
     initialMainTab: MainTab = .program
   ) {
     self.catalog = catalog
+    self.waitForSetupDelay = waitForSetupDelay
     self.setupService = setupService
     self.cycleService = cycleService
     self.cycleSyncCoordinator = cycleSyncCoordinator
@@ -105,6 +136,7 @@ final class OnboardingModel {
     self.progressService = progressService
     self.progressStore = progressStore
     self.workoutRepositoryFactory = workoutRepositoryFactory
+    self.restAlerts = restAlerts
     self.completedSessionUploadService = completedSessionUploadService
     self.sessionHistoryService = sessionHistoryService
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
@@ -124,7 +156,7 @@ final class OnboardingModel {
     configureCompletedSessionUploads()
   }
 
-  private func configureCompletedSessionUploads() {
+  func configureCompletedSessionUploads() {
     completedSessionUploadCoordinator?.cancelPendingWork()
     completedSessionUploadCoordinator = nil
     if let repository = workoutRepository, let completedSessionUploadService {
@@ -135,7 +167,11 @@ final class OnboardingModel {
       )
     }
   }
+}
 
+// MARK: - Account resolution
+
+extension OnboardingModel {
   func resolveAccountSetup(using authentication: AuthenticationModel) async {
     guard let user = authentication.signedInUser else {
       if resolvedAccountID != nil || !isSetupIdle { resetAccount() }
@@ -146,52 +182,46 @@ final class OnboardingModel {
     didResolveInitialAccount = true
     lookupGeneration += 1
     let generation = lookupGeneration
+    if await openSavedAccount(user: user, generation: generation, authentication: authentication) { return }
     setupResolution = .loading
+    var discoveryStorageFailure = false
+    showsSetupSpinner = false
+    let spinnerTask = Task { @MainActor in
+      do { try await waitForSetupDelay(1) } catch { return }
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            case .loading = setupResolution else { return }
+      showsSetupSpinner = true
+    }
+    let deadlineTask = Task { @MainActor in
+      do { try await waitForSetupDelay(15) } catch { return }
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id,
+            case .loading = setupResolution else { return }
+      lookupGeneration += 1
+      setupResolution = .failed("Your account is taking longer than expected to load. Retry to continue.")
+    }
+    defer {
+      spinnerTask.cancel()
+      deadlineTask.cancel()
+    }
     do {
       await catalog.refresh()
+      guard !Task.isCancelled, generation == lookupGeneration,
+            authentication.signedInUser?.id == user.id else { return }
       savedProgress = try progressStore?.load(accountID: user.id)
       if let savedProgress { try validate(savedProgress) }
       let setup = try await setupService.lookup(for: user)
       guard !Task.isCancelled, generation == lookupGeneration,
             authentication.signedInUser?.id == user.id else { return }
       if let setup {
-        if let pending = savedProgress?.completed, pending.needsUpload,
-           pending.setup.cycleID != setup.cycleID {
-          _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
-            accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
-          )
-        }
-        try storeCompleted(setup, needsUpload: false, accountID: user.id)
-        apply(setup)
-        if let cycles = savedProgress?.cycles,
-           !cycles.pendingCreations.isEmpty || !(cycles.pendingActivations ?? []).isEmpty {
-          selectedProgramID = cycles.selectedProgramID
-          restoredCycleID = cycles.selectedCycleID
-          path = [.programOverview(cycles.selectedProgramID)]
-          if cycles.authenticationDeferred == true {
-            cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
-          }
-        }
-        if let progressService, restoredCycleID == setup.cycleID {
-          do {
-            let summary = try await progressService.lookup(for: user)
-            guard !Task.isCancelled, generation == lookupGeneration,
-                  authentication.signedInUser?.id == user.id else { return }
-            guard let summary,
-                  summary.cycleID == setup.cycleID, summary.programID == setup.programID else {
-              throw AccountSetupError.unavailable
-            }
-            try workoutRepository?.restoreProgress(summary, accountID: user.id)
-          } catch {
-            guard !Task.isCancelled, generation == lookupGeneration,
-                  authentication.signedInUser?.id == user.id else { return }
-            guard try workoutRepository?.hasRestorableProgress(accountID: user.id, cycleID: setup.cycleID) == true else {
-              setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
-              return
-            }
-          }
-        }
+        guard try await applyRestoredSetup(setup, user: user, generation: generation,
+          authentication: authentication, discoveryStorageFailure: &discoveryStorageFailure) else { return }
       } else if let savedProgress {
+        guard savedProgress.completed == nil || hasSafeLocalProgress(savedProgress, accountID: user.id) else {
+          setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
+          return
+        }
         restore(savedProgress)
       } else {
         let progress = OnboardingProgress(
@@ -216,28 +246,220 @@ final class OnboardingModel {
       setupResolution = .idle
       await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
     } catch {
-      guard !Task.isCancelled, generation == lookupGeneration,
-            authentication.signedInUser?.id == user.id else { return }
-      if let savedProgress, (try? validate(savedProgress)) != nil,
-         !(error is CocoaError), !(error is DecodingError),
-         (error as? AccountSetupError) != .invalidSetup {
-        restore(savedProgress)
-        resolvedAccountID = user.id
-        do {
-          activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
-        } catch {
-          setupResolution = .failed("Your saved workout couldn’t be checked. Retry to continue.")
-          return
-        }
-        if let activeWorkoutSession {
-          selectedMainTab = .program
-          programPath = [.workoutRecording(activeWorkoutSession.id)]
-        }
-        setupResolution = .idle
-        await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
-      } else {
-        setupResolution = .failed(error.localizedDescription)
+      await recoverAccountSetup(error, user: user, generation: generation,
+        authentication: authentication, discoveryStorageFailure: discoveryStorageFailure)
+    }
+  }
+
+  private func recoverAccountSetup(
+    _ error: any Error, user: AuthenticatedUser, generation: Int,
+    authentication: AuthenticationModel, discoveryStorageFailure: Bool
+  ) async {
+    guard !Task.isCancelled, generation == lookupGeneration,
+          authentication.signedInUser?.id == user.id else { return }
+    let canRecoverFromError = discoveryStorageFailure || !(error is CocoaError)
+    if let savedProgress, (try? validate(savedProgress)) != nil,
+       savedProgress.completed == nil || hasSafeLocalProgress(savedProgress, accountID: user.id),
+       canRecoverFromError, !(error is DecodingError),
+       (error as? AccountSetupError) != .invalidSetup {
+      restore(savedProgress)
+      if discoveryStorageFailure {
+        programUpdateMessage = "Your program status couldn’t be saved. Free space on this device and try Update again."
       }
+      resolvedAccountID = user.id
+      do {
+        activeWorkoutSession = try workoutRepository?.activeSession(accountID: user.id)
+      } catch {
+        setupResolution = .failed("Your saved workout couldn’t be checked. Retry to continue.")
+        return
+      }
+      if let activeWorkoutSession {
+        selectedMainTab = .program
+        programPath = [.workoutRecording(activeWorkoutSession.id)]
+      }
+      setupResolution = .idle
+      await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
+    } else {
+      setupResolution = .failed(error.localizedDescription)
+    }
+  }
+
+  private func applyRestoredSetup(
+    _ setup: AccountSetup, user: AuthenticatedUser, generation: Int,
+    authentication: AuthenticationModel, discoveryStorageFailure: inout Bool
+  ) async throws -> Bool {
+    if var local = savedProgress, let completed = local.completed,
+       !completed.needsUpload, local.cycles?.pendingCreations.isEmpty != false,
+       (local.cycles?.pendingActivations ?? []).isEmpty {
+      let currentProgram = local.cycles?.selectedProgramID ?? completed.setup.programID
+      let currentCycle = local.cycles?.selectedCycleID ?? completed.setup.cycleID
+      let changed = setup.programID != currentProgram || setup.cycleID != currentCycle
+      if changed || local.pendingRemoteSelection != nil && local.remoteSelectionDiscoveryPending != true {
+        local.pendingRemoteSelection = setup
+        local.remoteSelectionDiscoveryPending = nil
+      }
+      savedProgress = local
+      discoveryStorageFailure = true
+      try progressStore?.save(local, accountID: user.id)
+      discoveryStorageFailure = false
+    }
+    if let local = savedProgress, local.pendingRemoteSelection != nil {
+      if !hasSafeLocalProgress(local, accountID: user.id), let completed = local.completed,
+         let progressService, let workoutRepository {
+        let cycleID = local.cycles?.selectedCycleID ?? completed.setup.cycleID
+        let programID = local.cycles?.selectedProgramID ?? completed.setup.programID
+        if let summary = try await progressService.lookup(cycleID: cycleID, for: user) {
+          guard !Task.isCancelled, generation == lookupGeneration,
+                authentication.signedInUser?.id == user.id else { return false }
+          if summary.cycleID == cycleID, summary.programID == programID {
+            try workoutRepository.restoreProgress(summary, accountID: user.id)
+          }
+        }
+      }
+      guard hasSafeLocalProgress(local, accountID: user.id) else {
+        setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
+        return false
+      }
+      restore(local)
+      return true
+    }
+    let pendingCycles = savedProgress?.cycles
+    let hasPendingCycles = pendingCycles.map {
+      !$0.pendingCreations.isEmpty || !($0.pendingActivations ?? []).isEmpty
+    } ?? false
+    if let progressService, !hasPendingCycles || pendingCycles?.selectedCycleID == setup.cycleID {
+      do {
+        let summary = try await progressService.lookup(for: user)
+        guard !Task.isCancelled, generation == lookupGeneration,
+              authentication.signedInUser?.id == user.id else { return false }
+        guard let summary,
+              summary.cycleID == setup.cycleID, summary.programID == setup.programID else {
+          throw AccountSetupError.unavailable
+        }
+        try workoutRepository?.restoreProgress(summary, accountID: user.id)
+      } catch {
+        guard !Task.isCancelled, generation == lookupGeneration,
+              authentication.signedInUser?.id == user.id else { return false }
+        guard try workoutRepository?.hasRestorableProgress(accountID: user.id, cycleID: setup.cycleID) == true else {
+          setupResolution = .failed("Your training progress couldn’t be restored. Retry to continue.")
+          return false
+        }
+      }
+    }
+    if let pending = savedProgress?.completed, pending.needsUpload,
+       pending.setup.cycleID != setup.cycleID {
+      _ = try workoutRepository?.blockSessionUploadsForSetupCycle(
+        accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
+      )
+    }
+    try storeCompleted(setup, needsUpload: false, accountID: user.id)
+    apply(setup)
+    if let cycles = pendingCycles, hasPendingCycles {
+      selectedProgramID = cycles.selectedProgramID
+      restoredCycleID = cycles.selectedCycleID
+      path = [.programOverview(cycles.selectedProgramID)]
+      if cycles.authenticationDeferred == true {
+        cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
+      }
+    }
+    return true
+  }
+
+  private func openSavedAccount(
+    user: AuthenticatedUser, generation: Int, authentication: AuthenticationModel
+  ) async -> Bool {
+    // Resolve the authenticated account's durable state before waiting for any service.
+    // An incomplete onboarding checkpoint still needs the server-first path below.
+    if let local = try? progressStore?.load(accountID: user.id),
+       (try? validate(local)) != nil, let completed = local.completed,
+       let repository = workoutRepository {
+      let selectedProgram = local.cycles?.selectedProgramID ?? completed.setup.programID
+      if catalog.program(id: selectedProgram) != nil, hasSafeLocalProgress(local, accountID: user.id),
+         let sessionResult = try? [repository.activeSession(accountID: user.id)] {
+        let session = sessionResult[0]
+        savedProgress = local
+        restore(local)
+        resolvedAccountID = user.id
+        activeWorkoutSession = session
+        if let session {
+          selectedMainTab = .program
+          programPath = [.workoutRecording(session.id)]
+        }
+        releaseReofferedCycleOperations()
+        presentSessionUploadErrorIfNeeded(accountID: user.id)
+        setupResolution = .idle
+        backgroundRestoration = Task { [weak self] in
+          await self?.reconcileSavedAccount(user: user, generation: generation, authentication: authentication)
+        }
+        await backgroundRestoration?.value
+        return true
+      }
+    }
+    return false
+  }
+
+  private func hasSafeLocalProgress(_ progress: OnboardingProgress, accountID: String) -> Bool {
+    guard let completed = progress.completed else { return false }
+    let cycleID = progress.cycles?.selectedCycleID ?? completed.setup.cycleID
+    return (completed.needsUpload && completed.setup.cycleID == cycleID)
+      || progress.cycles?.pendingCreations.contains(where: { $0.cycleID == cycleID }) == true
+      || progress.cycles?.locallyKnownProgressCycleIDs?.contains(cycleID) == true
+      || (try? workoutRepository?.hasRestorableProgress(accountID: accountID, cycleID: cycleID)) == true
+  }
+
+  private func reconcileSavedAccount(
+    user: AuthenticatedUser, generation: Int, authentication: AuthenticationModel
+  ) async {
+    guard let setupService, let progressStore, savedProgress?.completed != nil else { return }
+    let cycleGeneration = cycleKnowledgeGeneration
+    cycleDiscoveryGeneration += 1
+    let discoveryGeneration = cycleDiscoveryGeneration
+    do {
+      let remote = try await setupService.lookup(for: user)
+      guard !Task.isCancelled, generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, authentication.signedInUser?.id == user.id,
+            var latest = savedProgress, let current = latest.completed else { return }
+      let selectedProgram = latest.cycles?.selectedProgramID ?? current.setup.programID
+      let selectedCycle = latest.cycles?.selectedCycleID ?? current.setup.cycleID
+      let hasLocalChanges = current.needsUpload || latest.cycles?.pendingCreations.isEmpty == false
+        || !(latest.cycles?.pendingActivations ?? []).isEmpty
+      if let remote, !hasLocalChanges,
+         remote.programID != selectedProgram || remote.cycleID != selectedCycle {
+        latest.pendingRemoteSelection = remote
+        latest.remoteSelectionDiscoveryPending = nil
+      }
+      do {
+        try progressStore.save(latest, accountID: user.id)
+        savedProgress = latest
+      } catch {
+        // Keep a confirmed change blocked in this process when the save fails.
+        savedProgress = latest
+        if latest.pendingRemoteSelection != nil {
+          programUpdateMessage = "Your program status couldn’t be saved. Free space on this device and try Update again."
+        } else {
+          workoutErrorMessage = "Your account status couldn’t be saved. Your saved workouts remain on this device. Free space and try again."
+          workoutErrorPresented = true
+        }
+        return
+      }
+      if latest.pendingRemoteSelection == nil, !hasLocalChanges, let remote,
+         let progressService, let workoutRepository {
+        if let summary = try? await progressService.lookup(for: user),
+           !Task.isCancelled, generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+           discoveryGeneration == cycleDiscoveryGeneration, authentication.signedInUser?.id == user.id,
+           summary.cycleID == remote.cycleID, summary.programID == remote.programID {
+          do {
+            try workoutRepository.restoreProgress(summary, accountID: user.id)
+          } catch {
+            workoutErrorMessage = "Your updated training progress couldn’t be saved. Your saved workouts remain on this device. Free space and try again."
+            workoutErrorPresented = true
+          }
+        }
+      }
+      await refreshPreviousPerformances(for: user, generation: generation, authentication: authentication)
+    } catch {
+      guard !Task.isCancelled, generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
+            discoveryGeneration == cycleDiscoveryGeneration, authentication.signedInUser?.id == user.id else { return }
     }
   }
 
@@ -245,7 +467,11 @@ final class OnboardingModel {
     if case .idle = setupResolution { return true }
     return false
   }
+}
 
+// MARK: - Sign-out and account reset
+
+extension OnboardingModel {
   func signOut(
     using authentication: AuthenticationModel,
     discardPending: Bool = false,
@@ -418,11 +644,14 @@ final class OnboardingModel {
   }
 
   private func resetAccount(preservingNavigation: Bool) {
+    backgroundRestoration?.cancel()
+    backgroundRestoration = nil
     lookupGeneration += 1
     cycleKnowledgeGeneration += 1
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle
+    showsSetupSpinner = false
     restoredCycleID = nil
     activeWorkoutSession = nil
     savedProgress = nil
@@ -431,6 +660,7 @@ final class OnboardingModel {
     uploadMessage = nil
     cycleMessage = nil
     programSelectionMessage = nil
+    programUpdateMessage = nil
     signOutConfirmationPresented = false
     signOutConfirmationAccountID = nil
     discardSetupPresented = false
@@ -452,7 +682,11 @@ final class OnboardingModel {
       selectedMainTab = .program
     }
   }
+}
 
+// MARK: - Setup and program selection
+
+extension OnboardingModel {
   var programs: [TrainingProgram] {
     TrainingProgram.matchingPreferenceFirst(catalog.offeredPrograms, days: trainingDays)
   }
@@ -505,171 +739,6 @@ final class OnboardingModel {
     } else {
       path = [.preferences]
     }
-  }
-
-  func showProgramSwitcher() {
-    guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
-    guard activeWorkoutSession == nil else {
-      switchBlockedPresented = true
-      return
-    }
-    programPath.append(.programs)
-  }
-
-  func clearCycleMessage() { cycleMessage = nil }
-
-  func refreshCycleKnowledge(using authentication: AuthenticationModel) async {
-    guard let user = authentication.signedInUser, user.id == resolvedAccountID,
-          let cycleService, var progress = savedProgress, let setup = progress.completed?.setup,
-          let progressStore else { return }
-    let generation = lookupGeneration
-    let cycleGeneration = cycleKnowledgeGeneration
-    do {
-      let remote = try await cycleService.lookup(for: user)
-      guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
-            authentication.signedInUser?.id == user.id, var latest = savedProgress else { return }
-      var state = latest.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
-        selectedCycleID: setup.cycleID, knownCycles: [], discoveryComplete: false, pendingCreations: [])
-      state.knownCycles = remote.cycles
-      for cycle in state.pendingCreations where !state.knownCycles.contains(where: { $0.cycleID == cycle.cycleID }) {
-        state.knownCycles.append(cycle)
-      }
-      state.discoveryComplete = true
-      latest.cycles = state
-      try progressStore.save(latest, accountID: user.id)
-      savedProgress = latest
-      cycleMessage = nil
-      // Each response is scoped to the verified owner and fixed cycle identity. Do not
-      // let a late response modify storage after a selection or account transition.
-      if let progressService, let workoutRepository {
-        for cycle in remote.cycles {
-          do {
-            let summary = try await progressService.lookup(cycleID: cycle.cycleID, for: user)
-            guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
-                  authentication.signedInUser?.id == user.id else { return }
-            guard let summary, summary.cycleID == cycle.cycleID,
-                  summary.programID == cycle.programID else { continue }
-            try workoutRepository.restoreProgress(summary, accountID: user.id)
-          } catch {
-            guard generation == lookupGeneration, cycleGeneration == cycleKnowledgeGeneration,
-                  authentication.signedInUser?.id == user.id else { return }
-            // A failed read is not an empty cycle. Existing cached progress stays usable.
-          }
-        }
-      }
-    } catch {
-      guard generation == lookupGeneration, authentication.signedInUser?.id == user.id else { return }
-      if progress.cycles?.discoveryComplete != true {
-        cycleMessage = "Your program history couldn’t be checked. Connect and try again."
-      }
-    }
-  }
-
-  func hasFollowedProgram(_ programID: String) -> Bool {
-    savedProgress?.cycles?.knownCycles.contains(where: { $0.programID == programID }) == true
-      || savedProgress?.completed?.setup.programID == programID
-  }
-
-  func switchToProgram(_ programID: String, using authentication: AuthenticationModel) {
-    guard !workoutStorageOpenFailed else { workoutErrorPresented = true; return }
-    guard activeWorkoutSession == nil else { switchBlockedPresented = true; return }
-    guard let user = authentication.signedInUser, user.id == resolvedAccountID,
-          let progressStore, var progress = savedProgress else { return }
-    guard var state = progress.cycles, state.discoveryComplete else {
-      cycleMessage = "Your program history couldn’t be checked. Connect and try again."
-      return
-    }
-    guard catalog.offeredPrograms.contains(where: { $0.id == programID }),
-          programID != state.selectedProgramID else { return }
-    let existing = state.knownCycles.first(where: { $0.programID == programID })
-    let setupCycleID = progress.completed?.setup.programID == programID ? progress.completed?.setup.cycleID : nil
-    let targetCycleID: UUID
-    if let cycleID = existing?.cycleID ?? setupCycleID {
-      let trusted = state.locallyKnownProgressCycleIDs?.contains(cycleID) == true
-        || (try? workoutRepository?.hasRestoredCycleSummary(accountID: user.id, cycleID: cycleID)) == true
-      guard trusted else {
-        cycleMessage = "Your saved training progress isn’t available yet. Connect and try again."
-        return
-      }
-      targetCycleID = cycleID
-    } else {
-      let sourcePreferences: [CyclePreference]
-      if let known = state.knownCycles.first(where: { $0.cycleID == state.selectedCycleID })?.preferences {
-        sourcePreferences = known
-      } else if progress.completed?.needsUpload == true,
-                progress.completed?.setup.cycleID == state.selectedCycleID {
-        sourcePreferences = []
-      } else {
-        cycleMessage = "Your program preferences couldn’t be checked. Connect and try again."
-        return
-      }
-      guard let target = catalog.program(id: programID) else { return }
-      let slots = Set(target.workouts.flatMap { $0.exercises.map(\.id) })
-      let cycle = AccountCycle(cycleID: UUID(), programID: programID,
-        startedAt: ISO8601DateFormatter().string(from: .now),
-        preferences: sourcePreferences.filter { slots.contains($0.workoutExerciseID) })
-      targetCycleID = cycle.cycleID
-      state.knownCycles.append(cycle)
-      state.pendingCreations.append(cycle)
-    }
-    var trustedCycles = state.locallyKnownProgressCycleIDs ?? []
-    for cycleID in [state.selectedCycleID, targetCycleID] where !trustedCycles.contains(cycleID) {
-      trustedCycles.append(cycleID)
-    }
-    state.locallyKnownProgressCycleIDs = trustedCycles
-    state.unavailableAtPublication?.removeValue(forKey: targetCycleID.uuidString)
-    state.rejectedCycleIDs?.removeAll { $0 == targetCycleID }
-    state.rejectedActivationIDs?.removeAll { $0 == targetCycleID }
-    state.selectedProgramID = programID
-    state.selectedCycleID = targetCycleID
-    state.pendingActivations = (state.pendingActivations ?? []) + [targetCycleID]
-    progress.cycles = state
-    do {
-      try progressStore.save(progress, accountID: user.id)
-      savedProgress = progress
-      cycleKnowledgeGeneration += 1
-      selectedProgramID = programID
-      restoredCycleID = targetCycleID
-      programPath = []
-      cycleMessage = nil
-      Task { await uploadPendingCycles(using: authentication) }
-    } catch {
-      cycleMessage = "Your program couldn’t be saved on this device. Please try again."
-    }
-  }
-
-  func uploadPendingCycles(using authentication: AuthenticationModel, at date: Date = .now) async {
-    guard !isSigningOut, !hasPendingSetup,
-          let user = authentication.signedInUser, user.id == resolvedAccountID,
-          let cycleService, let progressStore,
-          savedProgress?.cycles?.authenticationDeferred != true else { return }
-    let generation = lookupGeneration
-    await cycleSyncCoordinator.upload(
-      user: user, generation: generation, at: date, publicationID: catalog.publicationID, service: cycleService, store: progressStore,
-      current: { [weak self] in
-        guard let self, self.lookupGeneration == generation, !self.isSigningOut,
-              authentication.signedInUser?.id == user.id else { return nil }
-        return self.savedProgress
-      },
-      didSave: { [weak self] progress in
-        self?.savedProgress = progress
-        self?.cycleKnowledgeGeneration += 1
-      },
-      authenticationRequired: { [weak self] in
-        self?.cycleMessage = "Sign in again to sync your program change. Your workouts remain on this device."
-      },
-      creationAcknowledged: { [weak self] in
-        await self?.retryPendingSessionUploads(using: authentication)
-      }
-    )
-    guard generation == lookupGeneration, authentication.signedInUser?.id == user.id,
-          !isSigningOut else { return }
-    await retryPendingSessionUploads(using: authentication)
-  }
-
-  func returnToActiveWorkout() {
-    guard let session = activeWorkoutSession else { return }
-    programPath = [.workoutRecording(session.id)]
   }
 
   func showPrograms() {
@@ -726,7 +795,7 @@ final class OnboardingModel {
     }
   }
 
-  private func restore(_ progress: OnboardingProgress) {
+  func restore(_ progress: OnboardingProgress) {
     if let completed = progress.completed {
       apply(completed.setup)
       if let cycles = progress.cycles {
@@ -798,6 +867,16 @@ final class OnboardingModel {
                                        selectedProgramID: setup.programID, nextStep: .overview)
     progress.completed = CompletedOnboarding(setup: setup, needsUpload: needsUpload)
     progress.cycles = savedProgress?.cycles
+    let isLocallyCreatedCycle = needsUpload || (savedProgress?.completed?.needsUpload == true
+      && savedProgress?.completed?.setup.cycleID == setup.cycleID)
+    if isLocallyCreatedCycle {
+      var state = progress.cycles ?? ProgramCycleState(selectedProgramID: setup.programID,
+        selectedCycleID: setup.cycleID, knownCycles: [], discoveryComplete: false, pendingCreations: [])
+      var known = state.locallyKnownProgressCycleIDs ?? []
+      if !known.contains(setup.cycleID) { known.append(setup.cycleID) }
+      state.locallyKnownProgressCycleIDs = known
+      progress.cycles = state
+    }
     if var state = progress.cycles, state.pendingCreations.isEmpty,
        (state.pendingActivations ?? []).isEmpty {
       state.selectedProgramID = setup.programID
@@ -880,347 +959,10 @@ final class OnboardingModel {
     programSelectionMessage = "That program is no longer available. Choose an available program to finish setup."
   }
 
-  private func presentSessionUploadErrorIfNeeded(accountID: String) {
+  func presentSessionUploadErrorIfNeeded(accountID: String) {
     guard let workoutRepository,
           (try? workoutRepository.hasUnresolvedSetupCycleConflict(accountID: accountID)) == true else { return }
     sessionUploadErrorMessage = "Your completed workout is still saved on this device. It belongs to a different cycle than the one already on your account, so it wasn’t uploaded or moved. Keep this device while the cycle conflict is resolved."
     sessionUploadErrorPresented = true
-  }
-
-  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
-    guard selectedProgramID == programID,
-          let program = catalog.program(id: programID),
-          program.workouts.contains(where: { $0.id == workoutID })
-    else { return }
-
-    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID)
-    if hasCompletedSetup {
-      programPath.append(route)
-    } else if path.last == .programOverview(programID) {
-      path.append(route)
-    }
-  }
-
-  func startWorkout(programID: String, workoutID: String, accountID: String) {
-    guard let workoutRepository = ensureWorkoutRepository(), let cycleID = restoredCycleID,
-          let program = catalog.program(id: programID),
-          let index = program.workouts.firstIndex(where: { $0.id == workoutID }) else {
-      workoutErrorMessage = "Your workout could not be started. Please try again."
-      workoutErrorPresented = true
-      return
-    }
-    do {
-      let next = try workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: program.workouts.map(\.id))
-      guard next.workoutID == workoutID else {
-        workoutErrorMessage = "Complete the earlier workout day before starting this one."
-        workoutErrorPresented = true
-        return
-      }
-      let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
-        workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit)
-      activeWorkoutSession = try workoutRepository.start(session)
-      let route = OnboardingRoute.workoutRecording(activeWorkoutSession!.id)
-      if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
-    } catch {
-      workoutErrorMessage = error.localizedDescription
-      workoutErrorPresented = true
-    }
-  }
-
-  func retryWorkoutStorage() {
-    guard let workoutRepositoryFactory else { return }
-    do {
-      workoutRepository = try workoutRepositoryFactory()
-      configureCompletedSessionUploads()
-      workoutStorageOpenFailed = false
-      workoutErrorPresented = false
-      if let resolvedAccountID {
-        activeWorkoutSession = try workoutRepository?.activeSession(accountID: resolvedAccountID)
-      }
-    } catch {
-      workoutStorageOpenFailed = true
-      workoutErrorMessage = "Workout storage couldn’t be opened. Your saved workouts are still on this device. Try opening storage again.\n\(error.localizedDescription)"
-      workoutErrorPresented = true
-    }
-  }
-
-  private func ensureWorkoutRepository() -> WorkoutRepository? {
-    if let workoutRepository { return workoutRepository }
-    retryWorkoutStorage()
-    return workoutRepository
-  }
-
-  func discardActiveWorkout(accountID: String) {
-    guard let activeWorkoutSession else { return }
-    do {
-      try workoutRepository?.discard(sessionID: activeWorkoutSession.id, accountID: accountID)
-      self.activeWorkoutSession = nil
-      if path.last == .workoutRecording(activeWorkoutSession.id) { path.removeLast() }
-      if programPath.last == .workoutRecording(activeWorkoutSession.id) { programPath.removeLast() }
-    } catch {
-      workoutErrorMessage = error.localizedDescription
-      workoutErrorPresented = true
-    }
-  }
-
-  func saveWorkoutDraft(slotID: String, weightInput: String, repsInput: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.saveDraft(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID,
-        weightInput: weightInput, repsInput: repsInput
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func completeWorkoutSet(slotID: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      let restSeconds = session.exercises.first(where: { $0.slotID == slotID })?.restSeconds
-      activeWorkoutSession = try workoutRepository.completeSet(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID, restSeconds: restSeconds
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func updateWorkoutSet(slotID: String, weightInput: String, repsInput: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.updateSet(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID,
-        weightInput: weightInput, repsInput: repsInput
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func unmarkWorkoutSet(slotID: String) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.unmarkSet(
-        sessionID: session.id, accountID: session.accountID, slotID: slotID
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func completedWorkoutIDs(programID: String, week: Int) -> Set<String> {
-    guard let workoutRepository, let cycleID = restoredCycleID,
-          let accountID = resolvedAccountID else { return [] }
-    return (try? workoutRepository.completedOccurrenceIDs(accountID: accountID, cycleID: cycleID, week: week)) ?? []
-  }
-
-  func currentWorkoutWeek(programID: String) -> Int {
-    guard let workoutRepository, let cycleID = restoredCycleID,
-          let accountID = resolvedAccountID, let program = catalog.program(id: programID) else { return 1 }
-    return (try? workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-      programID: programID, workoutIDs: program.workouts.map(\.id)).week) ?? 1
-  }
-
-  func finishActiveWorkout(note: String?, using authentication: AuthenticationModel? = nil) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      _ = try workoutRepository.finish(sessionID: session.id, accountID: session.accountID, note: note)
-      activeWorkoutSession = nil
-      if path.last == .workoutRecording(session.id) { path.removeLast() }
-      if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }
-      if let last = path.last, case .workoutPreview = last { path.removeLast() }
-      if let last = programPath.last, case .workoutPreview = last { programPath.removeLast() }
-      if let authentication {
-        let queue = try? workoutRepository.sessionUploadQueue(accountID: session.accountID)
-        if queue?.contains(where: { $0.upload.sessionID == session.id
-          && $0.permanentFailure == .setupCycleConflict }) == true {
-          presentSessionUploadErrorIfNeeded(accountID: session.accountID)
-        }
-        if queue?.contains(where: { $0.permanentFailure == nil && !$0.isAuthenticationDeferred }) == true {
-          Task { await retryPendingSessionUploads(using: authentication) }
-        }
-      }
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func resumeDeferredSessionUploads(
-    using authentication: AuthenticationModel,
-    at date: Date = .now,
-    scheduleRetries: Bool = true
-  ) async {
-    guard !isSigningOut, let user = authentication.signedInUser,
-          resolvedAccountID == user.id else { return }
-    let generation = lookupGeneration
-    if var progress = savedProgress, var state = progress.cycles,
-       state.authenticationDeferred == true, let progressStore {
-      state.authenticationDeferred = false
-      progress.cycles = state
-      if (try? progressStore.save(progress, accountID: user.id)) != nil {
-        savedProgress = progress
-        cycleMessage = nil
-        await uploadPendingCycles(using: authentication)
-      }
-    }
-    guard !isSigningOut, generation == lookupGeneration,
-          authentication.signedInUser?.id == user.id, resolvedAccountID == user.id else { return }
-    try? workoutRepository?.resumeAuthenticationDeferredUploads(accountID: user.id)
-    await retryPendingSessionUploads(using: authentication, at: date, scheduleRetries: scheduleRetries)
-  }
-
-  func retryPendingSessionUploads(
-    using authentication: AuthenticationModel,
-    at date: Date = .now,
-    scheduleRetries: Bool = true
-  ) async {
-    guard !isSigningOut, !hasPendingSetup,
-          let user = authentication.signedInUser,
-          resolvedAccountID == user.id,
-          let completedSessionUploadCoordinator else { return }
-    let generation = lookupGeneration
-    let isCurrent: @MainActor () -> Bool = { [weak self] in
-      guard let self else { return false }
-      return !self.isSigningOut && generation == self.lookupGeneration
-        && authentication.signedInUser?.id == user.id
-        && self.resolvedAccountID == user.id
-    }
-    presentSessionUploadErrorIfNeeded(accountID: user.id)
-    await completedSessionUploadCoordinator.drain(
-      for: user,
-      whileCurrent: isCurrent,
-      at: date,
-      scheduleRetries: scheduleRetries,
-      blockedCycleIDs: Set(savedProgress?.cycles?.pendingCreations.map(\.cycleID) ?? [])
-    )
-    guard isCurrent() else { return }
-    presentSessionUploadErrorIfNeeded(accountID: user.id)
-  }
-
-  func adjustWorkoutRest(by seconds: Int) -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.adjustRest(
-        sessionID: session.id, accountID: session.accountID, by: seconds
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func skipWorkoutRest() -> Bool {
-    guard let session = activeWorkoutSession, let workoutRepository else { return false }
-    do {
-      activeWorkoutSession = try workoutRepository.skipRest(
-        sessionID: session.id, accountID: session.accountID
-      )
-      return true
-    } catch {
-      showWorkoutSaveError(error)
-      return false
-    }
-  }
-
-  func previousPerformances(for session: WorkoutSession) -> [String: WorkoutRepository.PreviousPerformance] {
-    guard let workoutRepository else { return [:] }
-    return (try? workoutRepository.previousPerformances(accountID: session.accountID,
-      exercises: session.exercises.map { .init(slotID: $0.slotID, exerciseKey: $0.exerciseKey) },
-      programID: session.programID, workoutID: session.workoutID)) ?? [:]
-  }
-
-  func completedHistorySessions(accountID: String) throws -> [WorkoutSession] {
-    guard resolvedAccountID == accountID else { throw HistoryDataError.accountUnavailable }
-    if workoutRepository == nil {
-      guard let workoutRepositoryFactory else { throw HistoryDataError.storageUnavailable }
-      workoutRepository = try workoutRepositoryFactory()
-      configureCompletedSessionUploads()
-    }
-    guard let workoutRepository else { throw HistoryDataError.storageUnavailable }
-    workoutStorageOpenFailed = false
-    return try workoutRepository.completedSessions(accountID: accountID)
-  }
-
-  var canRefreshAccountHistory: Bool { sessionHistoryService != nil }
-
-  func completedHistoryCoverage(accountID: String) throws -> SessionHistoryCoverage {
-    try historyRepository(accountID: accountID).historyCoverage(accountID: accountID)
-  }
-
-  func saveCompletedHistoryPage(_ page: SessionHistoryPage, accountID: String) throws {
-    try historyRepository(accountID: accountID).saveHistoryPage(page, accountID: accountID)
-  }
-
-  func fetchHistoryPage(
-    accountID: String, cursor: String?, using authentication: AuthenticationModel
-  ) async throws -> SessionHistoryPage {
-    guard let user = authentication.signedInUser, user.id == accountID,
-          resolvedAccountID == accountID, let sessionHistoryService else {
-      throw HistoryDataError.accountUnavailable
-    }
-    let page = try await sessionHistoryService.fetchPage(for: user, cursor: cursor)
-    guard authentication.signedInUser?.id == accountID, resolvedAccountID == accountID else {
-      throw HistoryDataError.accountUnavailable
-    }
-    return page
-  }
-
-  private func historyRepository(accountID: String) throws -> WorkoutRepository {
-    guard resolvedAccountID == accountID else { throw HistoryDataError.accountUnavailable }
-    if workoutRepository == nil {
-      guard let workoutRepositoryFactory else { throw HistoryDataError.storageUnavailable }
-      workoutRepository = try workoutRepositoryFactory()
-      configureCompletedSessionUploads()
-    }
-    guard let workoutRepository else { throw HistoryDataError.storageUnavailable }
-    workoutStorageOpenFailed = false
-    return workoutRepository
-  }
-
-  func programName(id: String) -> String? {
-    catalog.program(id: id)?.name
-  }
-
-  private func refreshPreviousPerformances(
-    for user: AuthenticatedUser, generation: Int, authentication: AuthenticationModel
-  ) async {
-    guard let previousPerformanceService, let workoutRepository else { return }
-    do {
-      let results = try await previousPerformanceService.lookup(for: user)
-      guard !Task.isCancelled, generation == lookupGeneration,
-            authentication.signedInUser?.id == user.id,
-            resolvedAccountID == user.id else { return }
-      try workoutRepository.saveRestoredPreviousPerformances(results, accountID: user.id)
-      previousPerformanceUnavailable = false
-    } catch {
-      guard !Task.isCancelled, generation == lookupGeneration,
-            authentication.signedInUser?.id == user.id,
-            resolvedAccountID == user.id else { return }
-      previousPerformanceUnavailable = true
-    }
-  }
-
-  func retryPreviousPerformances(using authentication: AuthenticationModel) async {
-    guard let user = authentication.signedInUser, resolvedAccountID == user.id else { return }
-    await refreshPreviousPerformances(for: user, generation: lookupGeneration, authentication: authentication)
-  }
-
-  private func showWorkoutSaveError(_ error: Error) {
-    workoutErrorMessage = error.localizedDescription
-    workoutErrorPresented = true
   }
 }

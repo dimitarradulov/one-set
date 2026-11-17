@@ -93,6 +93,10 @@ struct OnboardingFlowView: View {
         }
       }
       #endif
+    }
+    .task(id: model.resolvedAccountID) {
+      guard model.resolvedAccountID == authentication.signedInUser?.id,
+            model.resolvedAccountID != nil else { return }
       await model.resumeDeferredSessionUploads(using: authentication)
       await model.retryCompletedUploads(using: authentication)
     }
@@ -104,6 +108,9 @@ struct OnboardingFlowView: View {
     }
     #endif
     .onChange(of: scenePhase) { _, phase in
+      if phase == .background, let sessionID = model.activeWorkoutSession?.id {
+        Task { await model.flushWorkoutEdits(sessionID: sessionID) }
+      }
       if phase == .active {
         Task { await model.refreshCatalog() }
         Task {
@@ -147,7 +154,9 @@ struct OnboardingFlowView: View {
     #endif
     return screen
   }
+}
 
+extension OnboardingFlowView {
   private var journey: some View {
     NavigationStack(path: $model.path) {
       welcomeScreen
@@ -258,8 +267,16 @@ struct OnboardingFlowView: View {
                 day: workoutIndex + 1,
                 onStartWorkout: {
                   guard let accountID = authentication.signedInUser?.id else { return }
+                  if let session = model.activeWorkoutSession, session.accountID == accountID,
+                     session.programID == programID, session.workoutID == workoutID {
+                    model.path.append(.workoutRecording(session.id))
+                    return
+                  }
                   model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
-                }
+                },
+                isActiveWorkout: model.activeWorkoutSession.map {
+                  $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
+                } ?? false
               )
               .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)
@@ -269,32 +286,14 @@ struct OnboardingFlowView: View {
             }
           case .workoutRecording(let sessionID):
             if let session = model.activeWorkoutSession, session.id == sessionID {
-              WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session),
-                previousPerformanceUnavailable: model.previousPerformanceUnavailable,
-                onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {
-                guard let accountID = authentication.signedInUser?.id else { return }
-                model.discardActiveWorkout(accountID: accountID)
-              } onSaveDraft: { slotID, weight, reps in
-                model.saveWorkoutDraft(slotID: slotID, weightInput: weight, repsInput: reps)
-              } onComplete: { slotID in
-                model.completeWorkoutSet(slotID: slotID)
-              } onUpdate: { slotID, weight, reps in
-                model.updateWorkoutSet(slotID: slotID, weightInput: weight, repsInput: reps)
-              } onUnmark: { slotID in
-                model.unmarkWorkoutSet(slotID: slotID)
-              } onAdjustRest: { seconds in
-                model.adjustWorkoutRest(by: seconds)
-              } onSkipRest: {
-                model.skipWorkoutRest()
-              } onFinish: { note in
-                model.finishActiveWorkout(note: note, using: authentication)
-              }
+              WorkoutRecordingScreen(session: session, model: model, authentication: authentication,
+                previousPerformances: model.previousPerformances(for: session))
             } else {
               ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
             }
           case .recordingExerciseDetail(let sessionID, let slotID):
             if let session = model.activeWorkoutSession, session.id == sessionID {
-              RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+              RecordingExerciseDetailRouteView(session: session, slotID: slotID, model: model, authentication: authentication)
             } else {
               ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
             }
@@ -304,6 +303,7 @@ struct OnboardingFlowView: View {
               ExerciseDetailRouteView(
                 workout: workout,
                 exerciseID: exerciseID,
+                model: model, authentication: authentication,
                 initiallyExpanded: guidanceExpanded,
                 initiallyShowingHistory: initiallyShowingHistory
               )

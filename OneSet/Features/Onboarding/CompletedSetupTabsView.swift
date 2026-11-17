@@ -50,7 +50,9 @@ struct CompletedSetupTabsView: View {
     }
     #if DEBUG
     .task {
-      if ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording"),
+      if (ProcessInfo.processInfo.arguments.contains("--ui-main-workout-recording")
+        || ProcessInfo.processInfo.arguments.contains("--ui-warmup-sheet")
+        || ProcessInfo.processInfo.arguments.contains("--ui-finish-review")),
          model.activeWorkoutSession == nil, let accountID = authentication.signedInUser?.id {
         model.startWorkout(programID: "machine-full-body", workoutID: "machine-full-body-workout-a", accountID: accountID)
       }
@@ -67,6 +69,9 @@ struct CompletedSetupTabsView: View {
         if let programID = model.selectedProgramID, let program = model.program(id: programID) {
           ProgramOverviewScreen(
             program: program,
+            updateMessage: model.requiresProgramUpdate
+              ? (model.programUpdateMessage ?? model.programUpdateDefaultMessage) : nil,
+            onUpdate: { Task { await model.updateRemoteProgram(using: authentication) } },
             uploadMessage: model.cycleConflictMessage ?? model.cycleMessage ?? model.uploadMessage,
             onRetryUpload: model.cycleConflictMessage == nil ? { Task {
               await model.uploadCompletedSetup(using: authentication)
@@ -128,26 +133,7 @@ struct CompletedSetupTabsView: View {
         .navigationTitle("Programs")
         .navigationBarTitleDisplayMode(.inline)
     case .programDetail(let programID):
-      if let program = model.program(id: programID), program.isOffered {
-        ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
-          onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, previouslyFollowed: hasFollowedProgram(programID), onPreviewWorkout: { workout in
-            model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
-          })
-          .navigationTitle(program.name)
-          .navigationBarTitleDisplayMode(.inline)
-          .alert("Program switch", isPresented: Binding(
-            get: { model.cycleMessage != nil },
-            set: { if !$0 { model.clearCycleMessage() } }
-          )) {
-            Button("Retry") { Task {
-              await model.refreshCycleKnowledge(using: authentication)
-              model.switchToProgram(programID, using: authentication)
-            } }
-            Button("OK", role: .cancel) { model.clearCycleMessage() }
-          } message: { Text(model.cycleMessage ?? "") }
-      } else {
-        ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
-      }
+      programDetailDestination(programID)
     case .switchingWorkoutPreview(let programID, let workoutID):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
@@ -158,6 +144,14 @@ struct CompletedSetupTabsView: View {
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
+    default:
+      workoutDestination(for: route)
+    }
+  }
+
+  @ViewBuilder
+  private func workoutDestination(for route: OnboardingRoute) -> some View {
+    switch route {
     case .workoutPreview(let programID, let workoutID):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
@@ -167,42 +161,33 @@ struct CompletedSetupTabsView: View {
           day: workoutIndex + 1,
           onStartWorkout: {
             guard let accountID = authentication.signedInUser?.id else { return }
+            if let session = model.activeWorkoutSession, session.accountID == accountID,
+               session.programID == programID, session.workoutID == workoutID {
+              model.programPath.append(.workoutRecording(session.id))
+              return
+            }
             model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
-          }
+          },
+          isActiveWorkout: model.activeWorkoutSession.map {
+            $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
+          } ?? false,
+          requiresProgramUpdate: model.requiresProgramUpdate
         )
-        .navigationTitle("Workout preview")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Workout preview").navigationBarTitleDisplayMode(.inline)
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
     case .workoutRecording(let sessionID):
       if let session = model.activeWorkoutSession, session.id == sessionID,
          let accountID = authentication.signedInUser?.id {
-        WorkoutRecordingScreen(session: session, previousPerformances: model.previousPerformances(for: session),
-          previousPerformanceUnavailable: model.previousPerformanceUnavailable,
-          onRetryPreviousPerformance: { Task { await model.retryPreviousPerformances(using: authentication) } }) {
-          model.discardActiveWorkout(accountID: accountID)
-        } onSaveDraft: { slotID, weight, reps in
-          model.saveWorkoutDraft(slotID: slotID, weightInput: weight, repsInput: reps)
-        } onComplete: { slotID in
-          model.completeWorkoutSet(slotID: slotID)
-        } onUpdate: { slotID, weight, reps in
-          model.updateWorkoutSet(slotID: slotID, weightInput: weight, repsInput: reps)
-        } onUnmark: { slotID in
-          model.unmarkWorkoutSet(slotID: slotID)
-        } onAdjustRest: { seconds in
-          model.adjustWorkoutRest(by: seconds)
-        } onSkipRest: {
-          model.skipWorkoutRest()
-        } onFinish: { note in
-          model.finishActiveWorkout(note: note, using: authentication)
-        }
+        WorkoutRecordingScreen(session: session, model: model, authentication: authentication,
+          previousPerformances: model.previousPerformances(for: session))
       } else {
         ContentUnavailableView("Workout unavailable", systemImage: "dumbbell")
       }
     case .recordingExerciseDetail(let sessionID, let slotID):
       if let session = model.activeWorkoutSession, session.id == sessionID {
-        RecordingExerciseDetailRouteView(session: session, slotID: slotID)
+        RecordingExerciseDetailRouteView(session: session, slotID: slotID, model: model, authentication: authentication)
       } else {
         ContentUnavailableView("Exercise unavailable", systemImage: "dumbbell")
       }
@@ -212,6 +197,7 @@ struct CompletedSetupTabsView: View {
         ExerciseDetailRouteView(
           workout: workout,
           exerciseID: exerciseID,
+          model: model, authentication: authentication,
           initiallyExpanded: guidanceExpanded,
           initiallyShowingHistory: initiallyShowingHistory
         )
@@ -220,6 +206,30 @@ struct CompletedSetupTabsView: View {
       }
     default:
       ContentUnavailableView("Page unavailable", systemImage: "dumbbell")
+    }
+  }
+
+  @ViewBuilder
+  private func programDetailDestination(_ programID: String) -> some View {
+    if let program = model.program(id: programID), program.isOffered {
+      ProgramDetailScreen(program: program, isSelected: model.selectedProgramID == programID,
+        onSelect: { model.switchToProgram(programID, using: authentication) }, switching: true, previouslyFollowed: hasFollowedProgram(programID), onPreviewWorkout: { workout in
+          model.programPath.append(.switchingWorkoutPreview(programID: programID, workoutID: workout.id))
+        })
+        .navigationTitle(program.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Program switch", isPresented: Binding(
+          get: { model.cycleMessage != nil },
+          set: { if !$0 { model.clearCycleMessage() } }
+        )) {
+          Button("Retry") { Task {
+            await model.refreshCycleKnowledge(using: authentication)
+            model.switchToProgram(programID, using: authentication)
+          } }
+          Button("OK", role: .cancel) { model.clearCycleMessage() }
+        } message: { Text(model.cycleMessage ?? "") }
+    } else {
+      ContentUnavailableView("Program unavailable", systemImage: "dumbbell")
     }
   }
 }

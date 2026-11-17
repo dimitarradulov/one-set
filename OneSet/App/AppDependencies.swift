@@ -52,6 +52,8 @@ struct AppDependencies {
       || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
       || arguments.contains("--ui-setup-cycle-conflict")
     let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
+    let programChangePreview = arguments.contains("--ui-program-change")
+      || arguments.contains("--ui-program-change-preview") || arguments.contains("--ui-program-change-active")
     let sessionSignOutPreview = arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
     let historyPreview = arguments.contains("--ui-history-populated")
@@ -65,7 +67,7 @@ struct AppDependencies {
     let completionSaveError = arguments.contains("--ui-completion-save-error")
     let progressRestoreError = arguments.contains("--ui-progress-restore-error")
     let mainTabsPreview = launch.includesMainTabsPreview
-    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error")
+    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-timeout")
       || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
       || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
       || progressRestoreError
@@ -83,13 +85,15 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = progressRestoreError ? "progress-restore-error-workouts.sqlite"
+    let previewWorkoutFile = arguments.contains("--ui-finish-review") ? "finish-review-workouts.sqlite"
+      : progressRestoreError ? "progress-restore-error-workouts.sqlite"
       : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-switch-programs")
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review")
+      || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
-      || sessionSignOutPreview || progressRestoreError {
+      || sessionSignOutPreview || progressRestoreError || programChangePreview {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -105,17 +109,24 @@ struct AppDependencies {
       progress.completed = CompletedOnboarding(setup: AccountSetup(
         preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
         cycleID: setupCycleConflictPreview
-          ? UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+          ? PreviewCycleID.previous
           : UUID()
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
+    }
+    if programChangePreview {
+      let old = AccountSetup(preferredUnit: .pounds, trainingDays: 3, programID: "bro-split",
+        cycleID: PreviewCycleID.previous)
+      var saved = OnboardingProgress(weightUnit: .pounds, trainingDays: 3, selectedProgramID: old.programID, nextStep: .overview)
+      saved.completed = CompletedOnboarding(setup: old, needsUpload: false)
+      try? fileStore.save(saved, accountID: "preview-user")
     }
     if sessionSignOutPreview {
       var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
                                         selectedProgramID: "machine-full-body", nextStep: .overview)
       progress.completed = CompletedOnboarding(setup: AccountSetup(
         preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
-        cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        cycleID: PreviewCycleID.pendingSignOut
       ), needsUpload: true)
       try? fileStore.save(progress, accountID: "preview-user")
     }
@@ -167,7 +178,7 @@ struct AppDependencies {
         authentication: PreviewAuthenticationService(
           defaults: storage.authenticationDefaults,
           emailIsRegistered: arguments.contains("--ui-auth-existing"),
-          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-auth-restored")
+          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-setup-timeout") || arguments.contains("--ui-auth-restored")
             || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
             || arguments.contains("--ui-progress-save-error") || progressRestoreError,
           persistsSession: arguments.contains("--ui-auth-persist-session-test"),
@@ -185,10 +196,10 @@ struct AppDependencies {
           includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
           storageDirectory: storage.directory
         ),
-        accountCycles: arguments.contains("--ui-replacement-device") ? PreviewRestoredCycles()
+        accountCycles: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredCycles()
           : (arguments.contains("--ui-switch-test") ? switchSync : nil),
         previousPerformance: PreviewPreviousPerformanceService(),
-        accountProgress: arguments.contains("--ui-replacement-device") ? PreviewRestoredProgress()
+        accountProgress: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredProgress()
           : (progressRestoreError ? PreviewAccountProgressService(fails: true) : nil),
         completedSessionUpload: arguments.contains("--ui-switch-online") ? switchSync : nil,
         sessionHistory: PreviewSessionHistoryService(
@@ -213,17 +224,24 @@ struct AppDependencies {
             throw CocoaError(.fileReadNoPermission)
           }
           let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
+          if arguments.contains("--ui-program-change-active"),
+             let program = ProgramCatalog.bundled.program(id: "bro-split"), let workout = program.workouts.first {
+            let session = WorkoutSession(accountID: "preview-user",
+              cycleID: PreviewCycleID.previous,
+              program: program, workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: .now)
+            _ = try repository.start(session)
+          }
           if sessionSignOutPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
-              cycleID: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+              cycleID: PreviewCycleID.pendingSignOut,
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
           if setupCycleConflictPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
-              cycleID: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+              cycleID: PreviewCycleID.previous,
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
@@ -339,7 +357,7 @@ struct AppDependencies {
     let program = ProgramCatalog.bundled.program(id: "machine-full-body")!
     let workout = program.workouts.first(where: { $0.id == workoutID }) ?? program.workouts[0]
     var session = WorkoutSession(
-      accountID: "preview-user", cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+      accountID: "preview-user", cycleID: PreviewCycleID.current,
       program: program, workout: workout, week: 2, day: day,
       weightUnit: .kilograms, startedAt: startedAt, id: id
     )
@@ -403,7 +421,7 @@ private final class PreviewSwitchSyncService: AccountCycleService, CompletedSess
     if !online { throw AccountCycleError.unavailable }
   }
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
-    let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+    let current = PreviewCycleID.current
     return AccountCycles(cycles: [AccountCycle(cycleID: current, programID: "machine-full-body",
       startedAt: "2026-01-01T00:00:00Z")], selectedCycleID: current)
   }
@@ -422,8 +440,8 @@ private final class PreviewSwitchSyncService: AccountCycleService, CompletedSess
 #if DEBUG
 @MainActor
 private struct PreviewRestoredCycles: AccountCycleService {
-  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  private let current = PreviewCycleID.current
+  private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
     AccountCycles(cycles: [
       AccountCycle(cycleID: current, programID: "machine-full-body", startedAt: "2026-02-01T00:00:00Z"),
@@ -436,8 +454,8 @@ private struct PreviewRestoredCycles: AccountCycleService {
 
 @MainActor
 private struct PreviewRestoredProgress: AccountProgressService {
-  private let current = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-  private let previous = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+  private let current = PreviewCycleID.current
+  private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {
     try await lookup(cycleID: current, for: user)
   }

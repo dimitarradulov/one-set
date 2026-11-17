@@ -7,7 +7,9 @@ struct WorkoutTemplatePreviewScreen: View {
   let workout: WorkoutTemplate
   let day: Int
   let onStartWorkout: () -> Void
+  var isActiveWorkout = false
   var isBrowsingProgram = false
+  var requiresProgramUpdate = false
 
   var body: some View {
     ScrollView {
@@ -31,16 +33,17 @@ struct WorkoutTemplatePreviewScreen: View {
 
             ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
               NavigationLink(value: OnboardingRoute.exerciseDetail(
-                programID: program.id,
-                workoutID: workout.id,
-                exerciseID: exercise.id
+                programID: program.id, workoutID: workout.id, exerciseID: exercise.id
               )) {
                 exerciseRow(exercise, order: index + 1)
               }
               .buttonStyle(.plain)
               .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-              .accessibilityHint("Opens exercise instructions and warmup guidance.")
+              .accessibilityHint("Opens exercise instructions, video, and performance.")
               .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+              .overlay(alignment: .bottom) {
+                Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+              }
             }
           }
         }
@@ -58,7 +61,7 @@ struct WorkoutTemplatePreviewScreen: View {
       Button {
         onStartWorkout()
       } label: {
-        Text("Start workout")
+        Text(isActiveWorkout ? "Resume workout" : "Start workout")
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)
           .frame(maxWidth: .infinity, minHeight: 52)
@@ -66,6 +69,8 @@ struct WorkoutTemplatePreviewScreen: View {
           .contentShape(RoundedRectangle(cornerRadius: 12))
       }
       .buttonStyle(.plain)
+      .disabled(requiresProgramUpdate && !isActiveWorkout)
+      .accessibilityHint(requiresProgramUpdate && !isActiveWorkout ? "Update your program before starting a workout." : "")
       .accessibilityIdentifier("workoutPreview.start")
       .frame(maxWidth: 720)
       .padding(.horizontal, 20)
@@ -141,12 +146,6 @@ struct WorkoutTemplatePreviewScreen: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.vertical, 12)
-    .overlay(alignment: .bottom) {
-      Rectangle()
-        .fill(OneSetColors.border)
-        .frame(height: 1)
-        .accessibilityHidden(true)
-    }
     .accessibilityElement(children: .contain)
   }
 }

@@ -34,8 +34,19 @@
 		C30000000000000000000001 /* OneSetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneSetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A100000000000000000000FE /* Exceptions for OneSet browser prototypes */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Features/Programs/ExerciseScreenPrototype/index.html,
+				Features/Programs/WarmupPrototype/index.html,
+			);
+			target = A10000000000000000000006 /* OneSet */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A10000000000000000000001 /* OneSet */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSet; sourceTree = "<group>"; };
+		A10000000000000000000001 /* OneSet */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A100000000000000000000FE /* Exceptions for OneSet browser prototypes */, ); explicitFileTypes = {}; explicitFolders = (); path = OneSet; sourceTree = "<group>"; };
 		B20000000000000000000002 /* OneSetUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSetUITests; sourceTree = "<group>"; };
 		C30000000000000000000002 /* OneSetTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSetTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */

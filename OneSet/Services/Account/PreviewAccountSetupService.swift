@@ -1,6 +1,19 @@
 #if DEBUG
 import Foundation
 
+enum PreviewCycleID {
+  static let current = fixed("11111111-1111-4111-8111-111111111111")
+  static let previous = fixed("22222222-2222-4222-8222-222222222222")
+  static let pendingSignOut = fixed("33333333-3333-4333-8333-333333333333")
+
+  private static func fixed(_ value: String) -> UUID {
+    guard let id = UUID(uuidString: value) else {
+      preconditionFailure("Invalid preview cycle ID: \(value)")
+    }
+    return id
+  }
+}
+
 @MainActor
 final class PreviewAccountSetupService: AccountSetupService {
   private var uploadFailsOnce: Bool
@@ -9,8 +22,10 @@ final class PreviewAccountSetupService: AccountSetupService {
   private let backendURL: URL?
   private let completed: Bool
   private let delayed: Bool
+  private let timeoutPreview: Bool
   private let invalidProgram: Bool
   private let removedProgramUpload: Bool
+  private let establishedCycleConflict: Bool
   private var shouldFail: Bool
   private let alwaysFails: Bool
 
@@ -35,14 +50,18 @@ final class PreviewAccountSetupService: AccountSetupService {
           && !arguments.contains("--ui-session-signout-confirmation")
           && !arguments.contains("--ui-session-signout-error"))
     delayed = arguments.contains("--ui-setup-delayed")
+    timeoutPreview = arguments.contains("--ui-setup-timeout")
     invalidProgram = arguments.contains("--ui-setup-invalid-program")
     removedProgramUpload = arguments.contains("--ui-setup-upload-removed")
+    establishedCycleConflict = arguments.contains("--ui-setup-cycle-conflict")
     shouldFail = arguments.contains("--ui-setup-retry") || (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
     alwaysFails = (arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-offline"))
   }
 
   func lookup(for user: AuthenticatedUser) async throws -> AccountSetup? {
-    if delayed {
+    if timeoutPreview && user.id == "preview-user" {
+      await Task { try? await Task.sleep(for: .seconds(20)) }.value
+    } else if delayed {
       // Intentionally ignore cancellation to exercise late responses from adapters.
       await Task { try? await Task.sleep(for: .seconds(8)) }.value
     }
@@ -58,7 +77,7 @@ final class PreviewAccountSetupService: AccountSetupService {
     return AccountSetup(
       preferredUnit: .pounds, trainingDays: 5,
       programID: invalidProgram ? "unavailable" : "machine-full-body",
-      cycleID: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+      cycleID: PreviewCycleID.current
     )
   }
   func save(_ setup: AccountSetup, for user: AuthenticatedUser) async throws -> AccountSetup {
@@ -71,6 +90,12 @@ final class PreviewAccountSetupService: AccountSetupService {
     }
     if removedProgramUpload { throw AccountSetupError.programUnavailable }
     guard !uploadOffline else { throw AccountSetupError.unavailable }
+    if establishedCycleConflict {
+      return AccountSetup(
+        preferredUnit: .pounds, trainingDays: 5, programID: "machine-full-body",
+        cycleID: PreviewCycleID.current
+      )
+    }
     guard let backendURL else { return setup }
     try FileManager.default.createDirectory(
       at: backendURL.deletingLastPathComponent(), withIntermediateDirectories: true

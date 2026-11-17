@@ -9,8 +9,9 @@ struct AppLaunchConfiguration {
 
   static func usesMainTabsPreview(arguments: [String]) -> Bool {
     #if DEBUG
-    return arguments.contains("--ui-switch-conflict") || arguments.contains("--ui-replacement-device") || arguments.contains("--ui-switch-resume-detail") || arguments.contains("--ui-switch-test") || arguments.contains("--ui-switch-programs") || arguments.contains("--ui-switch-detail")
-      || arguments.contains("--ui-main-workout-recording") || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
+    return arguments.contains("--ui-program-change") || arguments.contains("--ui-program-change-preview")
+      || arguments.contains("--ui-program-change-active") || arguments.contains("--ui-switch-conflict") || arguments.contains("--ui-replacement-device") || arguments.contains("--ui-switch-resume-detail") || arguments.contains("--ui-switch-test") || arguments.contains("--ui-switch-programs") || arguments.contains("--ui-switch-detail")
+      || arguments.contains("--ui-main-workout-recording") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-warmup-sheet") || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
       || arguments.contains("--ui-history-populated") || arguments.contains("--ui-history-partial-detail")
       || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
       || arguments.contains("--ui-history-refresh-error")
@@ -49,6 +50,8 @@ struct AppLaunchConfiguration {
       programPath = [.programs, .programDetail("push-pull-legs")]
     } else if arguments.contains("--ui-switch-programs") {
       programPath = [.programs]
+    } else if arguments.contains("--ui-program-change-preview") {
+      programPath = [.workoutPreview(programID: "bro-split", workoutID: "bro-split-day-1-chest")]
     } else if arguments.contains("--ui-main-workout-preview") {
       programPath = [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
     } else if arguments.contains("--ui-main-exercise-detail") {
@@ -75,7 +78,7 @@ struct AppLaunchConfiguration {
       selectedProgramID = nil
     } else if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
       || arguments.contains("--ui-setup-upload-removed")
-      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-progress-save-error")
+      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-timeout") || arguments.contains("--ui-progress-save-error")
       || arguments.contains("--ui-progress-restore-error") {
       onboardingPath = []
       selectedProgramID = nil

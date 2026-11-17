@@ -80,6 +80,7 @@ await engine.exec(await readFile('../docs/database/migrations/003_catalog_public
 await engine.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
+await engine.exec(await readFile('../docs/database/migrations/012_cycle_workout_integrity.sql', 'utf8'));
 
 function request(path: string, bearer?: string, method = 'GET', body?: unknown): Request {
   return new Request(`https://api.oneset.test${path}`, {
@@ -113,8 +114,30 @@ async function publish(source: unknown): Promise<{ changes: Array<{ kind: string
 
 after(async () => { await engine.close(); });
 
-test('structural publication preserves history and applies day changes at the cycle week boundary', async () => {
+test('structural publication keeps cycles consistent and preserves history at the cycle week boundary', async () => {
   await publish(original);
+  const requiredWorkoutIDs = () => database.query(
+    'SELECT workout_id FROM required_workouts_for_cycle_week($1, 1)', [cycleID],
+  );
+  const requiredBefore = await requiredWorkoutIDs();
+  assert.equal(requiredBefore.length, 2);
+
+  await assert.rejects(database.query(`UPDATE user_programs
+    SET workout_program_id = (SELECT id FROM workout_programs WHERE authoring_key = 'machine-upper-body')
+    WHERE id = $1`, [cycleID]), /CYCLE_PROGRAM_IMMUTABLE/);
+  await assert.rejects(database.query(`INSERT INTO user_program_workout_periods (user_program_id, workout_id, starts_week)
+    SELECT $1, id, 1 FROM workouts WHERE authoring_key = 'machine-upper-body-a'`, [cycleID]),
+    /OPEN_WORKOUT_PERIOD_REQUIRES_ACTIVE_MEMBERSHIP/);
+  await assert.rejects(database.query(`UPDATE user_program_workout_periods
+    SET workout_id = (SELECT id FROM workouts WHERE authoring_key = 'machine-upper-body-a')
+    WHERE user_program_id = $1 AND workout_id = $2`, [cycleID, String(requiredBefore[0]!.workout_id)]),
+    /OPEN_WORKOUT_PERIOD_REQUIRES_ACTIVE_MEMBERSHIP/);
+
+  const prescriptionEdit = structuredClone(original);
+  prescriptionEdit.programs[0]!.workouts[0]!.exercises[0]!.reps.maximum = 11;
+  await publish(prescriptionEdit);
+  assert.deepEqual(await requiredWorkoutIDs(), requiredBefore);
+
   await database.query(`INSERT INTO user_programs (id, user_id, workout_program_id, started_at)
     VALUES ($1, 1, 10, now())`, [concurrentlyCreatedCycleID]);
   const initializedCycle = await database.query(`SELECT workouts.authoring_key,
@@ -252,6 +275,9 @@ test('structural publication preserves history and applies day changes at the cy
     WHERE periods.user_program_id = $1 ORDER BY workouts.authoring_key`, [cycleID]);
   assert.equal(afterRemoval.find(row => row.authoring_key === 'machine-full-body-a')?.ends_week, 2);
   assert.equal(afterRemoval.find(row => row.authoring_key === 'machine-full-body-c')?.starts_week, 3);
+  await assert.rejects(database.query(`UPDATE user_program_workout_periods SET ends_week = NULL
+    WHERE user_program_id = $1 AND workout_id = $2 AND starts_week = 1`,
+    [cycleID, String(originalIDs.workout_id)]), /OPEN_WORKOUT_PERIOD_REQUIRES_ACTIVE_MEMBERSHIP/);
   const currentRequired = await database.query(`SELECT workouts.authoring_key, required.workout_position
     FROM required_workouts_for_cycle_week($1, 3) required
     JOIN workouts ON workouts.id = required.workout_id

@@ -1290,18 +1290,18 @@ extension ProgramCatalog {
                     videoKey: nil
                   ),
                   WorkoutExercise(
-                    id: "powerhouse-day-1-torso-density-arms-dumbbell-wrist-curl", exerciseKey: "dumbbell-wrist-curl",
-                    name: "Dumbbell Wrist Curl", repTarget: RepTarget(minimum: 12, maximum: 20, scope: .reps),
+                    id: "slot-224df32a3ab745ed837a3c4d139462a4", exerciseKey: "dumbbell-shrug",
+                    name: "Dumbbell Shrug", repTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
                     instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing.",
                     stoppingGuidance: "Stop when you cannot complete another rep without losing position or changing your form.",
                     warmupGuidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure.",
-                    restSeconds: 120, defaultRepTarget: RepTarget(minimum: 12, maximum: 20, scope: .reps),
+                    restSeconds: 120, defaultRepTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
                     videoKey: nil
                   )
               ]
             ),
             WorkoutTemplate(
-              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Thighs + Posterior Chain + Traps",
+              id: "powerhouse-day-2-thighs-posterior-chain-traps", name: "Thighs + Posterior Chain + Forearms",
               banner: "lower-body",
               exercises: [
                   WorkoutExercise(
@@ -1323,15 +1323,6 @@ extension ProgramCatalog {
                     videoKey: nil
                   ),
                   WorkoutExercise(
-                    id: "powerhouse-day-2-thighs-posterior-chain-traps-leg-press", exerciseKey: "leg-press",
-                    name: "Leg Press", repTarget: RepTarget(minimum: 10, maximum: 15, scope: .reps),
-                    instructions: "Place your feet in a comfortable stance and lower the platform only as far as your pelvis stays supported. Press through the whole foot without bouncing or forcefully locking your knees.",
-                    stoppingGuidance: "Continue until you cannot complete another full rep through the planned range with controlled form.",
-                    warmupGuidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure.",
-                    restSeconds: 210, defaultRepTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
-                    videoKey: nil
-                  ),
-                  WorkoutExercise(
                     id: "powerhouse-day-2-thighs-posterior-chain-traps-seated-leg-curl", exerciseKey: "seated-leg-curl",
                     name: "Seated Leg Curl", repTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
                     instructions: "Align your knees with the machine pivot and secure the pads comfortably. Curl the pad down without lifting your hips, then return slowly.",
@@ -1341,12 +1332,12 @@ extension ProgramCatalog {
                     videoKey: nil
                   ),
                   WorkoutExercise(
-                    id: "powerhouse-day-2-thighs-posterior-chain-traps-dumbbell-shrug", exerciseKey: "dumbbell-shrug",
-                    name: "Dumbbell Shrug", repTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
+                    id: "slot-ba08b4f06c2348e39d69ec9f5c1a011a", exerciseKey: "dumbbell-wrist-curl",
+                    name: "Dumbbell Wrist Curl", repTarget: RepTarget(minimum: 12, maximum: 20, scope: .reps),
                     instructions: "Lower the weight under control, use a comfortable full range, and lift without bouncing.",
                     stoppingGuidance: "Stop when you cannot complete another rep without losing position or changing your form.",
                     warmupGuidance: "For the first heavy exercise in a workout, use warm-up sets at about 40–50% of your working weight for 6–8 reps, 65–70% for 3–5 reps, and 80–85% for 1–3 reps. Skip any stage that feels unnecessary. For later exercises, warm up only if needed. Do not take warm-up sets to failure.",
-                    restSeconds: 120, defaultRepTarget: RepTarget(minimum: 8, maximum: 12, scope: .reps),
+                    restSeconds: 120, defaultRepTarget: RepTarget(minimum: 12, maximum: 20, scope: .reps),
                     videoKey: nil
                   ),
                   WorkoutExercise(

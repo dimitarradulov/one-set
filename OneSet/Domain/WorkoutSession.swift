@@ -122,6 +122,19 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
   var note: String?
   let requiredWorkoutIDs: [String]
 
+  var restSlotID: String? {
+    guard exercises.contains(where: { setEntries[$0.slotID]?.completedAt == nil }) else {
+      return nil
+    }
+    let latestCompleted = exercises
+      .filter { setEntries[$0.slotID]?.completedAt != nil }
+      .max {
+        (setEntries[$0.slotID]?.completedAt ?? .distantPast)
+          < (setEntries[$1.slotID]?.completedAt ?? .distantPast)
+      }?.slotID
+    return latestCompleted == exercises.last?.slotID ? nil : latestCompleted
+  }
+
   init(accountID: String, cycleID: UUID, program: TrainingProgram, workout: WorkoutTemplate,
        week: Int, day: Int, weightUnit: WeightUnit = .kilograms, startedAt: Date = .now, id: UUID = UUID()) {
     self.id = id

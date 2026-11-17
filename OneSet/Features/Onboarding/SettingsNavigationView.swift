@@ -26,8 +26,22 @@ struct SettingsNavigationView: View {
         .listRowBackground(OneSetColors.surface)
 
         Section {
-          destinationLink(.subscription)
-          destinationLink(.accountDeletion)
+          if let emailAddress = authentication.signedInUser?.emailAddress {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Signed in as")
+                .font(OneSetTypography.label)
+                .foregroundStyle(OneSetColors.textSecondary)
+              Text(emailAddress)
+                .font(OneSetTypography.body)
+                .foregroundStyle(OneSetColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("settings.account.email")
+            }
+          }
+          Text("Missing history? Check the address above. Sign out and use the account you used to record those workouts.")
+            .font(OneSetTypography.label)
+            .foregroundStyle(OneSetColors.textSecondary)
+            .accessibilityIdentifier("settings.account.historyHelp")
           Button {
             Task { await model.signOut(using: authentication) }
           } label: {
@@ -35,6 +49,8 @@ struct SettingsNavigationView: View {
           }
           .disabled(authentication.isWorking)
           .accessibilityIdentifier("account.signOut")
+          destinationLink(.subscription)
+          destinationLink(.accountDeletion)
         } header: {
           Text("Account")
             .accessibilityIdentifier("settings.section.account")
