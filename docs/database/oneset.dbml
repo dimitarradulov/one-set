@@ -84,7 +84,7 @@ Table users {
 Table user_programs {
   id uuid [pk, note: 'Generated once on device, reused on every retry']
   user_id integer [not null, ref: > users.id]
-  workout_program_id integer [not null, ref: > workout_programs.id]
+  workout_program_id integer [not null, ref: > workout_programs.id, note: 'Immutable after cycle creation. Switching programs selects or creates another cycle.']
   started_at timestamptz [not null]
   current_training_week integer [not null, default: 1, check: `current_training_week > 0`, note: 'Monotonic progress boundary; catalog edits do not recalculate it from the changed workout sequence']
   indexes {
@@ -101,7 +101,7 @@ Table user_program_workout_periods {
   indexes {
     (user_program_id, workout_id, starts_week) [pk]
   }
-  Note: 'Per-cycle workout participation intervals preserve each cycle’s structure boundary while catalog membership changes.'
+  Note: 'An insert or update leaving ends_week null requires a program_workouts row with a non-null position for the cycle’s program and workout. The trigger locks that membership during validation. Closing a period preserves its interval after membership retires.'
 }
 
 Table user_workout_exercises {
