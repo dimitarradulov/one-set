@@ -41,6 +41,8 @@ _Avoid_: Workout template
 
 **Prescription**: The exercise, working-set count, rep target, stopping instructions, warmup guidance, and rest guidance assigned to a slot.
 
+**Superset**: Two adjacent exercise slots in a workout template prescribed to be performed back to back before resting. An exercise slot can belong to at most one superset.
+
 **Working set**: The single main effort performed for an exercise after preparation. For unilateral movements, the prescription includes work on both sides.
 
 **Warmup**: Preparatory work preceding the working set; shown as guidance but not logged in OneSet.
