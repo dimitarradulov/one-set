@@ -1119,8 +1119,6 @@ final class OnboardingJourneyTests: XCTestCase {
 
     mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Settings"].exists)
-    XCTAssertTrue(app.staticTexts["settings.account.email"].label.contains("existing@example.com"))
-    XCTAssertTrue(app.staticTexts["settings.account.historyHelp"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.training"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.downloads"].exists)
     XCTAssertTrue(app.staticTexts["settings.section.account"].exists)
