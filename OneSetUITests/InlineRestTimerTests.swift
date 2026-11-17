@@ -206,12 +206,23 @@ final class InlineRestTimerTests: XCTestCase {
   }
 
   private func reveal(_ element: XCUIElement) {
+    let duration = app.staticTexts["recording.duration"]
+    let headerBottom = duration.exists ? duration.frame.maxY + 10 : app.navigationBars.firstMatch.frame.maxY
+    let dragStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.36))
+    let dragEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.52))
     for _ in 0..<12 {
-      if element.isHittable { return }
-      if element.frame.minY < app.frame.midY { app.swipeDown() }
-      else { app.swipeUp() }
+      if element.isHittable {
+        if element.frame.midY > headerBottom { return }
+        // XCTest can report a field under the pinned duration header as hittable.
+        dragStart.press(forDuration: 0.1, thenDragTo: dragEnd)
+      } else if element.frame.minY < app.frame.midY {
+        app.swipeDown()
+      } else {
+        app.swipeUp()
+      }
     }
     XCTAssertTrue(element.isHittable)
+    XCTAssertGreaterThan(element.frame.midY, headerBottom)
   }
 
   private func screenshot(_ name: String) {
