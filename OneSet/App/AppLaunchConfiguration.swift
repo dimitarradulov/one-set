@@ -162,7 +162,7 @@ struct AppLaunchConfiguration {
         .workoutPreview(programID: "minimalist-full-body", workoutID: "minimalist-full-body-workout-a")
       ]
       selectedProgramID = "minimalist-full-body"
-    } else if arguments.contains("--ui-workout-preview") {
+    } else if arguments.contains("--ui-workout-preview") || arguments.contains("--ui-workout-preview-superset") {
       onboardingPath = [
         .preferences,
         .programs,

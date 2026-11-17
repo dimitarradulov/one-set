@@ -800,6 +800,16 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["workoutPreview.start"].exists)
   }
 
+  func testWorkoutPreviewLabelsSupersetOnceAndKeepsBothExerciseLinks() {
+    relaunch(with: ["--ui-workout-preview-superset"])
+
+    let superset = app.staticTexts["Superset"]
+    XCTAssertTrue(superset.waitForExistence(timeout: 5))
+    XCTAssertEqual(app.staticTexts.matching(identifier: "Superset").count, 1)
+    XCTAssertTrue(app.buttons["workoutPreview.exercise.machine-full-body-workout-a-hack-squat-machine.open"].exists)
+    XCTAssertTrue(app.buttons["workoutPreview.exercise.machine-full-body-workout-a-machine-chest-press.open"].exists)
+  }
+
   func testWorkoutPreviewSummaryReflectsDifferentExerciseCount() {
     relaunch(with: ["--ui-workout-preview-minimalist"])
 

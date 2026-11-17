@@ -5,5 +5,6 @@ struct CatalogWorkoutDocument: Decodable, Sendable {
   let name: String
   let banner: String?
   let removed: Bool?
+  let supersets: [SupersetPair]?
   let exercises: [CatalogSlotDocument]
 }

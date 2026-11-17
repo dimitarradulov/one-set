@@ -15,7 +15,8 @@ export function generateBundledSwift(catalog: CatalogSource): string {
   const exercises = new Map(catalog.exercises.map(exercise => [exercise.key, exercise]));
   const programs = catalog.programs.map(program => {
     const workouts = program.workouts.filter(workout => workout.removed !== true).map(workout => {
-      const slots = workout.exercises.filter(slot => slot.removed !== true).map(slot => {
+      const slots = workout.exercises.filter(slot => slot.removed !== true)
+        .sort((first, second) => first.position - second.position).map(slot => {
         const exercise = exercises.get(slot.exercise);
         if (!exercise) throw new Error(`slot ${slot.key} references missing exercise ${slot.exercise}`);
         const videoKey = typeof exercise.video_key === 'string' ? swiftString(exercise.video_key) : 'nil';
@@ -32,12 +33,16 @@ export function generateBundledSwift(catalog: CatalogSource): string {
           `              videoKey: ${videoKey}`, '            )',
         ].join('\n');
       });
+      const pairs = (workout.supersets ?? []).map(pair =>
+        `            SupersetPair(firstSlotID: ${swiftString(pair.first_slot_id)}, secondSlotID: ${swiftString(pair.second_slot_id)})`
+      );
       return [
         '        WorkoutTemplate(',
         `          id: ${swiftString(workout.key)}, name: ${swiftString(workout.name)},`,
         ...(typeof workout.banner === 'string' ? [`          banner: ${swiftString(workout.banner)},`] : []),
         '          exercises: [', slots.map(slot => slot.split('\n').map(line => `  ${line}`).join('\n')).join(',\n'),
-        '          ]', '        )',
+        ...(pairs.length ? ['          ], supersets: [', pairs.join(',\n'), '          ]'] : ['          ]']),
+        '        )',
       ].join('\n');
     });
     return [

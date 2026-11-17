@@ -32,17 +32,21 @@ struct WorkoutTemplatePreviewScreen: View {
             sectionHeading
 
             ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-              NavigationLink(value: OnboardingRoute.exerciseDetail(
-                programID: program.id, workoutID: workout.id, exerciseID: exercise.id
-              )) {
-                exerciseRow(exercise, order: index + 1)
-              }
-              .buttonStyle(.plain)
-              .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-              .accessibilityHint("Opens exercise instructions, video, and performance.")
-              .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
-              .overlay(alignment: .bottom) {
-                Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+              if let pair = workout.supersets?.first(where: { $0.firstSlotID == exercise.id }),
+                 workout.exercises.indices.contains(index + 1),
+                 workout.exercises[index + 1].id == pair.secondSlotID {
+                VStack(alignment: .leading, spacing: 0) {
+                  SupersetLabel()
+                  exerciseLink(exercise, index: index)
+                  exerciseLink(workout.exercises[index + 1], index: index + 1)
+                }
+                .padding(.leading, 10)
+                .overlay(alignment: .leading) {
+                  Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
+                }
+                .accessibilityElement(children: .contain)
+              } else if workout.supersets?.contains(where: { $0.secondSlotID == exercise.id }) != true {
+                exerciseLink(exercise, index: index)
               }
             }
           }
@@ -115,6 +119,21 @@ struct WorkoutTemplatePreviewScreen: View {
       .foregroundStyle(OneSetColors.textSecondary)
       .fixedSize(horizontal: false, vertical: true)
       .accessibilityIdentifier("workoutPreview.repTargetsHeading")
+  }
+
+  private func exerciseLink(_ exercise: WorkoutExercise, index: Int) -> some View {
+    NavigationLink(value: OnboardingRoute.exerciseDetail(
+      programID: program.id, workoutID: workout.id, exerciseID: exercise.id
+    )) {
+      exerciseRow(exercise, order: index + 1)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+    .accessibilityHint("Opens exercise instructions, video, and performance.")
+    .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+    .overlay(alignment: .bottom) {
+      Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+    }
   }
 
   private func exerciseRow(_ exercise: WorkoutExercise, order: Int) -> some View {

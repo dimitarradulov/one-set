@@ -110,7 +110,8 @@ function currentCatalog(source: CatalogSource): CatalogSource {
         .filter(workout => workout.removed !== true)
         .map(workout => ({
           ...workout,
-          exercises: workout.exercises.filter(slot => slot.removed !== true),
+          exercises: workout.exercises.filter(slot => slot.removed !== true)
+            .sort((first, second) => first.position - second.position),
         }));
       return { ...program, training_days_per_week: workouts.length, workouts };
     }),

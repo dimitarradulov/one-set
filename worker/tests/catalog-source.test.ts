@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { parse } from 'yaml';
 import { validateCatalogSource } from '../src/catalog-validation.js';
+import { generateBundledSwift } from '../src/catalog-generation.js';
 
 const execute = promisify(execFile);
 
@@ -192,4 +193,33 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
       });
     }
   }
+});
+
+test('catalog supersets require two adjacent active slots in workout order', async () => {
+  const exercises = parse(await readFile('catalog/exercises.yaml', 'utf8')).exercises;
+  const program = parse(await readFile('catalog/programs/01-full-body.yaml', 'utf8'));
+  const source = { exercises, programs: [program] };
+  const [workout, otherWorkout] = program.workouts;
+  const [first, second, third] = workout.exercises;
+  const pair = (a: string, b: string) => ({ first_slot_id: a, second_slot_id: b });
+
+  assert.deepEqual(validateCatalogSource(source).errors, []);
+  workout.supersets = [pair(first.key, second.key)];
+  const validation = validateCatalogSource(source);
+  assert.deepEqual(validation.errors, []);
+  assert.match(generateBundledSwift(validation.catalog!), /SupersetPair\(firstSlotID:/);
+
+  for (const invalid of [
+    [pair(first.key, first.key)],
+    [pair(second.key, first.key)],
+    [pair(first.key, third.key)],
+    [pair(first.key, otherWorkout.exercises[0].key)],
+    [pair(first.key, second.key), pair(second.key, third.key)],
+  ]) {
+    workout.supersets = invalid;
+    assert.ok(validateCatalogSource(source).errors.some(error => error.includes('superset')));
+  }
+  workout.supersets = [pair(first.key, second.key)];
+  second.removed = true;
+  assert.ok(validateCatalogSource(source).errors.some(error => error.includes('superset')));
 });

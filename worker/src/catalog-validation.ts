@@ -17,12 +17,17 @@ export interface CatalogSlot extends JsonObject {
   scope?: 'reps' | 'each_leg' | 'each_side';
   removed?: boolean;
 }
+export interface CatalogSuperset {
+  first_slot_id: string;
+  second_slot_id: string;
+}
 export interface CatalogWorkout extends JsonObject {
   key: string;
   name: string;
   banner?: string;
   position: number;
   exercises: CatalogSlot[];
+  supersets?: CatalogSuperset[];
   removed?: boolean;
 }
 export interface CatalogProgram extends JsonObject {
@@ -95,6 +100,31 @@ function checkOrdered(values: JsonObject[], label: string, errors: string[]): vo
   });
 }
 
+function checkSupersets(value: unknown, slots: CatalogSlot[], label: string, errors: string[]): void {
+  if (value === undefined) return;
+  const pairs = asObjects(value);
+  if (!pairs) {
+    errors.push(`${label} supersets must be a list of pairs`);
+    return;
+  }
+  const positions = new Map(slots.filter(slot => slot.removed !== true).map(slot => [slot.key, slot.position]));
+  const membership = new Set<string>();
+  for (const { first_slot_id: first, second_slot_id: second } of pairs) {
+    const firstPosition = typeof first === 'string' ? positions.get(first) : undefined;
+    const secondPosition = typeof second === 'string' ? positions.get(second) : undefined;
+    if (typeof first !== 'string' || typeof second !== 'string' || first === second ||
+        firstPosition === undefined || secondPosition !== firstPosition + 1) {
+      errors.push(`${label} superset must reference two adjacent active slots in workout order`);
+      continue;
+    }
+    if (membership.has(first) || membership.has(second)) {
+      errors.push(`${label} superset overlaps another pair`);
+    }
+    membership.add(first);
+    membership.add(second);
+  }
+}
+
 function previousEntries(source: CatalogSource | undefined): {
   programs: Map<string, CatalogProgram>;
   workouts: Map<string, { program: CatalogProgram; workout: CatalogWorkout }>;
@@ -121,8 +151,8 @@ function programDetails(program: CatalogProgram): Omit<CatalogProgram, 'workouts
   return details;
 }
 
-function workoutDetails(workout: CatalogWorkout): Omit<CatalogWorkout, 'exercises'> {
-  const { exercises: _exercises, ...details } = workout;
+function workoutDetails(workout: CatalogWorkout): Omit<CatalogWorkout, 'exercises' | 'supersets'> {
+  const { exercises: _exercises, supersets: _supersets, ...details } = workout;
   return details;
 }
 
@@ -215,6 +245,7 @@ export function validateCatalogSource(
         if (!range(slot.reps)) errors.push(`${slotLabel} needs positive rep bounds (maximum 100)`);
         slots.push(slot as unknown as CatalogSlot);
       }
+      checkSupersets(workout.supersets, slots, workoutLabel, errors);
       workouts.push({ ...workout, exercises: slots } as unknown as CatalogWorkout);
       workoutRows.push(workout);
       slotRows.push(...rawSlots);
@@ -336,6 +367,29 @@ export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSo
     } else if (canonicalJSON(workoutDetails(oldEntry.workout)) !== canonicalJSON(workoutDetails(entry.workout))) {
       addChange('update workout', entry.program, entry.workout, entry.workout.name,
         `Changed fields: ${changedFields(workoutDetails(oldEntry.workout), workoutDetails(entry.workout), []).join(', ')}`);
+    }
+  }
+
+  const describePair = (pair: CatalogSuperset, entries: ReturnType<typeof previousEntries>) =>
+    [pair.first_slot_id, pair.second_slot_id].map(key => {
+      const exerciseKey = entries.slots.get(key)?.slot.exercise;
+      return exerciseKey ? entries.exercises.get(exerciseKey)?.name ?? exerciseKey : key;
+    }).join(' + ');
+  const pairKey = (pair: CatalogSuperset) => JSON.stringify([pair.first_slot_id, pair.second_slot_id]);
+  for (const [key, entry] of before.workouts) {
+    const nextPairs = new Set(after.workouts.get(key)?.workout.supersets?.map(pairKey));
+    for (const pair of entry.workout.supersets ?? []) {
+      if (!nextPairs.has(pairKey(pair))) {
+        addChange('unpair superset', entry.program, entry.workout, describePair(pair, before));
+      }
+    }
+  }
+  for (const [key, entry] of after.workouts) {
+    const previousPairs = new Set(before.workouts.get(key)?.workout.supersets?.map(pairKey));
+    for (const pair of entry.workout.supersets ?? []) {
+      if (!previousPairs.has(pairKey(pair))) {
+        addChange('add superset', entry.program, entry.workout, describePair(pair, after));
+      }
     }
   }
 

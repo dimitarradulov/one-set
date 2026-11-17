@@ -3,12 +3,17 @@ struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
   let name: String
   let banner: String?
   let exercises: [WorkoutExercise]
+  let supersets: [SupersetPair]?
 
-  init(id: String? = nil, name: String, banner: String? = nil, exercises: [WorkoutExercise]) {
+  init(
+    id: String? = nil, name: String, banner: String? = nil,
+    exercises: [WorkoutExercise], supersets: [SupersetPair]? = nil
+  ) {
     self.id = id ?? name
     self.name = name
     self.banner = banner
     self.exercises = exercises
+    self.supersets = supersets
   }
 
   var movements: [String] {
