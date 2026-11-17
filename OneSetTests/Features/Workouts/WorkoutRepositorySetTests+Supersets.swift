@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import OneSet
 
@@ -72,6 +73,52 @@ extension WorkoutRepositorySetTests {
     #expect(completed.restDeadline == nil)
   }
 
+  @Test
+  func failedFinishRollsBackRememberedReplacementAndRetryCommitsOnce() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let url = directory.appending(path: "workouts.sqlite")
+    let repository = try WorkoutRepository(databaseURL: url)
+    let row = WorkoutExercise(id: "slot-a", exerciseKey: "row", name: "Row", repTarget: .init(minimum: 8, maximum: 12))
+    let workout = WorkoutTemplate(id: "day", name: "Workout", exercises: [row])
+    let program = TrainingProgram(id: "program", name: "Program", format: "A", emphasis: "Strength", workouts: [workout])
+    let session = WorkoutSession(accountID: "account", cycleID: UUID(), program: program, workout: workout, week: 1, day: 1)
+    let replacement = WorkoutExercise(exerciseKey: "fly", name: "Fly", repTarget: .init(minimum: 8, maximum: 12))
+    _ = try repository.start(session)
+    _ = try repository.replaceExercise(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", with: replacement)
+    _ = try repository.saveDraft(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "20", repsInput: "10")
+    _ = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+
+    let probe = try DatabaseQueue(path: url.path)
+    try probe.write { db in
+      try db.execute(sql: """
+        CREATE TRIGGER fail_remembered_finish BEFORE INSERT ON completed_session_uploads
+        BEGIN SELECT RAISE(ABORT, 'upload queue unavailable'); END
+        """)
+    }
+
+    #expect(throws: (any Error).self) {
+      try repository.finish(sessionID: session.id, accountID: session.accountID,
+        note: nil, rememberSubstitutions: true)
+    }
+    let reopened = try WorkoutRepository(databaseURL: url)
+    #expect(try reopened.activeSession(accountID: session.accountID)?.newSubstitutions.first?.exerciseKey == "fly")
+    #expect(try reopened.pendingSessionUploads(accountID: session.accountID).isEmpty)
+    #expect(try probe.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM remembered_workout_exercises") } == 0)
+
+    try probe.write { db in try db.execute(sql: "DROP TRIGGER fail_remembered_finish") }
+    for _ in 0..<2 {
+      _ = try reopened.finish(sessionID: session.id, accountID: session.accountID,
+        note: nil, rememberSubstitutions: true)
+    }
+    #expect(try reopened.pendingSessionUploads(accountID: session.accountID).count == 1)
+    #expect(try probe.read { db in
+      try String.fetchAll(db, sql: "SELECT exercise_key FROM remembered_workout_exercises")
+    } == ["fly"])
+  }
+
   @Test(arguments: [false, true])
   func replacementRetainsPairAndUsesTheActualExerciseInHistory(remember: Bool) throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
@@ -121,5 +168,16 @@ extension WorkoutRepositorySetTests {
     #expect(next.supersets == [pair])
     #expect(next.exercises[1].exerciseKey == (remember ? "fly" : "press"))
     #expect(next.newSubstitutions.isEmpty)
+
+    let otherAccount = WorkoutSession(accountID: "other-account", cycleID: UUID(), program: program,
+      workout: workout, week: 1, day: 1)
+    #expect(try reopened.start(otherAccount, exerciseLibrary: ["fly": fly]).exercises[1].exerciseKey == "press")
+
+    try reopened.discard(sessionID: next.id, accountID: next.accountID)
+    let otherProgram = TrainingProgram(id: "other-program", name: "Another program", format: "A",
+      emphasis: "Strength", workouts: [workout])
+    let anotherProgram = WorkoutSession(accountID: session.accountID, cycleID: UUID(),
+      program: otherProgram, workout: workout, week: 1, day: 1)
+    #expect(try reopened.start(anotherProgram, exerciseLibrary: ["fly": fly]).exercises[1].exerciseKey == "press")
   }
 }

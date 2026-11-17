@@ -33,23 +33,18 @@ struct WorkoutRecordingScreen: View {
           Text("Your workout is saved on this device. You can leave and resume it later.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
-          ForEach(Array(session.exercises.enumerated()), id: \.element.slotID) { index, exercise in
-            if let pair = session.supersets.first(where: { $0.firstSlotID == exercise.slotID }),
-               session.exercises.indices.contains(index + 1), session.exercises[index + 1].slotID == pair.secondSlotID {
-              VStack(alignment: .leading, spacing: 0) {
-                SupersetLabel()
-                exerciseRow(exercise)
-                exerciseRow(session.exercises[index + 1])
+          ForEach(WorkoutExerciseGroup.ordered(session.exercises, slotID: \.slotID, supersets: session.supersets)) { group in
+            let first = session.exercises[group.firstIndex]
+            if let secondIndex = group.secondIndex {
+              let second = session.exercises[secondIndex]
+              SupersetRows(spacing: 0) {
+                exerciseRow(first)
+                exerciseRow(second)
               }
-              .padding(.leading, 10)
-              .overlay(alignment: .leading) {
-                Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
-              }
-              .accessibilityElement(children: .contain)
-              restCountdown(after: session.exercises[index + 1], scrollProxy: scrollProxy)
-            } else if !session.supersets.contains(where: { $0.secondSlotID == exercise.slotID }) {
-              exerciseRow(exercise)
-              restCountdown(after: exercise, scrollProxy: scrollProxy)
+              restCountdown(after: second, scrollProxy: scrollProxy)
+            } else {
+              exerciseRow(first)
+              restCountdown(after: first, scrollProxy: scrollProxy)
             }
           }
           Button("Finish workout") {

@@ -69,7 +69,7 @@ In one short server transaction:
 
 Run/session UUIDs are generated once on the device and reused. Set identity is session UUID + original slot ID. No operation receipts, change feed or server deletion identifiers are needed. Keep local input if validation or a stale session revision rejects a write; never discard it or blindly rebase an ambiguous retry.
 
-User settings and remembered replacements/notes/rest use the latest saved values. Serialize/coalesce their pending writes on the device. They have no revision or multi-device conflict flow.
+The proposed settings, exercise choice, note and rest sync uses the latest saved values. Pending writes would be serialized on the device without session revisions. Current remembered exercise choices are stored locally and commit with Finish.
 
 ## Program runs
 

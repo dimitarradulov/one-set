@@ -64,6 +64,17 @@ struct WorkoutExercise: Codable, Hashable, Identifiable, Sendable {
     self.defaultRepTarget = defaultRepTarget
     self.videoKey = videoKey
   }
+
+  func replacementOption(authoredScope: RepTarget.Scope?) -> Self {
+    let defaults = defaultRepTarget ?? repTarget
+    let scope = authoredScope ?? defaults.scope
+    let target = RepTarget(minimum: defaults.minimum, maximum: defaults.maximum, scope: scope)
+    return Self(
+      id: id, exerciseKey: exerciseKey, name: name, repTarget: target,
+      instructions: instructions, stoppingGuidance: stoppingGuidance, warmupGuidance: warmupGuidance,
+      restSeconds: restSeconds, defaultRepTarget: target, videoKey: videoKey
+    )
+  }
 }
 
 struct RepTarget: Codable, Hashable, Sendable {

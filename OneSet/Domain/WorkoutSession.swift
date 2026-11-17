@@ -185,7 +185,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
   }
 
   mutating func updateRest(afterCompleting slotID: String, standaloneSeconds: Int?, at date: Date) {
-    let pair = supersets.first { $0.firstSlotID == slotID || $0.secondSlotID == slotID }
+    let pair = supersets.first { $0.contains(slotID: slotID) }
     if let pair,
        setEntries[pair.firstSlotID]?.completedAt == nil || setEntries[pair.secondSlotID]?.completedAt == nil {
       return
@@ -206,7 +206,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
 
   mutating func updateRest(afterUndoing slotID: String) {
     if supersets.contains(where: {
-      $0.secondSlotID == restSlotID && ($0.firstSlotID == slotID || $0.secondSlotID == slotID)
+      $0.secondSlotID == restSlotID && $0.contains(slotID: slotID)
     }) {
       clearRest()
     } else if restDeadline != nil && (restSlotID == slotID || restSlotID == nil) {
@@ -219,7 +219,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     let latest = exercises
       .filter { exercise in
         setEntries[exercise.slotID]?.completedAt != nil && !supersets.contains {
-          $0.firstSlotID == exercise.slotID || $0.secondSlotID == exercise.slotID
+          $0.contains(slotID: exercise.slotID)
         }
       }
       .max {

@@ -66,7 +66,7 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
-  func publishedSupersetDecodesStableSlotsAndSurvivesCatalogCache() throws {
+  func publishedSupersetDecodesStableSlotsAndSurvivesCatalogRefresh() async throws {
     let document = try JSONDecoder.catalogDecoder.decode(CatalogDocument.self, from: Data("""
     {
       "exercises": [
@@ -106,6 +106,48 @@ struct ProgramCatalogOnboardingTests {
     let persistence = FileProgramCatalogPersistence(fileURL: directory.appending(path: "catalog.json"))
     try persistence.save(snapshot("paired-publication", "paired-tag", [program]))
     #expect(try persistence.load()?.programs.first?.workouts.first?.supersets == [expectedPair])
+
+    let workout = try #require(program.workouts.first)
+    let revisedWorkout = WorkoutTemplate(id: workout.id, name: workout.name, exercises: workout.exercises)
+    let revisedProgram = TrainingProgram(id: program.id, name: program.name,
+      format: program.format, emphasis: program.emphasis, workouts: [revisedWorkout])
+    let catalog = ProgramCatalog(programs: [],
+      service: StubProgramCatalogService(result: .snapshot(snapshot("unpaired", "unpaired-tag", [revisedProgram]))),
+      persistence: persistence)
+    let currentProgram = try #require(catalog.program(id: program.id))
+    let currentWorkout = try #require(currentProgram.workouts.first)
+    let active = WorkoutSession(accountID: "account", cycleID: UUID(), program: currentProgram,
+      workout: currentWorkout, week: 1, day: 1)
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    _ = try WorkoutRepository(databaseURL: databaseURL).start(active)
+
+    await catalog.refresh()
+
+    #expect(catalog.publicationID == "unpaired")
+    #expect(catalog.program(id: program.id)?.workouts.first?.supersets == nil)
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.activeSession(accountID: active.accountID)?.supersets == [expectedPair])
+  }
+
+  @Test
+  func replacementLibraryUsesUnilateralScopeWithDefaultRepBounds() async throws {
+    let bundled = ProgramCatalog.bundled
+    let key = "bulgarian-split-squat"
+    let replacement = try #require(bundled.exerciseLibrary[key])
+    #expect(replacement.repTarget == RepTarget(minimum: 8, maximum: 12, scope: .eachLeg))
+
+    let publishedExercise = WorkoutExercise(id: key, exerciseKey: key, name: replacement.name,
+      repTarget: .init(minimum: 8, maximum: 12), defaultRepTarget: .init(minimum: 8, maximum: 12))
+    let published = PublishedProgramCatalogSnapshot(publicationID: "published", entityTag: "test-tag",
+      programs: bundled.programs, exerciseLibrary: [publishedExercise])
+    let catalog = ProgramCatalog(programs: [],
+      service: StubProgramCatalogService(result: .snapshot(published)))
+    await catalog.refresh()
+
+    #expect(catalog.publicationID == "published")
+    let online = try #require(catalog.exerciseLibrary[key])
+    #expect(online.repTarget == replacement.repTarget)
+    #expect(online.defaultRepTarget == replacement.defaultRepTarget)
   }
 
   @Test

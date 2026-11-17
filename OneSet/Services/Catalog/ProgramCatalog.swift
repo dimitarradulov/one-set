@@ -34,7 +34,15 @@ final class ProgramCatalog {
   var exerciseLibrary: [String: WorkoutExercise] {
     let programmed = programs.flatMap { $0.workouts.flatMap(\.exercises) }
     let entries = publishedExercises ?? (programmed + bundledExercises)
-    return Dictionary(entries.map { ($0.exerciseKey, $0) }, uniquingKeysWith: { first, _ in first })
+    let scopesByExercise = Dictionary(grouping: programmed, by: \.exerciseKey).mapValues {
+      Set($0.map(\.repTarget.scope))
+    }
+    let uniqueEntries = Dictionary(entries.map { ($0.exerciseKey, $0) }, uniquingKeysWith: { first, _ in first })
+    return uniqueEntries.mapValues { exercise in
+      let scopes = scopesByExercise[exercise.exerciseKey]
+      let scope = scopes?.count == 1 ? scopes?.first : nil
+      return exercise.replacementOption(authoredScope: scope)
+    }
   }
 
   var offeredPrograms: [TrainingProgram] {

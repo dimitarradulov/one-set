@@ -31,22 +31,15 @@ struct WorkoutTemplatePreviewScreen: View {
           VStack(alignment: .leading, spacing: 12) {
             sectionHeading
 
-            ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-              if let pair = workout.supersets?.first(where: { $0.firstSlotID == exercise.id }),
-                 workout.exercises.indices.contains(index + 1),
-                 workout.exercises[index + 1].id == pair.secondSlotID {
-                VStack(alignment: .leading, spacing: 0) {
-                  SupersetLabel()
-                  exerciseLink(exercise, index: index)
-                  exerciseLink(workout.exercises[index + 1], index: index + 1)
+            ForEach(WorkoutExerciseGroup.ordered(workout.exercises, slotID: \.id, supersets: workout.supersets ?? [])) { group in
+              let first = group.firstIndex
+              if let second = group.secondIndex {
+                SupersetRows(spacing: 0) {
+                  exerciseLink(workout.exercises[first], index: first)
+                  exerciseLink(workout.exercises[second], index: second)
                 }
-                .padding(.leading, 10)
-                .overlay(alignment: .leading) {
-                  Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
-                }
-                .accessibilityElement(children: .contain)
-              } else if workout.supersets?.contains(where: { $0.secondSlotID == exercise.id }) != true {
-                exerciseLink(exercise, index: index)
+              } else {
+                exerciseLink(workout.exercises[first], index: first)
               }
             }
           }

@@ -21,7 +21,7 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | GET /me/cycles | Implemented complete owner-scoped latest cycle discovery |
 | POST /cycles | Implemented first-cycle creation and selection; equal retries do not reactivate |
 | POST /cycles/{id}/activate | Implemented owner-scoped activation of the latest offered program cycle |
-| PUT /cycles/{id}/exercises/{workout_exercise_id} | Save remembered `exercise_id`, `note`, `rest_seconds`; latest saved values take effect |
+| PUT /cycles/{id}/exercises/{workout_exercise_id} | Deferred proposal for account-synced exercise, note and rest overrides |
 | POST /sync/push | Apply a bounded batch of aggregate operations; outcome per operation |
 | GET /sessions | Implemented keyset-paginated history; no public/shared cache |
 | GET /sessions/{id} | Snapshot and results; ownership checked |
@@ -50,7 +50,7 @@ Catalog reads and account setup require Clerk authentication. Catalog maintenanc
 - **Settings:** PATCH accepts `preferred_unit` (`kg`/`lb`) and `training_days` (2–5). Read `active_user_program_id` from bootstrap; change it through cycle creation/activation. No settings revision. Clerk owns account profile/access.
 - **Cycles:** POST accepts client-generated `id`, `workout_program_id`, `started_at` and an initial `preferences` array. Each preference contains `workout_exercise_id`, optional replacement `exercise_id`, `note` and `rest_seconds`. Insert the owned run/preferences and select it atomically. Creation retries verify fixed run identity and return the existing run without repeating either copy or activation. Resume uses `started_at DESC, id DESC`; activation selects only the latest run for that program. No run revision or current flag.
 - **Cycle progress:** `user_programs.current_training_week` is the monotonic week boundary. Catalog publication uses it when applying added or removed workout days, while `required_workouts_for_cycle_week(cycle_id, week)` resolves the current order for future occurrences. A future finish command advances the boundary only after all required workouts for that week are complete; catalog refresh never recomputes it from edited structure.
-- **Remembered preferences:** PUT supplies all three override values; null clears an override. All nulls may remove the sparse row. Null `exercise_id` means use the template exercise. Require positive rest seconds when supplied. Validate that the user owns the run and the slot belongs to its current program template. Changing a preference never edits existing session copies.
+- **Proposed remembered preference writes:** The app currently remembers exercise replacements on the training device, keyed by account, program and slot. Completed sessions send the actual exercise choice through the existing session endpoint. In the deferred API, PUT supplies all three override values; null clears an override. All nulls may remove the sparse row. Null `exercise_id` means use the template exercise. Require positive rest seconds when supplied. Validate that the user owns the run and the slot belongs to its current program template. Changing a preference never edits existing session copies.
 - **Media:** `video_key` is the stored private object key, not a media-table ID or an access grant. Authorization is required for current and historical referenced media alike.
 
 Settings, preference and activation writes are serialized on the device and use latest-saved semantics. Their requests never carry a session `base_revision`.

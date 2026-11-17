@@ -263,22 +263,16 @@ struct HistorySessionDetailScreen: View {
 
       Section("Exercises") {
         let exercises = session.exercises.sorted { $0.order < $1.order }
-        ForEach(Array(exercises.enumerated()), id: \.element.slotID) { index, exercise in
-          if let pair = session.supersets.first(where: { $0.firstSlotID == exercise.slotID }),
-             exercises.indices.contains(index + 1), exercises[index + 1].slotID == pair.secondSlotID {
-            VStack(alignment: .leading, spacing: 8) {
-              SupersetLabel()
-              exerciseResult(exercise)
-              exerciseResult(exercises[index + 1])
-            }
-            .padding(.leading, 10)
-            .overlay(alignment: .leading) {
-              Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
+        ForEach(WorkoutExerciseGroup.ordered(exercises, slotID: \.slotID, supersets: session.supersets)) { group in
+          let first = exercises[group.firstIndex]
+          if let second = group.secondIndex {
+            SupersetRows(spacing: 8) {
+              exerciseResult(first)
+              exerciseResult(exercises[second])
             }
             .padding(.vertical, 4)
-            .accessibilityElement(children: .contain)
-          } else if !session.supersets.contains(where: { $0.secondSlotID == exercise.slotID }) {
-            exerciseResult(exercise)
+          } else {
+            exerciseResult(first)
           }
         }
       }
