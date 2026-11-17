@@ -26,7 +26,7 @@ test('the ten authored programs generate the bundled catalog without losing pres
       'bro-split': 25,
       'minimalist-full-body': 12,
       'v-taper': 19,
-      powerhouse: 21,
+      powerhouse: 20,
       'classic-physique': 19,
       'free-weight-full-body': 18,
       'machine-full-body': 22,
@@ -35,11 +35,11 @@ test('the ten authored programs generate the bundled catalog without losing pres
     assert.equal(programFiles.length, 10);
     const programs = await Promise.all(programFiles.map(async file => parse(
       await readFile(join('catalog/programs', file), 'utf8'),
-    ) as { key: string; recommended_weeks: number; workouts: Array<{ banner?: string; exercises: unknown[] }> }));
+    ) as { key: string; recommended_weeks: number; workouts: Array<{ banner?: string; exercises: Array<{ removed?: boolean }> }> }));
     assert.deepEqual(programs.map(program => program.key), Object.keys(expectedCounts));
     for (const program of programs) {
       assert.equal(program.recommended_weeks, 8);
-      assert.equal(program.workouts.flatMap(workout => workout.exercises).length, expectedCounts[program.key]);
+      assert.equal(program.workouts.flatMap(workout => workout.exercises).filter(slot => !slot.removed).length, expectedCounts[program.key]);
     }
     const workouts = programs.flatMap(program => program.workouts);
     assert.equal(workouts.length, 32);
@@ -97,7 +97,7 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
     format: string;
     emphasis: string;
     workouts: Array<{ name: string; exercises: Array<{
-      exercise: string; reps: { minimum: number; maximum: number }; scope?: string;
+      exercise: string; reps: { minimum: number; maximum: number }; scope?: string; removed?: boolean;
     }> }>;
   }>();
   const exerciseDocument = parse(await readFile('catalog/exercises.yaml', 'utf8')) as {
@@ -108,7 +108,7 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
     const program = parse(await readFile(join('catalog/programs', file), 'utf8')) as {
       key: string; name: string; format: string; emphasis: string;
       workouts: Array<{ name: string; exercises: Array<{
-        exercise: string; reps: { minimum: number; maximum: number }; scope?: string;
+        exercise: string; reps: { minimum: number; maximum: number }; scope?: string; removed?: boolean;
       }> }>;
     };
     programs.set(program.key, program);
@@ -162,11 +162,24 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
         });
       }
     }
+    // Published Powerhouse updates from the November 11 and 13 catalog publications.
+    if (key === 'powerhouse') {
+      const [torso, thighs, shoulders] = sourceWorkouts.values();
+      torso!.splice(6, 1, { name: 'Dumbbell Shrug', minimum: 8, maximum: 12, scope: 'reps', failure: 'TF' });
+      thighs!.splice(4, 1, { name: 'Dumbbell Wrist Curl', minimum: 12, maximum: 20, scope: 'reps', failure: 'TF' });
+      thighs!.splice(2, 1);
+      sourceWorkouts.clear();
+      sourceWorkouts.set('Torso Density + Arms', torso!);
+      sourceWorkouts.set('Thighs + Posterior Chain + Forearms', thighs!);
+      sourceWorkouts.set('Upper Back + Shoulder Girdle + Traps', shoulders!);
+      assert.equal(program.workouts.flatMap(workout => workout.exercises).filter(slot => slot.removed).length, 5);
+    }
     assert.deepEqual(program.workouts.map(workout => workout.name), [...sourceWorkouts.keys()]);
     for (const workout of program.workouts) {
       const sourceSlots = sourceWorkouts.get(workout.name)!;
-      assert.equal(workout.exercises.length, sourceSlots.length);
-      workout.exercises.forEach((slot, slotIndex) => {
+      const activeSlots = workout.exercises.filter(slot => !slot.removed);
+      assert.equal(activeSlots.length, sourceSlots.length);
+      activeSlots.forEach((slot, slotIndex) => {
         const authored = sourceSlots[slotIndex]!;
         assert.equal(exerciseNames.get(slot.exercise), authored.name);
         assert.equal(slot.reps.minimum, authored.minimum);
