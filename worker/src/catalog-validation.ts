@@ -14,6 +14,7 @@ export interface CatalogSlot extends JsonObject {
   exercise: string;
   position: number;
   reps: RepRange;
+  stopping_guidance?: string;
   scope?: 'reps' | 'each_leg' | 'each_side';
   removed?: boolean;
 }
@@ -25,6 +26,7 @@ export interface CatalogWorkout extends JsonObject {
   key: string;
   name: string;
   banner?: string;
+  week_parity?: 'odd' | 'even';
   position: number;
   exercises: CatalogSlot[];
   supersets?: CatalogSuperset[];
@@ -42,6 +44,10 @@ export interface CatalogProgram extends JsonObject {
 export interface CatalogSource extends JsonObject {
   exercises: CatalogExercise[];
   programs: CatalogProgram[];
+}
+
+export function workoutsInWeek(workouts: CatalogWorkout[], parity: 'odd' | 'even'): CatalogWorkout[] {
+  return workouts.filter(workout => !workout.removed && (workout.week_parity === undefined || workout.week_parity === parity));
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -222,6 +228,9 @@ export function validateCatalogSource(
       if (workout.removed !== undefined && typeof workout.removed !== 'boolean') {
         errors.push(`${workoutLabel} removed must be true or false`);
       }
+      if (workout.week_parity !== undefined && workout.week_parity !== 'odd' && workout.week_parity !== 'even') {
+        errors.push(`${workoutLabel} week_parity must be odd or even when supplied`);
+      }
       const rawSlots = asObjects(workout.exercises);
       if (!rawSlots || rawSlots.length === 0) {
         errors.push(`${workoutLabel} needs a non-empty exercises list`);
@@ -242,6 +251,10 @@ export function validateCatalogSource(
         if (slot.scope !== undefined && !['reps', 'each_leg', 'each_side'].includes(String(slot.scope))) {
           errors.push(`${slotLabel} scope must be reps, each_leg, or each_side`);
         }
+        if (slot.stopping_guidance !== undefined
+          && (!isNonEmpty(slot.stopping_guidance) || (slot.stopping_guidance as string).length > 2000)) {
+          errors.push(`${slotLabel} stopping_guidance must be non-empty and at most 2000 characters`);
+        }
         if (!range(slot.reps)) errors.push(`${slotLabel} needs positive rep bounds (maximum 100)`);
         slots.push(slot as unknown as CatalogSlot);
       }
@@ -250,9 +263,12 @@ export function validateCatalogSource(
       workoutRows.push(workout);
       slotRows.push(...rawSlots);
     }
-    const activeWorkoutCount = workouts.filter(workout => workout.removed !== true).length;
-    if (program.removed !== true && (activeWorkoutCount < 1 || activeWorkoutCount > 5)) {
-      errors.push(`${label} must have between one and five active workouts`);
+    const oddCount = workoutsInWeek(workouts, 'odd').length;
+    const evenCount = workoutsInWeek(workouts, 'even').length;
+    if (program.removed !== true || oddCount > 0 || evenCount > 0) {
+      if (oddCount < 1 || oddCount > 5 || evenCount !== oddCount) {
+        errors.push(`${label} must have the same number of active workouts (one to five) in odd and even weeks`);
+      }
     }
     programs.push({ ...program, workouts } as unknown as CatalogProgram);
   }
@@ -276,6 +292,8 @@ export function validateCatalogSource(
       if (!replacement) errors.push(`previously published workout ${key} is missing; mark it removed explicitly`);
       else if (replacement.program.key !== entry.program.key) {
         errors.push(`workout key ${key} cannot move to a different program`);
+      } else if (replacement.workout.week_parity !== entry.workout.week_parity) {
+        errors.push(`workout key ${key} cannot change its training-week parity`);
       }
     }
     for (const [key, entry] of before.slots) {

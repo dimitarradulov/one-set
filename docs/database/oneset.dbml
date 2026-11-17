@@ -32,6 +32,7 @@ Table program_workouts {
   program_id integer [not null, ref: > workout_programs.id]
   workout_id integer [not null, ref: > workouts.id]
   position integer [check: `position > 0`, note: 'Null removes this entry from the current template while preserving history references']
+  week_parity text [check: `week_parity IN ('odd', 'even')`, note: 'Null schedules the workout in every training week']
   indexes {
     (program_id, workout_id) [pk]
     (program_id, position) [unique]

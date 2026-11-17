@@ -11,7 +11,7 @@ import { generateBundledSwift } from '../src/catalog-generation.js';
 
 const execute = promisify(execFile);
 
-test('the ten authored programs generate the bundled catalog without losing prescriptions', async () => {
+test('the authored programs generate the bundled catalog without losing prescriptions', async () => {
   const output = await mkdtemp(join(tmpdir(), 'oneset-catalog-source-'));
   const generatedSwift = join(output, 'BundledProgramCatalog.swift');
   try {
@@ -31,9 +31,10 @@ test('the ten authored programs generate the bundled catalog without losing pres
       'classic-physique': 19,
       'free-weight-full-body': 18,
       'machine-full-body': 22,
+      'hit-upper-lower-rotation': 15,
     };
     const programFiles = (await readdir('catalog/programs')).filter(file => file.endsWith('.yaml')).sort();
-    assert.equal(programFiles.length, 10);
+    assert.equal(programFiles.length, Object.keys(expectedCounts).length);
     const programs = await Promise.all(programFiles.map(async file => parse(
       await readFile(join('catalog/programs', file), 'utf8'),
     ) as { key: string; recommended_weeks: number; workouts: Array<{ banner?: string; exercises: Array<{ removed?: boolean }> }> }));
@@ -43,7 +44,7 @@ test('the ten authored programs generate the bundled catalog without losing pres
       assert.equal(program.workouts.flatMap(workout => workout.exercises).filter(slot => !slot.removed).length, expectedCounts[program.key]);
     }
     const workouts = programs.flatMap(program => program.workouts);
-    assert.equal(workouts.length, 32);
+    assert.equal(workouts.length, 36);
     assert.ok(workouts.every(workout => typeof workout.banner === 'string'));
     assert.deepEqual([...new Set(workouts.map(workout => workout.banner))].sort(), [
       'arms', 'back-pull', 'chest-push', 'general-gym', 'lower-body', 'shoulders', 'upper-body',
@@ -51,7 +52,7 @@ test('the ten authored programs generate the bundled catalog without losing pres
     const exerciseDocument = parse(await readFile('catalog/exercises.yaml', 'utf8')) as {
       exercises: Array<Record<string, unknown>>;
     };
-    assert.equal(exerciseDocument.exercises.length, 47);
+    assert.equal(exerciseDocument.exercises.length, 52);
     for (const exercise of exerciseDocument.exercises) {
       assert.equal(typeof exercise.instructions, 'string');
       assert.equal(typeof exercise.stopping_guidance, 'string');

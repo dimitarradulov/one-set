@@ -1,13 +1,13 @@
 import Foundation
 
 extension OnboardingModel {
-  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
+  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID, week: Int? = nil) {
     guard selectedProgramID == programID,
           let program = catalog.program(id: programID),
           program.workouts.contains(where: { $0.id == workoutID })
     else { return }
 
-    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID)
+    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID, week: week)
     if hasCompletedSetup {
       programPath.append(route)
     } else if path.last == .programOverview(programID) {
@@ -15,7 +15,7 @@ extension OnboardingModel {
     }
   }
 
-  func startWorkout(programID: String, workoutID: String, accountID: String) {
+  func startWorkout(programID: String, workoutID: String, accountID: String, week: Int? = nil) {
     guard !requiresProgramUpdate, accountID == resolvedAccountID, programID == selectedProgramID else {
       workoutErrorMessage = "Update your program before starting a workout."
       workoutErrorPresented = true
@@ -30,8 +30,9 @@ extension OnboardingModel {
     }
     do {
       let next = try workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: program.workouts.map(\.id))
-      guard next.workoutID == workoutID else {
+        programID: programID, workoutIDs: program.workouts(inWeek: 1).map(\.id),
+        evenWeekWorkoutIDs: program.evenWeekWorkoutIDs)
+      guard next.workoutID == workoutID, week == nil || next.week == week else {
         workoutErrorMessage = "Complete the earlier workout day before starting this one."
         workoutErrorPresented = true
         return
@@ -186,7 +187,8 @@ extension OnboardingModel {
     guard let workoutRepository, let cycleID = restoredCycleID,
           let accountID = resolvedAccountID, let program = catalog.program(id: programID) else { return 1 }
     return (try? workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-      programID: programID, workoutIDs: program.workouts.map(\.id)).week) ?? 1
+      programID: programID, workoutIDs: program.workouts(inWeek: 1).map(\.id),
+      evenWeekWorkoutIDs: program.evenWeekWorkoutIDs).week) ?? 1
   }
 
   func finishActiveWorkout(note: String?, rememberSubstitutions: Bool = false,

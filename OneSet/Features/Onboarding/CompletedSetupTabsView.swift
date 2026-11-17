@@ -84,8 +84,8 @@ struct CompletedSetupTabsView: View {
             },
             currentWeek: model.currentWorkoutWeek(programID: programID),
             completedWorkoutsForWeek: { model.completedWorkoutIDs(programID: programID, week: $0) },
-            onPreviewWorkout: { workout in
-              model.previewWorkout(programID: programID, workoutID: workout.id)
+            onPreviewWorkout: { workout, week in
+              model.previewWorkout(programID: programID, workoutID: workout.id, week: week)
             }
           )
           .id(programID)
@@ -137,7 +137,7 @@ struct CompletedSetupTabsView: View {
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
         WorkoutTemplatePreviewScreen(program: program, workout: program.workouts[workoutIndex],
-          day: workoutIndex + 1, onStartWorkout: {}, isBrowsingProgram: true)
+          day: program.trainingDay(for: program.workouts[workoutIndex]), onStartWorkout: {}, isBrowsingProgram: true)
           .navigationTitle("Workout preview")
           .navigationBarTitleDisplayMode(.inline)
       } else {
@@ -151,25 +151,27 @@ struct CompletedSetupTabsView: View {
   @ViewBuilder
   private func workoutDestination(for route: OnboardingRoute) -> some View {
     switch route {
-    case .workoutPreview(let programID, let workoutID):
+    case .workoutPreview(let programID, let workoutID, let week):
       if let program = model.program(id: programID),
          let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
         WorkoutTemplatePreviewScreen(
           program: program,
           workout: program.workouts[workoutIndex],
-          day: workoutIndex + 1,
+          day: program.trainingDay(for: program.workouts[workoutIndex]),
           onStartWorkout: {
             guard let accountID = authentication.signedInUser?.id else { return }
             if let session = model.activeWorkoutSession, session.accountID == accountID,
-               session.programID == programID, session.workoutID == workoutID {
+               session.programID == programID, session.workoutID == workoutID, week == nil || week == session.week {
               model.programPath.append(.workoutRecording(session.id))
               return
             }
-            model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID)
+            model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID, week: week)
           },
           isActiveWorkout: model.activeWorkoutSession.map {
             $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
+              && (week == nil || week == $0.week)
           } ?? false,
+          isBrowsingProgram: week.map { $0 != model.currentWorkoutWeek(programID: programID) } ?? false,
           requiresProgramUpdate: model.requiresProgramUpdate
         )
         .navigationTitle("Workout preview").navigationBarTitleDisplayMode(.inline)

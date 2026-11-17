@@ -15,6 +15,7 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
     var request = URLRequest(url: baseURL.appending(path: "v1/catalog"))
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
+    request.setValue("1", forHTTPHeaderField: "X-OneSet-Alternating-Weeks")
     if let ifNoneMatch { request.setValue(ifNoneMatch, forHTTPHeaderField: "If-None-Match") }
     request.cachePolicy = .reloadIgnoringLocalCacheData
     request.timeoutInterval = 30

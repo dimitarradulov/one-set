@@ -248,7 +248,8 @@ final class WorkoutRepository {
         return try JSONDecoder().decode(WorkoutSession.self, from: payload)
       }
       let next = try nextOccurrence(in: db, accountID: session.accountID, cycleID: session.cycleID,
-        programID: session.programID, workoutIDs: session.requiredWorkoutIDs)
+        programID: session.programID, workoutIDs: session.requiredWorkoutIDs,
+        evenWeekWorkoutIDs: session.evenWeekWorkoutIDs)
       guard session.week == next.week, session.day == next.day, session.workoutID == next.workoutID else {
         throw WorkoutRepositoryError.occurrenceUnavailable
       }
@@ -272,15 +273,15 @@ final class WorkoutRepository {
   }
 
   func nextOccurrence(accountID: String, cycleID: UUID, programID: String,
-                      workoutIDs: [String]) throws -> (week: Int, day: Int, workoutID: String) {
+                      workoutIDs: [String], evenWeekWorkoutIDs: [String]? = nil) throws -> (week: Int, day: Int, workoutID: String) {
     try database.write { db in
       try nextOccurrence(in: db, accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: workoutIDs)
+        programID: programID, workoutIDs: workoutIDs, evenWeekWorkoutIDs: evenWeekWorkoutIDs)
     }
   }
 
   private func nextOccurrence(in db: Database, accountID: String, cycleID: UUID,
-                              programID: String, workoutIDs: [String]) throws
+                              programID: String, workoutIDs: [String], evenWeekWorkoutIDs: [String]?) throws
     -> (week: Int, day: Int, workoutID: String) {
     var week = try Int.fetchOne(db, sql: "SELECT current_training_week FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?", arguments: [accountID, cycleID.uuidString]) ?? 1
     while true {
@@ -289,7 +290,8 @@ final class WorkoutRepository {
         members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
       }
       if members.isEmpty {
-        members = workoutIDs
+        members = week.isMultiple(of: 2) ? (evenWeekWorkoutIDs ?? workoutIDs) : workoutIDs
+        guard !members.isEmpty else { throw WorkoutRepositoryError.occurrenceUnavailable }
         for workoutID in members {
           try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [accountID, cycleID.uuidString, programID, week, workoutID])
         }

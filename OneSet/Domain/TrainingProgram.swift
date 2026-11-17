@@ -7,7 +7,18 @@ struct TrainingProgram: Codable, Hashable, Identifiable, Sendable {
   let recommendedWeeks: Int
   let isOffered: Bool
 
-  var trainingDaysPerWeek: Int { workouts.count }
+  var trainingDaysPerWeek: Int { workouts(inWeek: 1).count }
+  var alternatesTrainingWeeks: Bool { workouts.contains { $0.weekParity != nil } }
+  var evenWeekWorkoutIDs: [String]? { alternatesTrainingWeeks ? workouts(inWeek: 2).map(\.id) : nil }
+
+  func workouts(inWeek week: Int) -> [WorkoutTemplate] {
+    workouts.filter { $0.weekParity?.includes(week) ?? true }
+  }
+
+  func trainingDay(for workout: WorkoutTemplate) -> Int {
+    let week = workout.weekParity == .even ? 2 : 1
+    return (workouts(inWeek: week).firstIndex { $0.id == workout.id } ?? 0) + 1
+  }
 
   init(
     id: String,

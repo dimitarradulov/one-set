@@ -193,7 +193,7 @@ async function readCurrentSource(): Promise<SourceResponse> {
 
 async function readAppCatalog(): Promise<CatalogSource> {
   const response = await handleCatalogRequest(new Request(`${apiOrigin}/v1/catalog`, {
-    headers: { Authorization: `Bearer ${await clerkToken()}` },
+    headers: { Authorization: `Bearer ${await clerkToken()}`, 'X-OneSet-Alternating-Weeks': '1' },
   }), apiEnvironment, database, accessKeySource);
   assert.equal(response.status, 200);
   return (await response.json() as { catalog: CatalogSource }).catalog;
@@ -323,7 +323,7 @@ test('protected edit → review → edit → publish → app catalog keeps unkno
   const accessToken = await token();
   const get = new Request('https://dashboard.test/', { headers: { 'Cf-Access-Jwt-Assertion': accessToken } });
   const loaded = await loadDashboard(get, environment, { keySource: accessKeySource });
-  assert.equal(loaded.source?.source.programs.length, 10);
+  assert.equal(loaded.source?.source.programs.length, 11);
   assert.ok(loaded.source?.source.programs[0]?.removed);
   const initialHTML = renderDashboard(undefined, loaded.source, environment);
   assert.match(initialHTML, /action="@editProgram"/);
@@ -484,7 +484,7 @@ test('historical correction keeps later identities, rejects stale review, retrie
   assert.equal(countAfterRetry.rows[0]?.count, countAfterCommit.rows[0]?.count, 'retry must reuse the uncertain publication');
 
   const appResponse = await handleCatalogRequest(new Request(`${apiOrigin}/v1/catalog`, {
-    headers: { Authorization: `Bearer ${await clerkToken()}` },
+    headers: { Authorization: `Bearer ${await clerkToken()}`, 'X-OneSet-Alternating-Weeks': '1' },
   }), apiEnvironment, database, accessKeySource);
   assert.equal(appResponse.status, 200);
   const app = await appResponse.json() as { catalog: CatalogSource };

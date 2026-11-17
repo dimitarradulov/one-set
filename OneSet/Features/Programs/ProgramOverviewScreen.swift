@@ -12,7 +12,7 @@ struct ProgramOverviewScreen: View {
   var currentWeek: Int = 1
   var completedWorkoutIDs: Set<String> = []
   var completedWorkoutsForWeek: ((Int) -> Set<String>)? = nil
-  let onPreviewWorkout: (WorkoutTemplate) -> Void
+  let onPreviewWorkout: (WorkoutTemplate, Int?) -> Void
   @State private var selectedWeek = 1
 
   var body: some View {
@@ -87,7 +87,9 @@ struct ProgramOverviewScreen: View {
             .foregroundStyle(OneSetColors.textPrimary)
             .accessibilityAddTraits(.isHeader)
 
-          Text("A training week covers each day in this program once. It may span more than one calendar week.")
+          Text(program.alternatesTrainingWeeks
+            ? "The workouts alternate each training week. Complete both days to move to the next week."
+            : "A training week covers each day in this program once. It may span more than one calendar week.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -138,7 +140,7 @@ struct ProgramOverviewScreen: View {
             .foregroundStyle(OneSetColors.textPrimary)
             .accessibilityAddTraits(.isHeader)
 
-          ForEach(Array(program.workouts.enumerated()), id: \.element.id) { index, workout in
+          ForEach(Array(program.workouts(inWeek: selectedWeek).enumerated()), id: \.element.id) { index, workout in
             overviewCard(workout, day: index + 1)
           }
         }
@@ -163,7 +165,7 @@ struct ProgramOverviewScreen: View {
       options: .regularExpression
     )
     return Button {
-      onPreviewWorkout(workout)
+      onPreviewWorkout(workout, program.alternatesTrainingWeeks ? selectedWeek : nil)
     } label: {
       HStack(alignment: .top, spacing: 12) {
         Text("Day \(day)")

@@ -1,5 +1,5 @@
 import { verifyToken } from '@clerk/backend';
-import { diffCatalog, validateCatalogSource, type CatalogSource } from './catalog-validation';
+import { diffCatalog, validateCatalogSource, workoutsInWeek, type CatalogSource } from './catalog-validation';
 import { verifyCloudflareAccess, type AccessConfiguration } from './cloudflare-access';
 import type { JWTVerifyGetKey } from 'jose';
 
@@ -102,18 +102,20 @@ function checkedPrevious(value: unknown): CatalogSource | undefined {
   return errors.length === 0 ? catalog : undefined;
 }
 
-function currentCatalog(source: CatalogSource): CatalogSource {
+function currentCatalog(source: CatalogSource, supportsAlternatingWeeks: boolean): CatalogSource {
   return {
     ...source,
-    programs: source.programs.map(program => {
+    programs: source.programs.filter(program => supportsAlternatingWeeks
+      || !program.workouts.some(workout => workout.week_parity !== undefined)).map(program => {
       const workouts = program.workouts
         .filter(workout => workout.removed !== true)
+        .sort((first, second) => first.position - second.position)
         .map(workout => ({
           ...workout,
           exercises: workout.exercises.filter(slot => slot.removed !== true)
             .sort((first, second) => first.position - second.position),
         }));
-      return { ...program, training_days_per_week: workouts.length, workouts };
+      return { ...program, training_days_per_week: workoutsInWeek(workouts, 'odd').length, workouts };
     }),
   };
 }
@@ -252,28 +254,32 @@ async function readCatalog(
   if (!state.source_document || !state.publication_id || !state.source_fingerprint) {
     return json({ catalog: null, publication_id: null }, 200, { ETag: '"empty"' });
   }
-  const etag = `"${state.source_fingerprint}"`;
-  if (request.headers.get('If-None-Match') === etag) {
-    return new Response(null, { status: 304, headers: { 'Cache-Control': 'private, no-cache', ETag: etag } });
-  }
   const source = checkedPrevious(state.source_document);
   if (!source) return error('CATALOG_UNAVAILABLE', 503);
-  const catalog = currentCatalog(source);
   const path = new URL(request.url).pathname;
+  const supportsAlternatingWeeks = request.headers.get('X-OneSet-Alternating-Weeks') === '1';
+  const catalog = currentCatalog(source, supportsAlternatingWeeks);
+  const variant = path !== '/v1/catalog/exercises' && catalog.programs.length !== source.programs.length
+    ? '-legacy' : '';
+  const etag = `"${state.source_fingerprint}${variant}"`;
+  const headers = { ETag: etag, Vary: 'X-OneSet-Alternating-Weeks' };
+  if (request.headers.get('If-None-Match') === etag) {
+    return new Response(null, { status: 304, headers: { 'Cache-Control': 'private, no-cache', ...headers } });
+  }
   if (path === '/v1/catalog/programs') {
-    return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
+    return json({ publication_id: state.publication_id, catalog }, 200, headers);
   }
   if (path === '/v1/catalog/exercises') {
-    return json({ publication_id: state.publication_id, exercises: source.exercises }, 200, { ETag: etag });
+    return json({ publication_id: state.publication_id, exercises: source.exercises }, 200, headers);
   }
   const programKey = path.match(/^\/v1\/catalog\/programs\/([^/]+)$/)?.[1];
   if (programKey) {
     const program = catalog.programs.find(item => item.key === decodeURIComponent(programKey));
     return program
-      ? json({ publication_id: state.publication_id, program, exercises: source.exercises }, 200, { ETag: etag })
+      ? json({ publication_id: state.publication_id, program, exercises: source.exercises }, 200, headers)
       : error('PROGRAM_NOT_FOUND', 404);
   }
-  return json({ publication_id: state.publication_id, catalog }, 200, { ETag: etag });
+  return json({ publication_id: state.publication_id, catalog }, 200, headers);
 }
 
 async function readCatalogSource(

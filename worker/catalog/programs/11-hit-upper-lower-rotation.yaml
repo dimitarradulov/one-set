@@ -1,0 +1,105 @@
+key: hit-upper-lower-rotation
+name: HIT Upper / Lower Rotation
+recommended_weeks: 8
+format: "Odd weeks: Chest & Back / Legs. Even weeks: Delts & Arms / Legs (Advanced Emphasis)."
+emphasis: A twice-weekly adaptation of Mike Mentzer’s Ideal Routine. Train upper body first and legs second
+  each week, then alternate to the other pair of workouts. Use one controlled working set per exercise, with
+  supersets and recovery time between workouts.
+workouts:
+  - key: hit-upper-lower-rotation-chest-back
+    name: Chest & Back
+    banner: upper-body
+    position: 1
+    week_parity: odd
+    exercises:
+      - key: hit-upper-lower-rotation-chest-back-pec-deck
+        exercise: pec-deck
+        position: 1
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-chest-back-incline-machine-chest-press
+        exercise: incline-machine-chest-press
+        position: 2
+        reps: {minimum: 1, maximum: 3}
+      - key: hit-upper-lower-rotation-chest-back-close-grip-supinated-lat-pulldown
+        exercise: close-grip-supinated-lat-pulldown
+        position: 3
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-chest-back-conventional-deadlift
+        exercise: conventional-deadlift
+        position: 4
+        reps: {minimum: 5, maximum: 8}
+        stopping_guidance: Stop near failure while you can still maintain your technique.
+    supersets:
+      - first_slot_id: hit-upper-lower-rotation-chest-back-pec-deck
+        second_slot_id: hit-upper-lower-rotation-chest-back-incline-machine-chest-press
+  - key: hit-upper-lower-rotation-legs
+    name: Legs
+    banner: lower-body
+    position: 2
+    week_parity: odd
+    exercises:
+      - key: hit-upper-lower-rotation-legs-leg-extension
+        exercise: leg-extension
+        position: 1
+        reps: {minimum: 8, maximum: 15}
+      - key: hit-upper-lower-rotation-legs-leg-press
+        exercise: leg-press
+        position: 2
+        reps: {minimum: 8, maximum: 15}
+      - key: hit-upper-lower-rotation-legs-standing-calf-raise
+        exercise: standing-calf-raise
+        position: 3
+        reps: {minimum: 12, maximum: 20}
+    supersets:
+      - first_slot_id: hit-upper-lower-rotation-legs-leg-extension
+        second_slot_id: hit-upper-lower-rotation-legs-leg-press
+  - key: hit-upper-lower-rotation-delts-arms
+    name: Delts & Arms
+    banner: upper-body
+    position: 3
+    week_parity: even
+    exercises:
+      - key: hit-upper-lower-rotation-delts-arms-dumbbell-lateral-raise
+        exercise: dumbbell-lateral-raise
+        position: 1
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-delts-arms-dumbbell-rear-delt-raise
+        exercise: dumbbell-rear-delt-raise
+        position: 2
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-delts-arms-barbell-curl
+        exercise: barbell-curl
+        position: 3
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-delts-arms-cable-triceps-pressdown
+        exercise: cable-triceps-pressdown
+        position: 4
+        reps: {minimum: 6, maximum: 10}
+      - key: hit-upper-lower-rotation-delts-arms-dip
+        exercise: dip
+        position: 5
+        reps: {minimum: 3, maximum: 5}
+    supersets:
+      - first_slot_id: hit-upper-lower-rotation-delts-arms-cable-triceps-pressdown
+        second_slot_id: hit-upper-lower-rotation-delts-arms-dip
+  - key: hit-upper-lower-rotation-legs-advanced
+    name: Legs (Advanced Emphasis)
+    banner: lower-body
+    position: 4
+    week_parity: even
+    exercises:
+      - key: hit-upper-lower-rotation-legs-advanced-leg-extension-static-hold
+        exercise: leg-extension-static-hold
+        position: 1
+        reps: {minimum: 1, maximum: 1}
+      - key: hit-upper-lower-rotation-legs-advanced-smith-machine-squat
+        exercise: smith-machine-squat
+        position: 2
+        reps: {minimum: 8, maximum: 15}
+      - key: hit-upper-lower-rotation-legs-advanced-standing-calf-raise
+        exercise: standing-calf-raise
+        position: 3
+        reps: {minimum: 12, maximum: 20}
+    supersets:
+      - first_slot_id: hit-upper-lower-rotation-legs-advanced-leg-extension-static-hold
+        second_slot_id: hit-upper-lower-rotation-legs-advanced-smith-machine-squat

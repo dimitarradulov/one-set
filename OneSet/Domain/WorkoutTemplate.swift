@@ -1,17 +1,28 @@
 struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
+  enum WeekParity: String, Codable, Sendable {
+    case odd
+    case even
+
+    func includes(_ week: Int) -> Bool {
+      week.isMultiple(of: 2) == (self == .even)
+    }
+  }
+
   let id: String
   let name: String
   let banner: String?
+  let weekParity: WeekParity?
   let exercises: [WorkoutExercise]
   let supersets: [SupersetPair]?
 
   init(
-    id: String? = nil, name: String, banner: String? = nil,
+    id: String? = nil, name: String, banner: String? = nil, weekParity: WeekParity? = nil,
     exercises: [WorkoutExercise], supersets: [SupersetPair]? = nil
   ) {
     self.id = id ?? name
     self.name = name
     self.banner = banner
+    self.weekParity = weekParity
     self.exercises = exercises
     self.supersets = supersets
   }
@@ -96,7 +107,7 @@ struct RepTarget: Codable, Hashable, Sendable {
   }
 
   var label: String {
-    let range = "\(minimum)–\(maximum) reps"
+    let range = minimum == maximum ? "\(minimum) " + (minimum == 1 ? "rep" : "reps") : "\(minimum)–\(maximum) reps"
     switch scope {
     case .reps:
       return range

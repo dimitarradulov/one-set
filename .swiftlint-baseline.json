@@ -1470,21 +1470,6 @@
   },
   {
     "violation": {
-      "location": {
-        "line": 2044,
-        "character": 1,
-        "file": "OneSet/Services/Catalog/BundledProgramCatalog.swift"
-      },
-      "ruleIdentifier": "file_length",
-      "reason": "File should contain 1000 lines or less: currently contains 2044",
-      "ruleDescription": "Files should not span too many lines.",
-      "severity": "error",
-      "ruleName": "File Length"
-    },
-    "text": "}"
-  },
-  {
-    "violation": {
       "reason": "Function body should span 60 lines or less excluding comments and whitespace: currently spans 65 lines",
       "location": {
         "character": 3,

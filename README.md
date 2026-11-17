@@ -7,7 +7,7 @@ The initial audience already knows basic gym movements. OneSet supplies curated 
 ## The experience
 
 1. Continue with Apple, Google, or email from the welcome screen to create an account or sign in.
-2. Choose kg/lb and training frequency, then select one of ten programs.
+2. Choose kg/lb and training frequency, then select a program.
 3. Start a seven-day trial; intended price afterward is $4.89/month, subject to actual storefront pricing.
 4. Open the program overview, organized by training week and Day 1/Day 2 rather than weekdays.
 5. Train with previous performance beside simple weight/reps inputs. Save locally immediately; sync automatically when possible.
@@ -17,7 +17,7 @@ Warmups are recommendations, not extra log entries. Users can replace an exercis
 
 ## Launch scope
 
-All ten gym-only programs in the [program library](docs/HIT_Workout_Program_Library.md) ship with a recommended eight training weeks; continuing afterward is allowed. Workout and exercise history, editable performance, optional notes on completed sessions, and subscription management are included.
+All gym-only programs in the [program library](docs/HIT_Workout_Program_Library.md) ship with a recommended eight training weeks; continuing afterward is allowed. Workout and exercise history, editable performance, optional notes on completed sessions, and subscription management are included.
 
 Use one training device at a time; synced history can be restored on a replacement device. Current templates are editable and started/completed sessions keep their recorded content.
 
@@ -27,7 +27,7 @@ A separate, laptop-first web dashboard hosted on Cloudflare for the founder's co
 
 ## Documentation
 
-Start with [requirements](docs/requirements.md) for the approved product scope. Use [domain language](GLOSSARY.md) when terms such as cycle, occurrence and session are unclear. The [program library](docs/HIT_Workout_Program_Library.md) is the source for the ten workouts.
+Start with [requirements](docs/requirements.md) for the approved product scope. Use [domain language](GLOSSARY.md) when terms such as cycle, occurrence and session are unclear. The [program library](docs/HIT_Workout_Program_Library.md) describes the curated program catalog.
 
 For iOS code structure, follow [iOS architecture](docs/agents/architecture.md). For implementation, read [system design](docs/system-design.md), then the focused [database design](docs/database/README.md), [sync and recovery](docs/sync-and-recovery.md), and [API contracts](docs/api-contracts.md). Follow [validation guidance](docs/agents/validation.md) for checks; track unfinished work and release decisions in GitHub Issues.
 

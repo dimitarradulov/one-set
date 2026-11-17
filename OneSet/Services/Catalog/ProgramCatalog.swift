@@ -90,6 +90,7 @@ final class ProgramCatalog {
     for program in programs {
       guard CatalogValueValidation.isStableKey(program.id), !program.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             (1...5).contains(program.trainingDaysPerWeek), program.recommendedWeeks > 0,
+            program.workouts(inWeek: 2).count == program.trainingDaysPerWeek,
             !program.format.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.emphasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.workouts.isEmpty else { return false }

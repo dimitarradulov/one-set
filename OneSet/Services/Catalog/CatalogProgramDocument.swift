@@ -36,7 +36,7 @@ struct CatalogProgramDocument: Decodable, Sendable {
         guard let target = RepTarget(validating: slot.reps, scope: scope) else {
           throw ProgramCatalogServiceError.invalidResponse
         }
-        return try exercise.model(slotID: slot.key, target: target)
+        return try exercise.model(slotID: slot.key, target: target, stoppingOverride: slot.stoppingGuidance)
       }
       var pairedSlots = Set<String>()
       for pair in workout.supersets ?? [] {
@@ -48,10 +48,13 @@ struct CatalogProgramDocument: Decodable, Sendable {
         }
       }
       return WorkoutTemplate(
-        id: workout.key, name: workout.name, banner: workout.banner, exercises: slots, supersets: workout.supersets
+        id: workout.key, name: workout.name, banner: workout.banner, weekParity: workout.weekParity,
+        exercises: slots, supersets: workout.supersets
       )
     }
-    guard (1...5).contains(visibleWorkouts.count) else {
+    let oddCount = visibleWorkouts.count { $0.weekParity != .even }
+    let evenCount = visibleWorkouts.count { $0.weekParity != .odd }
+    guard (1...5).contains(oddCount), oddCount == evenCount else {
       throw ProgramCatalogServiceError.invalidResponse
     }
     return TrainingProgram(
