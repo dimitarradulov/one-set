@@ -9,4 +9,21 @@ struct CatalogExerciseDocument: Decodable, Sendable {
   let restSeconds: Int
   let defaultReps: CatalogRepRange
   let videoKey: String?
+
+  func model(slotID: String? = nil, target: RepTarget? = nil) throws -> WorkoutExercise {
+    guard CatalogValueValidation.isStableKey(key),
+          !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !stoppingGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !warmupGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          restSeconds > 0, videoKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != true,
+          let defaults = RepTarget(validating: defaultReps) else {
+      throw ProgramCatalogServiceError.invalidResponse
+    }
+    return WorkoutExercise(
+      id: slotID ?? key, exerciseKey: key, name: name, repTarget: target ?? defaults,
+      instructions: instructions, stoppingGuidance: stoppingGuidance, warmupGuidance: warmupGuidance,
+      restSeconds: restSeconds, defaultRepTarget: defaults, videoKey: videoKey
+    )
+  }
 }

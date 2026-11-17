@@ -461,14 +461,11 @@ Edits must look like deliberate history correction, not like starting a new work
 
 ### Exercise replacement
 
-Flow: exercise menu → Replace → search → select → scope.
+Flow during an active session: exercise menu → Replace → search → select → return to training. Undo a completed working set before replacing its exercise. Choosing a different exercise clears the current weight and reps and shows that exercise's guidance and previous performance.
 
-Scope choice should be explicit:
+When finishing with new substitutions, offer **This workout only** or **Remember all for this program**. Remembered choices apply only to the affected slots for this account and program, including future cycles on this device. Remembering the original exercise restores the prescribed choice. Apply remembered choices only after Finish saves successfully.
 
-- **This workout only**
-- **Remember for this program**
-
-Do not preselect the broader persistent option in a way that can silently change future workouts.
+Compare each slot's final exercise to its starting exercise. Returning to the starting exercise removes that slot from the Finish scope choice. Omit the choice when there are no new substitutions.
 
 ---
 

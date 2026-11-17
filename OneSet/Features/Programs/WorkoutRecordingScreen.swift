@@ -10,6 +10,8 @@ struct WorkoutRecordingScreen: View {
   @State private var confirmsEmptyDiscard = false
   @State private var noteExpanded = false
   @State private var note = ""
+  @State private var rememberSubstitutions = false
+  @State private var replacementExercise: WorkoutSession.Exercise?
   @State private var failedCompletions: Set<String> = []
   @State private var warmupExercise: WorkoutSession.Exercise?
   @FocusState private var focusedField: Field?
@@ -31,24 +33,30 @@ struct WorkoutRecordingScreen: View {
           Text("Your workout is saved on this device. You can leave and resume it later.")
             .font(OneSetTypography.body)
             .foregroundStyle(OneSetColors.textSecondary)
-          ForEach(session.exercises, id: \.slotID) { exercise in
-            exerciseRow(exercise)
-            if exercise.slotID == session.restSlotID, let deadline = session.restDeadline {
-              RestCountdownView(deadline: deadline, onAdjust: model.adjustWorkoutRest, onSkip: model.skipWorkoutRest)
-                .accessibilityValue("After \(exercise.name)")
-                .id("active-rest")
-                .onAppear {
-                  withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
-                    // With no anchor, reveal only the portion outside the viewport.
-                    scrollProxy.scrollTo("active-rest")
-                  }
-                }
+          ForEach(Array(session.exercises.enumerated()), id: \.element.slotID) { index, exercise in
+            if let pair = session.supersets.first(where: { $0.firstSlotID == exercise.slotID }),
+               session.exercises.indices.contains(index + 1), session.exercises[index + 1].slotID == pair.secondSlotID {
+              VStack(alignment: .leading, spacing: 0) {
+                SupersetLabel()
+                exerciseRow(exercise)
+                exerciseRow(session.exercises[index + 1])
+              }
+              .padding(.leading, 10)
+              .overlay(alignment: .leading) {
+                Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
+              }
+              .accessibilityElement(children: .contain)
+              restCountdown(after: session.exercises[index + 1], scrollProxy: scrollProxy)
+            } else if !session.supersets.contains(where: { $0.secondSlotID == exercise.slotID }) {
+              exerciseRow(exercise)
+              restCountdown(after: exercise, scrollProxy: scrollProxy)
             }
           }
           Button("Finish workout") {
             Task {
               _ = await model.applyWorkoutEdit(sessionID: session.id) {
                 focusedField = nil
+                rememberSubstitutions = false
                 showsFinishReview = true
                 return true
               }
@@ -92,12 +100,29 @@ struct WorkoutRecordingScreen: View {
       }
       .sheet(isPresented: $showsFinishReview) {
         finishReview
-          .presentationDetents([.medium, .large])
+          .presentationDetents(session.newSubstitutions.isEmpty ? [.medium, .large] : [.large])
           .presentationDragIndicator(.visible)
       }
       .sheet(isPresented: Binding(get: { warmupExercise != nil }, set: { if !$0 { warmupExercise = nil } })) {
         if let exercise = warmupExercise {
           WarmupSheet(exercise: exercise, unit: session.weightUnit, previous: previousPerformances[exercise.slotID])
+        }
+      }
+      .sheet(item: $replacementExercise) { exercise in
+        ExerciseReplacementSheet(
+          exercise: exercise,
+          library: model.catalog.exerciseLibrary.values.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+          }
+        ) { key in
+          Task {
+            if await model.applyWorkoutEdit(sessionID: session.id, slotID: exercise.slotID, action: {
+              model.substituteWorkoutExercise(slotID: exercise.slotID, exerciseKey: key)
+            }) {
+              replacementExercise = nil
+              failedCompletions.remove(exercise.slotID)
+            }
+          }
         }
       }
       .alert("No sets are complete", isPresented: $confirmsEmptyDiscard) {
@@ -119,6 +144,20 @@ struct WorkoutRecordingScreen: View {
     #endif
     .onDisappear {
       Task { await model.flushWorkoutEdits(sessionID: session.id) }
+    }
+  }
+
+  @ViewBuilder
+  private func restCountdown(after exercise: WorkoutSession.Exercise, scrollProxy: ScrollViewProxy) -> some View {
+    if exercise.slotID == session.restSlotID, let deadline = session.restDeadline {
+      RestCountdownView(deadline: deadline, onAdjust: model.adjustWorkoutRest, onSkip: model.skipWorkoutRest)
+        .accessibilityValue("After \(exercise.name)")
+        .id("active-rest")
+        .onAppear {
+          withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
+            scrollProxy.scrollTo("active-rest")
+          }
+        }
     }
   }
 
@@ -145,6 +184,14 @@ struct WorkoutRecordingScreen: View {
           .foregroundStyle(OneSetColors.textSecondary)
           .accessibilityIdentifier("finish.duration")
       }
+      if completed > 0, !session.newSubstitutions.isEmpty {
+        Picker("Exercise replacements", selection: $rememberSubstitutions) {
+          Text("This workout only").tag(false)
+          Text("Remember all for this program").tag(true)
+        }
+        .tint(OneSetColors.accent)
+        .accessibilityIdentifier("finish.replacements")
+      }
       DisclosureGroup("Add note", isExpanded: $noteExpanded) {
         TextField("Optional workout note", text: $note, axis: .vertical)
           .lineLimit(2...5)
@@ -159,7 +206,7 @@ struct WorkoutRecordingScreen: View {
         } else {
           Task {
             if await model.applyWorkoutEdit(sessionID: session.id, action: {
-              model.finishActiveWorkout(note: note, using: authentication)
+              model.finishActiveWorkout(note: note, rememberSubstitutions: rememberSubstitutions, using: authentication)
             }) {
               showsFinishReview = false
             }
@@ -229,11 +276,7 @@ struct WorkoutRecordingScreen: View {
           .accessibilityIdentifier("recording.set.retry.\(exercise.slotID)")
       }
       previousPerformanceView(for: exercise)
-      Button("Warmup") { warmupExercise = exercise }
-        .font(OneSetTypography.label)
-        .frame(minHeight: 44)
-        .accessibilityLabel("Warmup for \(exercise.name)")
-        .accessibilityIdentifier("recording.warmup.\(exercise.slotID)")
+      exerciseActions(for: exercise, isComplete: isComplete)
       if let guidance = exercise.progressionGuidance(for: input(for: slotID).reps) {
         Label(guidance, systemImage: "arrow.trend.up")
           .font(OneSetTypography.caption)
@@ -248,6 +291,28 @@ struct WorkoutRecordingScreen: View {
 }
 
 extension WorkoutRecordingScreen {
+  private func exerciseActions(for exercise: WorkoutSession.Exercise, isComplete: Bool) -> some View {
+    HStack(spacing: 12) {
+      Button("Warmup") { warmupExercise = exercise }
+        .font(OneSetTypography.label)
+        .frame(minHeight: 44)
+        .accessibilityLabel("Warmup for \(exercise.name)")
+        .accessibilityIdentifier("recording.warmup.\(exercise.slotID)")
+      Spacer(minLength: 0)
+      Menu {
+        Button("Replace exercise", systemImage: "arrow.left.arrow.right") { replacementExercise = exercise }
+          .disabled(isComplete)
+      } label: {
+        Image(systemName: "ellipsis")
+          .font(.body.weight(.semibold))
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
+      }
+      .accessibilityLabel("Actions for \(exercise.name)")
+      .accessibilityIdentifier("recording.actions.\(exercise.slotID)")
+    }
+  }
+
   private func exerciseLink(_ exercise: WorkoutSession.Exercise, isComplete: Bool) -> some View {
     NavigationLink(value: OnboardingRoute.recordingExerciseDetail(sessionID: session.id, slotID: exercise.slotID)) {
       HStack(alignment: .top, spacing: 12) {
