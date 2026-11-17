@@ -262,24 +262,24 @@ struct HistorySessionDetailScreen: View {
       }
 
       Section("Exercises") {
-        ForEach(session.exercises.sorted { $0.order < $1.order }, id: \.slotID) { exercise in
-          VStack(alignment: .leading, spacing: 6) {
-            Text(exercise.name)
-              .font(OneSetTypography.bodyStrong)
-              .foregroundStyle(OneSetColors.textPrimary)
-            if let entry = completedEntry(for: exercise), let weight = displayWeight(entry) {
-              Text(resultLabel(weight: weight, repsInput: entry.repsInput, scope: exercise.repTarget.scope))
-                .font(OneSetTypography.body)
-                .foregroundStyle(OneSetColors.textSecondary)
-            } else {
-              Text("Not performed")
-                .font(OneSetTypography.body)
-                .foregroundStyle(OneSetColors.textSecondary)
-                .accessibilityIdentifier("history.exercise.notPerformed.\(exercise.slotID)")
+        let exercises = session.exercises.sorted { $0.order < $1.order }
+        ForEach(Array(exercises.enumerated()), id: \.element.slotID) { index, exercise in
+          if let pair = session.supersets.first(where: { $0.firstSlotID == exercise.slotID }),
+             exercises.indices.contains(index + 1), exercises[index + 1].slotID == pair.secondSlotID {
+            VStack(alignment: .leading, spacing: 8) {
+              SupersetLabel()
+              exerciseResult(exercise)
+              exerciseResult(exercises[index + 1])
             }
+            .padding(.leading, 10)
+            .overlay(alignment: .leading) {
+              Rectangle().fill(OneSetColors.accent).frame(width: 1).accessibilityHidden(true)
+            }
+            .padding(.vertical, 4)
+            .accessibilityElement(children: .contain)
+          } else if !session.supersets.contains(where: { $0.secondSlotID == exercise.slotID }) {
+            exerciseResult(exercise)
           }
-          .padding(.vertical, 4)
-          .accessibilityElement(children: .combine)
         }
       }
 
@@ -299,6 +299,26 @@ struct HistorySessionDetailScreen: View {
     .navigationTitle(session.workoutName)
     .navigationBarTitleDisplayMode(.inline)
     .accessibilityIdentifier("history.detail")
+  }
+
+  private func exerciseResult(_ exercise: WorkoutSession.Exercise) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(exercise.name)
+        .font(OneSetTypography.bodyStrong)
+        .foregroundStyle(OneSetColors.textPrimary)
+      if let entry = completedEntry(for: exercise), let weight = displayWeight(entry) {
+        Text(resultLabel(weight: weight, repsInput: entry.repsInput, scope: exercise.repTarget.scope))
+          .font(OneSetTypography.body)
+          .foregroundStyle(OneSetColors.textSecondary)
+      } else {
+        Text("Not performed")
+          .font(OneSetTypography.body)
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityIdentifier("history.exercise.notPerformed.\(exercise.slotID)")
+      }
+    }
+    .padding(.vertical, 4)
+    .accessibilityElement(children: .combine)
   }
 
   private func completedEntry(for exercise: WorkoutSession.Exercise) -> WorkoutSession.SetEntry? {

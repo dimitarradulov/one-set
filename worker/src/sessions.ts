@@ -20,6 +20,7 @@ type SessionPrescription = {
   reps_max: number;
   rep_scope: 'reps' | 'each_leg' | 'each_side';
   rest_seconds: number | null;
+  superset_next_slot_key?: string;
 };
 
 type SessionSet = {
@@ -121,7 +122,7 @@ function positiveInt32(value: unknown): value is number {
 function validPrescription(value: unknown): value is SessionPrescription {
   if (!isObject(value) || !onlyKeys(value, [
     'name', 'instructions', 'stopping_guidance', 'warmup_guidance', 'video_key',
-    'reps_min', 'reps_max', 'rep_scope', 'rest_seconds',
+    'reps_min', 'reps_max', 'rep_scope', 'rest_seconds', 'superset_next_slot_key',
   ])) return false;
   const warmup = value.warmup_guidance;
   return validText(value.name, 300)
@@ -134,6 +135,8 @@ function validPrescription(value: unknown): value is SessionPrescription {
     && positiveInt32(value.reps_min) && positiveInt32(value.reps_max)
     && value.reps_max >= value.reps_min
     && ['reps', 'each_leg', 'each_side'].includes(String(value.rep_scope))
+    && (value.superset_next_slot_key === undefined
+      || (validText(value.superset_next_slot_key, 100) && KEY.test(value.superset_next_slot_key)))
     && (value.rest_seconds === null || (Number.isInteger(value.rest_seconds)
       && Number(value.rest_seconds) > 0 && Number(value.rest_seconds) <= 86_400));
 }
@@ -160,6 +163,7 @@ function validSession(value: unknown): value is CompletedSession {
   const finishedAt = Date.parse(value.completed_at);
   const slotKeys = new Set<string>();
   let hasCompletedSet = false;
+  let expectedSecondSlot: string | undefined;
   for (const [index, rawSet] of value.sets.entries()) {
     if (!isObject(rawSet) || !onlyKeys(rawSet, [
       'workout_exercise_key', 'exercise_key', 'position', 'prescription',
@@ -172,6 +176,11 @@ function validSession(value: unknown): value is CompletedSession {
       || !validPrescription(rawSet.prescription)
       || !['kg', 'lb'].includes(String(rawSet.unit))) return false;
     slotKeys.add(rawSet.workout_exercise_key);
+
+    const nextSlot = rawSet.prescription.superset_next_slot_key;
+    if (expectedSecondSlot !== undefined
+      && (rawSet.workout_exercise_key !== expectedSecondSlot || nextSlot !== undefined)) return false;
+    expectedSecondSlot = nextSlot;
 
     if (rawSet.completed_at === null) {
       if (rawSet.weight !== null || rawSet.reps !== null) return false;
@@ -186,7 +195,7 @@ function validSession(value: unknown): value is CompletedSession {
       || !positiveInt32(rawSet.reps)) return false;
     hasCompletedSet = true;
   }
-  return hasCompletedSet;
+  return hasCompletedSet && expectedSecondSlot === undefined;
 }
 
 export async function handleCompletedSessionRequest(

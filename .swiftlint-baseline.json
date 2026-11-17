@@ -2331,7 +2331,7 @@
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "type_body_length",
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1594 lines",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1595 lines",
       "ruleDescription": "Type bodies should not span too many lines",
       "severity": "error",
       "ruleName": "Type Body Length"
@@ -2431,12 +2431,12 @@
   {
     "violation": {
       "location": {
-        "line": 1793,
+        "line": 1794,
         "character": 1,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "file_length",
-      "reason": "File should contain 1000 lines or less: currently contains 1793",
+      "reason": "File should contain 1000 lines or less: currently contains 1794",
       "ruleDescription": "Files should not span too many lines.",
       "severity": "error",
       "ruleName": "File Length"

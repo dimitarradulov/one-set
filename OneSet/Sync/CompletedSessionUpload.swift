@@ -64,6 +64,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
     let repsMax: Int
     let repScope: String
     let restSeconds: Int?
+    let supersetNextSlotKey: String?
 
     enum CodingKeys: String, CodingKey {
       case name, instructions
@@ -74,6 +75,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
       case repsMax = "reps_max"
       case repScope = "rep_scope"
       case restSeconds = "rest_seconds"
+      case supersetNextSlotKey = "superset_next_slot_key"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -87,6 +89,7 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
       try values.encode(repsMax, forKey: .repsMax)
       try values.encode(repScope, forKey: .repScope)
       try values.encode(restSeconds, forKey: .restSeconds)
+      try values.encodeIfPresent(supersetNextSlotKey, forKey: .supersetNextSlotKey)
     }
   }
 
@@ -214,7 +217,8 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
           repsMin: exercise.repTarget.minimum,
           repsMax: exercise.repTarget.maximum,
           repScope: scope,
-          restSeconds: exercise.restSeconds
+          restSeconds: exercise.restSeconds,
+          supersetNextSlotKey: session.supersets.first { $0.firstSlotID == exercise.slotID }?.secondSlotID
         ),
         weight: weight,
         unit: session.weightUnit.rawValue,
