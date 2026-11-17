@@ -31,7 +31,7 @@ Derive application workflow acceptance checks from the approved [requirements](.
 
 ## Final validation
 
-For a PR targeting `main`, GitHub Actions runs the full suite with `./scripts/validate.sh --ci`. This mode builds and tests on a booted simulator with code signing disabled and attaches the Xcode log and test results to the workflow run. Use that run for final full-suite validation. Keep the local focused checks, manual acceptance checks, and screenshot review called for above.
+Pull requests targeting `main` and pushes to `main` run SwiftLint, Worker, dashboard, and iOS checks independently. The required OneSet validation job checks all four results. The iOS job runs `./scripts/validate.sh --ios-ci`, which builds and tests on a booted simulator with code signing disabled and attaches the Xcode log and test results to the workflow run. Use that run for final full-suite validation. Keep the local focused checks, manual acceptance checks, and screenshot review called for above.
 
 After integration and review fixes, push the final revision. Wait for the **OneSet validation** check on the current PR head, and verify it passed before merging. Use the PR checks view or `gh pr checks <PR> --watch`. Confirm the PR head still matches the revision you validated before merging. If CI fails, inspect its logs and artifacts, verify the fix with the narrowest relevant check, then push and wait for the new revision's result.
 

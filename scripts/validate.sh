@@ -3,6 +3,34 @@ set -euo pipefail
 
 source "$(dirname "$0")/validation-common.sh"
 
+lint() {
+  if ! command -v swiftlint >/dev/null 2>&1; then
+    echo "SwiftLint is required for full validation. Install SwiftLint 0.65.1; see README.md." >&2
+    exit 1
+  fi
+  swiftlint lint --no-cache
+}
+
+dashboard() {
+  npm ci --prefix admin
+  npm --prefix admin run check
+  npm --prefix admin run build
+  npm --prefix admin test
+}
+
+worker() {
+  npm --prefix worker run typecheck
+  npm --prefix worker test
+}
+
+if [[ $# -eq 1 ]]; then
+  case "$1" in
+    --lint) lint; exit ;;
+    --dashboard) dashboard; exit ;;
+    --worker) worker; exit ;;
+  esac
+fi
+
 VALIDATION_MODE=full
 TEST_FILTERS=()
 if [[ "${1:-}" == --focused ]]; then
@@ -19,29 +47,24 @@ if [[ "${1:-}" == --focused ]]; then
     fi
     TEST_FILTERS+=("-only-testing:$selector")
   done
-elif [[ "$#" -eq 1 && "$1" == --ci ]]; then
+elif [[ "$#" -eq 1 && ( "$1" == --ci || "$1" == --ios-ci ) ]]; then
   VALIDATION_MODE=ci
 elif [[ "$#" -ne 0 ]]; then
-  echo "Usage: ./scripts/validate.sh [--ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
+  echo "Usage: ./scripts/validate.sh [--lint | --dashboard | --worker | --ios-ci | --ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
   exit 1
 fi
 export VALIDATION_MODE
 
 oneset_toolchain
 oneset_artifacts
+if [[ "$VALIDATION_MODE" != focused && "${1:-}" != --ios-ci ]]; then
+  lint
+  dashboard
+  worker
+fi
+
 if [[ "$VALIDATION_MODE" != focused ]]; then
-  if ! command -v swiftlint >/dev/null 2>&1; then
-    echo "SwiftLint is required for full validation. Install SwiftLint 0.65.1; see README.md." >&2
-    exit 1
-  fi
-  swiftlint lint --no-cache
   python3 -m unittest discover -s scripts/tests -v
-  npm ci --prefix admin
-  npm --prefix admin run check
-  npm --prefix admin run build
-  npm --prefix admin test
-  npm --prefix worker run typecheck
-  npm --prefix worker test
 fi
 
 oneset_run() {
