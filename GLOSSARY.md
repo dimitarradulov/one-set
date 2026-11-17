@@ -49,7 +49,7 @@ _Avoid_: Workout template
 
 **Session replacement**: An exercise change that applies only to the current session.
 
-**Remembered replacement**: An exercise choice retained for a program's slot until the user changes it.
+**Remembered replacement**: An exercise choice retained for one slot in a user's program across future cycles until the user changes it. Other slots and programs keep their own exercise choices.
 
 **Total weight**: The external load used in the performed movement: combined dumbbell weight when two are used, one dumbbell's weight when one is used, or bar plus plates for a barbell. Added load is recorded for weighted bodyweight movements.
 

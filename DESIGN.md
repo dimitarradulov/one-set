@@ -453,6 +453,8 @@ Present:
 
 If work is incomplete, communicate the count before confirmation. Do not use guilt-oriented language for partial completion.
 
+When the session has new exercise substitutions, include one scope choice in this sheet: `This workout only` or `Remember all for this program`. It covers all substitutions, including unperformed exercises, with no individual selection. Apply remembered choices only when finishing saves successfully. Cancelling returns to training; discarding the session remembers nothing.
+
 ### History
 
 Start with a chronological session list. Each row should expose date, workout/program context, and completion summary without requiring charts. Session detail prioritizes actual exercises and recorded weight/reps.
@@ -461,11 +463,16 @@ Edits must look like deliberate history correction, not like starting a new work
 
 ### Exercise replacement
 
-Flow during an active session: exercise menu → Replace → search → select → return to training. Undo a completed working set before replacing its exercise. Choosing a different exercise clears the current weight and reps and shows that exercise's guidance and previous performance.
+Flow during an active session: exercise menu → Replace → search → select → return to training. A completed working set must be explicitly undone before replacing its exercise.
 
-When finishing with new substitutions, offer **This workout only** or **Remember all for this program**. Remembered choices apply only to the affected slots for this account and program, including future cycles on this device. Remembering the original exercise restores the prescribed choice. Apply remembered choices only after Finish saves successfully.
+Selecting a different exercise immediately clears the current weight and reps without a separate confirmation. Show the selected movement's own history and guidance. Defer scope to the existing finish sheet:
 
-Compare each slot's final exercise to its starting exercise. Returning to the starting exercise removes that slot from the Finish scope choice. Omit the choice when there are no new substitutions.
+- **This workout only**
+- **Remember all for this program**
+
+Remembering applies to the respective slots in this user's program across future cycles, leaving other slots and programs unchanged. A session-only substitution preserves an earlier remembered choice; remembering the original prescribed exercise restores the slot's prescription. Do not preselect the broader persistent option in a way that can silently change future workouts. Omit the scope question when there are no new substitutions.
+
+Compare final choices with the exercises captured at session start. Multiple swaps in a slot count only as its final choice; returning to its starting exercise removes that slot from the scope choice. Using an existing remembered replacement unchanged does not prompt again.
 
 ---
 
