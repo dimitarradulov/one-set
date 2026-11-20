@@ -215,12 +215,11 @@ struct AccountRestorationTimingTests {
     let attempt = Task { await model.resolveAccountSetup(using: authentication) }
     while !service.isWaiting || !clock.hasWaiter(1) || !clock.hasWaiter(15) { await Task.yield() }
     #expect(!model.showsSetupSpinner)
-    clock.advance(1)
-    await Task.yield()
-    #expect(model.showsSetupSpinner)
-    clock.advance(15)
-    await Task.yield()
-    if case .failed = model.setupResolution {} else { Issue.record("Recovery should be offered at the deadline") }
+    #expect(await clock.advance(1, until: { model.showsSetupSpinner }))
+    let timedOut = await clock.advance(15, until: {
+      if case .failed = model.setupResolution { true } else { false }
+    })
+    #expect(timedOut, "Recovery should be offered at the deadline")
     service.complete()
     await attempt.value
     if case .failed = model.setupResolution {} else { Issue.record("A late response must not navigate") }
@@ -238,18 +237,19 @@ struct AccountRestorationTimingTests {
     let first = Task { await model.resolveAccountSetup(using: authentication) }
     while service.waitingCount < 1 || !clock.hasWaiter(1) || !clock.hasWaiter(15) { await Task.yield() }
     clock.advance(1)
-    await Task.yield()
-    clock.advance(15)
-    await Task.yield()
+    guard await clock.advance(15, until: { if case .failed = model.setupResolution { true } else { false } }) else {
+      Issue.record("The first attempt must time out before retry")
+      service.complete()
+      await first.value
+      return
+    }
     let retry = Task { await model.resolveAccountSetup(using: authentication) }
     while service.waitingCount < 2 || !clock.hasWaiter(1) || !clock.hasWaiter(15) { await Task.yield() }
     #expect(!model.showsSetupSpinner)
     service.complete()
     await first.value
     if case .loading = model.setupResolution {} else { Issue.record("The earlier attempt must not resolve the retry") }
-    clock.advance(1)
-    await Task.yield()
-    #expect(model.showsSetupSpinner)
+    #expect(await clock.advance(1, until: { model.showsSetupSpinner }))
     service.complete()
     await retry.value
     #expect(model.path == [.preferences])
@@ -271,9 +271,10 @@ struct AccountRestorationTimingTests {
     )
     let attempt = Task { await model.resolveAccountSetup(using: authentication) }
     while !progress.isWaiting || !clock.hasWaiter(1) || !clock.hasWaiter(15) { await Task.yield() }
-    clock.advance(15)
-    await Task.yield()
-    if case .failed = model.setupResolution {} else { Issue.record("The full restoration must time out") }
+    let timedOut = await clock.advance(15, until: {
+      if case .failed = model.setupResolution { true } else { false }
+    })
+    #expect(timedOut, "The full restoration must time out")
     progress.complete()
     await attempt.value
     #expect(model.restoredCycleID == nil)
@@ -305,6 +306,12 @@ private final class RestorationClock {
     try await withCheckedThrowingContinuation { waiters[delay] = $0 }
   }
   func hasWaiter(_ delay: TimeInterval) -> Bool { waiters[delay] != nil }
+  func advance(_ delay: TimeInterval, until condition: () -> Bool) async -> Bool {
+    advance(delay)
+    let deadline = ContinuousClock.now + .seconds(2)
+    while !condition(), ContinuousClock.now < deadline { await Task.yield() }
+    return condition()
+  }
   func advance(_ delay: TimeInterval) { waiters.removeValue(forKey: delay)?.resume() }
 }
 
