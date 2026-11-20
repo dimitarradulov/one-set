@@ -3,6 +3,34 @@ set -euo pipefail
 
 source "$(dirname "$0")/validation-common.sh"
 
+lint() {
+  if ! command -v swiftlint >/dev/null 2>&1; then
+    echo "SwiftLint is required for full validation. Install SwiftLint 0.65.1; see README.md." >&2
+    exit 1
+  fi
+  swiftlint lint --no-cache
+}
+
+dashboard() {
+  npm ci --prefix admin
+  npm --prefix admin run check
+  npm --prefix admin run build
+  npm --prefix admin test
+}
+
+worker() {
+  npm --prefix worker run typecheck
+  npm --prefix worker test
+}
+
+if [[ $# -eq 1 ]]; then
+  case "$1" in
+    --lint) lint; exit ;;
+    --dashboard) dashboard; exit ;;
+    --worker) worker; exit ;;
+  esac
+fi
+
 VALIDATION_MODE=full
 TEST_FILTERS=()
 if [[ "${1:-}" == --focused ]]; then
@@ -19,36 +47,31 @@ if [[ "${1:-}" == --focused ]]; then
     fi
     TEST_FILTERS+=("-only-testing:$selector")
   done
-elif [[ "$#" -eq 1 && "$1" == --ci ]]; then
+elif [[ "$#" -eq 1 && "$1" == --ios-pr ]]; then
+  VALIDATION_MODE=ci
+  TEST_FILTERS=(
+    "-only-testing:OneSetTests"
+    "-only-testing:OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome"
+    "-only-testing:OneSetUITests/OnboardingJourneyTests/testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery"
+  )
+elif [[ "$#" -eq 1 && ( "$1" == --ci || "$1" == --ios-ci ) ]]; then
   VALIDATION_MODE=ci
 elif [[ "$#" -ne 0 ]]; then
-  echo "Usage: ./scripts/validate.sh [--ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
+  echo "Usage: ./scripts/validate.sh [--lint | --dashboard | --worker | --ios-pr | --ios-ci | --ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
   exit 1
 fi
 export VALIDATION_MODE
 
 oneset_toolchain
 oneset_artifacts
-if [[ "$VALIDATION_MODE" != focused ]]; then
-  if ! command -v swiftlint >/dev/null 2>&1; then
-    echo "SwiftLint is required for full validation. Install SwiftLint 0.65.1; see README.md." >&2
-    exit 1
-  fi
-  swiftlint lint --no-cache
-  python3 -m unittest discover -s scripts/tests -v
-  npm ci --prefix admin
-  npm --prefix admin run check
-  npm --prefix admin run build
-  npm --prefix admin test
-  npm --prefix worker run typecheck
-  npm --prefix worker test
+if [[ "$VALIDATION_MODE" == full || "${1:-}" == --ci ]]; then
+  lint
+  dashboard
+  worker
 fi
-if [[ "$VALIDATION_MODE" == ci ]]; then
-  oneset_xcodebuild "$ONESET_ARTIFACTS_DIR/validation/ci-build.log" \
-    -project OneSet.xcodeproj -scheme OneSet \
-    -destination 'generic/platform=iOS Simulator' \
-    -derivedDataPath "$ONESET_ARTIFACTS_DIR/build/ci" CODE_SIGNING_ALLOWED=NO build
-  exit
+
+if [[ "$VALIDATION_MODE" != focused ]]; then
+  python3 -m unittest discover -s scripts/tests -v
 fi
 
 oneset_run() {
@@ -59,21 +82,22 @@ oneset_run() {
     BUILD_DIR="$ONESET_ARTIFACTS_DIR/build/focused/$SIMULATOR_UDID"
   fi
 
-  echo "==> Building"
-  oneset_xcodebuild "$RUN_DIR/build.log" \
-    -project OneSet.xcodeproj \
-    -scheme OneSet \
-    -destination "$DESTINATION" \
-    -derivedDataPath "$BUILD_DIR" \
-    build
+  local xcode_args=(
+    -project OneSet.xcodeproj
+    -scheme OneSet
+    -destination "$DESTINATION"
+    -derivedDataPath "$BUILD_DIR"
+  )
+  if [[ "$VALIDATION_MODE" == ci ]]; then
+    xcode_args+=(CODE_SIGNING_ALLOWED=NO)
+  else
+    echo "==> Building"
+    oneset_xcodebuild "$RUN_DIR/build.log" "${xcode_args[@]}" build
+  fi
 
   echo "==> Running tests"
   local test_status=0
-  oneset_xcodebuild "$RUN_DIR/test.log" \
-    -project OneSet.xcodeproj \
-    -scheme OneSet \
-    -destination "$DESTINATION" \
-    -derivedDataPath "$BUILD_DIR" \
+  oneset_xcodebuild "$RUN_DIR/test.log" "${xcode_args[@]}" \
     -parallel-testing-enabled NO \
     -resultBundlePath "$RUN_DIR/tests.xcresult" \
     "$@" test || test_status=$?
@@ -86,7 +110,7 @@ oneset_run() {
 
   echo "==> $VALIDATION_MODE validation passed; logs and test results: $RUN_DIR"
 }
-if [[ "$VALIDATION_MODE" == focused ]]; then
+if [[ "${#TEST_FILTERS[@]}" -gt 0 ]]; then
   oneset_with_simulator oneset_run "${TEST_FILTERS[@]}"
 else
   oneset_with_simulator oneset_run

@@ -22,14 +22,14 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 2. (optional) Use an **exploration subagent** to conduct any exploration required by the tickets - relevant codebase files or external documentation. Ensure the exploration subagent can save files - it should save its markdown notes in a directory outside the repo, accessible by all future subagents. This lets **implementer subagents** focus on implementation rather than exploration.
 
-3. Read the project's [Git workflow](../../../docs/agents/git-workflow.md), record the intended merge target, and create and switch to the integration branch before editing files. Keep all implementation work on that branch or its ticket branches. If the issue tracker closes work through PRs, or the user asks for one, open a draft PR after the first merge in step 5 (a branch with no commits ahead of main can't open one), marked as closing the spec and tickets.
+3. Read the project's [Git workflow](../../../docs/agents/git-workflow.md), record the intended merge target, and create and switch to the integration branch before editing files. Keep all implementation work on that branch or its ticket branches. For delivery to `main` via PR, open a draft PR after the first ticket lands on the integration branch. Link the spec and tickets so GitHub closes them on merge. Follow the recorded delivery target for other paths.
 
 4. Use a fresh implementer subagent for each ticket, each in its own worktree on its own branch. Each implementer subagent:
   - confirms its worktree is based on the integration branch before starting, and resets onto it if not;
   - selects and reads the available skills whose triggers match the ticket, using `tdd` for test-driven implementation and relevant language, framework, and service skills alongside it;
   - for any UI change, always uses the `impeccable` skill/plugin when available, applying its guidance before implementation and during visual review; if unavailable, reports that and follows the project's UI guidance;
   - merges the integration branch tip into its own branch before reporting done.
-  - runs ticket-specific checks first, using the project's [validation failure-repair sequence](../../../docs/agents/validation.md) before repeating a full suite. Coordinate the required final full run on the stable integration branch rather than launching redundant full runs for each ticket.
+  - runs ticket-specific checks using the project's [validation guidance](../../../docs/agents/validation.md) and hands off the results for integrated validation.
 
 5. Once an **implementer subagent** completes, merge its work to the integration branch with a **merger subagent**.
 
@@ -37,6 +37,6 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 7. Once all tickets are complete, call the Skill tool with `code-review` on the integration branch. Fix all issues raised by the code review in a single **implementer subagent**.
 
-8. Finish the required validation on the stable integration branch, waiting for the result. Once it passes and all review findings are resolved, merge into the recorded target following [Git delivery and status](../../../docs/agents/git-workflow.md#delivery-and-status). If a draft PR exists, mark it ready and merge it when required checks and reviews permit. Reconcile child tickets as their completion criteria are met, then resolve the parent when the integrated outcome is complete. If an external check, review, or permission blocks delivery, record the exact blocker and next action. Report the resulting commit, branch, validation, local/remote merge, push, and issue states.
+8. After resolving review findings, follow [final validation](../../../docs/agents/validation.md#final-validation). For a PR to `main`, push the final integration revision and wait for **OneSet validation** to pass on that revision. Mark the draft ready and merge when required checks and reviews permit, following [Git delivery and status](../../../docs/agents/git-workflow.md#delivery-and-status). For other delivery paths, finish the applicable local validation before merging into the recorded target. Reconcile child tickets as their completion criteria are met, then resolve the parent when the integrated outcome is complete. If an external check, review, or permission blocks delivery, record the exact blocker and next action. Report the resulting commit, branch, validation, local/remote merge, push, and issue states.
 
 9. Clean up all **implementer subagent** worktrees.
