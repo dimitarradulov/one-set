@@ -93,14 +93,14 @@ swiftlint() { echo "swiftlint $*"; }
             environment["ONESET_TEST_ARTIFACTS"] = path
             selectors = ["OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome",
                          "OneSetTests/AppStorageTests"]
-            for arguments in ([], ["--ci"], ["--ios-ci"], ["--focused", *selectors]):
+            for arguments in ([], ["--ci"], ["--ios-ci"], ["--ios-pr"], ["--focused", *selectors]):
                 with self.subTest(arguments=arguments):
                     result = subprocess.run(["bash", "-c", harness, "validate.sh", *arguments],
                                             env=environment, capture_output=True, text=True, timeout=10)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn("<test>", result.stdout)
                     self.assertIn("<-destination> <platform=iOS Simulator,id=test-device>", result.stdout)
-                    if arguments in (["--ci"], ["--ios-ci"]):
+                    if arguments in (["--ci"], ["--ios-ci"], ["--ios-pr"]):
                         self.assertIn("<CODE_SIGNING_ALLOWED=NO>", result.stdout)
                         self.assertNotIn("<build>", result.stdout)
                     else:
@@ -113,7 +113,14 @@ swiftlint() { echo "swiftlint $*"; }
                         self.assertNotIn("python-checks", result.stdout)
                         self.assertNotIn("swiftlint ", result.stdout)
                         self.assertNotIn("npm ", result.stdout)
-                    elif arguments == ["--ios-ci"]:
+                    elif arguments in (["--ios-ci"], ["--ios-pr"]):
+                        if arguments == ["--ios-pr"]:
+                            self.assertEqual(result.stdout.count("<-only-testing:"), 3)
+                            self.assertIn("<-only-testing:OneSetTests>", result.stdout)
+                            self.assertIn(f"<-only-testing:{selectors[0]}>", result.stdout)
+                            self.assertIn("testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery>", result.stdout)
+                        else:
+                            self.assertNotIn("-only-testing:", result.stdout)
                         self.assertIn("python-checks", result.stdout)
                         self.assertNotIn("npm ", result.stdout)
                         self.assertNotIn("swiftlint ", result.stdout)

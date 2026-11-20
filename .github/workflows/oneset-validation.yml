@@ -1,13 +1,14 @@
 name: OneSet validation
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
 concurrency:
-  group: oneset-validation-${{ github.event.pull_request.number || github.ref }}
+  group: oneset-validation-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -66,9 +67,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - run: ./scripts/validate.sh --ios-ci
+      - name: Run iOS tests
+        run: ./scripts/validate.sh "$IOS_TEST_SCOPE"
         timeout-minutes: 55
         env:
+          IOS_TEST_SCOPE: ${{ github.event_name == 'pull_request' && '--ios-pr' || '--ios-ci' }}
           ONESET_ARTIFACTS_DIR: ${{ runner.temp }}/oneset-artifacts
       - name: Upload simulator test results
         if: ${{ !cancelled() }}

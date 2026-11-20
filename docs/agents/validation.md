@@ -11,7 +11,7 @@ Choose local feedback by the affected behavior before finishing a code change. S
 | Simulator or validation tooling only | Relevant `scripts/tests` tests and a real run of the affected command. |
 | Shared models/services, persistence, concurrency, authentication/session logic, schema, dependencies, build configuration, changes spanning iOS and Worker, or unclear impact | Focused checks for the affected behavior, followed by [final validation](#final-validation). |
 
-For a localized iOS change without a relevant existing test, build and exercise the affected behavior in the simulator; add a test when it protects meaningful behavior. When the affected workflows cannot be bounded confidently, use final validation to cover the full suite. Follow the UI verification requirements below when appearance or navigation changes.
+For a localized iOS change without a relevant existing test, build and exercise the affected behavior in the simulator; add a test when it protects meaningful behavior. When the affected workflows cannot be bounded confidently, run the full suite. Follow the UI verification requirements below when appearance or navigation changes.
 
 Focused validation builds the app and runs only the supplied iOS test selectors. It skips Worker and simulator-tooling tests, reuses `.codex/build/focused/` for incremental builds, and retains each run's logs and `.xcresult`. The default invocation still runs the full suite and reuses `.codex/build/validation/<simulator-UUID>/` for incremental builds. Logs and `.xcresult` results remain separate for each run.
 
@@ -31,7 +31,7 @@ Derive application workflow acceptance checks from the approved [requirements](.
 
 ## Final validation
 
-Pull requests targeting `main` and pushes to `main` run SwiftLint, Worker, dashboard, and iOS checks independently. The required OneSet validation job checks all four results. The iOS job runs `./scripts/validate.sh --ios-ci`, which builds and tests on a booted simulator with code signing disabled and attaches the Xcode log and test results to the workflow run. Use that run for final full-suite validation. Keep the local focused checks, manual acceptance checks, and screenshot review called for above.
+Pull requests targeting `main` and pushes to `main` run SwiftLint, Worker, dashboard, and iOS checks independently. The required OneSet validation job checks all four results. On PRs, `./scripts/validate.sh --ios-pr` runs all unit tests plus the email sign-in and workout recording smoke tests. Run affected UI journeys outside that pair locally with `--focused` before merging. Pushes to `main` and manual workflow runs use `--ios-ci` for the full simulator suite. Both modes upload the Xcode log and result bundle. Keep the local focused checks, manual acceptance checks, and screenshot review called for above.
 
 After integration and review fixes, push the final revision. Wait for the **OneSet validation** check on the current PR head, and verify it passed before merging. Use the PR checks view or `gh pr checks <PR> --watch`. Confirm the PR head still matches the revision you validated before merging. If CI fails, inspect its logs and artifacts, verify the fix with the narrowest relevant check, then push and wait for the new revision's result.
 

@@ -47,17 +47,24 @@ if [[ "${1:-}" == --focused ]]; then
     fi
     TEST_FILTERS+=("-only-testing:$selector")
   done
+elif [[ "$#" -eq 1 && "$1" == --ios-pr ]]; then
+  VALIDATION_MODE=ci
+  TEST_FILTERS=(
+    "-only-testing:OneSetTests"
+    "-only-testing:OneSetUITests/OnboardingJourneyTests/testLoginOffersEmailCodeFlowAndReturnsToWelcome"
+    "-only-testing:OneSetUITests/OnboardingJourneyTests/testRecordingDiscardZeroSetFinishSignOutGuardAndRestRecovery"
+  )
 elif [[ "$#" -eq 1 && ( "$1" == --ci || "$1" == --ios-ci ) ]]; then
   VALIDATION_MODE=ci
 elif [[ "$#" -ne 0 ]]; then
-  echo "Usage: ./scripts/validate.sh [--lint | --dashboard | --worker | --ios-ci | --ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
+  echo "Usage: ./scripts/validate.sh [--lint | --dashboard | --worker | --ios-pr | --ios-ci | --ci | --focused OneSetTests/Suite[/test] or OneSetUITests/Class[/testMethod] ...]" >&2
   exit 1
 fi
 export VALIDATION_MODE
 
 oneset_toolchain
 oneset_artifacts
-if [[ "$VALIDATION_MODE" != focused && "${1:-}" != --ios-ci ]]; then
+if [[ "$VALIDATION_MODE" == full || "${1:-}" == --ci ]]; then
   lint
   dashboard
   worker
@@ -103,7 +110,7 @@ oneset_run() {
 
   echo "==> $VALIDATION_MODE validation passed; logs and test results: $RUN_DIR"
 }
-if [[ "$VALIDATION_MODE" == focused ]]; then
+if [[ "${#TEST_FILTERS[@]}" -gt 0 ]]; then
   oneset_with_simulator oneset_run "${TEST_FILTERS[@]}"
 else
   oneset_with_simulator oneset_run
