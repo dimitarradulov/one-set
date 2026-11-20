@@ -429,13 +429,18 @@ Prefer a labeled or unmistakable check control with at least a 44 pt target. A t
 
 Rest is secondary to logging and must not lock the screen.
 
-- Show one compact rest card immediately below the most recently completed exercise, before the next exercise. Move it when another set is completed, including out of order. Do not show rest after the final exercise or when all exercises are complete, regardless of completion order.
+- Show one compact rest card immediately below the standalone exercise or superset that started it. Place a superset's timer below its second displayed exercise, regardless of logging order. Rest is due only for a completed standalone exercise or fully logged superset with a later row in the workout and at least one working set still unlogged.
 - Gently reveal the card if it is outside the viewport, respecting Reduce Motion.
 - Timer uses `metric` style.
 - Show `Skip` and adjustment access without making them more prominent than the countdown.
+- Start each superset countdown at 3:00. Skip and adjustments apply to the current countdown.
 - Timer state survives navigation/relaunch; visual design should communicate continuity rather than modal interruption.
 - When rest completes, use notification/haptic behavior when permitted and update the bar to a clear ready state.
 - Keep “Rest complete” in the same position until the next completion. Skip dismisses the card; finishing a workout does not require waiting for rest.
+
+### Supersets
+
+Use one visible **Superset** label to connect two adjacent exercise rows in the workout preview, active session, and completed session detail. Keep each exercise name, working-set controls, and recorded result on its own row where applicable. Session detail uses the pairing captured at session start.
 
 ### Finish workout
 
@@ -448,6 +453,8 @@ Present:
 
 If work is incomplete, communicate the count before confirmation. Do not use guilt-oriented language for partial completion.
 
+When the session has new exercise substitutions, include one scope choice in this sheet: `This workout only` or `Remember all for this program`. It covers all substitutions, including unperformed exercises, with no individual selection. Apply remembered choices only when finishing saves successfully. Cancelling returns to training; discarding the session remembers nothing.
+
 ### History
 
 Start with a chronological session list. Each row should expose date, workout/program context, and completion summary without requiring charts. Session detail prioritizes actual exercises and recorded weight/reps.
@@ -456,14 +463,16 @@ Edits must look like deliberate history correction, not like starting a new work
 
 ### Exercise replacement
 
-Flow: exercise menu → Replace → search → select → scope.
+Flow during an active session: exercise menu → Replace → search → select → return to training. A completed working set must be explicitly undone before replacing its exercise.
 
-Scope choice should be explicit:
+Selecting a different exercise immediately clears the current weight and reps without a separate confirmation. Show the selected movement's own history and guidance. Defer scope to the existing finish sheet:
 
 - **This workout only**
-- **Remember for this program**
+- **Remember all for this program**
 
-Do not preselect the broader persistent option in a way that can silently change future workouts.
+Remembering applies to the respective slots in this user's program across future cycles, leaving other slots and programs unchanged. A session-only substitution preserves an earlier remembered choice; remembering the original prescribed exercise restores the slot's prescription. Do not preselect the broader persistent option in a way that can silently change future workouts. Omit the scope question when there are no new substitutions.
+
+Compare final choices with the exercises captured at session start. Multiple swaps in a slot count only as its final choice; returning to its starting exercise removes that slot from the scope choice. Using an existing remembered replacement unchanged does not prompt again.
 
 ---
 

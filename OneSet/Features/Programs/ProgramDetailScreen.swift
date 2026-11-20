@@ -54,16 +54,20 @@ struct ProgramDetailScreen: View {
                 .foregroundStyle(OneSetColors.textPrimary)
                 .accessibilityAddTraits(.isHeader)
 
-              ForEach(Array(program.workouts.enumerated()), id: \.element.id) { index, workout in
-                if let onPreviewWorkout {
-                  Button { onPreviewWorkout(workout) } label: {
-                    WorkoutTemplateCard(workout: workout, number: index + 1)
-                  }
-                  .buttonStyle(.plain)
-                  .accessibilityHint("Shows the workout and exercise details.")
-                } else {
-                  WorkoutTemplateCard(workout: workout, number: index + 1)
-                }
+              if program.alternatesTrainingWeeks {
+                Text("Odd weeks")
+                  .font(OneSetTypography.label)
+                  .foregroundStyle(OneSetColors.textSecondary)
+                  .accessibilityAddTraits(.isHeader)
+                workoutCards(program.workouts(inWeek: 1))
+
+                Text("Even weeks")
+                  .font(OneSetTypography.label)
+                  .foregroundStyle(OneSetColors.textSecondary)
+                  .accessibilityAddTraits(.isHeader)
+                workoutCards(program.workouts(inWeek: 2))
+              } else {
+                workoutCards(program.workouts)
               }
             }
           }
@@ -103,6 +107,20 @@ struct ProgramDetailScreen: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(OneSetColors.background)
+    }
+  }
+
+  private func workoutCards(_ workouts: [WorkoutTemplate]) -> some View {
+    ForEach(Array(workouts.enumerated()), id: \.element.id) { index, workout in
+      if let onPreviewWorkout {
+        Button { onPreviewWorkout(workout) } label: {
+          WorkoutTemplateCard(workout: workout, number: index + 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Shows the workout and exercise details.")
+      } else {
+        WorkoutTemplateCard(workout: workout, number: index + 1)
+      }
     }
   }
 }

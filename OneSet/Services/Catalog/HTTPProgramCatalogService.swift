@@ -15,6 +15,7 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
     var request = URLRequest(url: baseURL.appending(path: "v1/catalog"))
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
+    request.setValue("1", forHTTPHeaderField: "X-OneSet-Alternating-Weeks")
     if let ifNoneMatch { request.setValue(ifNoneMatch, forHTTPHeaderField: "If-None-Match") }
     request.cachePolicy = .reloadIgnoringLocalCacheData
     request.timeoutInterval = 30
@@ -48,7 +49,8 @@ struct HTTPProgramCatalogService: ProgramCatalogService {
       throw ProgramCatalogServiceError.invalidResponse
     }
     return .snapshot(PublishedProgramCatalogSnapshot(
-      publicationID: publicationID, entityTag: entityTag, programs: programs
+      publicationID: publicationID, entityTag: entityTag, programs: programs,
+      exerciseLibrary: try document.exercises.map { try $0.model() }
     ))
   }
 }

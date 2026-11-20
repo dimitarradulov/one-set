@@ -7,10 +7,11 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { parse } from 'yaml';
 import { validateCatalogSource } from '../src/catalog-validation.js';
+import { generateBundledSwift } from '../src/catalog-generation.js';
 
 const execute = promisify(execFile);
 
-test('the ten authored programs generate the bundled catalog without losing prescriptions', async () => {
+test('the authored programs generate the bundled catalog without losing prescriptions', async () => {
   const output = await mkdtemp(join(tmpdir(), 'oneset-catalog-source-'));
   const generatedSwift = join(output, 'BundledProgramCatalog.swift');
   try {
@@ -30,9 +31,10 @@ test('the ten authored programs generate the bundled catalog without losing pres
       'classic-physique': 19,
       'free-weight-full-body': 18,
       'machine-full-body': 22,
+      'hit-upper-lower-rotation': 15,
     };
     const programFiles = (await readdir('catalog/programs')).filter(file => file.endsWith('.yaml')).sort();
-    assert.equal(programFiles.length, 10);
+    assert.equal(programFiles.length, Object.keys(expectedCounts).length);
     const programs = await Promise.all(programFiles.map(async file => parse(
       await readFile(join('catalog/programs', file), 'utf8'),
     ) as { key: string; recommended_weeks: number; workouts: Array<{ banner?: string; exercises: Array<{ removed?: boolean }> }> }));
@@ -42,7 +44,7 @@ test('the ten authored programs generate the bundled catalog without losing pres
       assert.equal(program.workouts.flatMap(workout => workout.exercises).filter(slot => !slot.removed).length, expectedCounts[program.key]);
     }
     const workouts = programs.flatMap(program => program.workouts);
-    assert.equal(workouts.length, 32);
+    assert.equal(workouts.length, 36);
     assert.ok(workouts.every(workout => typeof workout.banner === 'string'));
     assert.deepEqual([...new Set(workouts.map(workout => workout.banner))].sort(), [
       'arms', 'back-pull', 'chest-push', 'general-gym', 'lower-body', 'shoulders', 'upper-body',
@@ -50,7 +52,7 @@ test('the ten authored programs generate the bundled catalog without losing pres
     const exerciseDocument = parse(await readFile('catalog/exercises.yaml', 'utf8')) as {
       exercises: Array<Record<string, unknown>>;
     };
-    assert.equal(exerciseDocument.exercises.length, 47);
+    assert.equal(exerciseDocument.exercises.length, 52);
     for (const exercise of exerciseDocument.exercises) {
       assert.equal(typeof exercise.instructions, 'string');
       assert.equal(typeof exercise.stopping_guidance, 'string');
@@ -192,4 +194,33 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
       });
     }
   }
+});
+
+test('catalog supersets require two adjacent active slots in workout order', async () => {
+  const exercises = parse(await readFile('catalog/exercises.yaml', 'utf8')).exercises;
+  const program = parse(await readFile('catalog/programs/01-full-body.yaml', 'utf8'));
+  const source = { exercises, programs: [program] };
+  const [workout, otherWorkout] = program.workouts;
+  const [first, second, third] = workout.exercises;
+  const pair = (a: string, b: string) => ({ first_slot_id: a, second_slot_id: b });
+
+  assert.deepEqual(validateCatalogSource(source).errors, []);
+  workout.supersets = [pair(first.key, second.key)];
+  const validation = validateCatalogSource(source);
+  assert.deepEqual(validation.errors, []);
+  assert.match(generateBundledSwift(validation.catalog!), /SupersetPair\(firstSlotID:/);
+
+  for (const invalid of [
+    [pair(first.key, first.key)],
+    [pair(second.key, first.key)],
+    [pair(first.key, third.key)],
+    [pair(first.key, otherWorkout.exercises[0].key)],
+    [pair(first.key, second.key), pair(second.key, third.key)],
+  ]) {
+    workout.supersets = invalid;
+    assert.ok(validateCatalogSource(source).errors.some(error => error.includes('superset')));
+  }
+  workout.supersets = [pair(first.key, second.key)];
+  second.removed = true;
+  assert.ok(validateCatalogSource(source).errors.some(error => error.includes('superset')));
 });

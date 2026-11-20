@@ -66,6 +66,91 @@ struct ProgramCatalogOnboardingTests {
   }
 
   @Test
+  func publishedSupersetDecodesStableSlotsAndSurvivesCatalogRefresh() async throws {
+    let document = try JSONDecoder.catalogDecoder.decode(CatalogDocument.self, from: Data("""
+    {
+      "exercises": [
+        {
+          "key": "squat", "name": "Squat", "instructions": "Lower with control.",
+          "stopping_guidance": "Stop when form changes.", "warmup_guidance": "Warm up.",
+          "rest_seconds": 150, "default_reps": { "minimum": 6, "maximum": 10 }
+        },
+        {
+          "key": "row", "name": "Row", "instructions": "Pull with control.",
+          "stopping_guidance": "Stop when form changes.", "warmup_guidance": "Warm up.",
+          "rest_seconds": 210, "default_reps": { "minimum": 8, "maximum": 12 }
+        }
+      ],
+      "programs": [{
+        "key": "paired-plan", "name": "Paired Plan", "recommended_weeks": 8,
+        "format": "A", "emphasis": "Test published supersets.",
+        "workouts": [{
+          "key": "paired-workout", "name": "Paired Workout",
+          "exercises": [
+            { "key": "slot-squat", "exercise": "squat", "reps": { "minimum": 6, "maximum": 10 } },
+            { "key": "slot-row", "exercise": "row", "reps": { "minimum": 8, "maximum": 12 } }
+          ],
+          "supersets": [{ "first_slot_id": "slot-squat", "second_slot_id": "slot-row" }]
+        }]
+      }]
+    }
+    """.utf8))
+    let exercises = Dictionary(uniqueKeysWithValues: document.exercises.map { ($0.key, $0) })
+    let program = try #require(document.programs.first).model(exercises: exercises)
+    let expectedPair = SupersetPair(firstSlotID: "slot-squat", secondSlotID: "slot-row")
+    #expect(program.workouts.first?.supersets == [expectedPair])
+    #expect(program.workouts.first?.exercises.map(\.exerciseKey) == ["squat", "row"])
+
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let persistence = FileProgramCatalogPersistence(fileURL: directory.appending(path: "catalog.json"))
+    try persistence.save(snapshot("paired-publication", "paired-tag", [program]))
+    #expect(try persistence.load()?.programs.first?.workouts.first?.supersets == [expectedPair])
+
+    let workout = try #require(program.workouts.first)
+    let revisedWorkout = WorkoutTemplate(id: workout.id, name: workout.name, exercises: workout.exercises)
+    let revisedProgram = TrainingProgram(id: program.id, name: program.name,
+      format: program.format, emphasis: program.emphasis, workouts: [revisedWorkout])
+    let catalog = ProgramCatalog(programs: [],
+      service: StubProgramCatalogService(result: .snapshot(snapshot("unpaired", "unpaired-tag", [revisedProgram]))),
+      persistence: persistence)
+    let currentProgram = try #require(catalog.program(id: program.id))
+    let currentWorkout = try #require(currentProgram.workouts.first)
+    let active = WorkoutSession(accountID: "account", cycleID: UUID(), program: currentProgram,
+      workout: currentWorkout, week: 1, day: 1)
+    let databaseURL = directory.appending(path: "workouts.sqlite")
+    _ = try WorkoutRepository(databaseURL: databaseURL).start(active)
+
+    await catalog.refresh()
+
+    #expect(catalog.publicationID == "unpaired")
+    #expect(catalog.program(id: program.id)?.workouts.first?.supersets == nil)
+    let reopened = try WorkoutRepository(databaseURL: databaseURL)
+    #expect(try reopened.activeSession(accountID: active.accountID)?.supersets == [expectedPair])
+  }
+
+  @Test
+  func replacementLibraryUsesUnilateralScopeWithDefaultRepBounds() async throws {
+    let bundled = ProgramCatalog.bundled
+    let key = "bulgarian-split-squat"
+    let replacement = try #require(bundled.exerciseLibrary[key])
+    #expect(replacement.repTarget == RepTarget(minimum: 8, maximum: 12, scope: .eachLeg))
+
+    let publishedExercise = WorkoutExercise(id: key, exerciseKey: key, name: replacement.name,
+      repTarget: .init(minimum: 8, maximum: 12), defaultRepTarget: .init(minimum: 8, maximum: 12))
+    let published = PublishedProgramCatalogSnapshot(publicationID: "published", entityTag: "test-tag",
+      programs: bundled.programs, exerciseLibrary: [publishedExercise])
+    let catalog = ProgramCatalog(programs: [],
+      service: StubProgramCatalogService(result: .snapshot(published)))
+    await catalog.refresh()
+
+    #expect(catalog.publicationID == "published")
+    let online = try #require(catalog.exerciseLibrary[key])
+    #expect(online.repTarget == replacement.repTarget)
+    #expect(online.defaultRepTarget == replacement.defaultRepTarget)
+  }
+
+  @Test
   func backendPublicationSurvivesOfflineRestartAndRestoresSyntheticChanges() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -326,7 +411,10 @@ extension ProgramCatalogOnboardingTests {
     _ entityTag: String,
     _ programs: [TrainingProgram]
   ) -> PublishedProgramCatalogSnapshot {
-    PublishedProgramCatalogSnapshot(publicationID: publicationID, entityTag: entityTag, programs: programs)
+    PublishedProgramCatalogSnapshot(
+      publicationID: publicationID, entityTag: entityTag, programs: programs,
+      exerciseLibrary: programs.flatMap { $0.workouts.flatMap(\.exercises) }
+    )
   }
 
   func program(id: String, name: String, banner: String? = nil) -> TrainingProgram {

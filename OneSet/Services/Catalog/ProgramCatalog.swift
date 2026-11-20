@@ -5,7 +5,8 @@ import Observation
 @Observable
 final class ProgramCatalog {
   private(set) var programs: [TrainingProgram]
-  private let bundledPrograms: [TrainingProgram]
+  private let bundledExercises: [WorkoutExercise]
+  private var publishedExercises: [WorkoutExercise]?
   private let service: (any ProgramCatalogService)?
   private let persistence: (any ProgramCatalogPersistence)?
   private(set) var publicationID: String?
@@ -14,10 +15,11 @@ final class ProgramCatalog {
 
   init(
     programs: [TrainingProgram],
+    bundledExercises: [WorkoutExercise] = [],
     service: (any ProgramCatalogService)? = nil,
     persistence: (any ProgramCatalogPersistence)? = nil
   ) {
-    bundledPrograms = programs
+    self.bundledExercises = bundledExercises
     self.service = service
     self.persistence = persistence
     self.programs = programs
@@ -25,6 +27,21 @@ final class ProgramCatalog {
       publicationID = saved.publicationID
       entityTag = saved.entityTag
       self.programs = saved.programs
+      publishedExercises = saved.exerciseLibrary
+    }
+  }
+
+  var exerciseLibrary: [String: WorkoutExercise] {
+    let programmed = programs.flatMap { $0.workouts.flatMap(\.exercises) }
+    let entries = publishedExercises ?? (programmed + bundledExercises)
+    let scopesByExercise = Dictionary(grouping: programmed, by: \.exerciseKey).mapValues {
+      Set($0.map(\.repTarget.scope))
+    }
+    let uniqueEntries = Dictionary(entries.map { ($0.exerciseKey, $0) }, uniquingKeysWith: { first, _ in first })
+    return uniqueEntries.mapValues { exercise in
+      let scopes = scopesByExercise[exercise.exerciseKey]
+      let scope = scopes?.count == 1 ? scopes?.first : nil
+      return exercise.replacementOption(authoredScope: scope)
     }
   }
 
@@ -41,7 +58,8 @@ final class ProgramCatalog {
     refreshGeneration += 1
     let generation = refreshGeneration
     do {
-      switch try await service.fetchCatalog(ifNoneMatch: entityTag) {
+      // Older caches contain workout slots only. Refresh once to fetch the full exercise library.
+      switch try await service.fetchCatalog(ifNoneMatch: publishedExercises == nil ? nil : entityTag) {
       case .notModified:
         return
       case .snapshot(let snapshot):
@@ -51,6 +69,7 @@ final class ProgramCatalog {
         publicationID = snapshot.publicationID
         entityTag = snapshot.entityTag
         programs = snapshot.programs
+        publishedExercises = snapshot.exerciseLibrary
       }
     } catch {
       // Keep the bundled and last persisted catalog usable when the network or disk is unavailable.
@@ -71,6 +90,7 @@ final class ProgramCatalog {
     for program in programs {
       guard CatalogValueValidation.isStableKey(program.id), !program.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             (1...5).contains(program.trainingDaysPerWeek), program.recommendedWeeks > 0,
+            program.workouts(inWeek: 2).count == program.trainingDaysPerWeek,
             !program.format.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.emphasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !program.workouts.isEmpty else { return false }

@@ -41,13 +41,15 @@ _Avoid_: Workout template
 
 **Prescription**: The exercise, working-set count, rep target, stopping instructions, warmup guidance, and rest guidance assigned to a slot.
 
+**Superset**: Two adjacent exercise slots in a workout template prescribed to be performed back to back before resting. An exercise slot can belong to at most one superset.
+
 **Working set**: The single main effort performed for an exercise after preparation. For unilateral movements, the prescription includes work on both sides.
 
 **Warmup**: Preparatory work preceding the working set; shown as guidance but not logged in OneSet.
 
 **Session replacement**: An exercise change that applies only to the current session.
 
-**Remembered replacement**: An exercise choice retained for a program's slot until the user changes it.
+**Remembered replacement**: An exercise choice retained for one slot in a user's program across future cycles until the user changes it. Other slots and programs keep their own exercise choices.
 
 **Total weight**: The external load used in the performed movement: combined dumbbell weight when two are used, one dumbbell's weight when one is used, or bar plus plates for a barbell. Added load is recorded for weighted bodyweight movements.
 

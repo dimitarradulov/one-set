@@ -22,6 +22,12 @@ Save session inputs, completed sets, notes and the rest countdown deadline local
 
 Send one session update at a time. Preserve a sent body and base session revision for retries; keep newer local input separately until the earlier request is acknowledged. Session revisions protect against a delayed request overwriting a newer saved workout. They do not apply to runs, preferences or account settings.
 
+### Active supersets and replacements
+
+The active session captures ordered superset membership when training starts. SQLite saves the rest deadline and the slot below which it appears together with the completion that starts it. A deadline from an older local record recovers its position from the most recently completed eligible slot.
+
+Local SQLite migration v10 adds remembered exercise choices keyed by account, program and slot. Finishing commits the selected remembered choices with the completed session and its upload request. Those choices apply to new workouts on this device across cycles. Completed-session uploads record the actual exercise performed, including session-only substitutions.
+
 ### First-time program switching
 
 The account-scoped onboarding file stores confirmed latest-cycle metadata, the selected cycle, fixed creation requests, and ordered activation requests. A missing or failed discovery is not evidence that a program is new. A switch commits the selection and its required requests in one atomic file replacement before navigating; the original setup upload remains separate. Creation follows setup, and session drains skip only sessions whose own cycle creation remains pending. Permanent creation and activation rejections are retained with their original cycle identities and are not automatically retried. Later valid selection requests and sessions for owned cycles continue independently. A rejected creation and its queued workouts remain on the device with their original payloads; the overview explains that the change was not saved to the account.
@@ -63,7 +69,7 @@ In one short server transaction:
 
 Run/session UUIDs are generated once on the device and reused. Set identity is session UUID + original slot ID. No operation receipts, change feed or server deletion identifiers are needed. Keep local input if validation or a stale session revision rejects a write; never discard it or blindly rebase an ambiguous retry.
 
-User settings and remembered replacements/notes/rest use the latest saved values. Serialize/coalesce their pending writes on the device. They have no revision or multi-device conflict flow.
+The proposed settings, exercise choice, note and rest sync uses the latest saved values. Pending writes would be serialized on the device without session revisions. Current remembered exercise choices are stored locally and commit with Finish.
 
 ## Program runs
 

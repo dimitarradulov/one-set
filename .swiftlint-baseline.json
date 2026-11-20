@@ -1,13 +1,13 @@
 [
   {
     "violation": {
-      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 234 lines",
       "location": {
-        "character": 10,
         "line": 44,
+        "character": 10,
         "file": "OneSet/App/AppDependencies.swift"
       },
       "ruleIdentifier": "function_body_length",
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 250 lines",
       "ruleDescription": "Function bodies should not span too many lines",
       "severity": "error",
       "ruleName": "Function Body Length"
@@ -16,13 +16,13 @@
   },
   {
     "violation": {
-      "reason": "Tuples should have at most 2 members",
       "location": {
+        "line": 333,
         "character": 19,
-        "line": 299,
         "file": "OneSet/App/AppDependencies.swift"
       },
       "ruleIdentifier": "large_tuple",
+      "reason": "Tuples should have at most 2 members",
       "ruleDescription": "Tuples shouldn't have too many members. Create a custom type instead.",
       "severity": "error",
       "ruleName": "Large Tuple"
@@ -675,13 +675,13 @@
   },
   {
     "violation": {
-      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 111 lines",
       "location": {
+        "line": 63,
         "character": 3,
-        "line": 61,
         "file": "OneSet/Persistence/WorkoutRepository.swift"
       },
       "ruleIdentifier": "function_body_length",
+      "reason": "Initializer body should span 100 lines or less excluding comments and whitespace: currently spans 120 lines",
       "ruleDescription": "Function bodies should not span too many lines",
       "severity": "error",
       "ruleName": "Function Body Length"
@@ -1467,21 +1467,6 @@
       "ruleName": "Vertical Whitespace before Closing Braces"
     },
     "text": ""
-  },
-  {
-    "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 2041",
-      "location": {
-        "character": 1,
-        "line": 2041,
-        "file": "OneSet/Services/Catalog/BundledProgramCatalog.swift"
-      },
-      "ruleIdentifier": "file_length",
-      "ruleDescription": "Files should not span too many lines.",
-      "severity": "error",
-      "ruleName": "File Length"
-    },
-    "text": "}"
   },
   {
     "violation": {
@@ -2325,13 +2310,13 @@
   },
   {
     "violation": {
-      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1586 lines",
       "location": {
-        "character": 7,
         "line": 4,
+        "character": 7,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "type_body_length",
+      "reason": "Class body should span 500 lines or less excluding comments and whitespace: currently spans 1595 lines",
       "ruleDescription": "Type bodies should not span too many lines",
       "severity": "error",
       "ruleName": "Type Body Length"
@@ -2340,13 +2325,13 @@
   },
   {
     "violation": {
-      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 106 lines",
       "location": {
+        "line": 634,
         "character": 3,
-        "line": 581,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "function_body_length",
+      "reason": "Function body should span 100 lines or less excluding comments and whitespace: currently spans 106 lines",
       "ruleDescription": "Function bodies should not span too many lines",
       "severity": "error",
       "ruleName": "Function Body Length"
@@ -2430,13 +2415,13 @@
   },
   {
     "violation": {
-      "reason": "File should contain 1000 lines or less: currently contains 1783",
       "location": {
+        "line": 1794,
         "character": 1,
-        "line": 1783,
         "file": "OneSetUITests/OnboardingJourneyTests.swift"
       },
       "ruleIdentifier": "file_length",
+      "reason": "File should contain 1000 lines or less: currently contains 1794",
       "ruleDescription": "Files should not span too many lines.",
       "severity": "error",
       "ruleName": "File Length"

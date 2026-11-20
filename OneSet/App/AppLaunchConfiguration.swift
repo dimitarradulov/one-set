@@ -11,7 +11,7 @@ struct AppLaunchConfiguration {
     #if DEBUG
     return arguments.contains("--ui-program-change") || arguments.contains("--ui-program-change-preview")
       || arguments.contains("--ui-program-change-active") || arguments.contains("--ui-switch-conflict") || arguments.contains("--ui-replacement-device") || arguments.contains("--ui-switch-resume-detail") || arguments.contains("--ui-switch-test") || arguments.contains("--ui-switch-programs") || arguments.contains("--ui-switch-detail")
-      || arguments.contains("--ui-main-workout-recording") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-warmup-sheet") || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
+      || arguments.contains("--ui-main-workout-superset") || arguments.contains("--ui-main-workout-recording") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-warmup-sheet") || arguments.contains("--ui-main-tabs") || arguments.contains("--ui-main-history")
       || arguments.contains("--ui-history-populated") || arguments.contains("--ui-history-partial-detail")
       || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
       || arguments.contains("--ui-history-refresh-error")
@@ -104,8 +104,8 @@ struct AppLaunchConfiguration {
     } else if arguments.contains("--ui-programs") {
       onboardingPath = [.preferences, .programs]
       selectedProgramID = nil
-    } else if arguments.contains("--ui-program-detail") {
-      onboardingPath = [.preferences, .programs, .programDetail("machine-full-body")]
+    } else if let programID = Self.programPreviewID(arguments: arguments, detail: true) {
+      onboardingPath = [.preferences, .programs, .programDetail(programID)]
       selectedProgramID = nil
     } else if arguments.contains("--ui-trial-preview") {
       onboardingPath = [
@@ -115,15 +115,15 @@ struct AppLaunchConfiguration {
         .trialPreview("machine-full-body")
       ]
       selectedProgramID = "machine-full-body"
-    } else if arguments.contains("--ui-program-overview") {
+    } else if let programID = Self.programPreviewID(arguments: arguments, detail: false) {
       onboardingPath = [
         .preferences,
         .programs,
-        .programDetail("machine-full-body"),
-        .trialPreview("machine-full-body"),
-        .programOverview("machine-full-body")
+        .programDetail(programID),
+        .trialPreview(programID),
+        .programOverview(programID)
       ]
-      selectedProgramID = "machine-full-body"
+      selectedProgramID = programID
     } else if arguments.contains("--ui-exercise-detail") || arguments.contains("--ui-exercise-detail-expanded")
       || arguments.contains("--ui-exercise-history") {
       onboardingPath = [
@@ -162,7 +162,7 @@ struct AppLaunchConfiguration {
         .workoutPreview(programID: "minimalist-full-body", workoutID: "minimalist-full-body-workout-a")
       ]
       selectedProgramID = "minimalist-full-body"
-    } else if arguments.contains("--ui-workout-preview") {
+    } else if arguments.contains("--ui-workout-preview") || arguments.contains("--ui-workout-preview-superset") {
       onboardingPath = [
         .preferences,
         .programs,
@@ -183,8 +183,16 @@ struct AppLaunchConfiguration {
     #endif
   }
 
+  private static func programPreviewID(arguments: [String], detail: Bool) -> String? {
+    let routes = detail
+      ? [("--ui-program-detail", "machine-full-body"), ("--ui-program-rotation-detail", "hit-upper-lower-rotation")]
+      : [("--ui-program-overview", "machine-full-body"), ("--ui-program-rotation", "hit-upper-lower-rotation")]
+    return routes.first { arguments.contains($0.0) }?.1
+  }
+
   private static func workoutBannerPreview(arguments: [String]) -> (String, String)? {
     let routes = [
+      "--ui-workout-preview-rotation": ("hit-upper-lower-rotation", "hit-upper-lower-rotation-legs-advanced"),
       "--ui-workout-banner-fallback": ("upper-lower", "upper-lower-lower-a"),
       "--ui-workout-banner-legacy": ("upper-lower", "upper-lower-lower-a"),
       "--ui-workout-banner-offline": ("founder-authored-plan", "founder-authored-plan-day-a"),
@@ -195,7 +203,7 @@ struct AppLaunchConfiguration {
       "--ui-workout-banner-chest-push": ("bro-split", "bro-split-day-1-chest"),
       "--ui-workout-banner-back-pull": ("bro-split", "bro-split-day-2-back"),
       "--ui-workout-banner-shoulders": ("bro-split", "bro-split-day-4-shoulders"),
-      "--ui-workout-banner-arms": ("bro-split", "bro-split-day-5-arms"),
+      "--ui-workout-banner-arms": ("bro-split", "bro-split-day-5-arms")
     ]
     return routes.first(where: { arguments.contains($0.key) })?.value
   }

@@ -57,7 +57,12 @@ await engine.exec(`
 await engine.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await engine.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
-await engine.exec(await readFile('../docs/database/migrations/005_cycle_workout_boundaries.sql', 'utf8'));
+for (const migration of [
+  '005_cycle_workout_boundaries', '006_completed_session_write', '007_completed_session_day_history',
+  '012_cycle_workout_integrity', '013_alternating_training_weeks',
+]) {
+  await engine.exec(await readFile(`../docs/database/migrations/${migration}.sql`, 'utf8'));
+}
 
 after(async () => { await engine.close(); });
 
@@ -129,7 +134,7 @@ workouts:
       .setIssuer(issuer).setIssuedAt().setNotBefore('0s').setExpirationTime('1m')
       .sign(signingKeys.privateKey);
     const response = await fetch(`http://127.0.0.1:${address.port}/v1/catalog`, {
-      headers: { Authorization: `Bearer ${followerToken}` },
+      headers: { Authorization: `Bearer ${followerToken}`, 'X-OneSet-Alternating-Weeks': '1' },
     });
     assert.equal(response.status, 200);
     const result = await response.json() as {
@@ -146,26 +151,37 @@ workouts:
       exercises: sourceExercises.exercises,
       programs: await Promise.all(sourcePrograms.map(async file => {
         const program = parse(await readFile(join(sourceDirectory, 'programs', file), 'utf8')) as {
-          workouts: Array<{ removed?: boolean; exercises: Array<{ removed?: boolean; position: number }> }>;
+          workouts: Array<{ week_parity?: 'odd' | 'even'; removed?: boolean; exercises: Array<{ removed?: boolean; position: number }> }>;
         };
         const workouts = program.workouts.filter(workout => !workout.removed).map(workout => ({
           ...workout, exercises: workout.exercises.filter(slot => !slot.removed)
             .sort((first, second) => first.position - second.position),
         }));
-        return { ...program, workouts, training_days_per_week: workouts.length };
+        return { ...program, workouts, training_days_per_week: workouts.filter(workout => workout.week_parity !== 'even').length };
       })),
     };
     assert.deepEqual(result.catalog, expectedCatalog);
-    assert.equal(result.catalog.programs.length, 11);
+    assert.equal(result.catalog.programs.length, 12);
     const machineProgram = result.catalog.programs.find(program => program.key === 'machine-full-body');
     assert.equal(machineProgram?.recommended_weeks, 8);
     assert.equal(machineProgram?.workouts.length, 3);
-    assert.equal(result.catalog.exercises.length, 47);
+    assert.equal(result.catalog.exercises.length, 52);
     const hackSquat = result.catalog.exercises.find(exercise => exercise.key === 'hack-squat-machine');
     assert.equal(typeof hackSquat?.instructions, 'string');
     assert.equal(typeof hackSquat?.stopping_guidance, 'string');
     assert.equal(typeof hackSquat?.warmup_guidance, 'string');
     assert.equal(result.catalog.programs.some(program => program.key === 'founder-authored-plan'), true);
+
+    const rotation = result.catalog.programs.find(program => program.key === 'hit-upper-lower-rotation');
+    assert.equal(rotation?.training_days_per_week, 2);
+    assert.equal(rotation?.workouts.length, 4);
+    const legacyResponse = await fetch(`http://127.0.0.1:${address.port}/v1/catalog`, {
+      headers: { Authorization: `Bearer ${followerToken}`, 'If-None-Match': response.headers.get('ETag')! },
+    });
+    assert.equal(legacyResponse.status, 200);
+    assert.notEqual(legacyResponse.headers.get('ETag'), response.headers.get('ETag'));
+    const legacy = await legacyResponse.json() as typeof result;
+    assert.equal(legacy.catalog.programs.some(program => program.key === rotation?.key), false);
 
     const newUserToken = await new SignJWT({ sid: 'e2e-new-user-session' })
       .setProtectedHeader({ alg: 'RS256', typ: 'JWT' }).setSubject('e2e-new-user')
@@ -187,6 +203,55 @@ workouts:
       headers: { Authorization: `Bearer ${newUserToken}` },
     }), environment, setupDatabase);
     assert.deepEqual(await restored.json(), { setup: newSetup });
+
+    const rotationCycle = crypto.randomUUID();
+    await database.query(`INSERT INTO user_programs (id, user_id, workout_program_id, started_at)
+      SELECT $1::uuid, owner.id, program.id, now() FROM users AS owner
+      CROSS JOIN workout_programs AS program
+      WHERE owner.clerk_user_id = 'e2e-new-user' AND program.authoring_key = 'hit-upper-lower-rotation'`, [rotationCycle]);
+    const required = async (week: number) => (await database.query(`SELECT workout.authoring_key
+      FROM required_workouts_for_cycle_week($1::uuid, $2::integer) AS required
+      JOIN workouts AS workout ON workout.id = required.workout_id ORDER BY required.workout_position`,
+    [rotationCycle, String(week)])).map(row => row.authoring_key);
+    const rotationKey = 'hit-upper-lower-rotation';
+    const odd = ['chest-back', 'legs'].map(suffix => `${rotationKey}-${suffix}`);
+    const even = ['delts-arms', 'legs-advanced'].map(suffix => `${rotationKey}-${suffix}`);
+    assert.deepEqual(await required(1), odd);
+    assert.deepEqual(await required(2), even);
+    const authored = expectedCatalog.programs.find(program => 'key' in program && program.key === rotationKey);
+    assert.ok(authored);
+    const rotationSource = authored as unknown as { workouts: Array<{
+      key: string; name: string; exercises: Array<{ key: string; exercise: string }>;
+    }> };
+    const finish = async (workoutKey: string, week: number, day: number) => {
+      const workout = rotationSource.workouts.find(item => item.key === workoutKey)!;
+      const slot = workout.exercises[0]!;
+      const payload = {
+        session_id: crypto.randomUUID(), cycle_id: rotationCycle,
+        program_key: rotationKey, workout_key: workoutKey, workout_name: workout.name, week_number: week, day_number: day,
+        started_at: '2026-10-01T10:00:00Z', completed_at: '2026-10-01T10:10:00Z',
+        sets: [{
+          workout_exercise_key: slot.key, exercise_key: slot.exercise, position: 1,
+          prescription: {
+            name: slot.exercise, instructions: 'Use control.', stopping_guidance: 'Stop when form breaks.',
+            warmup_guidance: { steps: [], note: 'Warm up.' }, reps_min: 1, reps_max: 10, rep_scope: 'reps',
+          },
+          unit: 'kg', weight: 40, reps: 1, completed_at: '2026-10-01T10:05:00Z',
+        }],
+      };
+      const [session] = await database.transaction(
+        "SELECT save_completed_session_with_day('e2e-new-user', $1::jsonb) AS status", [JSON.stringify(payload)],
+      );
+      return session?.status;
+    };
+    assert.equal(await finish(even[0]!, 1, 1), 'invalid_session');
+    for (const [index, workoutKey] of [...odd, ...even].entries()) {
+      const week = Math.floor(index / 2) + 1;
+      assert.equal(await finish(workoutKey, week, index % 2 + 1), 'created');
+      assert.deepEqual(await database.query('SELECT current_training_week FROM user_programs WHERE id = $1', [rotationCycle]),
+        [{ current_training_week: Math.floor((index + 1) / 2) + 1 }]);
+    }
+    assert.deepEqual(await required(3), odd);
 
     const preserved = await database.query(`SELECT program.id, users.active_user_program_id
       FROM workout_programs program JOIN user_programs cycle ON cycle.workout_program_id = program.id

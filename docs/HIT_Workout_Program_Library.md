@@ -661,3 +661,15 @@ The practical model is:
 > **Few high-quality work sets + hard effort + stable technique + measurable progression + enough recovery.**
 
 A set only counts as successful if the target muscle was trained hard **without sacrificing the movement standard used to compare performance from session to session**.
+
+
+# HIT Upper / Lower Rotation
+
+A twice-weekly adaptation of [Mike Mentzer’s Ideal Routine](https://mikementzer.org/mike-mentzers-ideal-routine-a-heavy-duty-blueprint/). Train upper body on Day 1 and legs on Day 2. Use one controlled working set per exercise and allow recovery time between workouts.
+
+| Training week | Day 1 | Day 2 |
+| --- | --- | --- |
+| Odd | Chest & Back | Legs |
+| Even | Delts & Arms | Legs (Advanced Emphasis) |
+
+Repeat the rotation from Week 3 onward. The [authored program](../worker/catalog/programs/11-hit-upper-lower-rotation.yaml) defines the exercise order, rep targets, and four supersets. The advanced leg day begins with one 10–25 second leg-extension hold, logged as one rep in OneSet. The program uses machine incline press, dumbbell rear-delt raise, and Smith-machine squat.

@@ -10,6 +10,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
   case sessionNotFound
   case noCompletedSets
   case invalidCompletedSession
+  case completedExerciseCannotBeReplaced
 
   var errorDescription: String? {
     switch self {
@@ -20,6 +21,7 @@ enum WorkoutRepositoryError: Error, LocalizedError {
     case .invalidReps: "Enter a positive whole number of repetitions."
     case .sessionNotFound: "This workout could not be found. Reopen it and try again."
     case .noCompletedSets: "Complete at least one set before finishing this workout."
+    case .completedExerciseCannotBeReplaced: "Undo this working set before replacing its exercise."
     case .invalidCompletedSession: "This workout contains a result that can’t be saved. Your recorded work is still on this device."
     }
   }
@@ -169,6 +171,15 @@ final class WorkoutRepository {
         table.column("has_loaded_page", .boolean).notNull()
       }
     }
+    migrator.registerMigration("remembered-workout-exercises-v10") { db in
+      try db.create(table: "remembered_workout_exercises") { table in
+        table.column("account_id", .text).notNull()
+        table.column("program_id", .text).notNull()
+        table.column("slot_id", .text).notNull()
+        table.column("exercise_key", .text).notNull()
+        table.primaryKey(["account_id", "program_id", "slot_id"])
+      }
+    }
     try migrator.migrate(database)
   }
 
@@ -230,15 +241,24 @@ final class WorkoutRepository {
   }
 
   @discardableResult
-  func start(_ session: WorkoutSession) throws -> WorkoutSession {
+  func start(_ candidate: WorkoutSession, exerciseLibrary: [String: WorkoutExercise] = [:]) throws -> WorkoutSession {
     try database.write { db in
+      var session = candidate
       if let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE account_id = ? AND finished_at IS NULL ORDER BY started_at LIMIT 1", arguments: [session.accountID]) {
         return try JSONDecoder().decode(WorkoutSession.self, from: payload)
       }
       let next = try nextOccurrence(in: db, accountID: session.accountID, cycleID: session.cycleID,
-        programID: session.programID, workoutIDs: session.requiredWorkoutIDs)
+        programID: session.programID, workoutIDs: session.requiredWorkoutIDs,
+        evenWeekWorkoutIDs: session.evenWeekWorkoutIDs)
       guard session.week == next.week, session.day == next.day, session.workoutID == next.workoutID else {
         throw WorkoutRepositoryError.occurrenceUnavailable
+      }
+      if !exerciseLibrary.isEmpty {
+        let rows = try Row.fetchAll(db, sql: """
+          SELECT slot_id, exercise_key FROM remembered_workout_exercises WHERE account_id = ? AND program_id = ?
+          """, arguments: [session.accountID, session.programID])
+        let keys = Dictionary(uniqueKeysWithValues: rows.map { ($0["slot_id"] as String, $0["exercise_key"] as String) })
+        session.applyRememberedExercises(keys, library: exerciseLibrary)
       }
       let payload = try JSONEncoder().encode(session)
       try db.execute(sql: "INSERT INTO workout_sessions (id, account_id, cycle_id, program_id, week, workout_id, day, started_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", arguments: [session.id.uuidString, session.accountID, session.cycleID.uuidString, session.programID, session.week, session.workoutID, session.day, session.startedAt.timeIntervalSince1970, payload])
@@ -253,15 +273,15 @@ final class WorkoutRepository {
   }
 
   func nextOccurrence(accountID: String, cycleID: UUID, programID: String,
-                      workoutIDs: [String]) throws -> (week: Int, day: Int, workoutID: String) {
+                      workoutIDs: [String], evenWeekWorkoutIDs: [String]? = nil) throws -> (week: Int, day: Int, workoutID: String) {
     try database.write { db in
       try nextOccurrence(in: db, accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: workoutIDs)
+        programID: programID, workoutIDs: workoutIDs, evenWeekWorkoutIDs: evenWeekWorkoutIDs)
     }
   }
 
   private func nextOccurrence(in db: Database, accountID: String, cycleID: UUID,
-                              programID: String, workoutIDs: [String]) throws
+                              programID: String, workoutIDs: [String], evenWeekWorkoutIDs: [String]?) throws
     -> (week: Int, day: Int, workoutID: String) {
     var week = try Int.fetchOne(db, sql: "SELECT current_training_week FROM restored_cycle_progress WHERE account_id = ? AND cycle_id = ?", arguments: [accountID, cycleID.uuidString]) ?? 1
     while true {
@@ -270,7 +290,8 @@ final class WorkoutRepository {
         members = try String.fetchAll(db, sql: "SELECT workout_id FROM workout_week_membership WHERE account_id = ? AND cycle_id = ? AND week = ? ORDER BY rowid", arguments: [accountID, cycleID.uuidString, week])
       }
       if members.isEmpty {
-        members = workoutIDs
+        members = week.isMultiple(of: 2) ? (evenWeekWorkoutIDs ?? workoutIDs) : workoutIDs
+        guard !members.isEmpty else { throw WorkoutRepositoryError.occurrenceUnavailable }
         for workoutID in members {
           try db.execute(sql: "INSERT OR IGNORE INTO workout_week_membership (account_id, cycle_id, program_id, week, workout_id) VALUES (?, ?, ?, ?, ?)", arguments: [accountID, cycleID.uuidString, programID, week, workoutID])
         }
@@ -288,7 +309,8 @@ final class WorkoutRepository {
   }
 
   @discardableResult
-  func finish(sessionID: UUID, accountID: String, note: String?, at date: Date = .now) throws -> WorkoutSession {
+  func finish(sessionID: UUID, accountID: String, note: String?,
+              rememberSubstitutions: Bool = false, at date: Date = .now) throws -> WorkoutSession {
     try database.write { db in
       guard let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [sessionID.uuidString, accountID]) else {
         if let payload = try Data.fetchOne(db, sql: "SELECT payload FROM workout_sessions WHERE id = ? AND account_id = ? AND finished_at IS NOT NULL", arguments: [sessionID.uuidString, accountID]) {
@@ -303,7 +325,22 @@ final class WorkoutRepository {
       let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
       session.note = trimmedNote?.isEmpty == true ? nil : trimmedNote
       session.finishedAt = date
-      session.restDeadline = nil
+      session.clearRest()
+      if rememberSubstitutions {
+        for exercise in session.newSubstitutions {
+          if exercise.exerciseKey == session.prescribedExercise(for: exercise.slotID)?.exerciseKey {
+            try db.execute(sql: """
+              DELETE FROM remembered_workout_exercises WHERE account_id = ? AND program_id = ? AND slot_id = ?
+              """, arguments: [accountID, session.programID, exercise.slotID])
+          } else {
+            try db.execute(sql: """
+              INSERT INTO remembered_workout_exercises (account_id, program_id, slot_id, exercise_key)
+              VALUES (?, ?, ?, ?)
+              ON CONFLICT (account_id, program_id, slot_id) DO UPDATE SET exercise_key = excluded.exercise_key
+              """, arguments: [accountID, session.programID, exercise.slotID, exercise.exerciseKey])
+          }
+        }
+      }
       let updatedPayload = try JSONEncoder().encode(session)
       let sentBody = try CompletedSessionUploadPayload(session: session).encoded()
       try db.execute(sql: "UPDATE workout_sessions SET payload = ?, finished_at = ? WHERE id = ? AND account_id = ? AND finished_at IS NULL", arguments: [updatedPayload, date.timeIntervalSince1970, sessionID.uuidString, accountID])
@@ -812,6 +849,19 @@ extension WorkoutRepository {
     }
   }
 
+  func replaceExercise(sessionID: UUID, accountID: String, slotID: String,
+                       with replacement: WorkoutExercise) throws -> WorkoutSession {
+    try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
+      guard session.exercises.contains(where: { $0.slotID == slotID }) else {
+        throw WorkoutRepositoryError.sessionNotFound
+      }
+      guard session.setEntries[slotID]?.completedAt == nil else {
+        throw WorkoutRepositoryError.completedExerciseCannotBeReplaced
+      }
+      session.replaceExercise(slotID: slotID, with: replacement)
+    }
+  }
+
   @discardableResult
   func completeSet(sessionID: UUID, accountID: String, slotID: String,
                    restSeconds: Int? = nil,
@@ -826,7 +876,7 @@ extension WorkoutRepository {
       guard entry.completedAt == nil else { return }
       entry.completedAt = date
       session.setEntries[slotID] = entry
-      session.restDeadline = restSeconds.map { date.addingTimeInterval(TimeInterval($0)) }
+      session.updateRest(afterCompleting: slotID, standaloneSeconds: restSeconds, at: date)
     }
   }
 
@@ -850,6 +900,7 @@ extension WorkoutRepository {
       guard var entry = session.setEntries[slotID], entry.completedAt != nil else { return }
       entry.completedAt = nil
       session.setEntries[slotID] = entry
+      session.updateRest(afterUndoing: slotID)
     }
   }
 
@@ -858,18 +909,22 @@ extension WorkoutRepository {
                   at date: Date = .now) throws -> WorkoutSession {
     try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
       guard let deadline = session.restDeadline, deadline > date else {
-        session.restDeadline = nil
+        session.clearRest()
         return
       }
       let adjusted = deadline.addingTimeInterval(TimeInterval(seconds))
-      session.restDeadline = adjusted > date ? adjusted : nil
+      if adjusted > date {
+        session.restDeadline = adjusted
+      } else {
+        session.clearRest()
+      }
     }
   }
 
   @discardableResult
   func skipRest(sessionID: UUID, accountID: String) throws -> WorkoutSession {
     try updateActiveSession(sessionID: sessionID, accountID: accountID) { session in
-      session.restDeadline = nil
+      session.clearRest()
     }
   }
 

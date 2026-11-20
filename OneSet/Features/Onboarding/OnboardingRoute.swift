@@ -7,7 +7,7 @@ enum OnboardingRoute: Hashable {
   case trialPreview(String)
   case programOverview(String)
   case switchingWorkoutPreview(programID: String, workoutID: String)
-  case workoutPreview(programID: String, workoutID: String)
+  case workoutPreview(programID: String, workoutID: String, week: Int? = nil)
   case workoutRecording(UUID)
   case recordingExerciseDetail(sessionID: UUID, slotID: String)
   case exerciseDetail(

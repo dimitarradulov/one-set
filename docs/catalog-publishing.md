@@ -18,14 +18,18 @@ The catalog publication foundation is implemented in [issue #16](https://github.
 
 ## Files and source of truth
 
-- `worker/catalog/programs/01-full-body.yaml` through `10-machine-full-body.yaml` contain display information, workout order, exercise slots, rep ranges, and unilateral scope.
+- `worker/catalog/programs/*.yaml` contain display information, workout order, exercise slots, rep ranges, and unilateral scope.
 - `worker/catalog/exercises.yaml` contains shared technique, stopping, warmup, rest, and default-rep guidance. An exercise edit applies to every program that uses its key.
 - `OneSet/Services/Catalog/BundledProgramCatalog.swift` is generated from these YAML files. Do not edit it by hand.
 - `docs/HIT_Workout_Program_Library.md` is the approved content source. Read [the content review register](catalog-content-review.md) for movements without a dedicated technique cue in that source.
 
-Keep program, workout, exercise, and slot keys stable when editing names or compatible prescriptions. A slot's `reps` value is its prescribed target. `scope: each_leg` or `scope: each_side` preserves unilateral interpretation; omit `scope` for ordinary repetitions. Each shared exercise has `default_reps` for use when it is selected as a replacement. Seed defaults are retained; defaults added for newly represented exercises use the most common rep range assigned to that exercise in the ten programs, breaking a tie by the lower minimum.
+Keep program, workout, exercise, and slot keys stable when editing names or compatible prescriptions. A slot's `reps` value is its prescribed target. `scope: each_leg` or `scope: each_side` preserves unilateral interpretation; omit `scope` for ordinary repetitions. Each shared exercise has `default_reps` for use when it is selected as a replacement. Seed defaults are retained; defaults added for newly represented exercises use the most common rep range assigned to that exercise in the programs, breaking a tie by the lower minimum.
 
 Rest durations use the source library's rest bands: large compounds use 150–240 seconds, moderate compounds use 120–180 seconds, and isolation exercises use 90–150 seconds. `rest_seconds` selects a value in the appropriate band; the source does not specify per-exercise durations. Global technique, stopping, and warmup language must remain consistent with the approved library. Do not add exercise-specific advice without a reviewed source.
+
+Set `week_parity: odd` or `week_parity: even` on a workout to schedule it in alternating training weeks. An omitted value schedules it every week. Both week variants must have the same number of active days, from one to five. Published workout keys retain their parity. Edit parity for new workouts in YAML. The dashboard preserves existing parity during edits. A slot can supply `stopping_guidance` to override its exercise's general stopping instructions for that prescription.
+
+Before publishing the first alternating program to an environment, apply [migration 013](database/migrations/013_alternating_training_weeks.sql) and deploy the catalog Worker with support for `X-OneSet-Alternating-Weeks: 1`. The Worker serves alternating programs only to apps that send that header.
 
 ## Local commands
 

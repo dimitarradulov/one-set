@@ -31,18 +31,15 @@ struct WorkoutTemplatePreviewScreen: View {
           VStack(alignment: .leading, spacing: 12) {
             sectionHeading
 
-            ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-              NavigationLink(value: OnboardingRoute.exerciseDetail(
-                programID: program.id, workoutID: workout.id, exerciseID: exercise.id
-              )) {
-                exerciseRow(exercise, order: index + 1)
-              }
-              .buttonStyle(.plain)
-              .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
-              .accessibilityHint("Opens exercise instructions, video, and performance.")
-              .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
-              .overlay(alignment: .bottom) {
-                Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+            ForEach(WorkoutExerciseGroup.ordered(workout.exercises, slotID: \.id, supersets: workout.supersets ?? [])) { group in
+              let first = group.firstIndex
+              if let second = group.secondIndex {
+                SupersetRows(spacing: 0) {
+                  exerciseLink(workout.exercises[first], index: first)
+                  exerciseLink(workout.exercises[second], index: second)
+                }
+              } else {
+                exerciseLink(workout.exercises[first], index: first)
               }
             }
           }
@@ -115,6 +112,21 @@ struct WorkoutTemplatePreviewScreen: View {
       .foregroundStyle(OneSetColors.textSecondary)
       .fixedSize(horizontal: false, vertical: true)
       .accessibilityIdentifier("workoutPreview.repTargetsHeading")
+  }
+
+  private func exerciseLink(_ exercise: WorkoutExercise, index: Int) -> some View {
+    NavigationLink(value: OnboardingRoute.exerciseDetail(
+      programID: program.id, workoutID: workout.id, exerciseID: exercise.id
+    )) {
+      exerciseRow(exercise, order: index + 1)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(exercise.name), \(exercise.repTarget.label)")
+    .accessibilityHint("Opens exercise instructions, video, and performance.")
+    .accessibilityIdentifier("workoutPreview.exercise.\(exercise.id).open")
+    .overlay(alignment: .bottom) {
+      Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+    }
   }
 
   private func exerciseRow(_ exercise: WorkoutExercise, order: Int) -> some View {

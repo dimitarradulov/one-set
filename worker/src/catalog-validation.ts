@@ -14,15 +14,22 @@ export interface CatalogSlot extends JsonObject {
   exercise: string;
   position: number;
   reps: RepRange;
+  stopping_guidance?: string;
   scope?: 'reps' | 'each_leg' | 'each_side';
   removed?: boolean;
+}
+export interface CatalogSuperset {
+  first_slot_id: string;
+  second_slot_id: string;
 }
 export interface CatalogWorkout extends JsonObject {
   key: string;
   name: string;
   banner?: string;
+  week_parity?: 'odd' | 'even';
   position: number;
   exercises: CatalogSlot[];
+  supersets?: CatalogSuperset[];
   removed?: boolean;
 }
 export interface CatalogProgram extends JsonObject {
@@ -37,6 +44,10 @@ export interface CatalogProgram extends JsonObject {
 export interface CatalogSource extends JsonObject {
   exercises: CatalogExercise[];
   programs: CatalogProgram[];
+}
+
+export function workoutsInWeek(workouts: CatalogWorkout[], parity: 'odd' | 'even'): CatalogWorkout[] {
+  return workouts.filter(workout => !workout.removed && (workout.week_parity === undefined || workout.week_parity === parity));
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -95,6 +106,31 @@ function checkOrdered(values: JsonObject[], label: string, errors: string[]): vo
   });
 }
 
+function checkSupersets(value: unknown, slots: CatalogSlot[], label: string, errors: string[]): void {
+  if (value === undefined) return;
+  const pairs = asObjects(value);
+  if (!pairs) {
+    errors.push(`${label} supersets must be a list of pairs`);
+    return;
+  }
+  const positions = new Map(slots.filter(slot => slot.removed !== true).map(slot => [slot.key, slot.position]));
+  const membership = new Set<string>();
+  for (const { first_slot_id: first, second_slot_id: second } of pairs) {
+    const firstPosition = typeof first === 'string' ? positions.get(first) : undefined;
+    const secondPosition = typeof second === 'string' ? positions.get(second) : undefined;
+    if (typeof first !== 'string' || typeof second !== 'string' || first === second ||
+        firstPosition === undefined || secondPosition !== firstPosition + 1) {
+      errors.push(`${label} superset must reference two adjacent active slots in workout order`);
+      continue;
+    }
+    if (membership.has(first) || membership.has(second)) {
+      errors.push(`${label} superset overlaps another pair`);
+    }
+    membership.add(first);
+    membership.add(second);
+  }
+}
+
 function previousEntries(source: CatalogSource | undefined): {
   programs: Map<string, CatalogProgram>;
   workouts: Map<string, { program: CatalogProgram; workout: CatalogWorkout }>;
@@ -121,8 +157,8 @@ function programDetails(program: CatalogProgram): Omit<CatalogProgram, 'workouts
   return details;
 }
 
-function workoutDetails(workout: CatalogWorkout): Omit<CatalogWorkout, 'exercises'> {
-  const { exercises: _exercises, ...details } = workout;
+function workoutDetails(workout: CatalogWorkout): Omit<CatalogWorkout, 'exercises' | 'supersets'> {
+  const { exercises: _exercises, supersets: _supersets, ...details } = workout;
   return details;
 }
 
@@ -192,6 +228,9 @@ export function validateCatalogSource(
       if (workout.removed !== undefined && typeof workout.removed !== 'boolean') {
         errors.push(`${workoutLabel} removed must be true or false`);
       }
+      if (workout.week_parity !== undefined && workout.week_parity !== 'odd' && workout.week_parity !== 'even') {
+        errors.push(`${workoutLabel} week_parity must be odd or even when supplied`);
+      }
       const rawSlots = asObjects(workout.exercises);
       if (!rawSlots || rawSlots.length === 0) {
         errors.push(`${workoutLabel} needs a non-empty exercises list`);
@@ -212,16 +251,24 @@ export function validateCatalogSource(
         if (slot.scope !== undefined && !['reps', 'each_leg', 'each_side'].includes(String(slot.scope))) {
           errors.push(`${slotLabel} scope must be reps, each_leg, or each_side`);
         }
+        if (slot.stopping_guidance !== undefined
+          && (!isNonEmpty(slot.stopping_guidance) || (slot.stopping_guidance as string).length > 2000)) {
+          errors.push(`${slotLabel} stopping_guidance must be non-empty and at most 2000 characters`);
+        }
         if (!range(slot.reps)) errors.push(`${slotLabel} needs positive rep bounds (maximum 100)`);
         slots.push(slot as unknown as CatalogSlot);
       }
+      checkSupersets(workout.supersets, slots, workoutLabel, errors);
       workouts.push({ ...workout, exercises: slots } as unknown as CatalogWorkout);
       workoutRows.push(workout);
       slotRows.push(...rawSlots);
     }
-    const activeWorkoutCount = workouts.filter(workout => workout.removed !== true).length;
-    if (program.removed !== true && (activeWorkoutCount < 1 || activeWorkoutCount > 5)) {
-      errors.push(`${label} must have between one and five active workouts`);
+    const oddCount = workoutsInWeek(workouts, 'odd').length;
+    const evenCount = workoutsInWeek(workouts, 'even').length;
+    if (program.removed !== true || oddCount > 0 || evenCount > 0) {
+      if (oddCount < 1 || oddCount > 5 || evenCount !== oddCount) {
+        errors.push(`${label} must have the same number of active workouts (one to five) in odd and even weeks`);
+      }
     }
     programs.push({ ...program, workouts } as unknown as CatalogProgram);
   }
@@ -245,6 +292,8 @@ export function validateCatalogSource(
       if (!replacement) errors.push(`previously published workout ${key} is missing; mark it removed explicitly`);
       else if (replacement.program.key !== entry.program.key) {
         errors.push(`workout key ${key} cannot move to a different program`);
+      } else if (replacement.workout.week_parity !== entry.workout.week_parity) {
+        errors.push(`workout key ${key} cannot change its training-week parity`);
       }
     }
     for (const [key, entry] of before.slots) {
@@ -336,6 +385,29 @@ export function diffCatalog(previous: CatalogSource | undefined, next: CatalogSo
     } else if (canonicalJSON(workoutDetails(oldEntry.workout)) !== canonicalJSON(workoutDetails(entry.workout))) {
       addChange('update workout', entry.program, entry.workout, entry.workout.name,
         `Changed fields: ${changedFields(workoutDetails(oldEntry.workout), workoutDetails(entry.workout), []).join(', ')}`);
+    }
+  }
+
+  const describePair = (pair: CatalogSuperset, entries: ReturnType<typeof previousEntries>) =>
+    [pair.first_slot_id, pair.second_slot_id].map(key => {
+      const exerciseKey = entries.slots.get(key)?.slot.exercise;
+      return exerciseKey ? entries.exercises.get(exerciseKey)?.name ?? exerciseKey : key;
+    }).join(' + ');
+  const pairKey = (pair: CatalogSuperset) => JSON.stringify([pair.first_slot_id, pair.second_slot_id]);
+  for (const [key, entry] of before.workouts) {
+    const nextPairs = new Set(after.workouts.get(key)?.workout.supersets?.map(pairKey));
+    for (const pair of entry.workout.supersets ?? []) {
+      if (!nextPairs.has(pairKey(pair))) {
+        addChange('unpair superset', entry.program, entry.workout, describePair(pair, before));
+      }
+    }
+  }
+  for (const [key, entry] of after.workouts) {
+    const previousPairs = new Set(before.workouts.get(key)?.workout.supersets?.map(pairKey));
+    for (const pair of entry.workout.supersets ?? []) {
+      if (!previousPairs.has(pairKey(pair))) {
+        addChange('add superset', entry.program, entry.workout, describePair(pair, after));
+      }
     }
   }
 

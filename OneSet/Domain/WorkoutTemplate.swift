@@ -1,14 +1,30 @@
 struct WorkoutTemplate: Codable, Hashable, Identifiable, Sendable {
+  enum WeekParity: String, Codable, Sendable {
+    case odd
+    case even
+
+    func includes(_ week: Int) -> Bool {
+      week.isMultiple(of: 2) == (self == .even)
+    }
+  }
+
   let id: String
   let name: String
   let banner: String?
+  let weekParity: WeekParity?
   let exercises: [WorkoutExercise]
+  let supersets: [SupersetPair]?
 
-  init(id: String? = nil, name: String, banner: String? = nil, exercises: [WorkoutExercise]) {
+  init(
+    id: String? = nil, name: String, banner: String? = nil, weekParity: WeekParity? = nil,
+    exercises: [WorkoutExercise], supersets: [SupersetPair]? = nil
+  ) {
     self.id = id ?? name
     self.name = name
     self.banner = banner
+    self.weekParity = weekParity
     self.exercises = exercises
+    self.supersets = supersets
   }
 
   var movements: [String] {
@@ -59,6 +75,17 @@ struct WorkoutExercise: Codable, Hashable, Identifiable, Sendable {
     self.defaultRepTarget = defaultRepTarget
     self.videoKey = videoKey
   }
+
+  func replacementOption(authoredScope: RepTarget.Scope?) -> Self {
+    let defaults = defaultRepTarget ?? repTarget
+    let scope = authoredScope ?? defaults.scope
+    let target = RepTarget(minimum: defaults.minimum, maximum: defaults.maximum, scope: scope)
+    return Self(
+      id: id, exerciseKey: exerciseKey, name: name, repTarget: target,
+      instructions: instructions, stoppingGuidance: stoppingGuidance, warmupGuidance: warmupGuidance,
+      restSeconds: restSeconds, defaultRepTarget: target, videoKey: videoKey
+    )
+  }
 }
 
 struct RepTarget: Codable, Hashable, Sendable {
@@ -80,7 +107,7 @@ struct RepTarget: Codable, Hashable, Sendable {
   }
 
   var label: String {
-    let range = "\(minimum)–\(maximum) reps"
+    let range = minimum == maximum ? "\(minimum) " + (minimum == 1 ? "rep" : "reps") : "\(minimum)–\(maximum) reps"
     switch scope {
     case .reps:
       return range

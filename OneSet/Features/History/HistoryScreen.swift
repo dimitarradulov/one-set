@@ -262,24 +262,18 @@ struct HistorySessionDetailScreen: View {
       }
 
       Section("Exercises") {
-        ForEach(session.exercises.sorted { $0.order < $1.order }, id: \.slotID) { exercise in
-          VStack(alignment: .leading, spacing: 6) {
-            Text(exercise.name)
-              .font(OneSetTypography.bodyStrong)
-              .foregroundStyle(OneSetColors.textPrimary)
-            if let entry = completedEntry(for: exercise), let weight = displayWeight(entry) {
-              Text(resultLabel(weight: weight, repsInput: entry.repsInput, scope: exercise.repTarget.scope))
-                .font(OneSetTypography.body)
-                .foregroundStyle(OneSetColors.textSecondary)
-            } else {
-              Text("Not performed")
-                .font(OneSetTypography.body)
-                .foregroundStyle(OneSetColors.textSecondary)
-                .accessibilityIdentifier("history.exercise.notPerformed.\(exercise.slotID)")
+        let exercises = session.exercises.sorted { $0.order < $1.order }
+        ForEach(WorkoutExerciseGroup.ordered(exercises, slotID: \.slotID, supersets: session.supersets)) { group in
+          let first = exercises[group.firstIndex]
+          if let second = group.secondIndex {
+            SupersetRows(spacing: 8) {
+              exerciseResult(first)
+              exerciseResult(exercises[second])
             }
+            .padding(.vertical, 4)
+          } else {
+            exerciseResult(first)
           }
-          .padding(.vertical, 4)
-          .accessibilityElement(children: .combine)
         }
       }
 
@@ -299,6 +293,26 @@ struct HistorySessionDetailScreen: View {
     .navigationTitle(session.workoutName)
     .navigationBarTitleDisplayMode(.inline)
     .accessibilityIdentifier("history.detail")
+  }
+
+  private func exerciseResult(_ exercise: WorkoutSession.Exercise) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(exercise.name)
+        .font(OneSetTypography.bodyStrong)
+        .foregroundStyle(OneSetColors.textPrimary)
+      if let entry = completedEntry(for: exercise), let weight = displayWeight(entry) {
+        Text(resultLabel(weight: weight, repsInput: entry.repsInput, scope: exercise.repTarget.scope))
+          .font(OneSetTypography.body)
+          .foregroundStyle(OneSetColors.textSecondary)
+      } else {
+        Text("Not performed")
+          .font(OneSetTypography.body)
+          .foregroundStyle(OneSetColors.textSecondary)
+          .accessibilityIdentifier("history.exercise.notPerformed.\(exercise.slotID)")
+      }
+    }
+    .padding(.vertical, 4)
+    .accessibilityElement(children: .combine)
   }
 
   private func completedEntry(for exercise: WorkoutSession.Exercise) -> WorkoutSession.SetEntry? {

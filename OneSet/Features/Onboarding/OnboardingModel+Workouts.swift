@@ -1,13 +1,13 @@
 import Foundation
 
 extension OnboardingModel {
-  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID) {
+  func previewWorkout(programID: TrainingProgram.ID, workoutID: WorkoutTemplate.ID, week: Int? = nil) {
     guard selectedProgramID == programID,
           let program = catalog.program(id: programID),
           program.workouts.contains(where: { $0.id == workoutID })
     else { return }
 
-    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID)
+    let route = OnboardingRoute.workoutPreview(programID: programID, workoutID: workoutID, week: week)
     if hasCompletedSetup {
       programPath.append(route)
     } else if path.last == .programOverview(programID) {
@@ -15,7 +15,7 @@ extension OnboardingModel {
     }
   }
 
-  func startWorkout(programID: String, workoutID: String, accountID: String) {
+  func startWorkout(programID: String, workoutID: String, accountID: String, week: Int? = nil) {
     guard !requiresProgramUpdate, accountID == resolvedAccountID, programID == selectedProgramID else {
       workoutErrorMessage = "Update your program before starting a workout."
       workoutErrorPresented = true
@@ -30,8 +30,9 @@ extension OnboardingModel {
     }
     do {
       let next = try workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: program.workouts.map(\.id))
-      guard next.workoutID == workoutID else {
+        programID: programID, workoutIDs: program.workouts(inWeek: 1).map(\.id),
+        evenWeekWorkoutIDs: program.evenWeekWorkoutIDs)
+      guard next.workoutID == workoutID, week == nil || next.week == week else {
         workoutErrorMessage = "Complete the earlier workout day before starting this one."
         workoutErrorPresented = true
         return
@@ -45,7 +46,7 @@ extension OnboardingModel {
       let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
         workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit,
         startedAt: startedAt)
-      let startedSession = try workoutRepository.start(session)
+      let startedSession = try workoutRepository.start(session, exerciseLibrary: catalog.exerciseLibrary)
       activeWorkoutSession = startedSession
       let route = OnboardingRoute.workoutRecording(startedSession.id)
       if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
@@ -135,6 +136,20 @@ extension OnboardingModel {
     }
   }
 
+  func substituteWorkoutExercise(slotID: String, exerciseKey: String) -> Bool {
+    guard let session = activeWorkoutSession, let workoutRepository,
+          let replacement = catalog.exerciseLibrary[exerciseKey] else { return false }
+    do {
+      activeWorkoutSession = try workoutRepository.replaceExercise(
+        sessionID: session.id, accountID: session.accountID, slotID: slotID, with: replacement
+      )
+      return true
+    } catch {
+      showWorkoutSaveError(error)
+      return false
+    }
+  }
+
   func completeWorkoutSet(slotID: String) -> Bool {
     guard let session = activeWorkoutSession, let workoutRepository else { return false }
     do {
@@ -172,13 +187,16 @@ extension OnboardingModel {
     guard let workoutRepository, let cycleID = restoredCycleID,
           let accountID = resolvedAccountID, let program = catalog.program(id: programID) else { return 1 }
     return (try? workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-      programID: programID, workoutIDs: program.workouts.map(\.id)).week) ?? 1
+      programID: programID, workoutIDs: program.workouts(inWeek: 1).map(\.id),
+      evenWeekWorkoutIDs: program.evenWeekWorkoutIDs).week) ?? 1
   }
 
-  func finishActiveWorkout(note: String?, using authentication: AuthenticationModel? = nil) -> Bool {
+  func finishActiveWorkout(note: String?, rememberSubstitutions: Bool = false,
+                           using authentication: AuthenticationModel? = nil) -> Bool {
     guard let session = activeWorkoutSession, let workoutRepository else { return false }
     do {
-      _ = try workoutRepository.finish(sessionID: session.id, accountID: session.accountID, note: note)
+      _ = try workoutRepository.finish(sessionID: session.id, accountID: session.accountID, note: note,
+        rememberSubstitutions: rememberSubstitutions)
       activeWorkoutSession = nil
       if path.last == .workoutRecording(session.id) { path.removeLast() }
       if programPath.last == .workoutRecording(session.id) { programPath.removeLast() }

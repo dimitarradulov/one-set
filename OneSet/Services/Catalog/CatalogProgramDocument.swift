@@ -23,18 +23,7 @@ struct CatalogProgramDocument: Decodable, Sendable {
         throw ProgramCatalogServiceError.invalidResponse
       }
       let slots = try workout.exercises.filter { $0.removed != true }.map { slot in
-        guard CatalogValueValidation.isStableKey(slot.key), let exercise = exercises[slot.exercise],
-              CatalogValueValidation.isStableKey(exercise.key),
-              !exercise.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.stoppingGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !exercise.warmupGuidance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              exercise.restSeconds > 0,
-              exercise.videoKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != true,
-              CatalogValueValidation.isValidRepRange(
-                minimum: exercise.defaultReps.minimum, maximum: exercise.defaultReps.maximum
-              ),
-              CatalogValueValidation.isValidRepRange(minimum: slot.reps.minimum, maximum: slot.reps.maximum) else {
+        guard CatalogValueValidation.isStableKey(slot.key), let exercise = exercises[slot.exercise] else {
           throw ProgramCatalogServiceError.invalidResponse
         }
         let scope: RepTarget.Scope
@@ -44,26 +33,28 @@ struct CatalogProgramDocument: Decodable, Sendable {
         case "each_side": scope = .eachSide
         default: throw ProgramCatalogServiceError.invalidResponse
         }
-        guard let target = RepTarget(validating: slot.reps, scope: scope),
-              let defaultTarget = RepTarget(validating: exercise.defaultReps) else {
+        guard let target = RepTarget(validating: slot.reps, scope: scope) else {
           throw ProgramCatalogServiceError.invalidResponse
         }
-        return WorkoutExercise(
-          id: slot.key,
-          exerciseKey: exercise.key,
-          name: exercise.name,
-          repTarget: target,
-          instructions: exercise.instructions,
-          stoppingGuidance: exercise.stoppingGuidance,
-          warmupGuidance: exercise.warmupGuidance,
-          restSeconds: exercise.restSeconds,
-          defaultRepTarget: defaultTarget,
-          videoKey: exercise.videoKey
-        )
+        return try exercise.model(slotID: slot.key, target: target, stoppingOverride: slot.stoppingGuidance)
       }
-      return WorkoutTemplate(id: workout.key, name: workout.name, banner: workout.banner, exercises: slots)
+      var pairedSlots = Set<String>()
+      for pair in workout.supersets ?? [] {
+        guard let first = slots.firstIndex(where: { $0.id == pair.firstSlotID }),
+              slots.indices.contains(first + 1), slots[first + 1].id == pair.secondSlotID,
+              pairedSlots.insert(pair.firstSlotID).inserted,
+              pairedSlots.insert(pair.secondSlotID).inserted else {
+          throw ProgramCatalogServiceError.invalidResponse
+        }
+      }
+      return WorkoutTemplate(
+        id: workout.key, name: workout.name, banner: workout.banner, weekParity: workout.weekParity,
+        exercises: slots, supersets: workout.supersets
+      )
     }
-    guard (1...5).contains(visibleWorkouts.count) else {
+    let oddCount = visibleWorkouts.count { $0.weekParity != .even }
+    let evenCount = visibleWorkouts.count { $0.weekParity != .odd }
+    guard (1...5).contains(oddCount), oddCount == evenCount else {
       throw ProgramCatalogServiceError.invalidResponse
     }
     return TrainingProgram(

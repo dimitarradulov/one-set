@@ -287,11 +287,11 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
   };
   const hidden = `<input type="hidden" name="program_key" value="${html(data.fields.program_key)}"><input type="hidden" name="publication_fingerprint" value="${html(data.sourceFingerprint)}"><input type="hidden" name="catalog_source" value="${html(JSON.stringify(data.source))}">`;
   const exerciseOptions = data.source.exercises.map(exercise => `<option value="${html(exercise.key)}">${html(exercise.name)} · ${html(exercise.key)}</option>`).join('');
-  const slotRow = (slot: CatalogSource['programs'][number]['workouts'][number]['exercises'][number], removed = false) => `<div class="slot-row${removed ? ' retained' : ''}" data-slot="${html(slot.key)}" data-original-exercise="${html(slot.exercise)}"${removed ? ' data-removed="true"' : ''}><span class="slot-order">${slot.position}</span><label>Exercise<select data-slot-field="exercise" aria-label="Prescribed exercise">${data.source.exercises.map(exercise => `<option value="${html(exercise.key)}"${exercise.key === slot.exercise ? ' selected' : ''}>${html(exercise.name)} · ${html(exercise.key)}</option>`).join('')}</select></label><label>Rep minimum<input data-slot-field="minimum" type="number" min="1" max="100" value="${html(slot.reps.minimum)}"></label><label>Rep maximum<input data-slot-field="maximum" type="number" min="1" max="100" value="${html(slot.reps.maximum)}"></label><label>Scope<select data-slot-field="scope"><option value="reps"${(slot.scope ?? 'reps') === 'reps' ? ' selected' : ''}>Ordinary reps</option><option value="each_leg"${slot.scope === 'each_leg' ? ' selected' : ''}>Each leg</option><option value="each_side"${slot.scope === 'each_side' ? ' selected' : ''}>Each side</option></select></label><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move exercise up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move exercise down">↓</button><button type="button" class="button quiet" data-toggle-slot>${removed ? 'Restore slot' : 'Remove slot'}</button></div></div>`;
+  const slotRow = (slot: CatalogSource['programs'][number]['workouts'][number]['exercises'][number], removed = false) => `<div class="slot-row${removed ? ' retained' : ''}" data-slot="${html(slot.key)}" data-original-exercise="${html(slot.exercise)}"${removed ? ' data-removed="true"' : ''}><span class="slot-order">${slot.position}</span><label>Exercise<select data-slot-field="exercise" aria-label="Prescribed exercise">${data.source.exercises.map(exercise => `<option value="${html(exercise.key)}"${exercise.key === slot.exercise ? ' selected' : ''}>${html(exercise.name)} · ${html(exercise.key)}</option>`).join('')}</select></label><label>Rep minimum<input data-slot-field="minimum" type="number" min="1" max="100" value="${html(slot.reps.minimum)}"></label><label>Rep maximum<input data-slot-field="maximum" type="number" min="1" max="100" value="${html(slot.reps.maximum)}"></label><label>Scope<select data-slot-field="scope"><option value="reps"${(slot.scope ?? 'reps') === 'reps' ? ' selected' : ''}>Ordinary reps</option><option value="each_leg"${slot.scope === 'each_leg' ? ' selected' : ''}>Each leg</option><option value="each_side"${slot.scope === 'each_side' ? ' selected' : ''}>Each side</option></select></label><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move exercise up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move exercise down">↓</button><button type="button" class="button quiet" data-toggle-slot>${removed ? 'Restore slot' : 'Remove slot'}</button></div><div class="superset-actions"><span class="superset-label" data-superset-label hidden>Superset</span><button type="button" class="button quiet" data-toggle-superset hidden></button></div></div>`;
   const workoutRow = (workout: CatalogSource['programs'][number]['workouts'][number], removed = false) => `<article class="workout-card${removed ? ' retained' : ''}" data-workout="${html(workout.key)}"${removed ? ' data-removed="true"' : ''}><header class="workout-card-heading"><div><strong>Workout template</strong><code>${html(workout.key)}</code></div><div class="order-actions">${removed ? '' : '<button type="button" class="button quiet" data-move="up" aria-label="Move workout up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move workout down">↓</button>'}<button type="button" class="button quiet" data-toggle-workout>${removed ? 'Restore template' : 'Remove template'}</button></div></header><div class="workout-fields"><label>Workout name<input data-workout-field="name" value="${html(workout.name)}" required></label><label>Banner identifier<input data-workout-field="banner" value="${html(workout.banner ?? '')}" placeholder="optional-banner-key"><span class="hint">Optional stable banner identifier.</span></label></div><div class="slot-list">${workout.exercises.filter(slot => slot.removed !== true).sort((a, b) => a.position - b.position).map(slot => slotRow(slot)).join('')}</div><details class="retained-slot-list"${workout.exercises.some(slot => slot.removed) ? ' open' : ''}><summary>${workout.exercises.filter(slot => slot.removed).length} removed exercise slot(s)</summary><div class="retained-slot-rows">${workout.exercises.filter(slot => slot.removed).map(slot => slotRow(slot, true)).join('')}</div></details><button type="button" class="button quiet" data-add-slot${removed ? ' disabled' : ''}>Add exercise slot</button></article>`;
   const activeWorkouts = chosen?.workouts.filter(workout => workout.removed !== true).sort((a, b) => a.position - b.position) ?? [];
   const removedWorkouts = chosen?.workouts.filter(workout => workout.removed === true) ?? [];
-  const editForm = `<form method="POST" action="@reviewProgram" class="editor-form" id="program-editor">${hidden}<section class="program-fields"><div class="section-heading"><h3>Program details</h3><button class="button quiet" type="button" data-toggle-program>${chosen?.removed ? 'Restore program' : 'Remove program'}</button></div><p class="program-removal-state" role="status">${chosen?.removed ? 'Removed from new selections. Current followers can continue this program.' : 'Removing hides this program from new selections. Current followers can continue it.'}</p>${field('name', 'Program name', data.fields.name)}${field('format', 'Format', data.fields.format)}${field('emphasis', 'Emphasis', data.fields.emphasis, 'textarea')}${field('recommended_weeks', 'Recommended training weeks', data.fields.recommended_weeks, 'number', 'Training weeks describe the program rotation, not calendar dates.')}</section><section class="structure-section"><div class="section-heading"><div><h3>Workout rotation</h3><p>Frequency follows the active workout templates. Active positions are saved consecutively.</p></div><button class="button quiet" type="button" data-add-workout>Add workout template</button></div><div id="workout-list">${activeWorkouts.map(workout => workoutRow(workout)).join('')}</div><details class="retained-records" id="removed-workout-list"${removedWorkouts.length ? ' open' : ''}><summary>${removedWorkouts.length} removed workout template(s)</summary><div class="retained-workouts">${removedWorkouts.map(workout => workoutRow(workout, true)).join('')}</div></details></section>${catalogErrors.length ? `<div class="notice error" role="alert"><strong>Fix these catalog issues before review.</strong><ul>${catalogErrors.map((error: string) => `<li>${html(error)}</li>`).join('')}</ul></div>` : ''}<div class="form-actions"><button class="button primary" type="submit">Review complete program</button><a class="button quiet" href="/">Cancel</a></div></form><template id="slot-template"><div class="slot-row" data-slot=""><span class="slot-order"></span><label>Exercise<select data-slot-field="exercise">${exerciseOptions}</select></label><label>Rep minimum<input data-slot-field="minimum" type="number" min="1" max="100" value="8"></label><label>Rep maximum<input data-slot-field="maximum" type="number" min="1" max="100" value="12"></label><label>Scope<select data-slot-field="scope"><option value="reps">Ordinary reps</option><option value="each_leg">Each leg</option><option value="each_side">Each side</option></select></label><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move exercise up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move exercise down">↓</button><button type="button" class="button quiet" data-toggle-slot>Remove slot</button></div></div></template><template id="workout-template"><article class="workout-card" data-workout=""><header class="workout-card-heading"><div><strong>Workout template</strong><code>New identity</code></div><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move workout up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move workout down">↓</button><button type="button" class="button quiet" data-toggle-workout>Remove template</button></div></header><div class="workout-fields"><label>Workout name<input data-workout-field="name" value="New workout" required></label><label>Banner identifier<input data-workout-field="banner" placeholder="optional-banner-key"><span class="hint">Optional stable banner identifier.</span></label></div><div class="slot-list"></div><details class="retained-slot-list"><summary>0 removed exercise slot(s)</summary><div class="retained-slot-rows"></div></details><button type="button" class="button quiet" data-add-slot>Add exercise slot</button></article></template>`;
+  const editForm = `<form method="POST" action="@reviewProgram" class="editor-form" id="program-editor">${hidden}<section class="program-fields"><div class="section-heading"><h3>Program details</h3><button class="button quiet" type="button" data-toggle-program>${chosen?.removed ? 'Restore program' : 'Remove program'}</button></div><p class="program-removal-state" role="status">${chosen?.removed ? 'Removed from new selections. Current followers can continue this program.' : 'Removing hides this program from new selections. Current followers can continue it.'}</p>${field('name', 'Program name', data.fields.name)}${field('format', 'Format', data.fields.format)}${field('emphasis', 'Emphasis', data.fields.emphasis, 'textarea')}${field('recommended_weeks', 'Recommended training weeks', data.fields.recommended_weeks, 'number', 'Training weeks describe the program rotation, not calendar dates.')}</section><section class="structure-section"><div class="section-heading"><div><h3>Workout rotation</h3><p>Frequency follows the active workout templates. Active positions are saved consecutively.</p></div><button class="button quiet" type="button" data-add-workout>Add workout template</button></div><div id="workout-list">${activeWorkouts.map(workout => workoutRow(workout)).join('')}</div><details class="retained-records" id="removed-workout-list"${removedWorkouts.length ? ' open' : ''}><summary>${removedWorkouts.length} removed workout template(s)</summary><div class="retained-workouts">${removedWorkouts.map(workout => workoutRow(workout, true)).join('')}</div></details></section>${catalogErrors.length ? `<div class="notice error" role="alert"><strong>Fix these catalog issues before review.</strong><ul>${catalogErrors.map((error: string) => `<li>${html(error)}</li>`).join('')}</ul></div>` : ''}<div class="form-actions"><button class="button primary" type="submit">Review complete program</button><a class="button quiet" href="/">Cancel</a></div></form><template id="slot-template"><div class="slot-row" data-slot=""><span class="slot-order"></span><label>Exercise<select data-slot-field="exercise">${exerciseOptions}</select></label><label>Rep minimum<input data-slot-field="minimum" type="number" min="1" max="100" value="8"></label><label>Rep maximum<input data-slot-field="maximum" type="number" min="1" max="100" value="12"></label><label>Scope<select data-slot-field="scope"><option value="reps">Ordinary reps</option><option value="each_leg">Each leg</option><option value="each_side">Each side</option></select></label><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move exercise up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move exercise down">↓</button><button type="button" class="button quiet" data-toggle-slot>Remove slot</button></div><div class="superset-actions"><span class="superset-label" data-superset-label hidden>Superset</span><button type="button" class="button quiet" data-toggle-superset hidden></button></div></div></template><template id="workout-template"><article class="workout-card" data-workout=""><header class="workout-card-heading"><div><strong>Workout template</strong><code>New identity</code></div><div class="order-actions"><button type="button" class="button quiet" data-move="up" aria-label="Move workout up">↑</button><button type="button" class="button quiet" data-move="down" aria-label="Move workout down">↓</button><button type="button" class="button quiet" data-toggle-workout>Remove template</button></div></header><div class="workout-fields"><label>Workout name<input data-workout-field="name" value="New workout" required></label><label>Banner identifier<input data-workout-field="banner" placeholder="optional-banner-key"><span class="hint">Optional stable banner identifier.</span></label></div><div class="slot-list"></div><details class="retained-slot-list"><summary>0 removed exercise slot(s)</summary><div class="retained-slot-rows"></div></details><button type="button" class="button quiet" data-add-slot>Add exercise slot</button></article></template>`;
   const reviewStructure = chosen ? `<section class="proposed-structure"><h3>Proposed rotation for ${html(chosen.name)}</h3>${chosen.workouts.filter(workout => workout.removed !== true).sort((a, b) => a.position - b.position).map(workout => `<article><div class="proposed-workout"><strong>${workout.position}. ${html(workout.name)}</strong><span>${workout.banner ? `Banner ${html(workout.banner)}` : 'No banner identifier'}</span></div><ol>${workout.exercises.filter(slot => slot.removed !== true).sort((a, b) => a.position - b.position).map(slot => `<li>${html(exerciseByKey.get(slot.exercise)?.name ?? slot.exercise)} · ${slot.reps.minimum}–${slot.reps.maximum} ${html(slot.scope ?? 'reps')} <code>${html(slot.key)}</code></li>`).join('')}</ol></article>`).join('')}</section>` : '';
   const review = data.view === 'review' ? `<section class="review-block"><div class="review-heading"><div><h2>Review complete catalog changes</h2><p>This preview covers the submitted source, including other programs and every retained identity. Nothing has been published yet.</p></div><span class="badge target-badge">${html(environmentName)} catalog · repo ${html(repositoryTarget)}</span></div><div class="diff-list">${data.changes.length ? data.changes.map(change => `<div class="diff-row"><span class="change-kind">${html(change.kind)}</span><div><strong>${html(change.name ?? change.program_name ?? 'Program')}</strong>${change.program_key ? `<code>${html(change.program_key)}</code>` : ''}${change.detail ? `<p>${html(change.detail)}</p>` : ''}</div></div>`).join('') : '<p>No catalog fields changed.</p>'}</div><div class="affected"><h3>Affected programs</h3><p>${data.affectedPrograms.length ? data.affectedPrograms.map(html).join(', ') : 'None'}</p></div><div class="review-values"><span>Program <strong>${html(data.fields.name)} · ${html(data.fields.program_key)}</strong></span><span>Format <strong>${html(data.fields.format)}</strong></span><span>Recommended weeks <strong>${html(data.fields.recommended_weeks)}</strong></span><span>Workout templates <strong>${chosen?.workouts.filter(workout => workout.removed !== true).length ?? 0}</strong></span></div>${reviewStructure}<form method="POST" action="@publishProgram" class="publish-form"><input type="hidden" name="program_key" value="${html(data.fields.program_key)}"><input type="hidden" name="publication_fingerprint" value="${html(data.sourceFingerprint)}"><input type="hidden" name="catalog_source" value="${html(JSON.stringify(data.source))}"><input type="hidden" name="source_fingerprint" value="${html(data.reviewSourceFingerprint)}"><input type="hidden" name="preview_id" value="${html(data.previewID)}"><input type="hidden" name="backend_fingerprint" value="${html(data.backendFingerprint)}"><button class="button primary" type="submit"${data.changes.length ? '' : ' disabled'}>Publish to ${html(environmentName)}</button><span class="publish-note">${data.changes.length ? 'One explicit publication of the reviewed complete source.' : 'No changes to publish.'}</span></form><form method="POST" action="@editProgram" class="back-form">${hidden}<button class="button quiet" type="submit">Back to editing</button></form></section>` : '';
   const script = view === 'edit' ? `<script>(() => {
@@ -316,6 +316,54 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
       const count = removedWorkouts.querySelectorAll(':scope > .workout-card').length;
       removedWorkouts.parentElement.querySelector('summary').textContent = count + ' removed workout template(s)';
       removedWorkouts.parentElement.open = count > 0;
+    };
+    const editedWorkout = (source, card) => source.programs.find(item => item.key === programKey)
+      ?.workouts.find(item => item.key === card.dataset.workout);
+    const activeRows = card => [...card.querySelector('.slot-list').children];
+    const pairingFor = (workout, key) => workout.supersets?.find(pair =>
+      pair.first_slot_id === key || pair.second_slot_id === key);
+    const refreshPairingControls = (card, workout) => {
+      const rows = activeRows(card);
+      rows.forEach((row, index) => {
+        const key = row.dataset.slot;
+        const pair = pairingFor(workout, key);
+        const first = pair?.first_slot_id === key;
+        const next = rows[index + 1];
+        const canPair = !pair && next && !pairingFor(workout, next.dataset.slot);
+        const toggle = row.querySelector('[data-toggle-superset]');
+        toggle.hidden = !first && !canPair;
+        toggle.textContent = first ? 'Unpair' : 'Superset with next exercise';
+        row.querySelector('[data-superset-label]').hidden = !first;
+        row.dataset.supersetMember = pair ? (first ? 'first' : 'second') : '';
+        for (const move of row.querySelectorAll('[data-move]')) {
+          move.hidden = Boolean(pair && !first);
+          move.setAttribute('aria-label', 'Move ' + (pair ? 'superset ' : 'exercise ') + move.dataset.move);
+        }
+      });
+      card.querySelectorAll('.retained-slot-rows .slot-row').forEach(row => {
+        delete row.dataset.supersetMember;
+        row.querySelector('[data-toggle-superset]').hidden = true;
+        row.querySelector('[data-superset-label]').hidden = true;
+      });
+    };
+    const moveSlotGroup = (row, workout, direction) => {
+      const list = row.parentElement;
+      const groups = [];
+      for (const slot of list.children) {
+        const pair = pairingFor(workout, slot.dataset.slot);
+        if (pair?.second_slot_id === slot.dataset.slot) groups.at(-1).push(slot);
+        else groups.push([slot]);
+      }
+      const index = groups.findIndex(group => group.includes(row));
+      const group = groups[index];
+      const neighbor = groups[index + (direction === 'up' ? -1 : 1)];
+      if (!neighbor) return;
+      if (direction === 'up') {
+        const next = group.at(-1).nextElementSibling;
+        neighbor.forEach(slot => list.insertBefore(slot, next));
+      } else {
+        neighbor.forEach(slot => list.insertBefore(slot, group[0]));
+      }
     };
     const sync = () => {
       const source = JSON.parse(sourceInput.value);
@@ -356,6 +404,11 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
           slots.push(slot);
         });
         workout.exercises = [...slots, ...workout.exercises.filter(item => item.removed === true)];
+        const positions = new Map(slots.map(slot => [slot.key, slot.position]));
+        const pairs = (workout.supersets ?? []).filter(pair =>
+          positions.has(pair.first_slot_id) && positions.get(pair.second_slot_id) === positions.get(pair.first_slot_id) + 1);
+        if (pairs.length) workout.supersets = pairs; else delete workout.supersets;
+        refreshPairingControls(card, workout);
         ordered.push(workout);
       });
       const retained = [...removedWorkouts.querySelectorAll(':scope > .workout-card')].map(card => {
@@ -418,6 +471,24 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
         }
         sync(); return;
       }
+      if (button.hasAttribute('data-toggle-superset')) {
+        const row = button.closest('.slot-row');
+        const card = row.closest('.workout-card');
+        const source = JSON.parse(sourceInput.value);
+        const workout = editedWorkout(source, card);
+        if (!workout) return;
+        const key = row.dataset.slot;
+        const pair = pairingFor(workout, key);
+        if (pair) {
+          workout.supersets = workout.supersets.filter(item => item !== pair);
+        } else {
+          const next = row.nextElementSibling;
+          if (!next || pairingFor(workout, next.dataset.slot)) return;
+          (workout.supersets ??= []).push({ first_slot_id: key, second_slot_id: next.dataset.slot });
+        }
+        sourceInput.value = JSON.stringify(source);
+        sync(); return;
+      }
       if (button.hasAttribute('data-toggle-slot')) {
         const row = button.closest('.slot-row');
         const card = button.closest('.workout-card');
@@ -440,27 +511,27 @@ function formPage(view: 'edit' | 'review', data: Extract<DashboardResult, { view
       const direction = button.dataset.move;
       if (direction) {
         const row = button.closest('.workout-card,.slot-row');
-        const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
-        if (sibling) direction === 'up' ? row.parentElement.insertBefore(row, sibling) : row.parentElement.insertBefore(sibling, row);
-        const slots = button.closest('.slot-list'); if (slots) renumber(slots); sync();
+        const slots = button.closest('.slot-list');
+        if (slots) {
+          const workout = editedWorkout(JSON.parse(sourceInput.value), row.closest('.workout-card'));
+          if (workout) moveSlotGroup(row, workout, direction);
+          renumber(slots);
+        } else {
+          const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
+          if (sibling) direction === 'up' ? row.parentElement.insertBefore(row, sibling) : row.parentElement.insertBefore(sibling, row);
+        }
+        sync();
       }
     });
     document.querySelectorAll('#removed-workout-list .workout-card').forEach(card => disableRetained(card, '[data-toggle-workout]'));
     document.querySelectorAll('.retained-slot-rows .slot-row').forEach(row => disableRetained(row, '[data-toggle-slot]'));
     form.addEventListener('input', sync);
-    form.addEventListener('change', event => {
-      const field = event.target;
-      if (field.matches?.('[data-slot-field="exercise"]')) {
-        const row = field.closest('.slot-row');
-        if (row.dataset.originalExercise && row.dataset.originalExercise !== field.value) {
-          const source = JSON.parse(sourceInput.value);
-          const workout = source.programs.find(item => item.key === programKey)?.workouts.find(item => item.key === row.closest('.workout-card').dataset.workout);
-          const oldSlot = workout?.exercises.find(item => item.key === row.dataset.slot); if (oldSlot) oldSlot.removed = true;
-          sourceInput.value = JSON.stringify(source); row.dataset.slot = uid('slot'); row.dataset.originalExercise = field.value;
-        }
-      }
-      sync();
-    });
+    form.addEventListener('change', sync);
+    const source = JSON.parse(sourceInput.value);
+    for (const card of form.querySelectorAll('.workout-card')) {
+      const workout = editedWorkout(source, card);
+      if (workout) refreshPairingControls(card, workout);
+    }
     form.addEventListener('submit', sync);
   })();</script>` : '';
   return `<main class="shell"><header class="masthead"><a class="brand" href="/">OneSet <span aria-hidden="true">/</span> Catalog</a><div class="identity">Signed in as ${html(email)}</div></header><section class="intro"><div><h1>Program structure</h1><p>Maintain the complete workout rotation and prescriptions. Existing identities and removed records stay in the submitted source.</p></div><div class="environment">Target <strong>${html(environmentName)}</strong></div></section><div class="workflow"><span class="step active">Edit</span><span aria-hidden="true">→</span><span class="step${view === 'review' ? ' active' : ''}">Review</span><span aria-hidden="true">→</span><span class="step">Publish</span></div>${view === 'edit' ? `<section class="editor-layout"><aside class="program-rail"><h2>Programs</h2><ul>${data.source.programs.map(program => `<li${program.key === data.fields.program_key ? ' class="selected"' : ''}><span>${html(program.name)}</span><small>${html(program.format)}${program.removed ? ' · Removed' : ''}</small></li>`).join('')}</ul></aside><div class="editor-panel"><div class="panel-heading"><div><h2>${chosen?.removed ? 'Removed program' : 'Program authoring'}</h2><p>Key <code>${html(chosen?.key)}</code> · Training frequency derives from active workout templates.</p></div><span class="badge">${chosen?.removed ? 'Removed' : 'Published'}</span></div>${Object.keys(errors).length ? `<div class="notice error" role="alert"><strong>Fix ${Object.keys(errors).length} program field${Object.keys(errors).length === 1 ? '' : 's'} below.</strong> Your entries are still here.</div>` : ''}${editForm}</div></section>${script}` : review}</main>`;
