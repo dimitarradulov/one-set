@@ -775,8 +775,7 @@ extension WorkoutRepository {
           guard exercise.exerciseKey == requested.exerciseKey,
                  let entry = session.setEntries[exercise.slotID],
                 let completedAt = entry.completedAt,
-                let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-                weight.isFinite, weight >= 0,
+                WorkoutSession.parseWeight(entry.weightInput) != nil,
                 let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
           return PreviousPerformanceSnapshot(
             sessionID: session.id, exerciseKey: exercise.exerciseKey, programID: session.programID,
@@ -929,8 +928,7 @@ extension WorkoutRepository {
   }
 
   private nonisolated static func validateSetInput(weightInput: String, repsInput: String) throws {
-    guard let weight = Double(weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-          weight.isFinite, weight >= 0 else { throw WorkoutRepositoryError.invalidWeight }
+    guard WorkoutSession.parseWeight(weightInput) != nil else { throw WorkoutRepositoryError.invalidWeight }
     guard let reps = Int(repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else {
       throw WorkoutRepositoryError.invalidReps
     }

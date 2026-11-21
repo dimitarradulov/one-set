@@ -84,6 +84,46 @@ struct WorkoutRepositorySetTests {
     ) == now.addingTimeInterval(7 * 60 * 60))
   }
 
+  @Test(arguments: [",", "."])
+  func decimalWeightCanBeRecordedAndFinished(separator: String) async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite"))
+    let session = makeSession()
+    _ = try repository.start(session)
+
+    try await repository.saveRecordingInput(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: "22\(separator)5", repsInput: "10")
+    let completed = try repository.completeSet(sessionID: session.id, accountID: session.accountID, slotID: "slot-a")
+    #expect(completed.setEntries["slot-a"]?.completedAt != nil)
+
+    let correctedWeight = "23\(separator)75"
+    try await repository.saveRecordingInput(sessionID: session.id, accountID: session.accountID,
+      slotID: "slot-a", weightInput: correctedWeight, repsInput: "10")
+    #expect(throws: WorkoutRepositoryError.invalidWeight) {
+      try repository.updateSet(sessionID: session.id, accountID: session.accountID,
+        slotID: "slot-a", weightInput: "23,7.5", repsInput: "10")
+    }
+    let finished = try repository.finish(sessionID: session.id, accountID: session.accountID, note: nil)
+    let upload = try CompletedSessionUploadPayload(session: finished)
+    #expect(upload.sets.first?.weight == 23.75)
+    let previous = try repository.previousPerformance(accountID: session.accountID, exerciseKey: "row",
+      slotID: "slot-a", programID: session.programID, workoutID: session.workoutID)
+    #expect(previous?.weightInput == correctedWeight)
+
+    let history = HistoryModel(accountID: session.accountID, displayUnit: session.weightUnit,
+      loadSessions: { _ in [finished] }, resolveProgramName: { _ in nil })
+    await history.reload()
+    #expect(history.sessions.map(\.id) == [finished.id])
+    let entry = try #require(finished.setEntries["slot-a"])
+    #expect(history.formattedWeight(entry, in: finished) == "\(correctedWeight) \(session.weightUnit.rawValue)")
+
+    let performance = ExercisePerformanceModel(exerciseKey: "row", unit: session.weightUnit,
+      loadLocal: { [finished] }, fetchPage: nil, isCurrent: { true })
+    await performance.reload()
+    #expect(performance.heaviest?.weight == 23.75)
+  }
+
   @Test
   func draftsAndCompletedSetsSurviveRepositoryReopenAndCanBeCorrectedOrUndone() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
