@@ -73,8 +73,8 @@ struct WarmupSheet: View {
   }
 
   private var previousWeight: Double? {
-    guard let previous, let value = Double(previous.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-          value.isFinite, value > 0 else { return nil }
+    guard let previous, let value = WorkoutSession.parseWeight(previous.weightInput),
+          value > 0 else { return nil }
     let source: UnitMass = previous.weightUnit == .kilograms ? .kilograms : .pounds
     let target: UnitMass = unit == .kilograms ? .kilograms : .pounds
     return Measurement(value: value, unit: source).converted(to: target).value

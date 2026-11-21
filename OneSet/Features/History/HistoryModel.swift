@@ -190,8 +190,7 @@ final class HistoryModel {
   func completedExerciseCount(for session: WorkoutSession) -> Int {
     session.exercises.filter { exercise in
       guard let entry = session.setEntries[exercise.slotID], entry.completedAt != nil,
-            let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-            weight.isFinite, weight >= 0,
+            WorkoutSession.parseWeight(entry.weightInput) != nil,
             let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
       return reps > 0
     }.count
@@ -210,8 +209,7 @@ final class HistoryModel {
   }
 
   func formattedWeight(_ entry: WorkoutSession.SetEntry, in session: WorkoutSession) -> String? {
-    guard let value = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-          value.isFinite, value >= 0 else { return nil }
+    guard let value = WorkoutSession.parseWeight(entry.weightInput) else { return nil }
     let recordedUnit = entry.recordedWeightUnit ?? session.weightUnit
     guard recordedUnit != displayUnit else {
       return "\(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)) \(displayUnit.rawValue)"

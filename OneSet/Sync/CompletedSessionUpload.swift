@@ -184,9 +184,8 @@ struct CompletedSessionUploadPayload: Encodable, Sendable {
       let weight: Double?
       let reps: Int?
       if isCompleted {
-        guard let input = result?.weightInput.trimmingCharacters(in: .whitespacesAndNewlines),
-              let parsedWeight = Double(input), parsedWeight.isFinite,
-              parsedWeight >= 0, parsedWeight <= 9_999_999.999,
+        guard let input = result?.weightInput,
+              let parsedWeight = WorkoutSession.parseWeight(input), parsedWeight <= 9_999_999.999,
               let inputReps = result?.repsInput.trimmingCharacters(in: .whitespacesAndNewlines),
               let parsedReps = Int(inputReps), parsedReps > 0,
               abs(parsedWeight * 1000 - (parsedWeight * 1000).rounded()) < 0.000_001 else {

@@ -330,3 +330,12 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     if restSlotID == nil, restDeadline != nil { restSlotID = latestStandaloneRestAnchor }
   }
 }
+
+extension WorkoutSession {
+  static func parseWeight(_ input: String) -> Double? {
+    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacing(",", with: ".")
+    guard let weight = Double(normalized), weight.isFinite, weight >= 0 else { return nil }
+    return weight
+  }
+}

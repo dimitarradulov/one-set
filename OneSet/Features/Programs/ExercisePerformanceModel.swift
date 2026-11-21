@@ -83,8 +83,8 @@ final class ExercisePerformanceModel {
       guard session.finishedAt != nil else { return [] }
       return session.exercises.compactMap { exercise in
         guard exercise.exerciseKey == exerciseKey, let entry = session.setEntries[exercise.slotID],
-              let date = entry.completedAt, let weight = Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)),
-              weight.isFinite, weight >= 0, let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
+              let date = entry.completedAt, let weight = WorkoutSession.parseWeight(entry.weightInput),
+              let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
         let source = (entry.recordedWeightUnit ?? session.weightUnit) == .kilograms ? UnitMass.kilograms : UnitMass.pounds
         let target = unit == .kilograms ? UnitMass.kilograms : UnitMass.pounds
         return Result(session: session, slotID: exercise.slotID,

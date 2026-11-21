@@ -317,7 +317,7 @@ struct HistorySessionDetailScreen: View {
 
   private func completedEntry(for exercise: WorkoutSession.Exercise) -> WorkoutSession.SetEntry? {
     guard let entry = session.setEntries[exercise.slotID], entry.completedAt != nil,
-          Double(entry.weightInput.trimmingCharacters(in: .whitespacesAndNewlines)) != nil,
+          WorkoutSession.parseWeight(entry.weightInput) != nil,
           let reps = Int(entry.repsInput.trimmingCharacters(in: .whitespacesAndNewlines)), reps > 0 else { return nil }
     return entry
   }
