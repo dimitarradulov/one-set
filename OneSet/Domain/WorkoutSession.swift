@@ -1,13 +1,6 @@
 import Foundation
 
 struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
-  static func parseWeight(_ input: String) -> Double? {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
-      .replacing(",", with: ".")
-    guard let weight = Double(normalized), weight.isFinite, weight >= 0 else { return nil }
-    return weight
-  }
-
   struct SetEntry: Codable, Hashable, Sendable {
     var weightInput: String
     var repsInput: String
@@ -335,5 +328,14 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     evenWeekWorkoutIDs = try values.decodeIfPresent([String].self, forKey: .evenWeekWorkoutIDs)
     restSlotID = try values.decodeIfPresent(String.self, forKey: .restSlotID)
     if restSlotID == nil, restDeadline != nil { restSlotID = latestStandaloneRestAnchor }
+  }
+}
+
+extension WorkoutSession {
+  static func parseWeight(_ input: String) -> Double? {
+    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacing(",", with: ".")
+    guard let weight = Double(normalized), weight.isFinite, weight >= 0 else { return nil }
+    return weight
   }
 }
