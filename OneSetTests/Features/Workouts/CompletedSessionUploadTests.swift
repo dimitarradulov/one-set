@@ -441,7 +441,7 @@ extension CompletedSessionUploadTests {
 
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
-    model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
     let sessionID = try #require(model.activeWorkoutSession?.id)
     model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "72.5", reps: "10"))
     #expect(await model.applyWorkoutEdit(sessionID: sessionID, slotID: slot.id) {
@@ -488,7 +488,7 @@ extension CompletedSessionUploadTests {
     await model.resolveAccountSetup(using: authentication)
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
-    model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
     let sessionID = try #require(model.activeWorkoutSession?.id)
     model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "0", reps: "8"))
     #expect(await model.applyWorkoutEdit(sessionID: sessionID, slotID: slot.id) {
@@ -526,7 +526,7 @@ extension CompletedSessionUploadTests {
 
     let workout = try #require(model.program(id: setup.programID)?.workouts.first)
     let slot = try #require(workout.exercises.first)
-    model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: workout.id, accountID: "preview-user")
     let sessionID = try #require(model.activeWorkoutSession?.id)
     model.scheduleWorkoutEdit(sessionID: sessionID, slotID: slot.id, input: .init(weight: "70", reps: "8"))
     #expect(!model.finishActiveWorkout(note: nil, using: authentication))

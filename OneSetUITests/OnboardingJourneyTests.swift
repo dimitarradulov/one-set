@@ -606,7 +606,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["program.detail.select"].tap()
 
     XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.staticTexts["trial.preview.notice"].exists)
+    XCTAssertTrue(app.buttons["trial.seePlans"].waitForExistence(timeout: 3))
     app.buttons["trial.continueWithoutTrial"].tap()
 
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
@@ -639,7 +639,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["program.detail.select"].tap()
 
     XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
-    XCTAssertTrue(app.staticTexts["trial.preview.notice"].label.localizedCaseInsensitiveContains("preview"))
+    XCTAssertTrue(app.buttons["trial.seePlans"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["Trial started"].exists)
     XCTAssertFalse(app.staticTexts["Purchase complete"].exists)
 
@@ -1118,6 +1118,7 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.title"].label, "Machine Full Body")
     XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
+    XCTAssertFalse(app.staticTexts["trial.title"].exists)
     XCTAssertTrue(mainTab("Program").isSelected)
     XCTAssertFalse(app.buttons["account.signOut"].exists)
     XCTAssertTrue(mainTab("History").exists)
@@ -1135,7 +1136,7 @@ final class OnboardingJourneyTests: XCTestCase {
     let expectedRowOrder = [
       "settings.row.units", "settings.row.trainingFrequency", "settings.row.restAlerts",
       "settings.row.downloadedVideos", "account.signOut", "settings.row.subscription",
-      "settings.row.accountDeletion",
+      "settings.row.accountDeletion"
     ]
     XCTAssertEqual(
       app.buttons.allElementsBoundByIndex
@@ -1150,7 +1151,6 @@ final class OnboardingJourneyTests: XCTestCase {
       ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
       ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
-      ("settings.row.subscription", "Subscription", "Manage your subscription and restore purchases."),
       ("settings.row.accountDeletion", "Account deletion", "Delete your OneSet account and its data."),
     ]
     for (row, title, explanation) in destinations {
@@ -1623,7 +1623,7 @@ final class OnboardingJourneyTests: XCTestCase {
   }
 
   func testMockedTrialAcceptanceRetriesUploadWithoutGrantingEntitlement() {
-    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry"])
+    relaunch(with: ["--ui-auth-restored", "--ui-progress-reset", "--ui-upload-retry", "--ui-subscription-active"])
     completeSetupFromPreferences(acceptPreview: true)
     XCTAssertTrue(app.staticTexts["setup.uploadStatus"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.staticTexts["Trial started"].exists)
@@ -1716,7 +1716,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["preferences.continue"].tap()
     programCard("full-body").tap()
     app.buttons["program.detail.select"].tap()
-    app.buttons[acceptPreview ? "trial.continuePreview" : "trial.continueWithoutTrial"].tap()
+    if !acceptPreview { app.buttons["trial.continueWithoutTrial"].tap() } // Verified Pro skips this tap.
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
   }
 

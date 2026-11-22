@@ -11,7 +11,29 @@ struct AppDependencies {
   let accountProgress: (any AccountProgressService)?
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let sessionHistory: (any SessionHistoryService)?
+  let subscriptionAccess: any SubscriptionAccessService
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
+
+  /// RevenueCat's paywall for the live service. Previews and UI tests use the fake host.
+  var paywallHost: any PaywallHost {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return FakePaywallHost() }
+    #endif
+    return RevenueCatPaywallHost()
+  }
+
+  /// The account owner's approval for the live service. Previews and UI tests that inject a
+  /// fake service approve everything; release builds without the owner refuse.
+  var paywallApproval: any PaywallApproving {
+    if let owner = subscriptionAccess as? any SubscriptionOperationOwner {
+      return OwnerPaywallApproval(owner: owner)
+    }
+    #if DEBUG
+    return PreviewPaywallApproval()
+    #else
+    return UnconfiguredPaywallApproval()
+    #endif
+  }
 
   #if DEBUG
   static func development(environment: [String: String] = ProcessInfo.processInfo.environment) -> AppDependencies {
@@ -36,6 +58,10 @@ struct AppDependencies {
       accountProgress: nil,
       completedSessionUpload: nil,
       sessionHistory: nil,
+      subscriptionAccess: PreviewSubscriptionAccessService(
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .inactive,
+        restore: SubscriptionRestorePreset(arguments: arguments)
+      ),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -85,12 +111,9 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = arguments.contains("--ui-finish-review") ? "finish-review-workouts.sqlite"
-      : progressRestoreError ? "progress-restore-error-workouts.sqlite"
-      : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
-        : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
+    let previewWorkoutFile = Self.previewWorkoutFile(arguments, restoreError: progressRestoreError, signOut: sessionSignOutPreview, history: historyPreview)
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review")
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
       || sessionSignOutPreview || progressRestoreError || programChangePreview {
@@ -234,6 +257,7 @@ struct AppDependencies {
           failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
+        subscriptionAccess: Self.previewSubscriptionAccess(launch: launch, arguments: arguments),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -272,6 +296,7 @@ struct AppDependencies {
     #endif
 
     let authentication = ClerkAuthenticationService()
+    let subscriptionAccess = Self.subscriptionAccess(arguments: arguments, environment: environment, storage: storage)
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -291,9 +316,66 @@ struct AppDependencies {
       accountProgress: HTTPAccountProgressService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       sessionHistory: HTTPSessionHistoryService(authentication: authentication),
+      subscriptionAccess: subscriptionAccess,
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
+    )
+  }
+
+  #if DEBUG
+  private static func previewWorkoutFile(
+    _ arguments: [String], restoreError: Bool, signOut: Bool, history: Bool
+  ) -> String {
+    if arguments.contains("--ui-finish-review") { return "finish-review-workouts.sqlite" }
+    if restoreError { return "progress-restore-error-workouts.sqlite" }
+    if signOut { return "session-signout-workouts.sqlite" }
+    return history ? "history-preview-workouts.sqlite" : "workouts.sqlite"
+  }
+
+  /// Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
+  /// accounts with completed setup start with Pro.
+  private static func previewSubscriptionAccess(
+    launch: AppLaunchConfiguration, arguments: [String]
+  ) -> PreviewSubscriptionAccessService {
+    let startsWithPro = launch.includesMainTabsPreview || arguments.contains("--ui-setup-completed")
+    return PreviewSubscriptionAccessService(
+      preset: launch.subscriptionPreset ?? (startsWithPro ? .active : .inactive),
+      restore: launch.subscriptionRestore
+    )
+  }
+  #endif
+
+  /// RevenueCat for the live app. Previews and UI tests keep the fakes and never touch it.
+  private static func subscriptionAccess(
+    arguments: [String], environment: [String: String], storage: AppStorage
+  ) -> any SubscriptionAccessService {
+    #if DEBUG
+    let launch = AppLaunchConfiguration(arguments: arguments)
+    if let preset = launch.subscriptionPreset {
+      return PreviewSubscriptionAccessService(preset: preset, restore: launch.subscriptionRestore)
+    }
+    if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
+    #endif
+    return liveSubscriptionAccess(storage: storage)
+  }
+
+  private static func liveSubscriptionAccess(storage: AppStorage) -> RevenueCatSubscriptionAccessService {
+    #if DEBUG
+    let isDebug = true
+    #else
+    let isDebug = false
+    #endif
+    return RevenueCatSubscriptionAccessService(
+      client: LivePurchasesClient(fallbackEnvironment: isDebug ? .sandbox : .production),
+      apiKey: AppLaunchConfiguration.revenueCatAPIKey(),
+      store: FileSavedSubscriptionAccessStore(
+        fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
+      ),
+      pendingStore: FilePendingSubscriptionOperationStore(
+        fileURL: storage.directory.appending(path: "Subscription/pending-operations.json")
+      ),
+      acceptsSandboxSavedAccess: isDebug
     )
   }
 
