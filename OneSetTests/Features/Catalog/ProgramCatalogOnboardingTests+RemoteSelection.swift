@@ -36,7 +36,7 @@ extension ProgramCatalogOnboardingTests {
       workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await model.resolveAccountSetup(using: auth)
     await model.refreshCycleKnowledge(using: auth)
-    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     #expect(model.activeWorkoutSession != nil)
     model.showProgramSwitcher()
     #expect(model.switchBlockedPresented)
@@ -125,7 +125,7 @@ extension ProgramCatalogOnboardingTests {
       workoutRepository: repository)
     await control.resolveAccountSetup(using: auth)
     let workoutID = try #require(control.program(id: old.programID)?.workouts.first?.id)
-    control.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
+    await control.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
     #expect(control.activeWorkoutSession != nil)
     control.discardActiveWorkout(accountID: "preview-user")
     let model = OnboardingModel(catalog: .bundled, setupService: CatalogAccountSetupStub(setup: server),
@@ -135,7 +135,7 @@ extension ProgramCatalogOnboardingTests {
     #expect(model.selectedProgramID == old.programID)
     #expect(model.restoredCycleID == old.cycleID)
     #expect(model.requiresProgramUpdate)
-    model.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
+    await model.startWorkout(programID: old.programID, workoutID: workoutID, accountID: "preview-user")
     #expect(model.activeWorkoutSession == nil)
     let reopened = OnboardingModel(catalog: .bundled, setupService: CatalogAccountSetupStub(setup: nil),
       progressStore: store, workoutRepository: repository)
@@ -265,7 +265,7 @@ extension ProgramCatalogOnboardingTests {
     await first.value
     #expect(model.requiresProgramUpdate)
     #expect(try store.load(accountID: "preview-user")?.pendingRemoteSelection?.cycleID == changed.cycleID)
-    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     #expect(model.activeWorkoutSession == nil)
   }
 
@@ -295,7 +295,7 @@ extension ProgramCatalogOnboardingTests {
     await first.value
     #expect(!model.requiresProgramUpdate)
     #expect(try store.load(accountID: "preview-user")?.pendingRemoteSelection == nil)
-    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     #expect(model.activeWorkoutSession != nil)
   }
 
@@ -347,7 +347,7 @@ extension ProgramCatalogOnboardingTests {
     let original = OnboardingModel(catalog: .bundled, setupService: CatalogAccountSetupStub(setup: setup),
       progressStore: file, workoutRepository: try WorkoutRepository(databaseURL: repositoryURL))
     await original.resolveAccountSetup(using: auth)
-    original.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await original.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     let sessionID = try #require(original.activeWorkoutSession?.id)
     let store = FailOnSaveStore(file: file, failOnSave: 1)
     let reopened = OnboardingModel(catalog: .bundled, setupService: CatalogAccountSetupStub(setup: remote),
@@ -388,7 +388,7 @@ extension ProgramCatalogOnboardingTests {
       progressStore: store, workoutRepository: try WorkoutRepository(databaseURL: directory.appending(path: "workouts.sqlite")))
     await workable.resolveAccountSetup(using: auth)
     workable.previewWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a")
-    workable.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await workable.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     let sessionID = try #require(workable.activeWorkoutSession?.id)
     await workable.refreshCycleKnowledge(using: auth)
     #expect(workable.requiresProgramUpdate)

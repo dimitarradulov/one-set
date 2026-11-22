@@ -10,6 +10,9 @@ struct WorkoutTemplatePreviewScreen: View {
   var isActiveWorkout = false
   var isBrowsingProgram = false
   var requiresProgramUpdate = false
+  var startStatus: WorkoutStartStatus?
+  var onSeePlans: () -> Void = {}
+  var onRetryAccess: () -> Void = {}
 
   var body: some View {
     ScrollView {
@@ -55,27 +58,117 @@ struct WorkoutTemplatePreviewScreen: View {
     .background(OneSetColors.background)
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if !isBrowsingProgram {
-      Button {
-        onStartWorkout()
-      } label: {
-        Text(isActiveWorkout ? "Resume workout" : "Start workout")
-          .font(OneSetTypography.button)
-          .foregroundStyle(Color.black)
-          .frame(maxWidth: .infinity, minHeight: 52)
-          .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
-          .contentShape(RoundedRectangle(cornerRadius: 12))
+        footer
       }
-      .buttonStyle(.plain)
-      .disabled(requiresProgramUpdate && !isActiveWorkout)
-      .accessibilityHint(requiresProgramUpdate && !isActiveWorkout ? "Update your program before starting a workout." : "")
-      .accessibilityIdentifier("workoutPreview.start")
+    }
+  }
+
+  private var footer: some View {
+    VStack(spacing: 0) {
+      Rectangle().fill(OneSetColors.border).frame(height: 1).accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 10) {
+        if !isActiveWorkout, let notice = startNotice {
+          startNoticeView(notice)
+        }
+        actionButton
+      }
       .frame(maxWidth: 720)
       .padding(.horizontal, 20)
       .padding(.vertical, 12)
       .frame(maxWidth: .infinity)
-      .background(OneSetColors.background)
+    }
+    .background(OneSetColors.background)
+  }
+
+  private struct StartNotice {
+    let symbol: String
+    let title: String
+    let detail: String?
+    let tint: Color
+  }
+
+  private var startNotice: StartNotice? {
+    switch startStatus {
+    case .proRequired:
+      StartNotice(symbol: "lock", title: "Pro is required to start",
+        detail: "You can still preview workouts and view training history.", tint: OneSetColors.accent)
+    case .unconfirmed:
+      StartNotice(symbol: "exclamationmark.circle", title: "Connect to check Pro access",
+        detail: "Reconnect to check your subscription and start a new workout.", tint: OneSetColors.error)
+    case .pendingApproval:
+      StartNotice(symbol: "clock", title: "Waiting for purchase approval",
+        detail: "Check again after Apple approves the purchase.", tint: OneSetColors.accent)
+    case .proActive:
+      StartNotice(symbol: "checkmark.circle", title: "OneSet Pro is active", detail: nil, tint: OneSetColors.accent)
+    case .checking, nil:
+      nil
+    }
+  }
+
+  private func startNoticeView(_ notice: StartNotice) -> some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: notice.symbol)
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(notice.tint)
+        .frame(width: 20)
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(notice.title)
+          .font(OneSetTypography.label)
+          .foregroundStyle(OneSetColors.textPrimary)
+        if let detail = notice.detail {
+          Text(detail)
+            .font(OneSetTypography.caption)
+            .foregroundStyle(OneSetColors.textSecondary)
+        }
+      }
+      .fixedSize(horizontal: false, vertical: true)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("workoutPreview.startNotice")
+  }
+
+  @ViewBuilder
+  private var actionButton: some View {
+    if isActiveWorkout {
+      actionLabel("Resume workout", identifier: "workoutPreview.start", action: onStartWorkout)
+    } else {
+      switch startStatus {
+      case .checking:
+        actionLabel("Checking access…", identifier: "workoutPreview.start", showsSpinner: true, action: {})
+          .disabled(true)
+          .accessibilityHint("Checking whether OneSet Pro is active.")
+      case .proRequired:
+        actionLabel("See plans", identifier: "workoutPreview.seePlans", action: onSeePlans)
+      case .unconfirmed:
+        actionLabel("Try Again", identifier: "workoutPreview.retryAccess", action: onRetryAccess)
+      case .pendingApproval:
+        actionLabel("Check status", identifier: "workoutPreview.retryAccess", action: onRetryAccess)
+      case .proActive, nil:
+        actionLabel("Start workout", identifier: "workoutPreview.start", action: onStartWorkout)
+          .disabled(requiresProgramUpdate)
+          .accessibilityHint(requiresProgramUpdate ? "Update your program before starting a workout." : "")
       }
     }
+  }
+
+  private func actionLabel(_ title: String, identifier: String, showsSpinner: Bool = false,
+                           action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      HStack(spacing: 8) {
+        if showsSpinner {
+          ProgressView().tint(.black).accessibilityHidden(true)
+        }
+        Text(title)
+      }
+      .font(OneSetTypography.button)
+      .foregroundStyle(Color.black)
+      .frame(maxWidth: .infinity, minHeight: 52)
+      .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
+      .contentShape(RoundedRectangle(cornerRadius: 12))
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier(identifier)
   }
 
   private var sectionHeading: some View {

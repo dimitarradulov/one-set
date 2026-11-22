@@ -5,6 +5,7 @@ struct OnboardingFlowView: View {
   @State private var networkMonitor = WorkoutNetworkMonitor()
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
+  @Bindable var subscription: SubscriptionSettingsModel
 
   #if DEBUG
   var onDevelopmentSignIn: (() -> Void)?
@@ -68,7 +69,7 @@ struct OnboardingFlowView: View {
         AccountSetupScreen(model: model, authentication: authentication)
       case .idle:
         if model.hasCompletedSetup {
-          CompletedSetupTabsView(model: model, authentication: authentication)
+          CompletedSetupTabsView(model: model, authentication: authentication, subscription: subscription)
         } else {
           journey
         }
@@ -107,6 +108,9 @@ struct OnboardingFlowView: View {
       }
     }
     #endif
+    .onChange(of: model.resolvedAccountID) { oldAccount, _ in
+      if oldAccount != nil { model.clearSubscriptionPresentation() }
+    }
     .onChange(of: scenePhase) { _, phase in
       if phase == .background, let sessionID = model.activeWorkoutSession?.id {
         Task { await model.flushWorkoutEdits(sessionID: sessionID) }
@@ -216,10 +220,24 @@ extension OnboardingFlowView {
             }
           case .trialPreview(let programID):
             if let program = model.program(id: programID) {
-              TrialPreviewScreen(program: program, onContinueWithoutTrial: {
-                model.continueWithoutTrial()
-                Task { await model.uploadCompletedSetup(using: authentication) }
-              })
+              TrialPreviewScreen(
+                program: program,
+                status: model.trialStatus(for: programID),
+                onSeePlans: { model.presentTrialPlans(programID: programID, using: authentication) },
+                onRetryAccess: { Task { await model.retryTrialAccess(programID: programID, using: authentication) } },
+                onRetrySave: { model.retryTrialSetupSave(programID: programID, using: authentication) },
+                onContinueWithoutTrial: {
+                  model.continueWithoutTrial()
+                  Task { await model.uploadCompletedSetup(using: authentication) }
+                }
+              )
+                .task(id: model.resolvedAccountID) {
+                  await model.watchTrialAccess(programID: programID, using: authentication)
+                }
+                .paywallSheet(model: Binding(
+                  get: { model.paywallRoute == .trialPreview(programID) ? model.paywall : nil },
+                  set: { if $0 == nil { model.paywall = nil } }
+                ))
                 .navigationTitle("Trial preview")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -261,24 +279,9 @@ extension OnboardingFlowView {
           case .workoutPreview(let programID, let workoutID, let week):
             if let program = model.program(id: programID),
                let workoutIndex = program.workouts.firstIndex(where: { $0.id == workoutID }) {
-              WorkoutTemplatePreviewScreen(
-                program: program,
-                workout: program.workouts[workoutIndex],
-                day: program.trainingDay(for: program.workouts[workoutIndex]),
-                onStartWorkout: {
-                  guard let accountID = authentication.signedInUser?.id else { return }
-                  if let session = model.activeWorkoutSession, session.accountID == accountID,
-                     session.programID == programID, session.workoutID == workoutID, week == nil || week == session.week {
-                    model.path.append(.workoutRecording(session.id))
-                    return
-                  }
-                  model.startWorkout(programID: programID, workoutID: workoutID, accountID: accountID, week: week)
-                },
-                isActiveWorkout: model.activeWorkoutSession.map {
-                  $0.accountID == authentication.signedInUser?.id && $0.programID == programID && $0.workoutID == workoutID
-                    && (week == nil || week == $0.week)
-                } ?? false,
-                isBrowsingProgram: week.map { $0 != model.currentWorkoutWeek(programID: programID) } ?? false
+              WorkoutStartPreviewScreen(
+                model: model, authentication: authentication,
+                program: program, workout: program.workouts[workoutIndex], week: week
               )
               .navigationTitle("Workout preview")
               .navigationBarTitleDisplayMode(.inline)
@@ -339,6 +342,9 @@ extension OnboardingFlowView {
 #Preview {
   OnboardingFlowView(
     model: OnboardingModel(catalog: .bundled),
-    authentication: AuthenticationModel(service: PreviewAuthenticationService())
+    authentication: AuthenticationModel(service: PreviewAuthenticationService()),
+    subscription: SubscriptionSettingsModel(
+      access: UnconfiguredSubscriptionAccessService(), host: RevenueCatPaywallHost(),
+      approval: UnconfiguredPaywallApproval())
   )
 }

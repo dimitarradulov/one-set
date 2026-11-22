@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsNavigationView: View {
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
+  @Bindable var subscription: SubscriptionSettingsModel
 
   var body: some View {
     NavigationStack(path: $model.settingsPath) {
@@ -62,7 +63,11 @@ struct SettingsNavigationView: View {
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.large)
       .navigationDestination(for: SettingsDestination.self) { destination in
-        SettingsDestinationScreen(destination: destination)
+        if destination == .subscription {
+          SubscriptionSettingsScreen(model: subscription, accountID: model.resolvedAccountID)
+        } else {
+          SettingsDestinationScreen(destination: destination)
+        }
       }
     }
   }
