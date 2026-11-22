@@ -71,7 +71,13 @@ final class OnboardingModel {
   let progressService: (any AccountProgressService)?
   var lookupGeneration = 0
   private var backgroundRestoration: Task<Void, Never>?
-  private(set) var resolvedAccountID: String?
+  private(set) var resolvedAccountID: String? {
+    didSet {
+      if resolvedAccountID != oldValue { onResolvedAccountChange?(resolvedAccountID) }
+    }
+  }
+  /// Reports the account once setup resolves, and nil when the account is reset.
+  @ObservationIgnored var onResolvedAccountChange: ((String?) -> Void)?
   let catalog: ProgramCatalog
   var workoutRepository: WorkoutRepository?
   var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
