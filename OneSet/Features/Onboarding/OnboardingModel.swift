@@ -78,6 +78,8 @@ final class OnboardingModel {
   }
   /// Reports the account once setup resolves, and nil when the account is reset.
   @ObservationIgnored var onResolvedAccountChange: ((String?) -> Void)?
+  /// Lets an interactive purchase or restore finish before an explicit sign-out changes identity.
+  @ObservationIgnored var beforeSignOut: (@MainActor () async -> Void)?
   let catalog: ProgramCatalog
   var workoutRepository: WorkoutRepository?
   var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -107,6 +109,17 @@ final class OnboardingModel {
   private(set) var sessionUploadErrorMessage = ""
   var workoutStorageOpenFailed = false
   var previousPerformanceUnavailable = false
+  let subscriptionAccess: (any SubscriptionAccessService)?
+  var accountSelectionGeneration = 0
+  var workoutStartGate: WorkoutStartGate?
+  var workoutStartAttempt: UUID?
+  /// The open checkout sheet and the preview it was opened from.
+  var paywall: PaywallModel?
+  var paywallRoute: OnboardingRoute?
+  let paywallHost: (any PaywallHost)?
+  let paywallApproval: any PaywallApproving
+  /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
+  @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
 
   init(
     catalog: ProgramCatalog,
@@ -117,6 +130,9 @@ final class OnboardingModel {
     progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     sessionHistoryService: (any SessionHistoryService)? = nil,
+    subscriptionAccess: (any SubscriptionAccessService)? = nil,
+    paywallHost: (any PaywallHost)? = nil,
+    paywallApproval: any PaywallApproving = UnconfiguredPaywallApproval(),
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
@@ -145,6 +161,9 @@ final class OnboardingModel {
     self.restAlerts = restAlerts
     self.completedSessionUploadService = completedSessionUploadService
     self.sessionHistoryService = sessionHistoryService
+    self.subscriptionAccess = subscriptionAccess
+    self.paywallHost = paywallHost
+    self.paywallApproval = paywallApproval
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
@@ -484,6 +503,7 @@ extension OnboardingModel {
     retainingPendingSessions: Bool = false,
     confirmed: Bool = false
   ) async {
+    if let beforeSignOut { await beforeSignOut() }
     guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     if activeWorkoutSession != nil {
       signOutErrorMessage = "Finish or discard your current workout first."
@@ -654,6 +674,11 @@ extension OnboardingModel {
     backgroundRestoration = nil
     lookupGeneration += 1
     cycleKnowledgeGeneration += 1
+    accountSelectionGeneration += 1
+    workoutStartGate = nil
+    workoutStartAttempt = nil
+    paywall = nil
+    paywallRoute = nil
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle

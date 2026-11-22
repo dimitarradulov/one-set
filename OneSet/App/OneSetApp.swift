@@ -34,6 +34,9 @@ struct OneSetApp: App {
       progressService: dependencies.accountProgress,
       completedSessionUploadService: dependencies.completedSessionUpload,
       sessionHistoryService: dependencies.sessionHistory,
+      subscriptionAccess: dependencies.subscriptionAccess,
+      paywallHost: dependencies.paywallHost,
+      paywallApproval: dependencies.paywallApproval,
       progressStore: dependencies.onboardingProgress,
       workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
       restAlerts: restAlerts,
@@ -47,6 +50,8 @@ struct OneSetApp: App {
     let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
     subscriptionAccounts = accounts
     model.onResolvedAccountChange = { accounts?.selectAccount($0) }
+    model.beforeSignOut = { await accounts?.waitUntilNoInteractiveOperation() }
+    if let accounts { model.accountSelectionProvider = { accounts.selection } }
     _onboarding = State(initialValue: model)
     _subscriptionSettings = State(initialValue: Self.subscriptionSettings(for: dependencies))
     _authentication = State(initialValue: AuthenticationModel(
@@ -73,6 +78,9 @@ struct OneSetApp: App {
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
+        subscriptionAccess: dependencies.subscriptionAccess,
+        paywallHost: dependencies.paywallHost,
+        paywallApproval: dependencies.paywallApproval,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
@@ -94,6 +102,9 @@ struct OneSetApp: App {
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
+        subscriptionAccess: dependencies.subscriptionAccess,
+        paywallHost: dependencies.paywallHost,
+        paywallApproval: dependencies.paywallApproval,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts

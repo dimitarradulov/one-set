@@ -127,9 +127,8 @@ final class SubscriptionSettingsModel {
     guard !isBusy, let selection = currentSelection() else { return }
     let token = epoch
     restore = .restoring
-    let decision = await approval.approveRestore(for: selection)
-    // Approval holds the operation until released; every outcome below ends it.
-    defer { approval.release(for: selection) }
+    // The parent's restore only checks approval; the access service claims the operation slot.
+    let decision = await approval.preflightRestore(for: selection)
     guard token == epoch, selection == currentSelection() else { return }
     guard await handleApproval(decision) else { return }
     do {

@@ -12,9 +12,28 @@ struct AppDependencies {
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let sessionHistory: (any SessionHistoryService)?
   let subscriptionAccess: any SubscriptionAccessService
-  let paywallHost: any PaywallHost
-  let paywallApproval: any PaywallApproving
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
+
+  /// RevenueCat's paywall for the live service. Previews and UI tests use the fake host.
+  var paywallHost: any PaywallHost {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return FakePaywallHost() }
+    #endif
+    return RevenueCatPaywallHost()
+  }
+
+  /// The account owner's approval for the live service. Previews and UI tests that inject a
+  /// fake service approve everything; release builds without the owner refuse.
+  var paywallApproval: any PaywallApproving {
+    if let owner = subscriptionAccess as? any SubscriptionOperationOwner {
+      return OwnerPaywallApproval(owner: owner)
+    }
+    #if DEBUG
+    return PreviewPaywallApproval()
+    #else
+    return UnconfiguredPaywallApproval()
+    #endif
+  }
 
   #if DEBUG
   static func development(environment: [String: String] = ProcessInfo.processInfo.environment) -> AppDependencies {
@@ -43,8 +62,6 @@ struct AppDependencies {
         preset: SubscriptionAccessPreset(arguments: arguments) ?? .active,
         restore: SubscriptionRestorePreset(arguments: arguments)
       ),
-      paywallHost: FakePaywallHost(),
-      paywallApproval: PreviewPaywallApproval(),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -99,7 +116,7 @@ struct AppDependencies {
       : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review")
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
       || sessionSignOutPreview || progressRestoreError || programChangePreview {
@@ -245,8 +262,6 @@ struct AppDependencies {
         ),
         subscriptionAccess: PreviewSubscriptionAccessService(
           preset: launch.subscriptionPreset ?? .active, restore: launch.subscriptionRestore),
-        paywallHost: FakePaywallHost(),
-        paywallApproval: PreviewPaywallApproval(),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -286,7 +301,6 @@ struct AppDependencies {
 
     let authentication = ClerkAuthenticationService()
     let subscriptionAccess = Self.subscriptionAccess(arguments: arguments, environment: environment, storage: storage)
-    let paywall = Self.paywall(arguments: arguments, environment: environment)
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -307,8 +321,6 @@ struct AppDependencies {
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       sessionHistory: HTTPSessionHistoryService(authentication: authentication),
       subscriptionAccess: subscriptionAccess,
-      paywallHost: paywall.host,
-      paywallApproval: paywall.approval,
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
@@ -329,20 +341,6 @@ struct AppDependencies {
     return liveSubscriptionAccess(storage: storage)
   }
 
-  /// The checkout host and approval. Previews and UI tests use fakes. Until the account owner
-  /// approves purchases and restores, the live app approves nothing.
-  private static func paywall(
-    arguments: [String], environment: [String: String]
-  ) -> (host: any PaywallHost, approval: any PaywallApproving) {
-    #if DEBUG
-    if AppLaunchConfiguration(arguments: arguments).subscriptionPreset != nil
-      || environment["ONESET_UI_TEST_ID"] != nil {
-      return (FakePaywallHost(), PreviewPaywallApproval())
-    }
-    #endif
-    return (RevenueCatPaywallHost(), UnconfiguredPaywallApproval())
-  }
-
   private static func liveSubscriptionAccess(storage: AppStorage) -> RevenueCatSubscriptionAccessService {
     #if DEBUG
     let isDebug = true
@@ -354,6 +352,9 @@ struct AppDependencies {
       apiKey: AppLaunchConfiguration.revenueCatAPIKey(),
       store: FileSavedSubscriptionAccessStore(
         fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
+      ),
+      pendingStore: FilePendingSubscriptionOperationStore(
+        fileURL: storage.directory.appending(path: "Subscription/pending-operations.json")
       ),
       acceptsSandboxSavedAccess: isDebug
     )

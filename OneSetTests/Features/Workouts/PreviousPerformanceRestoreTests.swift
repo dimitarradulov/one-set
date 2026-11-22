@@ -29,7 +29,7 @@ struct PreviousPerformanceRestoreTests {
     )
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     await model.resolveAccountSetup(using: authentication)
-    model.startWorkout(programID: program.id, workoutID: workout.id, accountID: "preview-user")
+    await model.startWorkout(programID: program.id, workoutID: workout.id, accountID: "preview-user")
 
     let session = try #require(model.activeWorkoutSession)
     let result = try #require(model.previousPerformances(for: session)[exercise.id])

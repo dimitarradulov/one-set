@@ -54,4 +54,50 @@ struct LivePurchasesClient: PurchasesClient {
       verification: verification, environment: environment
     )
   }
+
+  func purchase(packageID: String) async throws -> PurchaseOutcome {
+    do {
+      let offerings = try await Purchases.shared.offerings()
+      let packages = ([offerings.current].compactMap { $0 } + offerings.all.values).flatMap(\.availablePackages)
+      guard let package = packages.first(where: { $0.identifier == packageID }) else {
+        throw SubscriptionOperationError.failed
+      }
+      let result = try await Purchases.shared.purchase(package: package)
+      if result.userCancelled { throw SubscriptionOperationError.cancelled }
+      return .purchased
+    } catch {
+      if case .pendingApproval = Self.paywallResult(for: error) { return .pendingApproval }
+      throw Self.operationError(from: error)
+    }
+  }
+
+  func restorePurchases() async throws {
+    do {
+      _ = try await Purchases.shared.restorePurchases()
+    } catch {
+      throw Self.operationError(from: error)
+    }
+  }
+
+  /// Maps an SDK error to the owner's vocabulary.
+  nonisolated static func operationError(from error: any Error) -> SubscriptionOperationError {
+    if let error = error as? SubscriptionOperationError { return error }
+    let nsError = error as NSError
+    guard nsError.domain == ErrorCode.errorDomain, let code = ErrorCode(rawValue: nsError.code) else { return .failed }
+    switch code {
+    case .purchaseCancelledError: return .cancelled
+    case .receiptAlreadyInUseError, .receiptInUseByOtherSubscriberError: return .linkedToAnotherAccount
+    default: return .failed
+    }
+  }
+
+  /// Maps an error from RevenueCatUI's purchase or restore failure callbacks.
+  nonisolated static func paywallResult(for error: any Error) -> PaywallOperationResult {
+    let nsError = error as NSError
+    if nsError.domain == ErrorCode.errorDomain, ErrorCode(rawValue: nsError.code) == .paymentPendingError {
+      return .pendingApproval
+    }
+    let mapped = operationError(from: error)
+    return mapped == .cancelled ? .cancelled : .failed(mapped)
+  }
 }

@@ -64,6 +64,8 @@ final class PaywallModel: Identifiable {
   private var hasStarted = false
   private var purchaseConfirmed = false
   private var operationInFlight = false
+  /// True only while an approved purchase or embedded restore holds the owner's operation slot.
+  private var holdsSlot = false
 
   init(
     selection: AccountSelection,
@@ -93,7 +95,7 @@ final class PaywallModel: Identifiable {
       purchaseInitiated: { [weak self] package in await self?.beginPurchase(package) ?? false },
       restoreInitiated: { [weak self] in await self?.beginPaywallRestore() ?? false },
       purchaseCompleted: { [weak self] in self?.purchaseDidComplete() },
-      purchaseCancelled: { [weak self] in self?.endOperation() },
+      purchaseCancelled: { [weak self] in self?.endOperation(.cancelled) },
       purchasePending: { [weak self] in self?.moveToPending() },
       restoreCompleted: { [weak self] in self?.restoreDidComplete() },
       failed: { [weak self] in self?.operationDidFail($0) },
@@ -145,7 +147,7 @@ final class PaywallModel: Identifiable {
     let previous = phase
     banner = nil
     operationInFlight = true
-    switch await approval.approveRestore(for: selection) {
+    switch await approval.preflightRestore(for: selection) {
     case .approved: break
     case .pending: moveToPending(); return
     case .denied(let denial): handleDenial(denial); return
@@ -204,8 +206,9 @@ final class PaywallModel: Identifiable {
     operationInFlight = true
     switch await approval.approvePurchase(package, for: selection) {
     case .approved:
+      holdsSlot = true
       guard isCurrent, phase == .ready else {
-        endOperation()
+        endOperation(.cancelled)
         return false
       }
       return true
@@ -224,7 +227,12 @@ final class PaywallModel: Identifiable {
     switch await approval.approveRestore(for: selection) {
     case .approved:
       operationInFlight = true
-      return isCurrent
+      holdsSlot = true
+      guard isCurrent else {
+        endOperation(.cancelled)
+        return false
+      }
+      return true
     case .pending:
       moveToPending()
       return false
@@ -236,23 +244,23 @@ final class PaywallModel: Identifiable {
 
   private func purchaseDidComplete() {
     purchaseConfirmed = true
-    endOperation()
+    endOperation(.succeeded)
     Task { await verify(after: .purchase) }
   }
 
   private func restoreDidComplete() {
-    endOperation()
+    endOperation(.succeeded)
     Task { await verify(after: .restore) }
   }
 
   private func moveToPending() {
-    endOperation()
+    endOperation(.pendingApproval)
     guard isCurrent else { return }
     phase = .pending
   }
 
   private func operationDidFail(_ failure: PaywallFailure) {
-    endOperation()
+    endOperation(.failed(failure == .linkedToAnotherAccount ? .linkedToAnotherAccount : .failed))
     banner = failure == .linkedToAnotherAccount ? .linkedToAnotherAccount : .purchaseFailed
   }
 
@@ -304,15 +312,17 @@ final class PaywallModel: Identifiable {
     return false
   }
 
-  private func endOperation() {
-    guard operationInFlight else { return }
+  /// Clears the busy state and, when this paywall holds the owner's slot, releases it once.
+  private func endOperation(_ result: PaywallOperationResult = .cancelled) {
     operationInFlight = false
-    approval.release(for: selection)
+    guard holdsSlot else { return }
+    holdsSlot = false
+    approval.release(result, for: selection)
   }
 
   private func finish(_ outcome: PaywallResult) {
     guard result == nil else { return }
-    if operationInFlight { endOperation() }
+    endOperation(.cancelled)
     result = outcome
     onResult(outcome)
   }

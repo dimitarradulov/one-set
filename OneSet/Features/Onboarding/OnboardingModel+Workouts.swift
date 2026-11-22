@@ -15,47 +15,6 @@ extension OnboardingModel {
     }
   }
 
-  func startWorkout(programID: String, workoutID: String, accountID: String, week: Int? = nil) {
-    guard !requiresProgramUpdate, accountID == resolvedAccountID, programID == selectedProgramID else {
-      workoutErrorMessage = "Update your program before starting a workout."
-      workoutErrorPresented = true
-      return
-    }
-    guard let workoutRepository = ensureWorkoutRepository(), let cycleID = restoredCycleID,
-          let program = catalog.program(id: programID),
-          let index = program.workouts.firstIndex(where: { $0.id == workoutID }) else {
-      workoutErrorMessage = "Your workout could not be started. Please try again."
-      workoutErrorPresented = true
-      return
-    }
-    do {
-      let next = try workoutRepository.nextOccurrence(accountID: accountID, cycleID: cycleID,
-        programID: programID, workoutIDs: program.workouts(inWeek: 1).map(\.id),
-        evenWeekWorkoutIDs: program.evenWeekWorkoutIDs)
-      guard next.workoutID == workoutID, week == nil || next.week == week else {
-        workoutErrorMessage = "Complete the earlier workout day before starting this one."
-        workoutErrorPresented = true
-        return
-      }
-      #if DEBUG
-      let startedAt = ProcessInfo.processInfo.arguments.contains("--ui-elapsed-session")
-        ? Date.now.addingTimeInterval(-120) : .now
-      #else
-      let startedAt = Date.now
-      #endif
-      let session = WorkoutSession(accountID: accountID, cycleID: cycleID, program: program,
-        workout: program.workouts[index], week: next.week, day: next.day, weightUnit: weightUnit,
-        startedAt: startedAt)
-      let startedSession = try workoutRepository.start(session, exerciseLibrary: catalog.exerciseLibrary)
-      activeWorkoutSession = startedSession
-      let route = OnboardingRoute.workoutRecording(startedSession.id)
-      if hasCompletedSetup { programPath.append(route) } else { path.append(route) }
-    } catch {
-      workoutErrorMessage = error.localizedDescription
-      workoutErrorPresented = true
-    }
-  }
-
   func retryWorkoutStorage() {
     guard let workoutRepositoryFactory else { return }
     do {
@@ -73,7 +32,7 @@ extension OnboardingModel {
     }
   }
 
-  private func ensureWorkoutRepository() -> WorkoutRepository? {
+  func ensureWorkoutRepository() -> WorkoutRepository? {
     if let workoutRepository { return workoutRepository }
     retryWorkoutStorage()
     return workoutRepository

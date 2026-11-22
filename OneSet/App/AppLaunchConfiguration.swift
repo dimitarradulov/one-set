@@ -8,6 +8,7 @@ struct AppLaunchConfiguration {
   let includesMainTabsPreview: Bool
   #if DEBUG
   /// Preset subscription state from `--ui-subscription-<active|inactive|checking|failed|pending>`.
+  /// `--ui-main-workout-gated` opens the tab preview, taps Start once, and defaults to inactive.
   let subscriptionPreset: SubscriptionAccessPreset?
   /// Checkout sheet state from `--ui-paywall[-unavailable|-verifying|-verify-failed|-pending]`.
   let paywallPreview: PaywallPreviewState?
@@ -42,6 +43,7 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-signout-confirmation")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
       || Self.subscriptionSettingsRoute(arguments: arguments) != nil
+      || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
       || arguments.contains("--ui-setup-cycle-conflict")
       || arguments.contains("--ui-session-signout-confirmation")
@@ -58,6 +60,7 @@ struct AppLaunchConfiguration {
     let settingsRoute = Self.subscriptionSettingsRoute(arguments: arguments)
     subscriptionSettingsRoute = settingsRoute
     subscriptionPreset = SubscriptionAccessPreset(arguments: arguments) ?? settingsRoute?.preset
+      ?? (arguments.contains("--ui-main-workout-gated") ? .inactive : nil)
     subscriptionRestore = SubscriptionRestorePreset(arguments: arguments) ?? settingsRoute?.restore
     paywallPreview = Self.paywallPreview(arguments: arguments)
     #endif
@@ -88,7 +91,7 @@ struct AppLaunchConfiguration {
       programPath = [.programs]
     } else if arguments.contains("--ui-program-change-preview") {
       programPath = [.workoutPreview(programID: "bro-split", workoutID: "bro-split-day-1-chest")]
-    } else if arguments.contains("--ui-main-workout-preview") {
+    } else if arguments.contains("--ui-main-workout-preview") || arguments.contains("--ui-main-workout-gated") {
       programPath = [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
     } else if arguments.contains("--ui-main-exercise-detail") {
       programPath = [

@@ -60,6 +60,8 @@ final class PreviewSubscriptionAccessService: SubscriptionAccessService, Subscri
 
   func appDidReturnToForeground() {}
 
+  func waitUntilNoInteractiveOperation() async {}
+
   func currentAccess(for selection: AccountSelection) async -> SubscriptionAccessResult {
     if preset == .checking {
       try? await Task.sleep(for: .seconds(86_400))

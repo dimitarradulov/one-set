@@ -50,7 +50,35 @@ struct SubscriptionPackage: Hashable, Sendable {
 
 enum SubscriptionOperationError: Error, Equatable, Sendable {
   case cancelled
+  /// RevenueCat refused because the receipt belongs to another App User ID.
   case linkedToAnotherAccount
   case operationInProgress
+  /// Checkout is not allowed: access is not freshly verified inactive, or a payment is pending.
+  case checkoutUnavailable
   case failed
+}
+
+extension SubscriptionOperationError: LocalizedError {
+  static let linkedToAnotherAccountMessage =
+    "This subscription is linked to another OneSet account. Sign in to that account to use Pro."
+
+  /// Nil when the user needs no message, such as after cancelling.
+  var errorDescription: String? {
+    switch self {
+    case .cancelled: nil
+    case .linkedToAnotherAccount: Self.linkedToAnotherAccountMessage
+    case .operationInProgress: "Another purchase or restore is already in progress."
+    case .checkoutUnavailable: "Purchases are not available for this account right now."
+    case .failed: "That didn't finish. Try again."
+    }
+  }
+}
+
+/// How a purchase or restore that RevenueCatUI ran ended, as reported by its callbacks.
+enum PaywallOperationResult: Equatable, Sendable {
+  case succeeded
+  case cancelled
+  /// The payment is waiting for approval.
+  case pendingApproval
+  case failed(SubscriptionOperationError)
 }

@@ -10,11 +10,13 @@ private final class GatedApproval: PaywallApproving {
   func approvePurchase(_ package: SubscriptionPackage, for selection: AccountSelection) async
     -> PaywallApprovalDecision { .approved }
 
-  func approveRestore(for selection: AccountSelection) async -> PaywallApprovalDecision {
+  func approveRestore(for selection: AccountSelection) async -> PaywallApprovalDecision { .approved }
+
+  func preflightRestore(for selection: AccountSelection) async -> PaywallApprovalDecision {
     await withCheckedContinuation { continuation = $0 }
   }
 
-  func release(for selection: AccountSelection) {}
+  func release(_ result: PaywallOperationResult, for selection: AccountSelection) {}
 
   func waitForRequest() async {
     while continuation == nil { await Task.yield() }
@@ -179,7 +181,7 @@ struct SubscriptionSettingsModelTests {
     harness.service.restoreResult = .success(.proVerified(expiresAt: future))
     await harness.model.restorePurchases()
     #expect(harness.approval.restoreApprovals == 1)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)  // the parent restore holds no slot
     #expect(harness.model.restore == .restored)
     #expect(harness.model.status == .active)
   }
@@ -199,7 +201,7 @@ struct SubscriptionSettingsModelTests {
     harness.service.restoreResult = .failure(.linkedToAnotherAccount)
     await harness.model.restorePurchases()
     #expect(harness.model.restore == .linkedToAnotherAccount)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)  // the parent restore holds no slot
   }
 
   @Test func failedRestoreIsReported() async {
@@ -225,7 +227,7 @@ struct SubscriptionSettingsModelTests {
     await harness.model.restorePurchases()
     #expect(harness.model.status == .pending)
     #expect(harness.model.restore == .idle)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)  // the parent restore holds no slot
   }
 
   @Test func deniedRestoreFails() async {
@@ -234,7 +236,7 @@ struct SubscriptionSettingsModelTests {
     harness.approval.restoreDecision = .denied(.operationInProgress)
     await harness.model.restorePurchases()
     #expect(harness.model.restore == .failed)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)  // the parent restore holds no slot
   }
 
   @Test func restoreIsDisabledWhileCheckingAccess() async {
