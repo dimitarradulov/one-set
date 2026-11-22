@@ -11,6 +11,7 @@ struct AppDependencies {
   let accountProgress: (any AccountProgressService)?
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let sessionHistory: (any SessionHistoryService)?
+  let subscriptionAccess: any SubscriptionAccessService
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
@@ -36,6 +37,9 @@ struct AppDependencies {
       accountProgress: nil,
       completedSessionUpload: nil,
       sessionHistory: nil,
+      subscriptionAccess: PreviewSubscriptionAccessService(
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active
+      ),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -234,6 +238,7 @@ struct AppDependencies {
           failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
+        subscriptionAccess: PreviewSubscriptionAccessService(preset: launch.subscriptionPreset ?? .active),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -272,6 +277,12 @@ struct AppDependencies {
     #endif
 
     let authentication = ClerkAuthenticationService()
+    #if DEBUG
+    let subscriptionAccess: any SubscriptionAccessService = launch.subscriptionPreset
+      .map { PreviewSubscriptionAccessService(preset: $0) } ?? UnconfiguredSubscriptionAccessService()
+    #else
+    let subscriptionAccess: any SubscriptionAccessService = UnconfiguredSubscriptionAccessService()
+    #endif
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -291,6 +302,7 @@ struct AppDependencies {
       accountProgress: HTTPAccountProgressService(authentication: authentication),
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       sessionHistory: HTTPSessionHistoryService(authentication: authentication),
+      subscriptionAccess: subscriptionAccess,
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }

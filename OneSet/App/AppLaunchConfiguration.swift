@@ -6,6 +6,10 @@ struct AppLaunchConfiguration {
   let settingsPath: [SettingsDestination]
   let programPath: [OnboardingRoute]
   let includesMainTabsPreview: Bool
+  #if DEBUG
+  /// Preset subscription state from `--ui-subscription-<active|inactive|checking|failed|pending>`.
+  let subscriptionPreset: SubscriptionAccessPreset?
+  #endif
 
   static func usesMainTabsPreview(arguments: [String]) -> Bool {
     #if DEBUG
@@ -30,6 +34,9 @@ struct AppLaunchConfiguration {
 
   init(arguments: [String]) {
     includesMainTabsPreview = Self.usesMainTabsPreview(arguments: arguments)
+    #if DEBUG
+    subscriptionPreset = SubscriptionAccessPreset(arguments: arguments)
+    #endif
     #if DEBUG
     if arguments.contains("--ui-main-history") || arguments.contains("--ui-history-populated")
       || arguments.contains("--ui-history-partial-detail") || arguments.contains("--ui-history-empty")
