@@ -5,6 +5,7 @@ struct OnboardingFlowView: View {
   @State private var networkMonitor = WorkoutNetworkMonitor()
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
+  @Bindable var subscription: SubscriptionSettingsModel
 
   #if DEBUG
   var onDevelopmentSignIn: (() -> Void)?
@@ -68,7 +69,7 @@ struct OnboardingFlowView: View {
         AccountSetupScreen(model: model, authentication: authentication)
       case .idle:
         if model.hasCompletedSetup {
-          CompletedSetupTabsView(model: model, authentication: authentication)
+          CompletedSetupTabsView(model: model, authentication: authentication, subscription: subscription)
         } else {
           journey
         }
@@ -324,6 +325,9 @@ extension OnboardingFlowView {
 #Preview {
   OnboardingFlowView(
     model: OnboardingModel(catalog: .bundled),
-    authentication: AuthenticationModel(service: PreviewAuthenticationService())
+    authentication: AuthenticationModel(service: PreviewAuthenticationService()),
+    subscription: SubscriptionSettingsModel(
+      access: UnconfiguredSubscriptionAccessService(), host: RevenueCatPaywallHost(),
+      approval: UnconfiguredPaywallApproval())
   )
 }

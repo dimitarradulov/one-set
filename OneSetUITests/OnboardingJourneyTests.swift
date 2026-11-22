@@ -1158,6 +1158,14 @@ final class OnboardingJourneyTests: XCTestCase {
       XCTAssertGreaterThanOrEqual(app.buttons[row].frame.height, 44)
       app.buttons[row].tap()
       XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+      if row == "settings.row.subscription" {
+        // The Subscription screen replaced the placeholder; its states have their own tests.
+        XCTAssertTrue(app.buttons["subscription.manage"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["settings.destination.comingSoon"].exists)
+        navigationBack().tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+        continue
+      }
       XCTAssertTrue(app.staticTexts["settings.destination.comingSoon"].exists)
       XCTAssertTrue(app.staticTexts.matching(
         NSPredicate(format: "label == %@", explanation)

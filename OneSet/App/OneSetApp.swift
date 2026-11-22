@@ -6,6 +6,7 @@ struct OneSetApp: App {
   private let restAlerts: WorkoutRestAlerts?
   @State private var onboarding: OnboardingModel
   @State private var authentication: AuthenticationModel
+  @State private var subscriptionSettings: SubscriptionSettingsModel
   @Environment(\.scenePhase) private var scenePhase
   private let subscriptionAccounts: (any SubscriptionAccountSelecting)?
 
@@ -52,13 +53,20 @@ struct OneSetApp: App {
     model.beforeSignOut = { await accounts?.waitUntilNoInteractiveOperation() }
     if let accounts { model.accountSelectionProvider = { accounts.selection } }
     _onboarding = State(initialValue: model)
+    _subscriptionSettings = State(initialValue: Self.subscriptionSettings(for: dependencies))
     _authentication = State(initialValue: AuthenticationModel(
       service: dependencies.authentication
     ))
   }
 
+  private static func subscriptionSettings(for dependencies: AppDependencies) -> SubscriptionSettingsModel {
+    SubscriptionSettingsModel(
+      access: dependencies.subscriptionAccess, host: dependencies.paywallHost,
+      approval: dependencies.paywallApproval)
+  }
+
   private var onboardingFlow: OnboardingFlowView {
-    var flow = OnboardingFlowView(model: onboarding, authentication: authentication)
+    var flow = OnboardingFlowView(model: onboarding, authentication: authentication, subscription: subscriptionSettings)
     #if DEBUG
     flow.onDevelopmentSignIn = {
       let dependencies = AppDependencies.development()
@@ -78,6 +86,9 @@ struct OneSetApp: App {
         restAlerts: restAlerts
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
+      subscriptionSettings = Self.subscriptionSettings(for: dependencies)
+      let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
+      onboarding.onResolvedAccountChange = { accounts?.selectAccount($0) }
       isDevelopmentSession = true
     }
     flow.onDevelopmentSignOut = {
@@ -99,6 +110,9 @@ struct OneSetApp: App {
         restAlerts: restAlerts
       )
       authentication = AuthenticationModel(service: dependencies.authentication)
+      subscriptionSettings = Self.subscriptionSettings(for: dependencies)
+      let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
+      onboarding.onResolvedAccountChange = { accounts?.selectAccount($0) }
       isDevelopmentSession = false
     }
     #endif

@@ -59,7 +59,8 @@ struct AppDependencies {
       completedSessionUpload: nil,
       sessionHistory: nil,
       subscriptionAccess: PreviewSubscriptionAccessService(
-        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active,
+        restore: SubscriptionRestorePreset(arguments: arguments)
       ),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
@@ -259,7 +260,8 @@ struct AppDependencies {
           failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
-        subscriptionAccess: PreviewSubscriptionAccessService(preset: launch.subscriptionPreset ?? .active),
+        subscriptionAccess: PreviewSubscriptionAccessService(
+          preset: launch.subscriptionPreset ?? .active, restore: launch.subscriptionRestore),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -330,8 +332,9 @@ struct AppDependencies {
     arguments: [String], environment: [String: String], storage: AppStorage
   ) -> any SubscriptionAccessService {
     #if DEBUG
-    if let preset = AppLaunchConfiguration(arguments: arguments).subscriptionPreset {
-      return PreviewSubscriptionAccessService(preset: preset)
+    let launch = AppLaunchConfiguration(arguments: arguments)
+    if let preset = launch.subscriptionPreset {
+      return PreviewSubscriptionAccessService(preset: preset, restore: launch.subscriptionRestore)
     }
     if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
     #endif
