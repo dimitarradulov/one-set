@@ -31,6 +31,7 @@ struct OneSetApp: App {
       progressService: dependencies.accountProgress,
       completedSessionUploadService: dependencies.completedSessionUpload,
       sessionHistoryService: dependencies.sessionHistory,
+      subscriptionAccess: dependencies.subscriptionAccess,
       progressStore: dependencies.onboardingProgress,
       workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
       restAlerts: restAlerts,
@@ -60,6 +61,7 @@ struct OneSetApp: App {
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
+        subscriptionAccess: dependencies.subscriptionAccess,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
@@ -78,6 +80,7 @@ struct OneSetApp: App {
         progressService: dependencies.accountProgress,
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
+        subscriptionAccess: dependencies.subscriptionAccess,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts

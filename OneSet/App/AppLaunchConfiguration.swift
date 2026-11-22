@@ -8,6 +8,7 @@ struct AppLaunchConfiguration {
   let includesMainTabsPreview: Bool
   #if DEBUG
   /// Preset subscription state from `--ui-subscription-<active|inactive|checking|failed|pending>`.
+  /// `--ui-main-workout-gated` opens the tab preview, taps Start once, and defaults to inactive.
   let subscriptionPreset: SubscriptionAccessPreset?
   #endif
 
@@ -22,6 +23,7 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-history-pagination") || arguments.contains("--ui-history-offline-boundary")
       || arguments.contains("--ui-signout-confirmation")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
       || arguments.contains("--ui-setup-cycle-conflict")
       || arguments.contains("--ui-session-signout-confirmation")
@@ -36,6 +38,7 @@ struct AppLaunchConfiguration {
     includesMainTabsPreview = Self.usesMainTabsPreview(arguments: arguments)
     #if DEBUG
     subscriptionPreset = SubscriptionAccessPreset(arguments: arguments)
+      ?? (arguments.contains("--ui-main-workout-gated") ? .inactive : nil)
     #endif
     #if DEBUG
     if arguments.contains("--ui-main-history") || arguments.contains("--ui-history-populated")
@@ -59,7 +62,7 @@ struct AppLaunchConfiguration {
       programPath = [.programs]
     } else if arguments.contains("--ui-program-change-preview") {
       programPath = [.workoutPreview(programID: "bro-split", workoutID: "bro-split-day-1-chest")]
-    } else if arguments.contains("--ui-main-workout-preview") {
+    } else if arguments.contains("--ui-main-workout-preview") || arguments.contains("--ui-main-workout-gated") {
       programPath = [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
     } else if arguments.contains("--ui-main-exercise-detail") {
       programPath = [

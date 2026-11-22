@@ -101,6 +101,11 @@ final class OnboardingModel {
   private(set) var sessionUploadErrorMessage = ""
   var workoutStorageOpenFailed = false
   var previousPerformanceUnavailable = false
+  let subscriptionAccess: (any SubscriptionAccessService)?
+  var accountSelectionGeneration = 0
+  var workoutStartGate: WorkoutStartGate?
+  var workoutStartAttempt: UUID?
+  var plansRequest: PlansRequest?
 
   init(
     catalog: ProgramCatalog,
@@ -111,6 +116,7 @@ final class OnboardingModel {
     progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     sessionHistoryService: (any SessionHistoryService)? = nil,
+    subscriptionAccess: (any SubscriptionAccessService)? = nil,
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
@@ -139,6 +145,7 @@ final class OnboardingModel {
     self.restAlerts = restAlerts
     self.completedSessionUploadService = completedSessionUploadService
     self.sessionHistoryService = sessionHistoryService
+    self.subscriptionAccess = subscriptionAccess
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
@@ -648,6 +655,10 @@ extension OnboardingModel {
     backgroundRestoration = nil
     lookupGeneration += 1
     cycleKnowledgeGeneration += 1
+    accountSelectionGeneration += 1
+    workoutStartGate = nil
+    workoutStartAttempt = nil
+    plansRequest = nil
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle

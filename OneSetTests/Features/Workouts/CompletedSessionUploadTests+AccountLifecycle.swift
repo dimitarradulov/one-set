@@ -212,7 +212,7 @@ extension CompletedSessionUploadTests {
       accountID: "preview-user", cycleID: localSetup.cycleID,
       programID: localProgram.id, workoutIDs: localProgram.workouts.map(\.id)
     )
-    model.startWorkout(
+    await model.startWorkout(
       programID: localProgram.id, workoutID: nextLocalOccurrence.workoutID, accountID: "preview-user"
     )
     let activeSession = try #require(model.activeWorkoutSession)
