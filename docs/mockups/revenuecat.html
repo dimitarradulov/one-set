@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneSet · Subscription mockups</title>
+<style>
+@font-face{font-family:Bebas;src:url("../../OneSet/DesignSystem/Fonts/BebasNeue-Regular.ttf")}
+@font-face{font-family:Montserrat;src:url("../../OneSet/DesignSystem/Fonts/Montserrat-Regular.ttf")}
+@font-face{font-family:Montserrat;src:url("../../OneSet/DesignSystem/Fonts/Montserrat-Medium.ttf");font-weight:500 800}
+:root{--paper:#eeebe5;--ink:#211f1b;--quiet:#5b544a;--rule:#cbc3b7;--bg:#1a1a1a;--surface:#222;--raised:#2a2a2a;--line:#3a3a3a;--text:#e5e5e5;--muted:#a3a3a3;--accent:#d97706;--link:#f5a743}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+h1,h2,h3,p,figure{margin:0}
+button,select{font:inherit}
+button,select{cursor:pointer}
+a{color:inherit;text-underline-offset:3px}
+:is(a,button,select,input):focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.board{max-width:1800px;margin:auto;padding:38px 36px 32px}
+.masthead{display:flex;justify-content:space-between;align-items:end;gap:24px;border-bottom:1px solid var(--ink);padding-bottom:22px}
+.masthead h1{font:clamp(44px,5vw,78px)/.93 Bebas,sans-serif;letter-spacing:-.015em}
+.masthead p{margin-top:10px;color:var(--quiet)}
+.board-controls{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.board label{display:grid;gap:3px;font-size:12px;font-weight:600}
+.board select{min-height:44px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink);padding:0 9px}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;padding-top:22px}
+.panel{min-width:0}
+.panel-head{display:flex;align-items:end;justify-content:space-between;gap:6px;margin-bottom:10px}
+.panel-head h2{font:30px/1 Bebas,sans-serif}
+.panel-head label{min-width:0}.panel-head select{max-width:100%}
+.panel figcaption{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);color:var(--quiet);font-size:13px}
+.board-footer{border-top:1px solid var(--ink);margin-top:24px;padding-top:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--quiet);font-size:13px}
+.device{position:relative;height:822px;isolation:isolate;display:flex;flex-direction:column;overflow:hidden;border:5px solid #101010;border-radius:35px;background:var(--bg);color:var(--text);font:15px/1.5 Montserrat,system-ui,sans-serif}
+.device button{font:inherit;color:inherit}
+.device h3{font:36px/1 Bebas,sans-serif}
+.device h4{font:24px/1.05 Bebas,sans-serif;margin:0}
+.status{height:45px;flex:none;padding:11px 22px 0;display:flex;align-items:start;justify-content:space-between;font:600 14px/18px system-ui}
+.status-right{display:flex;align-items:center;gap:4px}
+.island{display:block;width:88px;height:21px;background:#0b0b0b;border-radius:99px;position:absolute;left:50%;top:8px;transform:translateX(-50%)}
+.home{height:4px;width:110px;background:#eee;border-radius:999px;margin:8px auto;flex:none}
+.nav{height:46px;flex:none;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 13px;font:600 16px/1 system-ui}
+.nav .back{display:flex;align-items:center;gap:3px;color:var(--link);font-weight:400}
+.pips{display:flex;gap:5px;align-items:center}
+.pips span{width:6px;height:6px;border-radius:50%;background:#767676}
+.pips span.current{width:16px;border-radius:5px;background:var(--accent)}
+.screen{flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{min-height:0;flex:1;overflow:auto;scrollbar-width:none}
+.content{width:min(100%,560px);margin:0 auto;padding:22px 19px 18px}
+.content>h3+p,.section-copy{margin-top:9px;color:var(--muted)}
+.program-card{margin-top:24px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:15px 16px}
+.program-card p{color:var(--muted);font-size:13px}
+.program-card h4{margin:5px 0}
+.notice{display:grid;grid-template-columns:19px 1fr;gap:10px;align-items:start}
+.notice svg{margin-top:2px;color:var(--link)}
+.notice strong{font-weight:600;display:block}
+.notice p{color:var(--muted);font-size:13px;margin-top:4px}
+.onboard .notice{margin-top:24px}
+.actions{width:min(100%,560px);margin:auto auto 0;padding:10px 19px 3px;display:grid;gap:4px}
+.device button{border:0;background:none;min-height:44px;padding:0 8px}
+.device button.primary{min-height:52px;border-radius:12px;background:var(--accent);color:#110b03;font-weight:600}
+.device button.primary:disabled{background:#303030;color:#b6b6b6;cursor:default}
+.device button.secondary{color:var(--link)}
+.device button.quiet{color:var(--muted)}
+.device button:not(:disabled):hover{filter:brightness(1.13)}
+.icon{width:18px;height:18px;vertical-align:middle;flex:none}
+.spinner{display:inline-block;width:17px;height:17px;border:2px solid #626262;border-top-color:var(--link);border-right-color:var(--link);border-radius:50%;vertical-align:middle;animation:turn 1s linear infinite;margin-right:7px}
+@keyframes turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+.paywall{background:#151515}
+.sheet{background:var(--bg);border-radius:24px 24px 0 0;flex:1;min-height:0;display:flex;flex-direction:column;position:relative;border-top:1px solid #434343;margin-top:7px}
+.sheet-bar{display:flex;justify-content:space-between;align-items:center;padding:9px 16px 0;position:relative}
+.grabber{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:35px;height:4px;border-radius:9px;background:#5b5b5b}
+.device .close{width:44px;border-radius:99px;background:var(--raised)}
+.paywall .content{padding-top:15px}
+.paywall h3{font-size:48px}
+.paywall h3+p{max-width:27ch}
+.plans{margin:23px 0 0;padding:0;border:0;display:grid;gap:9px}
+.plans legend{font-size:13px;color:var(--muted);margin-bottom:8px}
+.paywall-feedback{margin-top:24px}
+.device .plan{display:grid;grid-template-columns:19px 1fr auto;align-items:center;gap:11px;min-height:68px;border:1px solid var(--line);padding:10px 12px;border-radius:12px;background:var(--surface);font:500 15px/1.3 Montserrat;cursor:pointer}
+.plan.selected{border-color:var(--accent);background:#2b241a}
+.plan input{appearance:none;width:18px;height:18px;margin:0;border:1px solid #939393;border-radius:50%}
+.plan input:checked{border-color:#f3a13c;background:radial-gradient(circle,#f3a13c 0 4px,transparent 4.5px)}
+.price{font-variant-numeric:tabular-nums;text-align:right}
+.price small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.offer-copy{font-size:12px;color:var(--muted);margin:0 0 7px;text-align:center;line-height:1.55}
+.paywall-footer{width:min(100%,560px);margin:auto auto 0;padding:8px 16px 0}
+.paywall-footer .primary{width:100%}
+.billing-tools{display:flex;justify-content:center;flex-wrap:wrap;gap:0 8px}
+.device .billing-tools button{padding:0 4px;color:var(--link);font-size:11px}
+.billing-tools.links button{color:var(--muted)}
+.billing-tools.links{margin-top:-8px}
+.banner{min-height:228px;display:grid;align-content:end;gap:3px;padding:18px 19px;color:#fff;background:linear-gradient(transparent 18%,#000d 100%),url("../../artwork/workout-banners/banners/general-gym.jpg") center 46%/cover}
+.banner span{font-size:13px}
+.workout .content{padding-top:16px}
+.summary{font-size:13px;margin-bottom:16px}
+.summary .icon{margin-right:5px}
+.exercise-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:5px}
+.exercise-heading span,.exercise-row small,.exercise-row>span:first-child{font-size:12px;color:var(--muted)}
+.exercise-row{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);min-height:53px}
+.exercise-row strong{font-size:14px;font-weight:500}
+.exercise-row small{display:block}
+.exercise-row .icon{color:var(--muted);width:14px}
+.workout .workout-actions{border-top:1px solid var(--line);padding-top:10px}
+.workout-actions .notice{padding:0 0 8px}
+.settings .content{padding-top:23px}
+.group-label{color:var(--muted);font:14px/1.3 system-ui;margin:0 12px 7px}
+.group{border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:21px}
+.group .status-row{padding:14px 13px}
+.group button{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:9px;width:100%;min-height:52px;text-align:left;padding:10px 13px;font-size:14px}
+.group button+button{border-top:1px solid var(--line)}
+.group button .icon{color:var(--link)}
+.group button .icon:last-child{color:var(--muted);width:14px}
+.group-note{margin:-10px 12px 18px;color:var(--muted);font-size:12px}
+.tabs{border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:8px 12px 0;font:11px/1.1 system-ui;color:var(--muted)}
+.tabs span{display:grid;justify-items:center;gap:4px}
+.tabs .current{color:var(--link)}
+.tabs .icon{width:21px;height:21px}
+.tablet .gallery{display:block}
+.tablet .panel{max-width:835px;margin:auto}
+.tablet .panel:not(.focused){display:none}
+.tablet .device{height:924px}
+.tablet .island{display:none}
+.tablet .banner{min-height:302px;padding-left:max(19px,calc((100% - 522px) / 2))}
+.tablet .sheet{width:min(100%,548px);align-self:center;margin-top:60px;border:1px solid var(--line);border-bottom:0}
+@media(max-width:1510px) and (min-width:970px){.board{padding-inline:22px}.gallery{gap:14px}.panel-head{align-items:start;flex-direction:column}}
+@media(max-width:1160px){.gallery{grid-template-columns:repeat(2,minmax(0,400px));justify-content:center}}
+@media(max-width:680px){.board{padding:22px 13px}.masthead{align-items:start;flex-direction:column;gap:12px}.gallery{grid-template-columns:minmax(0,420px)}.panel:not(.focused){display:none}.device{height:790px}.tablet .device{height:850px}}
+</style>
+</head>
+<body>
+<main class="board">
+  <header class="masthead">
+    <div>
+      <h1>OneSet subscriptions</h1>
+      <p>RevenueCat integration mockups · Illustrative U.S. storefront</p>
+    </div>
+    <div class="board-controls">
+      <label>Device <select id="device"><option value="phone">iPhone</option><option value="tablet">iPad</option></select></label>
+      <label>Screen <select id="focus"><option value="onboard">Onboarding</option><option value="paywall">Paywall</option><option value="workout">Workout preview</option><option value="settings">Settings</option></select></label>
+    </div>
+  </header>
+  <div class="gallery" id="gallery"></div>
+  <footer class="board-footer">
+    <p>Use each screen’s state menu to review the proposed feedback and actions.</p>
+    <a href="../revenuecat-integration.md">RevenueCat integration brief</a>
+  </footer>
+</main>
+<script>
+const icons = {
+  arrow:'<path d="m14 5-7 7 7 7"/>',
+  next:'<path d="m9 6 6 6-6 6"/>',
+  close:'<path d="m6 6 12 12M18 6 6 18"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/>',
+  refresh:'<path d="M19 9a7.5 7.5 0 1 0 .5 5m0-9v5H15"/>',
+  external:'<path d="M14 5h5v5m0-5-8 8m5 0v6H5V8h6"/>',
+  list:'<path d="M10 6h10m-10 6h10m-10 6h10M4 6h1M4 12h1m-1 6h1"/>',
+  program:'<rect x="5" y="5" width="14" height="15" rx="2"/><path d="M9 3v5m6-5v5M5 10h14"/>',
+  history:'<path d="M4 11a8 8 0 1 1 1 5m-1-9v5h5m3-4v5l3 2"/>',
+  settings:'<path d="M4 6h16M4 12h16M4 18h16m-11-9V3m6 12V9m-6 12v-6"/>',
+  signal:'<path d="M4 18v-3m5 3v-6m5 6V8m5 10V4"/>',
+  wifi:'<path d="M3 9a14 14 0 0 1 18 0M6 13a9 9 0 0 1 12 0m-9 4a4 4 0 0 1 6 0m-3 3h.01"/>',
+  battery:'<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/><rect x="4" y="9" width="14" height="6" fill="currentColor" stroke="none" rx="1"/>'
+};
+const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
+const boards = {
+  onboard: {
+    title:'Onboarding',
+    states:{offer:'Offer available', checking:'Checking access', failed:'Check failed', pending:'Approval pending', saving:'Pro verified', saveFailed:'Setup save failed', bypass:'Continue without trial'},
+    captions:{
+      offer:'After program selection, a verified inactive account can see plans or skip the trial.',
+      checking:'The initial check shows progress. The user can still complete setup without a trial.',
+      failed:'Retry checks access again. Continue without trial still completes setup.',
+      pending:'Approval is tied to the initiating account. In the meantime, the user can skip the offer.',
+      saving:'Once Pro is verified, save setup once and open the selected program.',
+      saveFailed:'Retry the setup save after verification without opening checkout.',
+      bypass:'Skipping the offer opens the selected program. Previews and training history remain available.'
+    }
+  },
+  paywall: {
+    title:'Paywall',
+    states:{eligible:'Trial eligible', ineligible:'No trial available', unavailable:'Plans unavailable', verifying:'Verifying purchase', verifyFailed:'Verification failed', restoring:'Restoring purchases', noPurchase:'Nothing to restore', mismatch:'Different OneSet account', pending:'Approval pending', active:'Access confirmed'},
+    captions:{
+      eligible:'Both renewal periods and the charge after the trial are visible before Apple checkout.',
+      ineligible:'Previously used introductory offers show the price due now.',
+      unavailable:'The parent sheet retains Restore Purchases and Manage Subscription if the offering fails.',
+      verifying:'After Apple confirms payment, the parent sheet checks for Pro.',
+      verifyFailed:'A retry checks Pro again without restarting payment.',
+      restoring:'The parent sheet checks for an active subscription for this OneSet account.',
+      noPurchase:'The parent sheet reports when there is no active purchase to restore.',
+      mismatch:'The parent sheet shows which OneSet account can use the subscription.',
+      pending:'The parent sheet offers a status check while Apple approval is outstanding.',
+      active:'Close checkout and return to the workout preview. The user starts the workout there.'
+    }
+  },
+  workout: {
+    title:'Workout preview',
+    states:{gated:'Pro required', ready:'Ready to start', checking:'Checking access', offline:'Offline check needed', pending:'Approval pending', resumed:'Session underway', returning:'Returned from checkout'},
+    captions:{
+      gated:'Both workout preview routes use the same access decision. The exercise list stays readable.',
+      ready:'Start checks access before creating a new session. A valid saved expiry can allow an offline start.',
+      checking:'One access check runs while the preview remains visible.',
+      offline:'Once saved access expires, reconnect to check renewal before creating another session.',
+      pending:'Keep checkout closed while approval is outstanding. Check purchase status in place.',
+      resumed:'A session already underway can resume, finish, and sync after Pro expires.',
+      returning:'After verification, return to the same preview. Start workout remains an explicit tap.'
+    }
+  },
+  settings: {
+    title:'Settings',
+    states:{active:'Pro active', inactive:'No active subscription', checking:'Checking access', restoring:'Restoring purchases', restored:'Purchases restored', noPurchase:'Nothing to restore', mismatch:'Different OneSet account', pending:'Approval pending', failed:'Verification failed'},
+    captions:{
+      active:'Subscription sits in Settings → Account. Management opens Apple’s subscription screen.',
+      inactive:'The account can see plans once a fresh check confirms there is no active Pro.',
+      checking:'The same account check gates checkout from Settings.',
+      restoring:'The status row reports progress while the shared restore runs.',
+      restored:'Show success once access is verified for this account.',
+      noPurchase:'Show the result beside the restore controls.',
+      mismatch:'Keep the purchase attached to the original OneSet account.',
+      pending:'The initiating account can check approval status after relaunch.',
+      failed:'Try Again checks access. Apple billing management remains available.'
+    }
+  }
+};
+
+let states = {onboard:'offer',paywall:'eligible',workout:'gated',settings:'active'};
+let plan = 'yearly';
+let origin = null;
+const titles = {monthly:'Monthly',yearly:'Yearly'};
+const prices = {monthly:'$4.89',yearly:'$49.99'};
+const accountMismatch = 'This subscription is linked to another OneSet account. Sign in to that account to use Pro.';
+const noActivePurchase = 'Check that you’re signed in to the Apple Account that made the purchase.';
+const periods = {monthly:'month',yearly:'year'};
+const button = (label, action, kind = 'secondary', disabled = false) =>
+  `<button type="button" class="${kind}" data-action="${action}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+const notice = (symbol, title, copy = '') =>
+  `<div class="notice">${symbol === 'spinner' ? '<span class="spinner" aria-hidden="true"></span>' : icon(symbol)}<div><strong>${title}</strong>${copy ? `<p>${copy}</p>` : ''}</div></div>`;
+const status = () => `<div class="status" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="status-right">${icon('signal')}${icon('wifi')}${icon('battery')}</span></div>`;
+const nav = (back, title) => `<div class="nav"><span class="back" aria-hidden="true">${icon('arrow')}${back}</span>${title}<span></span></div>`;
+const pips = '<span class="pips" aria-label="Step 3 of 4"><span></span><span></span><span class="current"></span><span></span></span>';
+const home = '<div class="home" aria-hidden="true"></div>';
+const settingsTabs = `<div class="tabs" aria-hidden="true"><span>${icon('program')}Program</span><span>${icon('history')}History</span><span class="current">${icon('settings')}Settings</span></div>`;
+
+function onboarding(state) {
+  const feedback = {
+    checking:notice('spinner','Checking subscription access'),
+    failed:notice('alert','Couldn’t check access','Connect to the internet and try again.'),
+    pending:notice('clock','Waiting for purchase approval','You can check again after Apple approves the purchase.'),
+    saving:notice('spinner','Pro verified','Saving your program setup…'),
+    saveFailed:notice('alert','Couldn’t save setup','Your Pro access is confirmed. Try saving your setup again.'),
+    bypass:notice('check','Program saved','You can preview workouts and view training history.')
+  };
+  const action = {
+    offer:button('See plans','open-paywall','primary'),
+    failed:button('Try Again','onboard:checking','primary'),
+    pending:button('Check status','onboard:checking','primary'),
+    saveFailed:button('Retry saving setup','onboard:saving','primary')
+  };
+  const skip = !['saving','saveFailed','bypass'].includes(state);
+  return `${nav('Program',pips)}
+    <div class="screen">
+      <div class="scroll"><div class="content">
+        <h3>${state === 'bypass' ? 'Machine Full Body' : 'Train with OneSet Pro'}</h3>
+        ${state === 'bypass' ? '' : '<p>Start workouts in your selected program. Eligible Apple accounts get a 7-day free trial.</p>'}
+        <div class="program-card"><p>${state === 'bypass' ? 'Training week 1' : 'Selected program'}</p><h4>${state === 'bypass' ? 'Workout A' : 'Machine Full Body'}</h4><p>3 days per week · 3 workouts</p></div>
+        ${feedback[state] ?? ''}
+      </div></div>
+      <div class="actions">${action[state] ?? ''}${skip ? button('Continue Without Trial','onboard:bypass','quiet') : ''}</div>
+    </div>`;
+}
+
+function paywall(state) {
+  const showsPlans = ['eligible','ineligible'].includes(state);
+  const trial = state === 'eligible';
+  const feedback = {
+    unavailable:notice('alert','Plans are unavailable','Try loading the plans again, or restore a previous purchase.'),
+    verifying:notice('spinner','Verifying your purchase','We’re checking Pro access for this OneSet account.'),
+    verifyFailed:notice('alert','Purchase verification failed','Apple confirmed your purchase. Try checking Pro access again.'),
+    restoring:notice('spinner','Restoring purchases','Checking for an active Apple subscription.'),
+    noPurchase:notice('alert','No active purchases found',noActivePurchase),
+    mismatch:notice('alert','Restore unavailable',accountMismatch),
+    pending:notice('clock','Waiting for purchase approval','Check again after Apple approves the purchase.'),
+    active:notice('check','OneSet Pro is active','You can start a workout from your program.')
+  };
+  const action = {
+    unavailable:button('Try Again','paywall:eligible','primary'),
+    verifyFailed:button('Try Again','paywall:verifying','primary'),
+    pending:button('Check status','paywall:verifying','primary'),
+    active:button('Done','complete','primary')
+  };
+  const legal = trial
+    ? `7 days free, then ${prices[plan]} per ${periods[plan]} until canceled. Manage or cancel in Apple subscriptions.`
+    : `${prices[plan]} today. Renews at ${prices[plan]} per ${periods[plan]} until canceled. Manage or cancel in Apple subscriptions.`;
+  return `<div class="sheet">
+    <div class="sheet-bar"><span class="grabber" aria-hidden="true"></span><span></span><button class="close" type="button" aria-label="Close" data-action="close">${icon('close')}</button></div>
+    <div class="scroll"><div class="content">
+      <h3>OneSet Pro</h3>
+      <p>Start workouts from guided HIT programs and log your working sets.</p>
+      ${showsPlans ? `<fieldset class="plans"><legend>Choose a subscription</legend>
+        ${Object.keys(titles).map(key => `<label class="plan ${key === plan ? 'selected' : ''}">
+          <input type="radio" name="plan" value="${key}" ${key === plan ? 'checked' : ''}>
+          <span>${titles[key]}</span><span class="price">${prices[key]}<small>per ${periods[key]}</small></span></label>`).join('')}
+      </fieldset>` : `<div class="paywall-feedback">${feedback[state]}</div>`}
+    </div></div>
+    <div class="paywall-footer">
+      ${showsPlans ? `<p class="offer-copy">${legal}</p>${button(trial ? 'Start 7-day trial' : `Subscribe · ${prices[plan]}/${periods[plan]}`,'paywall:verifying','primary')}` : (action[state] ?? '')}
+      <div class="billing-tools">
+        ${button('Restore Purchases','paywall:restoring','secondary',['verifying','restoring','active'].includes(state))}
+        ${button('Manage Subscription','open-apple')}
+      </div>
+      <div class="billing-tools links">${button('Terms','terms')}${button('Privacy','privacy')}</div>
+    </div>
+  </div>`;
+}
+
+const exercises = [
+  ['Hack Squat Machine','6–10 reps'], ['Machine Chest Press','6–10 reps'],
+  ['Neutral-Grip Lat Pulldown','8–12 reps'], ['Seated Leg Curl','8–12 reps'],
+  ['Machine Lateral Raise','12–20 reps'], ['Machine Preacher Curl','8–12 reps'],
+  ['Cable Triceps Pressdown','8–12 reps']
+];
+
+function workout(state) {
+  const feedback = {
+    gated:notice('lock','Pro is required to start','You can still preview workouts and view training history.'),
+    offline:notice('alert','Connect to check Pro access','Reconnect to check your subscription and start a new workout.'),
+    pending:notice('clock','Waiting for purchase approval','Check again after Apple approves the purchase.'),
+    returning:notice('check','OneSet Pro is active')
+  };
+  const action = {
+    gated:button('See plans','open-paywall','primary'),
+    checking:button('<span class="spinner" aria-hidden="true"></span>Checking access…','','primary',true),
+    offline:button('Try Again','workout:checking','primary'),
+    pending:button('Check status','workout:checking','primary'),
+    resumed:button('Resume workout','session','primary')
+  };
+  return `${nav('Program','<span>Workout preview</span>')}
+    <div class="screen">
+      <div class="scroll">
+        <div class="banner"><span>Day 1</span><h3>Workout A</h3><span>Machine Full Body</span></div>
+        <div class="content"><p class="summary">${icon('list')}7 exercises · 1 working set each</p>
+          <div class="exercise-heading"><h4>Exercise order</h4><span>Rep targets</span></div>
+          ${exercises.map(([name,reps], index) => `<div class="exercise-row"><span>${String(index+1).padStart(2,'0')}</span><span><strong>${name}</strong><small>${reps}</small></span>${icon('next')}</div>`).join('')}
+        </div>
+      </div>
+      <div class="actions workout-actions">${feedback[state] ?? ''}${action[state] ?? button('Start workout','workout:checking','primary')}</div>
+    </div>`;
+}
+
+function settings(state) {
+  const feedback = {
+    active:notice('check','OneSet Pro is active','New workouts are available.'),
+    inactive:notice('lock','No active subscription','OneSet Pro is required to start a new workout.'),
+    checking:notice('spinner','Checking subscription access'),
+    restoring:notice('spinner','Restoring purchases','Checking for an active Apple subscription.'),
+    restored:notice('check','Purchases restored','OneSet Pro is active on this account.'),
+    noPurchase:notice('alert','No active purchases found',noActivePurchase),
+    mismatch:notice('alert','Restore unavailable',accountMismatch),
+    pending:notice('clock','Waiting for purchase approval','Check again after Apple approves the purchase.'),
+    failed:notice('alert','Couldn’t verify subscription','Connect to the internet and try again.')
+  };
+  const action = {
+    inactive:button('See plans','open-paywall','primary'),
+    pending:button('Check status','settings:checking','primary'),
+    failed:button('Try Again','settings:checking','primary')
+  };
+  return `${nav('Settings','<span>Subscription</span>')}
+    <div class="screen">
+      <div class="scroll"><div class="content">
+        <p class="group-label">Access</p>
+        <div class="group"><div class="status-row">${feedback[state]}</div></div>
+        <p class="group-label">Apple subscription</p>
+        <div class="group">
+          ${button(icon('refresh') + '<span>Restore Purchases</span>' + icon('next'),'settings:restoring','secondary',['checking','restoring'].includes(state))}
+          ${button(icon('external') + '<span>Manage Subscription</span>' + icon('next'),'open-apple')}
+        </div>
+        <p class="group-note">Manage your plan or cancel in Apple’s subscription settings.</p>
+        ${action[state] ? `<div class="actions" style="padding:8px 12px 0">${action[state]}</div>` : ''}
+      </div></div>
+    </div>${settingsTabs}`;
+}
+
+const renderers = {onboard:onboarding,paywall,workout,settings};
+const gallery = document.querySelector('#gallery');
+const focus = document.querySelector('#focus');
+const device = document.querySelector('#device');
+
+for (const [key, board] of Object.entries(boards)) {
+  const panel = document.createElement('figure');
+  panel.id = key;
+  panel.className = 'panel';
+  panel.innerHTML = `<div class="panel-head">
+    <h2>${board.title}</h2><label><span>State</span>
+      <select aria-label="${board.title} state" data-board="${key}">${Object.entries(board.states).map(([value,label]) => `<option value="${value}">${label}</option>`).join('')}</select>
+    </label></div><div class="device ${key}"></div><figcaption></figcaption>`;
+  gallery.append(panel);
+}
+
+function render(key) {
+  const panel = document.getElementById(key);
+  const frame = panel.querySelector('.device');
+  panel.querySelector('select').value = states[key];
+  frame.innerHTML = status() + renderers[key](states[key]) + home;
+  panel.querySelector('figcaption').textContent = boards[key].captions[states[key]];
+}
+
+function show(key, next) {
+  states[key] = next;
+  render(key);
+}
+
+function applyDevice() {
+  document.querySelector('.board').classList.toggle('tablet',device.value === 'tablet');
+  document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('focused',panel.id === focus.value));
+}
+
+function revisit(key, first, result) {
+  show(key,first);
+  setTimeout(() => {
+    if (states[key] === first) show(key,result);
+  },800);
+}
+
+const previewOnly = {
+  'open-apple':'Apple’s subscription screen opens here on iOS.',
+  terms:'The Terms of Use open here in the app.',
+  privacy:'The Privacy Policy opens here in the app.',
+  session:'The app opens your existing session here.'
+};
+
+gallery.addEventListener('change', event => {
+  const input = event.target;
+  if (input.matches('[data-board]')) show(input.dataset.board,input.value);
+  if (input.name === 'plan') {
+    plan = input.value;
+    render('paywall');
+    document.querySelector(`input[name="plan"][value="${plan}"]`).focus();
+  }
+});
+
+gallery.addEventListener('click', event => {
+  const trigger = event.target.closest('button[data-action]');
+  if (!trigger || trigger.disabled) return;
+  const action = trigger.dataset.action;
+  const source = trigger.closest('.panel').id;
+  if (previewOnly[action]) {
+    const caption = document.getElementById(source).querySelector('figcaption');
+    caption.setAttribute('role','status');
+    caption.textContent = previewOnly[action];
+    return;
+  }
+  if (action === 'open-paywall') {
+    origin = source;
+    show('paywall','eligible');
+    focus.value = 'paywall';
+  } else if (action === 'complete' || action === 'close') {
+    focus.value = origin ?? 'workout';
+    if (action === 'complete') {
+      if (origin === 'onboard') show('onboard','saving');
+      else if (origin === 'settings') show('settings','active');
+      else show('workout','returning');
+    } else {
+      show('paywall','eligible');
+    }
+    origin = null;
+  } else {
+    const [key,next] = action.split(':');
+    focus.value = key;
+    if (next === 'restoring') {
+      revisit(key,next,key === 'paywall' ? 'active' : 'restored');
+    } else if (key === 'paywall' && next === 'verifying') {
+      revisit(key,next,'active');
+    } else {
+      show(key,next);
+    }
+  }
+  applyDevice();
+});
+
+focus.addEventListener('change',applyDevice);
+device.addEventListener('change',applyDevice);
+Object.keys(boards).forEach(render);
+applyDevice();
+</script>
+</body>
+</html>

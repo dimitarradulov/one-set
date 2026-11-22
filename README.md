@@ -8,7 +8,7 @@ The initial audience already knows basic gym movements. OneSet supplies curated 
 
 1. Continue with Apple, Google, or email from the welcome screen to create an account or sign in.
 2. Choose kg/lb and training frequency, then select a program.
-3. Start a seven-day trial; intended price afterward is $4.89/month, subject to actual storefront pricing.
+3. Choose a monthly or yearly subscription. Eligible customers get a seven-day trial. Target U.S. prices are $4.89/month and $49.99/year, subject to actual storefront pricing.
 4. Open the program overview, organized by training week and Day 1/Day 2 rather than weekdays.
 5. Train with previous performance beside simple weight/reps inputs. Save locally immediately; sync automatically when possible.
 6. Finish, optionally add a note, and see the next workout. History and remembered substitutions survive program changes.

@@ -1,6 +1,6 @@
 # Database design
 
-The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002–005 add setup completion, stable catalog publication, offered-program onboarding and cycle-scoped workout boundaries without replacing existing program, cycle or history IDs. [Migration 006](migrations/006_completed_session_write.sql) adds the owner-scoped completed-session write function without adding tables or columns. Migration 011 adds repository synchronization state to published catalog operations. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
+The [DBML](oneset.dbml) documents the baseline training schema plus completed-workout progress and catalog publication state. [Migration 001](migrations/001_documented_schema.sql) created the original schema and was applied to the `oneset` production branch on 2026-09-29. Migrations 002–005 add setup completion, stable catalog publication, offered-program onboarding and cycle-scoped workout boundaries without replacing existing program, cycle or history IDs. [Migration 006](migrations/006_completed_session_write.sql) adds the owner-scoped completed-session write function without adding tables or columns. Migrations 007–010 add historical day numbers and the cycle creation and activation functions. Migration 011 adds repository synchronization state to published catalog operations, migration 012 guards cycle workout integrity, and migration 013 adds alternating-week parity, parity-aware publication and required-workout functions, and parity checks on completed-session writes. Scope: gym workouts, weight and reps, one working set per exercise, one training device at a time. Clerk owns account profiles and access.
 
 ## Tables and their purpose
 
@@ -9,14 +9,14 @@ The [DBML](oneset.dbml) documents the baseline training schema plus completed-wo
 | `workout_programs` | Program name, recommended weeks, stable authoring key and whether new users may select it. |
 | `workouts` | Reusable workout ID, stable authoring key and name. |
 | `program_workouts` | Links a program to its ordered workouts and optional odd/even training-week eligibility. Frequency counts the active workouts scheduled for one training week. |
-| `exercises` | Stable key, name, instructions, private video key, default rep range, rest and warmup guidance. Defaults support user-selected replacements. Instructions include when to stop the set and total-load/per-side conventions. |
+| `exercises` | Stable key, name, instructions, private video key, default rep range, rest and warmup guidance. Defaults support user-selected replacements. Instructions include total-load/per-side conventions. Stopping guidance and slot-level overrides live in the published catalog source document and are copied into each session set's `prescription`. |
 | `workout_exercises` | Stable slot key, exercise, order, workout-specific rep bounds and rep scope (`reps`, `each_leg` or `each_side`). An exercise can have different targets in different workouts. |
 | `users` | Clerk identity link, kg/lb preference, training-day preference and active program run. No name/email copies, access timestamps or settings revision. |
 | `user_programs` | One run through a program, with owner, program, start time and monotonic current training week. A new cycle is another row. |
 | `user_program_workout_periods` | Per-cycle workout membership intervals. Added and removed workout days take effect at that cycle's current-week boundary while prior completion marks remain intact. |
 | `user_workout_exercises` | Remembered replacement, note and rest preference for a run's original exercise slot. Missing row means use defaults. |
-| `workout_sessions` | One attempt at a run/week/day/workout, copied workout name, start/finish times, optional note and upload revision. `day_number` is nullable for legacy sessions. Ownership comes through `user_programs`; no duplicate user ID. |
-| `workout_session_sets` | One row per original slot, including unfinished work. Stores actual exercise, copied order/guidance/note, weight, entered unit, reps and completion time. |
+| `workout_sessions` | One completed attempt at a run/week/day/workout, copied workout name, start/finish times, optional note and a revision column reserved for the proposed update protocol. `day_number` is nullable for legacy sessions. Ownership comes through `user_programs`; no duplicate user ID. |
+| `workout_session_sets` | One row per original slot, including unperformed slots. Stores actual exercise, copied order/guidance, weight, entered unit, reps and completion time. The `note` column is not written by the current completed-session upload. |
 | `completed_workouts` | Three-column run/week/workout completion mark. Kept separately only because deleting history must not rewind program progress. |
 | `catalog_publications` | Immutable reviewed source plus the status, commit, and last error of its repository synchronization operation. |
 | `catalog_state` | Singleton pointer to the current complete catalog snapshot and publication fingerprint. |
@@ -38,15 +38,15 @@ flowchart LR
 
 ## Runs and remembered choices
 
-Switching back to a program resumes its latest run, ordered by `started_at DESC, id DESC`. Starting a new cycle creates another run and selects it through `users.active_user_program_id`. Start times and run identities are fixed after creation. Migration 012 enforces that a cycle keeps the program it was created for. There is no `is_current` flag to keep synchronized. The app blocks switching/new cycles during an active workout.
+Switching back to a program resumes its latest run, ordered by `started_at DESC, id DESC`. Choosing a program for the first time creates its run and selects it through `users.active_user_program_id`; returning to a program reactivates its latest run. A command to start a subsequent cycle for the same program is not yet implemented. Start times and run identities are fixed after creation. Migration 012 enforces that a cycle keeps the program it was created for. There is no `is_current` flag to keep synchronized. The app blocks switching/new cycles during an active workout.
 
 Copy remembered preferences once when creating a new run, matching `workout_exercise_id` still present in the current program template. On the device, copy from its current source run, including locally saved preferences; upload that initial preference copy with the new run. The server validates ownership/slot membership and inserts both and selects the new run atomically on first creation. A retried creation returns the existing run and never recopies preferences or replays activation. Later preference changes use the latest saved values; no run revision or preference conflict workflow is needed.
 
 An occurrence is `(user_program_id, week_number, workout_id)`. Finish inserts its completion mark with `ON CONFLICT DO NOTHING`. The next workout is the first missing mark in week/day order among the workouts required for that cycle and week. Deleting/editing history does not remove marks; a new run starts with none. Weeks may continue beyond the recommended eight.
 
-`user_programs.current_training_week` is the explicit, monotonic boundary for the cycle. Migration 005 initializes it to the first incomplete week using the template that existed before structural edits and the existing completion marks. New cycles start at week 1. `user_program_workout_periods` records each workout's required week interval for that cycle; `required_workouts_for_cycle_week()` returns the currently required, currently ordered workouts for a week at or after its boundary. Publication snapshots each cycle's week before changing membership, closes removed workouts at the preceding week and opens added workouts at the stored current week. A later session-finish command advances `current_training_week` only after all workouts required in that week are complete. Catalog refreshes and republication of old content never lower or recalculate this boundary. Completed marks, session snapshots and remembered replacements are untouched by publication.
+`user_programs.current_training_week` is the explicit, monotonic boundary for the cycle. Migration 005 initializes it to the first incomplete week using the template that existed before structural edits and the existing completion marks. New cycles start at week 1. `user_program_workout_periods` records each workout's required week interval for that cycle; `required_workouts_for_cycle_week()` returns the currently required, currently ordered workouts for a week at or after its boundary. Publication snapshots each cycle's week before changing membership, closes removed workouts at the preceding week and opens added workouts at the stored current week. The completed-session write (migration 006, made parity-aware by migration 013) advances `current_training_week` in the same transaction once all workouts required in that week are complete. Catalog refreshes and republication of old content never lower or recalculate this boundary. Completed marks, session snapshots and remembered replacements are untouched by publication.
 
-Migration [013](migrations/013_alternating_training_weeks.sql) stores optional parity on each program workout. Catalog publication updates parity atomically with membership. Required workouts honor parity before calculating completion, and the session upload command rejects a workout assigned to the opposite week. Parity stays fixed for a published template key so late offline uploads can still be validated. The disposable PGlite catalog integration test publishes the rotation, rejects an out-of-week session, and verifies weeks 1 through 3 advance using the intended two-day pairs.
+Migration [013](migrations/013_alternating_training_weeks.sql) stores optional parity on each program workout. Catalog publication updates parity atomically with membership. Migration 013 replaces the publication function and `required_workouts_for_cycle_week()` so required workouts honor parity before calculating completion, and the session upload command rejects a workout assigned to the opposite week. The Worker serves alternating programs only to clients that send `X-OneSet-Alternating-Weeks: 1`; other clients receive the catalog without them. Parity stays fixed for a published template key so late offline uploads can still be validated. The disposable PGlite catalog integration test publishes the rotation, rejects an out-of-week session, and verifies weeks 1 through 3 advance using the intended two-day pairs.
 
 The authenticated `GET /v1/me/progress` read returns this boundary, the cycle's completion marks, retained membership periods, and the ordered current-week workout keys without fetching session details. The iOS repository stores the response separately from sessions and merges marks by account/cycle, so replacement-device training readiness does not depend on History pagination.
 
@@ -62,11 +62,10 @@ The exercise library supplies shared instructions, media, rest and warmup guidan
 
 ## Working sets and snapshots
 
-Create one set row per current slot when a session starts. `(workout_session_id, workout_exercise_id)` enforces one working set per slot; no separate set UUID is needed.
+The device creates the session and one draft row per current slot when training starts; drafts stay on the device. The Worker's completed-session first write creates the server session and every captured set row together at Finish. `(workout_session_id, workout_exercise_id)` enforces one working set per slot; no separate set UUID is needed.
 
-- No set completion time while the session is open: pending/draft.
 - Set completion time present: completed set.
-- No set completion time after Finish: unperformed, even if draft values remain.
+- No set completion time: unperformed. Draft values are not uploaded.
 
 Finish requires at least one completed set. Duration is finish time minus start time. No separate session status, saved duration or performed-count fields are needed. Keep the rest countdown deadline in the **device's local session state**, where it survives interruption; it is not a Postgres column.
 
@@ -75,10 +74,12 @@ Only session sets retain a historical `prescription` document:
 ```json
 {
   "name": "Leg Press",
-  "instructions": "Reviewed instructions including stopping, load and per-side guidance.",
+  "instructions": "Reviewed instructions including load and per-side guidance.",
+  "stopping_guidance": "Reviewed stopping guidance for this prescription.",
   "video_key": "leg-press/content-hash.mp4",
   "reps_min": 8,
   "reps_max": 12,
+  "rep_scope": "reps",
   "rest_seconds": 180,
   "warmup_guidance": {
     "steps": [{"load_percent_min": 40, "load_percent_max": 50, "reps_min": 6, "reps_max": 8}],
@@ -87,9 +88,11 @@ Only session sets retain a historical `prescription` document:
 }
 ```
 
-Assemble this from the exercise, effective rep targets and remembered rest preference. Copy remembered notes into the separate session note field. `video_key` may be null; warmup steps may be empty for text-only guidance. Validate keys, types, ranges and bounded sizes in the importer/write path. PostgreSQL checks that each JSON value is an object; it does not validate the full document schema. Results and relationships remain typed columns. This bounded historical document is the only prescription copy; there is no template prescription JSON. [PostgreSQL JSON guidance](https://www.postgresql.org/docs/current/datatype-json.html#JSON-DOC-DESIGN)
+Assemble this from the exercise, the slot's stopping-guidance override when present, effective rep targets and scope, and the remembered rest preference. `rep_scope` is `reps`, `each_leg` or `each_side`. The first slot of a captured superset adds `superset_next_slot_key`, naming the immediately following slot. The upload carries one optional session-level note and no per-set note. `video_key` may be null; warmup steps may be empty for text-only guidance. Validate keys, types, ranges and bounded sizes in the importer/write path. PostgreSQL checks that each JSON value is an object; it does not validate the full document schema. Results and relationships remain typed columns. This bounded historical document is the only prescription copy; there is no template prescription JSON. [PostgreSQL JSON guidance](https://www.postgresql.org/docs/current/datatype-json.html#JSON-DOC-DESIGN)
 
 ## Writes, ownership and retries
+
+The implemented server writes are setup, cycle creation and activation, and the completed-session first write. Revisioned session updates, whole-account snapshot restore and history deletion below are proposals with no current handler; current reads are compact progress, previous performance and paginated History. See [API contracts](../api-contracts.md).
 
 Derive the user from Clerk and check ownership through the run on every private read/write. Foreign keys and checks enforce IDs, positive ranges, unique positions, nonnegative decimal load and complete weight/reps values on completed sets. Keep units on each result so changing the user's display preference never rewrites history.
 
@@ -102,11 +105,11 @@ The write path also validates:
 
 A short user-row lock serializes server mutations and keeps activation/finish/delete transactions straightforward. It does not replace ownership checks. Do not hold database locks during external calls. Cross-table ownership rules belong in the transactional write path, not unsupported cross-table `CHECK` expressions. [PostgreSQL constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
 
-**Only sessions have a revision.** It rejects an old upload retry arriving after a newer saved workout, which can happen after a timeout on one device. This is training-data protection, not multi-device settings management. Save locally first, send one session update at a time, preserve a sent body/revision on retry, and retain newer local input while awaiting acknowledgment. Equal stored state is acknowledged without writing again; differing stale state is rejected and local input retained. Reuse run/session UUIDs on creation retries.
+**Only sessions have a revision.** In the proposed update protocol it rejects an old upload retry arriving after a newer saved workout, which can happen after a timeout on one device. This is training-data protection, not multi-device settings management. Save locally first, send one session update at a time, preserve a sent body/revision on retry, and retain newer local input while awaiting acknowledgment. Equal stored state is acknowledged without writing again; differing stale state is rejected and local input retained. Reuse run/session UUIDs on creation retries.
 
-Restore/refresh a complete owner-scoped snapshot from one consistent database view, preserving pending local changes and rejecting responses overtaken by local saves. No change feed, server operation ledger or deletion table is needed. See [sync and recovery](../sync-and-recovery.md).
+A proposed full restore would refresh a complete owner-scoped snapshot from one consistent database view, preserving pending local changes and rejecting responses overtaken by local saves. No change feed, server operation ledger or deletion table is needed. See [sync and recovery](../sync-and-recovery.md).
 
-Completed-history deletion remains online-only and confirmed. Resolve this device's outstanding uploads before DELETE, suppress further writes while deletion is pending, and cascade-delete the session's sets. Retain completion marks. An absent session makes a repeated DELETE succeed; UPDATE must never recreate it. Clear local history/pending writes after confirmation.
+Proposed completed-history deletion is online-only and confirmed. Resolve this device's outstanding uploads before DELETE, suppress further writes while deletion is pending, and cascade-delete the session's sets. Retain completion marks. An absent session makes a repeated DELETE succeed; UPDATE must never recreate it. Clear local history/pending writes after confirmation.
 
 ## Queries and indexes
 
@@ -126,7 +129,7 @@ Migration 004 replaces `complete_onboarding()` with an atomic offered-program ch
 
 Apply migration 004 before deploying the Worker handler that reads its boolean result. This additive migration was loaded into disposable PGlite and rehearsed on an isolated Neon branch before any shared application.
 
-The Worker tests load migrations 001–006 into disposable PGlite, publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, reject new selection of a removed program, restore the same program identity, and verify that the original active cycle and completion mark remain intact. Migration 005 fixtures also exercise add, reorder, replacement and removal while preserving earlier completion marks, remembered replacements, and captured session prescriptions. Migration 006 fixtures check completed and partial first writes, captured removed-slot snapshots, null unperformed results, account ownership, idempotent/concurrent retries, conflicts, progress boundaries and rollback. These checks do not replace a Neon branch rehearsal.
+The Worker tests load the checked-in migrations into disposable PGlite (the [catalog end-to-end suite](../../worker/tests/catalog-e2e.test.ts) replays 001–013, including the alternating-week rotation), publish and read a catalog through HTTP handlers, reject ordinary account tokens and stale/invalid inputs, preserve the previous snapshot on transaction failure, reject new selection of a removed program, restore the same program identity, and verify that the original active cycle and completion mark remain intact. Migration 005 fixtures also exercise add, reorder, replacement and removal while preserving earlier completion marks, remembered replacements, and captured session prescriptions. Migration 006 fixtures check completed and partial first writes, captured removed-slot snapshots, null unperformed results, account ownership, idempotent/concurrent retries, conflicts, progress boundaries and rollback. These checks do not replace a Neon branch rehearsal.
 
 ## Verification and migration
 
@@ -148,7 +151,7 @@ Migrations 004 and 005 were rehearsed together on the temporary Neon branch `one
 
 Migration 006 adds `save_completed_session(authenticated_clerk_user_id, payload)`, which resolves stable authoring keys, validates the captured snapshot and cycle ownership, inserts session/set/completion rows atomically, and advances the cycle week only when all workouts required for that occurrence week are complete. PGlite exercises full and partial finishes, retained snapshots, retries and rollback.
 
-Migration 011 adds published-operation repository sync status, commit identity, error detail, and completion time. The Worker and dashboard integration suites apply it to disposable PGlite before exercising status transitions and current-publication checks. It has not been applied to a shared database or deployed; apply it to the development database as part of the integrated parent release.
+Migration 011 adds published-operation repository sync status, commit identity, error detail, and completion time. The Worker and dashboard integration suites apply it to disposable PGlite before exercising status transitions and current-publication checks. The dashboard's repository synchronization is implemented in [admin/src/repository-sync.ts](../../admin/src/repository-sync.ts), and its [deployment guide](../../admin/README.md) applies this migration to the development database before deploying the handler. The `Sync catalog publication` commits in this repository were written by that flow in development.
 
 Migration 007 adds nullable `workout_sessions.day_number` and `save_completed_session_with_day(...)`, preserving migration 006's original writer for existing callers. New completed-session requests may include a positive `day_number`; old requests remain valid and produce a null day. The wrapper uses the existing first-write transaction and rejects conflicting retries that attempt to change the captured day. PGlite migration/query checks cover the additive schema and completed-session read path.
 

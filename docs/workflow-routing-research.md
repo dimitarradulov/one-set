@@ -1,6 +1,6 @@
 # Workflow routing for OneSet
 
-Researched: 2026-10-14. Status: recommendation; no skills installed, router implemented, or live Jev requests made. Sources are upstream source files and official vendor documentation, inspected at their current URLs; these URLs can change. Pin revisions before adopting their contents.
+Researched: 2026-10-14. Status: recommendation. At research time no skills were installed; the repository now has an installed skill inventory ([skills-lock.json](../skills-lock.json), described in the [workflow skill catalog](workflow-skill-catalog.md)) and an explicit [implementation workflow](../.agents/skills/implement-spec/SKILL.md). The proposed Jev routing bridge and labeled evaluation fixture have not been built, and no live Jev requests have been made. Sources are upstream source files and official vendor documentation, inspected at their current URLs; these URLs can change. Pin revisions before adopting their contents.
 
 ## Recommendation
 

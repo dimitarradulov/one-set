@@ -6,13 +6,13 @@ Implementation specification: [private catalog dashboard #58](https://github.com
 
 The founder approved a separate, laptop-first web dashboard restricted to the founder, covering every capability of the current text-catalog workflow without routine YAML editing or command-line publication. This includes program and shared exercise authoring, workout and slot ordering, validation, change previews, publication, explicit removals and restorations, and correction using earlier content. Video upload remains deferred. See [FR-26](requirements.md) and [the dashboard boundary decision](adr/0002-separate-catalog-dashboard.md).
 
-The dashboard will be hosted on Cloudflare. The founder edits, reviews, and publishes changes during one editing visit. There are no saved drafts or autosave; unpublished edits are not retained after leaving. Reviewing changes does not change the catalog delivered to lifters.
+The dashboard is implemented in [`admin/`](../admin/README.md) and deployed to the development environment on Cloudflare. The founder edits, reviews, and publishes changes during one editing visit. There are no saved drafts or autosave; unpublished edits are not retained after leaving. Reviewing changes does not change the catalog delivered to lifters.
 
-Preserve the current authoring, preview, and publication workflow through the UI. The dashboard must automate the manual maintenance steps, including keeping catalog files, published content, and the generated bundled fallback consistent. Their synchronization is a technical design responsibility, not an additional maintenance task for the founder.
+The dashboard preserves the authoring, preview, and publication workflow through the UI and automates keeping catalog files, published content, and the generated bundled fallback consistent: after each publication it commits the retained source and regenerated fallback to the repository (see [Local commands](#local-commands)). Synchronization is not an additional maintenance task for the founder.
 
-Cloudflare Access will restrict entry to the founder's exact email through email-code login, with sessions configured for up to one month on the Free plan. Protect the dashboard and every editing endpoint; publishing credentials remain server-side. The dashboard is not implemented, and technical design must automate consistency with YAML and the bundled fallback. The sections below describe the existing operational workflow.
+Cloudflare Access restricts entry to the founder's exact email through email-code login, with sessions configured for up to one month on the Free plan. The dashboard and every editing endpoint are protected; publishing credentials remain server-side. Editing, publication, historical correction, and repository writes are enabled only when the dashboard's `CATALOG_ENVIRONMENT` is `development`; other environments are read-only. The command-line workflow below remains available.
 
-The accepted stack is Astro with TypeScript and server rendering, native HTML forms and Astro Actions, and plain CSS, hosted as a dedicated Cloudflare Worker from `admin/` in this repository. Reuse the existing catalog publisher and Neon database. See [the accepted dashboard stack](system-design.md#accepted-dashboard-stack).
+The dashboard uses Astro with TypeScript and server rendering, native HTML forms and Astro Actions, and plain CSS, hosted as a dedicated Cloudflare Worker from `admin/` in this repository. It publishes through the existing catalog Worker and Neon database. See [the accepted dashboard stack](system-design.md#accepted-dashboard-stack).
 
 The catalog publication foundation is implemented in [issue #16](https://github.com/dimitarradulov/one-set/issues/16), and compatible editing and correction behavior in [issue #18](https://github.com/dimitarradulov/one-set/issues/18). This is the implementation reference for [issue #15](https://github.com/dimitarradulov/one-set/issues/15). The founder maintains the text catalog in `worker/catalog/`; structural changes and whole-program removal use the separate catalog maintenance workflow.
 
@@ -28,6 +28,16 @@ Keep program, workout, exercise, and slot keys stable when editing names or comp
 Rest durations use the source library's rest bands: large compounds use 150–240 seconds, moderate compounds use 120–180 seconds, and isolation exercises use 90–150 seconds. `rest_seconds` selects a value in the appropriate band; the source does not specify per-exercise durations. Global technique, stopping, and warmup language must remain consistent with the approved library. Do not add exercise-specific advice without a reviewed source.
 
 Set `week_parity: odd` or `week_parity: even` on a workout to schedule it in alternating training weeks. An omitted value schedules it every week. Both week variants must have the same number of active days, from one to five. Published workout keys retain their parity. Edit parity for new workouts in YAML. The dashboard preserves existing parity during edits. A slot can supply `stopping_guidance` to override its exercise's general stopping instructions for that prescription.
+
+A workout can pair two adjacent active slots as a superset by listing them under `supersets`, using slot keys:
+
+```yaml
+supersets:
+  - first_slot_id: <first-slot-key>
+    second_slot_id: <next-slot-key>
+```
+
+Each slot belongs to at most one pair, and the second slot must immediately follow the first. The [HIT Upper / Lower Rotation](../worker/catalog/programs/11-hit-upper-lower-rotation.yaml) uses this structure. In the dashboard, **Superset with next exercise** pairs a slot with the one after it, **Unpair** removes the pair, and the move controls reorder a pair as one unit.
 
 Before publishing the first alternating program to an environment, apply [migration 013](database/migrations/013_alternating_training_weeks.sql) and deploy the catalog Worker with support for `X-OneSet-Alternating-Weeks: 1`. The Worker serves alternating programs only to apps that send that header.
 
@@ -72,7 +82,9 @@ Use the same environment and source directory for each preview/publish pair. Pub
 
 Edit YAML while preserving stable keys and explicit workout/slot order. A new movement needs shared text guidance, a rest duration from the applicable source band, and a default rep target. Run `npm run catalog -- generate-bundled`, inspect the generated diff, and run the Worker catalog tests and typecheck before previewing. Review additions, edits, removals, restorations, and every affected program before publishing.
 
-To correct an earlier publication, restore the desired catalog files from Git and publish them as a new publication:
+To correct an earlier publication in the dashboard, open **Publication history**, choose the publication, and review the correction. The dashboard applies that publication's content to every identity it contains, keeps programs, workouts, slots, and exercises introduced by later publications, and publishes the result as a new publication after review. Corrections are available only in the development catalog environment.
+
+From the command line, restore the desired catalog files from Git and publish them as a new publication:
 
 ```sh
 git restore --source <commit-with-correct-content> -- catalog

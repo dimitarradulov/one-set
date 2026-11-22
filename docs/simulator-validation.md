@@ -8,7 +8,8 @@ Use a local macOS host with full Xcode and an installed iOS simulator runtime. S
 # Select/create a compatible iPhone, wait for readiness, print its UUID.
 ./scripts/setup-simulator.sh
 
-# Build and run the scheme's UI tests, plus simulator regression tests.
+# Full suite: SwiftLint, dashboard and Worker checks, simulator regression tests,
+# then build and run the scheme's Swift and UI tests.
 ./scripts/validate.sh
 
 # Build and run the affected test for a localized iOS change.

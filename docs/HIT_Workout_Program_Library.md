@@ -404,19 +404,18 @@ This look is not defined by neck and traps alone. The program emphasizes whole-b
 | 4 | Machine Shoulder Press | 6–10 | MMF |
 | 5 | Barbell Curl | 6–10 | TF |
 | 6 | Cable Triceps Pressdown | 8–12 | MMF |
-| 7 | Dumbbell Wrist Curl | 12–20 | TF |
+| 7 | Dumbbell Shrug | 8–12 | TF |
 
-## Day 2 - Thighs + Posterior Chain + Traps
+## Day 2 - Thighs + Posterior Chain + Forearms
 
 | Order | Exercise | Reps | Failure |
 |---:|---|---:|---|
 | 1 | Hack Squat Machine | 6–10 | MMF |
 | 2 | Romanian Deadlift | 6–10 | TF |
-| 3 | Leg Press | 10–15 | MMF |
-| 4 | Seated Leg Curl | 8–12 | MMF |
-| 5 | Dumbbell Shrug | 8–12 | TF |
-| 6 | Machine Neck Extension | 12–20 | MMF |
-| 7 | Cable Crunch | 10–15 | MMF |
+| 3 | Seated Leg Curl | 8–12 | MMF |
+| 4 | Dumbbell Wrist Curl | 12–20 | TF |
+| 5 | Machine Neck Extension | 12–20 | MMF |
+| 6 | Cable Crunch | 10–15 | MMF |
 
 ## Day 3 - Upper Back + Shoulder Girdle + Traps
 
@@ -591,6 +590,7 @@ This is the most suitable template in the library for frequent true momentary mu
 | Classic Physique | 3 | Balanced old-school proportions |
 | Free-Weight Full Body | 3 | Minimal machine dependence |
 | Machine Full Body | 3 | Maximum stability for high-effort training |
+| HIT Upper / Lower Rotation | 2 | Alternating-week upper/lower rotation with supersets |
 
 ---
 
@@ -600,15 +600,15 @@ This is the most suitable template in the library for frequent true momentary mu
 
 Use the current [database schema](database/oneset.dbml) and [catalog publication plan](system-design.md#catalog-publication).
 
-- `exercises`: name, instructions, video key, default `reps_min`/`reps_max`, rest seconds and warmup guidance.
-- `workout_exercises`: exercise reference, position and workout-specific `reps_min`/`reps_max`.
+- `exercises`: name, instructions, stopping guidance, video key, default `reps_min`/`reps_max`, rest seconds and warmup guidance.
+- `workout_exercises`: exercise reference, position, workout-specific `reps_min`/`reps_max`, and an optional stopping-guidance override.
 - `workout_session_sets`: actual exercise, weight/unit/reps, completion and historical guidance copy.
 
-One working set is fixed. There are no separate failure, muscle-group, warmup-required, equipment or estimated-session-duration fields. TF/MMF remains source guidance to include in instructions.
+One working set is fixed. There are no separate failure, muscle-group, warmup-required, equipment or estimated-session-duration fields. TF/MMF remains source guidance that authors translate into stopping guidance.
 
 ## Failure labels
 
-Include the appropriate stopping guidance in exercise instructions. The TF/MMF column in this source library is an authoring aid, not a separate database field. Its two terms are:
+Each exercise carries its own stopping guidance, separate from its instructions, and a workout slot can override it (for example, the rotation's leg-extension hold). The TF/MMF column in this source library is an authoring aid, not a separate database field. Its two terms are:
 
 - **Momentary Failure**
 - **Technical Failure**
@@ -625,7 +625,7 @@ A simple app progression rule can be:
 
 ## Exercise substitutions
 
-The programmed library intentionally contains **one definitive exercise in every exercise slot**. Do not display automatic A/B alternatives inside the workout itself. User-initiated replacements use the supplied exercise library. Remembered choices live in `user_workout_exercises`; a session-only replacement changes only that session.
+The programmed library intentionally contains **one definitive exercise in every exercise slot**. Do not display automatic A/B alternatives inside the workout itself. User-initiated replacements use the supplied exercise library. A session-only replacement changes only that session. A remembered choice is currently saved on the device for that account, program, and slot when the workout is finished. The completed-session upload records the movement performed but does not yet save the remembered choice to `user_workout_exercises`.
 
 ---
 

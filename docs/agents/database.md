@@ -6,4 +6,4 @@
 - Use two-space SQL indentation and `snake_case` table and column names.
 - Rehearse schema changes against disposable data and document the checks performed.
 
-The database notes record the initial DBML parsing and disposable PostgreSQL/PGlite checks. Their runner is not included in this checkout; consult those notes when preparing schema validation.
+The database notes record the initial DBML parsing and disposable PostgreSQL/PGlite checks; that original standalone runner is not in this checkout. Current schema behavior is exercised by PGlite suites that replay the checked-in migrations: `npm --prefix worker test` (for example [progress tests](../../worker/tests/progress.test.ts)) and `npm --prefix admin test` ([dashboard integration](../../admin/tests/dashboard.integration.test.ts)). Load a new migration in those fixtures when it changes behavior they cover.

@@ -11,7 +11,8 @@ OneSet uses native SwiftUI with feature-level observable models, domain values, 
 | `OneSet/Domain` | Value types, stable identities, pure training rules; independent of SwiftUI and service SDKs |
 | `OneSet/Services` | Catalog, identity/access, media, networking, analytics and other capability adapters |
 | `OneSet/DesignSystem` | Shared colors, typography, branding and visual modifiers |
-| `OneSet/Persistence` and `OneSet/Sync` when implemented | Durable repositories/migrations and upload/retry coordination |
+| `OneSet/Persistence` | Durable repositories and local migrations, such as the GRDB workout store and the account-scoped onboarding file |
+| `OneSet/Sync` | Upload and retry coordination for completed sessions and program cycles |
 
 Views call feature models; models use domain values and injected capabilities. Repositories and services remain independent of presentation. Organize new types into individual files within the existing app target. Introduce a package or protocol when a concrete dependency boundary or substitution needs it.
 
@@ -23,15 +24,15 @@ Views call feature models; models use domain values and injected capabilities. R
 - Construct live dependencies at the app boundary. Supply preview or replacement data through initializers. Views and domain types obtain no dependencies from global singleton lookups.
 - Use value structs/enums for domain data and `Sendable` snapshots/commands across concurrency boundaries. Use explicit actor isolation for shared mutable state.
 
-The implemented example is [OnboardingModel](../../OneSet/Features/Onboarding/OnboardingModel.swift), owned by [OneSetApp](../../OneSet/App/OneSetApp.swift) and consumed by [OnboardingFlowView](../../OneSet/Features/Onboarding/OnboardingFlowView.swift). The injected [ProgramCatalog](../../OneSet/Services/Catalog/ProgramCatalog.swift) is an immutable bundled catalog; preferences and selection currently last for the app process. Account, workout storage and sync are future features.
+The implemented example is [OnboardingModel](../../OneSet/Features/Onboarding/OnboardingModel.swift), owned by [OneSetApp](../../OneSet/App/OneSetApp.swift) and consumed by [OnboardingFlowView](../../OneSet/Features/Onboarding/OnboardingFlowView.swift). [AppDependencies](../../OneSet/App/AppDependencies.swift) composes the live services: a [ProgramCatalog](../../OneSet/Services/Catalog/ProgramCatalog.swift) that starts from the bundled programs, refreshes over HTTP and caches to a file; an account-scoped [onboarding progress store](../../OneSet/Persistence/FileOnboardingProgressStore.swift); the GRDB [WorkoutRepository](../../OneSet/Persistence/WorkoutRepository.swift); and HTTP account setup, cycle, progress, previous-performance, History and completed-session upload services.
 
 ## Durable workout commands
 
-When implementing training, make the local repository the source of truth for session records. GRDB is the preferred SQLite access library, subject to the compatibility and durability checks in the research; the app currently has no database dependency.
+The local [WorkoutRepository](../../OneSet/Persistence/WorkoutRepository.swift) is the source of truth for session records. It uses GRDB for SQLite access.
 
-- Commit session changes, rest deadlines and pending server operations together in a synchronous database transaction. Show successful-save/completion state only after commit; retain input and expose failure when storage fails.
+- Commit session changes and rest deadlines in a synchronous database transaction. Finish is the boundary that creates the completed-session upload body in the same transaction; drafts are not sent to the server. Show successful-save/completion state only after commit; retain input and expose failure when storage fails.
 - Own active-session coordination and pending operations beyond a screen's lifetime. Reconstruct sessions from durable data after restart. View task cancellation or navigation must not discard the only save path.
-- Run uploads and refresh through a separate sync engine. Preserve sent payloads/base revisions, serialize session uploads, and protect newer edits from delayed acknowledgments/refreshes using operation identity and revision/generation checks.
+- Run uploads and refresh through a separate coordinator, such as the [completed-session upload coordinator](../../OneSet/Sync/CompletedSessionUploadCoordinator.swift). Preserve each sent body and its session ID for retries, serialize session uploads, and protect newer state from delayed acknowledgments or refreshes using operation identity and generation checks.
 - Actor isolation protects state access, but `await` permits interleaving. Explicitly order dependent commands and recheck assumptions after suspension; keep atomic database work free of suspension.
 - Scope user data by account and retain pending work during account transitions. Keep authentication, media and analytics outside local training transactions; use the specified access rules for new starts and uninterrupted active training.
 - Version local migrations independently from API/server schemas. Preserve drafts, captured prescriptions and pending payloads through upgrades. Surface migration failures without deleting the user's store.

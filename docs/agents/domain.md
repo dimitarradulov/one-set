@@ -10,7 +10,8 @@ OneSet has a single domain context:
 /
 ├── GLOSSARY.md
 └── docs/adr/
-    └── 0001-program-removal-preserves-followers.md
+    ├── 0001-program-removal-preserves-followers.md
+    └── 0002-separate-catalog-dashboard.md
 ```
 
 If a root `GLOSSARY-MAP.md` is introduced, follow it to the glossary for each relevant context and read both system-wide and context-specific ADRs. Proceed with the available documentation when a glossary or ADR directory is absent; create them lazily when a term or decision is resolved.

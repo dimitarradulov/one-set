@@ -96,8 +96,9 @@
     <p class="section-intro">The decision is about what the change can affect, not how many lines changed. Use the narrowest scope that fully covers the affected behavior; use full validation when the impact crosses boundaries or cannot be bounded confidently.</p>
     <div class="scope-grid">
       <div class="scope-row"><strong>Documentation or agent guidance only</strong><p>Review changed files, links, examples, and consistency. No build or simulator run.</p><p class="command">Manual changed-file review</p></div>
-      <div class="scope-row"><strong>Localized iOS behavior with a clear workflow</strong><p>Build the app and run one or more existing UI test selectors covering that behavior. If there is no relevant test, exercise it in Simulator; add a test when it protects meaningful behavior.</p><p class="command">./scripts/validate.sh --focused OneSetUITests/Class[/testMethod] ...</p></div>
+      <div class="scope-row"><strong>Localized iOS behavior with a clear workflow</strong><p>Build the app and run one or more existing Swift or UI test selectors covering that behavior. If there is no relevant test, exercise it in Simulator; add a test when it protects meaningful behavior.</p><p class="command">./scripts/validate.sh --focused OneSetUITests/Class[/testMethod] ...<br>./scripts/validate.sh --focused OneSetTests/Suite[/test] ...</p></div>
       <div class="scope-row"><strong>Appearance or navigation change needing visual verification</strong><p>Build, launch an existing preview route, capture a screenshot, then inspect spacing, clipping, typography, colors, safe areas, and the relevant state.</p><p class="command">./scripts/validate-ui.sh --ui-&lt;route&gt;</p></div>
+      <div class="scope-row"><strong>Dashboard-only change</strong><p>Run the dashboard's Astro checks, build, and request integration tests. Include Worker checks when its source-read or authorization boundary changes.</p><p class="command">npm --prefix admin run check<br>npm --prefix admin run build<br>npm --prefix admin test</p></div>
       <div class="scope-row"><strong>Worker-only change</strong><p>Run Worker typechecking and relevant API tests from the Worker package. Install locked dependencies first when needed.</p><p class="command">npm ci --prefix worker<br>npm --prefix worker run typecheck<br>npm --prefix worker test</p></div>
       <div class="scope-row"><strong>Simulator or validation tooling only</strong><p>Run the relevant scripts under <code>scripts/tests</code>, then run the affected real command. This checks tooling behavior as well as its test model.</p><p class="command">python3 -m unittest discover -s scripts/tests -v</p></div>
       <div class="scope-row"><strong>Shared or broad impact; uncertain boundary</strong><p>Shared models/services, persistence, concurrency, auth/session logic, schema, dependencies, build config, iOS plus Worker, or unclear impact all require the full suite.</p><p class="command">./scripts/validate.sh</p></div>
@@ -107,13 +108,13 @@
 
   <section aria-labelledby="code-flow-title">
     <h2 id="code-flow-title">Focused and full runs share the iOS gate</h2>
-    <p class="section-intro">The default command is full. Focused mode must include at least one valid <code>OneSetUITests/Class[/testMethod]</code> selector. Both modes then build and test the OneSet scheme against the same booted simulator UUID.</p>
+    <p class="section-intro">The default command is full. Focused mode must include at least one valid <code>OneSetTests/Suite[/test]</code> or <code>OneSetUITests/Class[/testMethod]</code> selector. Both modes then build and test the OneSet scheme against the same booted simulator UUID. CI uses separate modes, described below.</p>
     <figure>
       <div class="figure-head"><span class="figure-meta">Flowchart · validate.sh</span></div>
       <div class="diagram-container">
         <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="validation-flow-code-title validation-flow-code-desc">
           <title id="validation-flow-code-title">OneSet code validation execution</title>
-          <desc id="validation-flow-code-desc">The validate script checks mode and host prerequisites. Full mode runs Python and Worker checks before both modes prepare a simulator, build the app, run Xcode UI tests, and retain logs and results.</desc>
+          <desc id="validation-flow-code-desc">The validate script checks mode and host prerequisites. Full mode runs SwiftLint, Python, dashboard, and Worker checks before both modes prepare a simulator, build the app, run the scheme's Swift and UI tests, and retain logs and results.</desc>
           <defs>
             <marker id="v-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0 8 3 0 6" fill="#A3A3A3"/></marker>
             <marker id="v-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0 8 3 0 6" fill="#D97706"/></marker>
@@ -134,7 +135,7 @@
           <!-- 8 primary nodes -->
           <rect x="360" y="64" width="480" height="96" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
           <text x="600" y="101" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="20" font-weight="600">validate.sh</text>
-          <text x="600" y="132" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">default = full · --focused requires selectors</text>
+          <text x="600" y="132" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">default = full · --focused requires selectors · CI modes</text>
 
           <rect x="360" y="204" width="480" height="124" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
           <text x="600" y="246" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="19" font-weight="600">Validate host + artifacts</text>
@@ -147,9 +148,10 @@
 
           <rect x="90" y="500" width="420" height="144" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
           <text x="300" y="542" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Full-only checks</text>
-          <text x="300" y="574" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Python scripts/tests</text>
-          <text x="300" y="598" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Worker typecheck → API tests</text>
-          <text x="300" y="622" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">sequential · before simulator reservation</text>
+          <text x="300" y="566" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">SwiftLint</text>
+          <text x="300" y="587" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">dashboard install → check → build → tests</text>
+          <text x="300" y="608" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Worker typecheck → API tests → Python scripts/tests</text>
+          <text x="300" y="630" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="12">sequential · before simulator reservation</text>
 
           <rect x="620" y="500" width="300" height="140" rx="6" fill="#2A2A2A" stroke="#3A3A3A" stroke-width="2"/>
           <text x="770" y="544" text-anchor="middle" fill="#E5E5E5" font-family="Montserrat,sans-serif" font-size="18" font-weight="600">Prepare simulator</text>
@@ -169,7 +171,7 @@
           <text x="770" y="1064" text-anchor="middle" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">logs + tests.xcresult</text>
           <line x1="40" y1="1120" x2="1160" y2="1120" stroke="#3A3A3A" stroke-width="1"/>
           <text x="64" y="1160" fill="#E5E5E5" font-family="'Geist Mono',monospace" font-size="13">Orange = full-only checks</text>
-          <text x="440" y="1160" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Focused skips Python + Worker</text>
+          <text x="440" y="1160" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Focused skips non-iOS checks</text>
           <text x="840" y="1160" fill="#A3A3A3" font-family="'Geist Mono',monospace" font-size="13">Both run Xcode build + test</text>
         </svg>
       </div>
@@ -177,13 +179,17 @@
     <div class="detail-grid">
       <article class="detail"><h3>Argument and host gate</h3><ul>
         <li>With no arguments, mode is <code>full</code>. Unknown arguments fail before validation work.</li>
-        <li>Focused mode requires at least one selector matching <code>OneSetUITests/Class</code> or <code>OneSetUITests/Class/testMethod</code>; each becomes an Xcode <code>-only-testing:</code> filter.</li>
+        <li>Focused mode requires at least one selector matching <code>OneSetTests/Suite[/test]</code> or <code>OneSetUITests/Class[/testMethod]</code>; each becomes an Xcode <code>-only-testing:</code> filter.</li>
+        <li>CI modes: <code>--lint</code>, <code>--dashboard</code>, and <code>--worker</code> each run one non-iOS check. <code>--ios-pr</code> runs the simulator-tooling tests, then all <code>OneSetTests</code> plus the email sign-in and workout recording UI journeys. <code>--ios-ci</code> runs the simulator-tooling tests and the full scheme. Both iOS modes disable code signing and skip the separate build step. <code>--ci</code> adds SwiftLint, dashboard, and Worker checks to <code>--ios-ci</code>.</li>
+        <li>The <a href="../../.github/workflows/oneset-validation.yml">validation workflow</a> runs SwiftLint, Worker, dashboard, and iOS as separate jobs. Pull requests use <code>--ios-pr</code>; pushes to <code>main</code> and manual runs use <code>--ios-ci</code>.</li>
         <li>Common setup requires macOS, full Xcode, successful first-launch setup, an iOS Simulator SDK, Python 3, a startable compiler sandbox probe where available, and a writable artifact directory.</li>
       </ul></article>
       <article class="detail"><h3>What the full-only checks cover</h3><ul>
-        <li><code>python3 -m unittest discover -s scripts/tests -v</code> exercises validation-command behavior, simulator discovery/recovery, and simulator lease coordination.</li>
+        <li><code>swiftlint lint --no-cache</code> runs first; full mode fails if SwiftLint is not installed.</li>
+        <li>The dashboard is installed with <code>npm ci --prefix admin</code>, then <code>check</code>, <code>build</code>, and <code>test</code> run from <code>admin</code>.</li>
         <li>Then Worker <code>typecheck</code> and API tests run via <code>npm --prefix worker run typecheck</code> and <code>npm --prefix worker test</code>.</li>
-        <li>Install Worker dependencies first with <code>npm ci --prefix worker</code> (Node 22+). <code>validate.sh</code> does not install them itself.</li>
+        <li>Install Worker dependencies first with <code>npm ci --prefix worker</code> (Node 22+). <code>validate.sh</code> installs the dashboard dependencies but not the Worker's.</li>
+        <li><code>python3 -m unittest discover -s scripts/tests -v</code> then exercises validation-command behavior, simulator discovery/recovery, and simulator lease coordination. It also runs in the iOS CI modes.</li>
       </ul></article>
       <article class="detail"><h3>Shared Xcode stage</h3><ul>
         <li>One simulator UUID is passed into both build and test destinations. Build uses <code>ONLY_ACTIVE_ARCH=YES</code>.</li>
@@ -295,9 +301,9 @@
   <section aria-labelledby="limits-title">
     <h2 id="limits-title">Pass means these checks passed</h2>
     <div class="gaps">
-      <div><h3><span class="tag">Code</span> Build + tests</h3><p>A successful code run means Xcode build and the selected scheme tests passed; full mode also means simulator-tooling regression tests and Worker typecheck/API tests passed. No coverage threshold is defined.</p></div>
+      <div><h3><span class="tag">Code</span> Build + tests</h3><p>A successful code run means Xcode build and the selected scheme tests passed; full mode also means SwiftLint, simulator-tooling regression tests, dashboard checks/build/tests, and Worker typecheck/API tests passed. An <code>--ios-pr</code> run covers the unit tests and two UI journeys, not the full UI suite. No coverage threshold is defined.</p></div>
       <div><h3><span class="tag">UI</span> Screenshot ready</h3><p>A successful UI run means build, install, route launch, and screenshot capture completed. A person still needs to inspect the image; automated capture does not claim visual correctness.</p></div>
-      <div><h3><span class="tag">Scope</span> Deliberate omissions</h3><p>Focused validation skips Python simulator-tooling checks and Worker checks. UI-only validation does not run interaction tests. Documentation-only review does not compile or execute the app.</p></div>
+      <div><h3><span class="tag">Scope</span> Deliberate omissions</h3><p>Focused validation skips SwiftLint, Python simulator-tooling checks, dashboard checks, and Worker checks. UI-only validation does not run interaction tests. Documentation-only review does not compile or execute the app.</p></div>
       <div><h3><span class="tag">Report</span> Required handoff</h3><p>Report the chosen scope and why it fits, list checks that actually ran and outcomes, mention fixes and reruns, and call interrupted or blocked validation incomplete. Inspect the final diff for unrelated changes.</p></div>
     </div>
   </section>
@@ -307,7 +313,7 @@
     <p class="section-intro">These observations follow from the current scripts and docs; they are discussion points, not behavior already implemented.</p>
     <div class="gaps">
       <div><h3>Make scope selection easier to audit</h3><p>Capture the change category, chosen command, and required checks in one machine-readable run summary. Today scope rationale and final outcomes are handed off in prose.</p></div>
-      <div><h3>Reduce duplicate expensive setup</h3><p>Full validation runs Python and Worker checks before simulator reservation, which avoids holding a device during them. The stages are serial; independent check groups could be parallelized only with explicit artifact and failure aggregation.</p></div>
+      <div><h3>Reduce duplicate expensive setup</h3><p>Full validation runs SwiftLint, Python, dashboard, and Worker checks before simulator reservation, which avoids holding a device during them. The stages are serial; independent check groups could be parallelized only with explicit artifact and failure aggregation.</p></div>
       <div><h3>Strengthen visual evidence</h3><p>Screenshots are captured but not compared automatically. Stable preview data plus route-specific baselines or structured screenshot review could make visual regressions easier to detect and reproduce.</p></div>
       <div><h3>Clarify evidence boundaries</h3><p>Keep a clear distinction between script pass, manual screenshot approval, and interactive VoiceOver/Reduce Motion checks. A compact run manifest could record which of these happened and which remain unverified.</p></div>
     </div>

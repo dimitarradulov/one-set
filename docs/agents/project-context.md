@@ -6,10 +6,11 @@ Start with [README.md](../../README.md) for current project status and reading o
 | --- | --- |
 | Approved product behavior | [Requirements](../requirements.md) |
 | Domain terms | [GLOSSARY.md](../../GLOSSARY.md) |
-| Ten workout programs | [Program library](../HIT_Workout_Program_Library.md) |
+| Workout programs | [Program library](../HIT_Workout_Program_Library.md); the published catalog is authored in [worker/catalog](../../worker/catalog/) |
 | Proposed UI | [DESIGN.md](../../DESIGN.md) |
 | Proposed implementation | [System design](../system-design.md), [sync and recovery](../sync-and-recovery.md), [API contracts](../api-contracts.md) |
 | Database schema and design | [Database notes](../database/README.md), [DBML](../database/oneset.dbml), [migrations](../database/migrations/) |
+| On-device storage schema | GRDB migrations in [WorkoutRepository](../../OneSet/Persistence/WorkoutRepository.swift), versioned independently of the Postgres migrations |
 
 Requirements govern product behavior. Keep implementation proposals distinct from approved requirements, and label assumptions needing validation.
 

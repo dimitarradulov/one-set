@@ -28,7 +28,7 @@ The current development instance reports Native API enabled, email verification 
 2. Select **Continue with email**, enter an email belonging to a user in the selected Clerk development instance, and select **Send code**. For a new account, select **Continue with email**, submit an unregistered email, then explicitly choose **Create an account**.
 3. Retrieve the email code, enter it, and select **Verify code**.
 4. Confirm the signed-in account appears. Force-quit and relaunch the app to confirm Clerk restores the session.
-5. Select **Sign out** and confirm the app returns to the email-code form.
+5. Select **Sign out** (in the setup toolbar, or in **Settings** after setup), confirm the prompt, and check that the app returns to Welcome.
 
 Clerk request and verification failures remain visible in the OneSet flow. Use a reachable mailbox for a live check and confirm the account appears after verification. If a new-account attempt reports that more information is required, check that the development instance does not require a password, name, or custom sign-up field.
 

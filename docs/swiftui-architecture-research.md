@@ -1,6 +1,13 @@
 # SwiftUI architecture for OneSet
 
-Researched: 2026-10-01. Status: research recommendation. The presentation and catalog boundaries have since been adopted; see [iOS architecture](agents/architecture.md) for current conventions. Persistence and sync remain future implementation.
+Researched: 2026-10-01. Status: historical research recommendation. The sections below describe the app and options as of that date; see [iOS architecture](agents/architecture.md) for current conventions.
+
+## Outcome since research
+
+- **Persistence:** GRDB was adopted for the [workout repository](../OneSet/Persistence/WorkoutRepository.swift). Onboarding, completed setup and cycle state use an account-scoped JSON [progress store](../OneSet/Persistence/FileOnboardingProgressStore.swift), and the catalog uses a file cache. See [AppDependencies](../OneSet/App/AppDependencies.swift).
+- **Sync:** Concrete coordinators in `OneSet/Sync` upload completed sessions and program cycles. Only finished sessions are queued for upload; draft input is coalesced and saved locally after one second of inactivity ([draft saves](../OneSet/Features/Programs/WorkoutDraftSaves.swift)). The revisioned session-update protocol described below was not built.
+- **Structure:** No separate `ActiveSessionModel` or `ActiveSession`/`Settings` feature folders were created. Workout recording commands live in the onboarding model's [workout extension](../OneSet/Features/Onboarding/OnboardingModel%2BWorkouts.swift), the recording screen is in `Features/Programs`, and the Settings routes are in `Features/Onboarding`.
+- **Platform floor:** The project targets iOS/iPadOS 26.0, replacing the provisional iOS 17 target cited below.
 
 ## Recommendation
 

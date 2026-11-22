@@ -1,6 +1,6 @@
 # Synchronization, durability and recovery
 
-Status: completed-session upload, compact program-progress restore, compact previous-performance restore, and paginated authenticated History are implemented. Recent History refreshes on tab return and foreground, with pull-to-refresh for the user. Older pages load on demand. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. History edits, deletes and the broader recovery protocol remain future work.
+Status: completed-session upload, compact program-progress restore, compact previous-performance restore, and paginated authenticated History are implemented. Recent History refreshes on tab return and foreground, with pull-to-refresh for the user. Older pages load on demand. The user approved offline training, immediate durable local writes, no silent overwrites, hard deletion and uninterrupted active training. Draft sync, revisioned session updates, History edits and deletes, server-draft discard, subsequent cycles, entitlement recovery, and the backup and erasure-replay workflow below remain future work.
 
 The [completed-session save slice](https://github.com/dimitarradulov/one-set/issues/40) narrows the first upload implementation to finished sessions and supersedes the routine visible workout sync states and Retry action proposed below. Active drafts and discards remain local; automatic completed-session retries are invisible during normal use. Actionable failures still surface. The broader draft, history-edit and restoration protocol below remains future work.
 
@@ -18,9 +18,9 @@ The [completed-session save slice](https://github.com/dimitarradulov/one-set/iss
 
 ## Local saves and uploads
 
-Save session inputs, completed sets, notes and the rest countdown deadline locally before confirming success. Keep the deadline only on the device; PostgreSQL stores the training record, not the live countdown. A local transaction also queues pending server changes.
+Save session inputs, completed sets, notes and the rest countdown deadline locally before confirming success. Keep the deadline only on the device; PostgreSQL stores the training record, not the live countdown. Draft inputs stay local. Finish is the only boundary that queues server work: it commits the finished session and its stable upload body in one local transaction (see [Completed-only first upload](#completed-only-first-upload)).
 
-Send one session update at a time. Preserve a sent body and base session revision for retries; keep newer local input separately until the earlier request is acknowledged. Session revisions protect against a delayed request overwriting a newer saved workout. They do not apply to runs, preferences or account settings.
+Proposed for later draft and edit sync: send one session update at a time, preserve a sent body and base session revision for retries, and keep newer local input separately until the earlier request is acknowledged. Session revisions would protect against a delayed request overwriting a newer saved workout. They do not apply to runs, preferences or account settings.
 
 ### Active supersets and replacements
 
@@ -56,11 +56,11 @@ If a locally completed setup is still pending, session uploads wait for its ackn
 
 ### Sign-out with queued workouts
 
-Sign-out remains blocked while a workout is active. When completed sessions are still queued, ask before signing out and explain that they stay on this device and resume under the same account. Confirming sign-out stops starting new upload requests and preserves queued session IDs, bodies, retry dates, and failure metadata. Keep a pending setup if a queued session uses its cycle; discard an unrelated pending setup. Session and setup queues remain scoped to the original account, so another account cannot resume them. After the owner signs in again, resolve or upload setup first, then retry the same session requests.
+Sign-out remains blocked while a workout is active. When a program creation or activation is still queued, ask before signing out and explain that the program change and any completed workouts stay on this device; confirming keeps the account's onboarding document, including pending setup and cycle requests, and the session queue. When completed sessions are still queued, ask before signing out and explain that they stay on this device and resume under the same account. Confirming sign-out stops starting new upload requests and preserves queued session IDs, bodies, retry dates, and failure metadata. Keep a pending setup if a queued session uses its cycle; discard an unrelated pending setup. Session and setup queues remain scoped to the original account, so another account cannot resume them. After the owner signs in again, resolve or upload setup first, then retry the same session requests.
 
 An HTTP request already in flight may finish at the server after sign-out starts. Its response is ignored after the request generation or account changes, so it cannot acknowledge local work for a signed-out or different account. The retained request can safely retry with its original ID and body. A cancelled confirmation leaves the account unchanged. If authentication sign-out fails, keep the same account and queue, report that the workouts remain on the device, and resume automatic retry. Local pending workouts remain dependent on this device until the server acknowledges them; they are not an independent backup.
 
-In one short server transaction:
+The completed-session first write runs as one database function call. For the proposed revisioned update protocol, one short server transaction would:
 
 1. Authenticate and lock the user's row. Derive session ownership through `user_programs`; there is no session `user_id` field.
 2. Validate the session's fixed run/week/workout and original slots, including slots removed from the current template after the workout was downloaded. Updates cannot recreate a missing session.
@@ -73,9 +73,9 @@ The proposed settings, exercise choice, note and rest sync uses the latest saved
 
 ## Program runs
 
-Resume the latest started run for the selected program (`started_at DESC, id DESC`). The app exposes Start new cycle, not arbitrary activation of an older cycle. Start time and run identity are fixed after creation.
+Resume the latest started run for the selected program (`started_at DESC, id DESC`). The app creates a program's first run when it is chosen for the first time and reactivates the latest run when the lifter returns; it never activates an older cycle. Start time and run identity are fixed after creation.
 
-Starting a new cycle creates the run, copies compatible preferences from local state and selects it in one durable device transaction. The client restores and caches each cycle’s complete preference list and persists the compatible snapshot with the new run. If that knowledge is unavailable, it offers recovery instead of inventing empty preferences. Sync the run and captured preferences together; on first insertion the server also selects the new run under the user lock. A create retry returns the existing run without recopying preferences or reactivating it. Other program selections queue after pending run creation. Copy only preferences whose original slot remains in the current program template.
+A Start new cycle action is approved (FR-17) but not yet implemented: the app has no control for it and `POST /v1/cycles` rejects a second cycle for the same program with `409 CYCLE_CONFLICT`. The design: starting a new cycle creates the run, copies compatible preferences from local state and selects it in one durable device transaction. The client restores and caches each cycle’s complete preference list and persists the compatible snapshot with the new run. If that knowledge is unavailable, it offers recovery instead of inventing empty preferences. Sync the run and captured preferences together; on first insertion the server also selects the new run under the user lock. A create retry returns the existing run without recopying preferences or reactivating it. Other program selections queue after pending run creation. Copy only preferences whose original slot remains in the current program template.
 
 `users.active_user_program_id` records the selected run; no per-run current flag is needed. Switching programs and new-cycle creation are blocked until the active workout is finished or discarded.
 
@@ -87,9 +87,9 @@ History pages restore full session details as the lifter browses; cached rows al
 
 ## Delete and discard
 
-Completed-history deletion is online-only and confirmed. Resolve outstanding uploads for that session before DELETE and suppress further writes. Hard-delete the session and its sets atomically; retain completion marks. After acknowledgment remove local history/pending writes. Repeated DELETE of an absent record succeeds; UPDATE never recreates one.
+Not yet implemented; the Worker has no delete or discard route. Proposed completed-history deletion is online-only and confirmed. Resolve outstanding uploads for that session before DELETE and suppress further writes. Hard-delete the session and its sets atomically; retain completion marks. After acknowledgment remove local history/pending writes. Repeated DELETE of an absent record succeeds; UPDATE never recreates one.
 
-Confirmed discard of a never-uploaded draft removes it locally and cancels its create. If it was uploaded or a request is unresolved, hide it locally and persist a pending discard. Resolve outstanding creation before deleting the server draft; retry until acknowledged and suppress it during refresh. Do not send another create for that ID. If the record is already completed, use online confirmed history deletion. This is device retry bookkeeping, not a server tombstone table.
+Confirmed discard of an unfinished session removes it locally; drafts are never uploaded today. If later draft sync uploads it or a request is unresolved, hide it locally and persist a pending discard. Resolve outstanding creation before deleting the server draft; retry until acknowledged and suppress it during refresh. Do not send another create for that ID. If the record is already completed, use online confirmed history deletion. This is device retry bookkeeping, not a server tombstone table.
 
 ## Retry, authentication and access
 
@@ -97,7 +97,7 @@ Retry network/5xx/429 failures with bounded backoff; honor Retry-After. Persist 
 
 401: refresh silently or defer reauthentication until local finish. 403: retain input and stop automatic retries. 409: retrieve current session state without clearing local work. 422: retain input and identify corrections. Never treat an error as permission to delete training data.
 
-Clerk owns account/access management. Offline starts use the access integration's last verified local validity limit. Expiry blocks new protected activity, not completing or synchronizing an already started workout.
+Clerk owns account/access management. Offline starts will use the last verified subscription expiry from the [RevenueCat integration](revenuecat-integration.md); new workouts are not yet gated by access. Expiry blocks new protected activity, not completing or synchronizing an already started workout.
 
 ## Operational recovery and no-cost condition
 

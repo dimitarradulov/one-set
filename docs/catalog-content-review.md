@@ -32,6 +32,6 @@ The following 27 movements currently have only that global execution standard an
 - Weighted Chin-Up
 - Weighted Dip
 
-The other 20 movements retain the technique cues present in the initial shared exercise seed or the Powerhouse neck note. Each exercise's stopping guidance is derived from the supplied program rows: TF or MMF follows the standard defined in the source. The catalog provides all required text fields without presenting the global execution standard as a movement-specific claim.
+The other 25 movements have dedicated cues. Twenty retain the technique cues present in the initial shared exercise seed or the Powerhouse neck note. Five were added with the [HIT Upper / Lower Rotation](../worker/catalog/programs/11-hit-upper-lower-rotation.yaml): Close-Grip Supinated Lat Pulldown, Dip, Leg Extension Static Hold, Smith-Machine Squat, and Standing Calf Raise. Each exercise's stopping guidance is derived from the supplied program rows: TF or MMF follows the standard defined in the source. Two rotation entries go beyond that mapping. Its Conventional Deadlift slot overrides the shared text to stop near failure while technique holds, and Leg Extension Static Hold stops the hold when the knee angle cannot be kept. The catalog provides all required text fields without presenting the global execution standard as a movement-specific claim.
 
 Do not fill these gaps by copying cues from an unrelated movement. Any future exercise-specific addition should be reviewed as catalog content before publication.

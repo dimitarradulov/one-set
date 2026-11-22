@@ -4,7 +4,7 @@ Use terminal commands for all Cloudflare work. Do not use or register Cloudflare
 
 ## Workers and R2
 
-Use the Wrangler dependency already declared in [worker/package.json](../../worker/package.json). Run commands from `worker/` so Wrangler loads [wrangler.jsonc](../../worker/wrangler.jsonc). If dependencies are missing, install them with `npm ci`; use `npx --no-install wrangler` to avoid downloading a different CLI version.
+Use the Wrangler dependency already declared in [worker/package.json](../../worker/package.json). The repository has two Workers. Run API Worker commands from `worker/` so Wrangler loads [worker/wrangler.jsonc](../../worker/wrangler.jsonc). The catalog dashboard is a separate Worker configured by [admin/wrangler.jsonc](../../admin/wrangler.jsonc); run its commands from `admin/` with the same binary, `../worker/node_modules/.bin/wrangler`, after `npm run build`. See the [dashboard guide](../../admin/README.md). If dependencies are missing, install them with `npm ci`; use `npx --no-install wrangler` to avoid downloading a different CLI version.
 
 ```sh
 cd worker
