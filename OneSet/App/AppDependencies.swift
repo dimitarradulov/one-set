@@ -111,10 +111,7 @@ struct AppDependencies {
         at: storage.directory.appending(path: "Development/onboarding.json")
       )
     }
-    let previewWorkoutFile = arguments.contains("--ui-finish-review") ? "finish-review-workouts.sqlite"
-      : progressRestoreError ? "progress-restore-error-workouts.sqlite"
-      : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
-        : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
+    let previewWorkoutFile = Self.previewWorkoutFile(arguments, restoreError: progressRestoreError, signOut: sessionSignOutPreview, history: historyPreview)
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
     if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-switch-programs")
@@ -260,12 +257,7 @@ struct AppDependencies {
           failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
-        subscriptionAccess: PreviewSubscriptionAccessService(
-          // Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
-          // accounts with completed setup start with Pro.
-          preset: launch.subscriptionPreset
-            ?? (mainTabsPreview || arguments.contains("--ui-setup-completed") ? .active : .inactive),
-          restore: launch.subscriptionRestore),
+        subscriptionAccess: Self.previewSubscriptionAccess(launch: launch, arguments: arguments),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -330,6 +322,29 @@ struct AppDependencies {
       }
     )
   }
+
+  #if DEBUG
+  private static func previewWorkoutFile(
+    _ arguments: [String], restoreError: Bool, signOut: Bool, history: Bool
+  ) -> String {
+    if arguments.contains("--ui-finish-review") { return "finish-review-workouts.sqlite" }
+    if restoreError { return "progress-restore-error-workouts.sqlite" }
+    if signOut { return "session-signout-workouts.sqlite" }
+    return history ? "history-preview-workouts.sqlite" : "workouts.sqlite"
+  }
+
+  /// Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
+  /// accounts with completed setup start with Pro.
+  private static func previewSubscriptionAccess(
+    launch: AppLaunchConfiguration, arguments: [String]
+  ) -> PreviewSubscriptionAccessService {
+    let startsWithPro = launch.includesMainTabsPreview || arguments.contains("--ui-setup-completed")
+    return PreviewSubscriptionAccessService(
+      preset: launch.subscriptionPreset ?? (startsWithPro ? .active : .inactive),
+      restore: launch.subscriptionRestore
+    )
+  }
+  #endif
 
   /// RevenueCat for the live app. Previews and UI tests keep the fakes and never touch it.
   private static func subscriptionAccess(

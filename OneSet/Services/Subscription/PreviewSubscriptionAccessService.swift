@@ -62,6 +62,8 @@ final class PreviewSubscriptionAccessService: SubscriptionAccessService, Subscri
 
   func waitUntilNoInteractiveOperation() async {}
 
+  func removeSavedAccessAfterSignOut(accountID: String) {}
+
   func currentAccess(for selection: AccountSelection) async -> SubscriptionAccessResult {
     if preset == .checking {
       try? await Task.sleep(for: .seconds(86_400))

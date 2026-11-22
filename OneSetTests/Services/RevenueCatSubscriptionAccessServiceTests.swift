@@ -208,6 +208,55 @@ struct RevenueCatSubscriptionAccessServiceTests {
     #expect(await testService.currentAccess(for: select(testService, "user_a")).access == .proVerified(expiresAt: expiry))
   }
 
+  @Test func publicBuildDoesNotGrantOrSaveServerVerifiedSandboxAccess() async {
+    let url = makeStoreURL()
+    let client = FakePurchasesClient()
+    client.nextSnapshot = .success(snapshot(active: true, environment: .sandbox))
+    let publicService = makeService(client: client, storeURL: url, acceptsSandbox: false)
+    let result = await publicService.currentAccess(for: select(publicService, "user_a"))
+    #expect(result.access == .verifiedInactive)
+
+    // Nothing was written, so a debug build on the same store finds no saved access offline.
+    let offlineClient = FakePurchasesClient()
+    offlineClient.nextSnapshot = .failure(SubscriptionOperationError.failed)
+    let debugService = makeService(client: offlineClient, storeURL: url, acceptsSandbox: true)
+    #expect(await debugService.currentAccess(for: select(debugService, "user_a")).access == .unconfirmed)
+  }
+
+  @Test func publicBuildStillGrantsAndSavesProductionAccess() async {
+    let url = makeStoreURL()
+    let client = FakePurchasesClient()
+    client.nextSnapshot = .success(snapshot(active: true))
+    let publicService = makeService(client: client, storeURL: url, acceptsSandbox: false)
+    #expect(await publicService.currentAccess(for: select(publicService, "user_a")).access == .proVerified(expiresAt: expiry))
+
+    let offlineClient = FakePurchasesClient()
+    offlineClient.nextSnapshot = .failure(SubscriptionOperationError.failed)
+    let relaunched = makeService(client: offlineClient, storeURL: url, acceptsSandbox: false)
+    #expect(await relaunched.currentAccess(for: select(relaunched, "user_a")).access == .proVerified(expiresAt: expiry))
+  }
+
+  @Test func confirmedSignOutRemovesSavedAccessButIdentityLossDoesNot() async {
+    let url = makeStoreURL()
+    let client = FakePurchasesClient()
+    client.nextSnapshot = .success(snapshot(active: true))
+    let service = makeService(client: client, storeURL: url)
+    _ = await service.currentAccess(for: select(service, "user_a"))
+
+    func offlineAccess() async -> SubscriptionAccess {
+      let offline = FakePurchasesClient()
+      offline.nextSnapshot = .failure(SubscriptionOperationError.failed)
+      let relaunched = makeService(client: offline, storeURL: url)
+      return await relaunched.currentAccess(for: select(relaunched, "user_a")).access
+    }
+
+    service.selectAccount(nil)
+    #expect(await offlineAccess() == .proVerified(expiresAt: expiry))
+
+    service.removeSavedAccessAfterSignOut(accountID: "user_a")
+    #expect(await offlineAccess() == .unconfirmed)
+  }
+
   @Test func failedLoginCannotConfirmAccessAndDoesNotFetch() async {
     let client = FakePurchasesClient()
     client.nextSnapshot = .success(snapshot(active: true))

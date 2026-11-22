@@ -3,6 +3,40 @@ import Foundation
 // MARK: - Trial access
 
 extension OnboardingModel {
+  func continueWithoutTrial() {
+    completeSetupFromTrial(alertOnFailure: true)
+  }
+
+  /// Saves the setup locally and opens the program from the trial screen. Returns false when the
+  /// trial route no longer matches or the save failed. Upload is left to the caller.
+  @discardableResult
+  func completeSetupFromTrial(alertOnFailure: Bool) -> Bool {
+    guard !isSigningOut, let selectedProgramID,
+          catalog.offeredPrograms.contains(where: { $0.id == selectedProgramID }),
+          path.last == .trialPreview(selectedProgramID)
+    else { return false }
+
+    if let accountID = resolvedAccountID {
+      let setup = AccountSetup(preferredUnit: weightUnit, trainingDays: trainingDays,
+                               programID: selectedProgramID, cycleID: UUID())
+      do {
+        try storeCompleted(setup, needsUpload: true, accountID: accountID)
+        apply(setup)
+        uploadMessage = "Setup saved on this device. Waiting to upload."
+        return true
+      } catch {
+        if alertOnFailure {
+          progressErrorMessage = "Your setup couldn’t be saved on this device. Please try again. "
+            + error.localizedDescription
+          progressErrorPresented = true
+        }
+        return false
+      }
+    }
+    path.append(.programOverview(selectedProgramID))
+    return true
+  }
+
   /// The status the trial screen shows for `programID`. Without a gate the screen is waiting for its
   /// first check, or has no account or service to check with.
   func trialStatus(for programID: String) -> TrialAccessStatus {

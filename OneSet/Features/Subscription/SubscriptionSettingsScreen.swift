@@ -1,4 +1,3 @@
-import StoreKit
 import SwiftUI
 
 /// Settings > Account > Subscription: access status, Restore Purchases, and Manage Subscription.
@@ -23,7 +22,7 @@ struct SubscriptionSettingsScreen: View {
         }
         .disabled(model.isBusy)
         .accessibilityIdentifier("subscription.restore")
-        Button { Task { await openManagement() } } label: {
+        Button { Task { await ManageSubscriptions.open(fallback: openURL) } } label: {
           Label("Manage Subscription", systemImage: "arrow.up.forward.square")
         }
         .accessibilityIdentifier("subscription.manage")
@@ -77,18 +76,6 @@ struct SubscriptionSettingsScreen: View {
       case .tryAgain, .checkStatus: await model.refresh()
       }
     }
-  }
-
-  /// Opens Apple's subscriptions screen, or the App Store page when that cannot be shown.
-  private func openManagement() async {
-    let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-    if let scene {
-      do {
-        try await AppStore.showManageSubscriptions(in: scene)
-        return
-      } catch {}
-    }
-    if let url = PaywallModel.manageSubscriptionURL { openURL(url) }
   }
 
   private var statusContent: SubscriptionStatusRow.Content {

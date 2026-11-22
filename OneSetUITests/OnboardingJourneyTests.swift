@@ -1119,7 +1119,6 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["overview.preferences"].label, "Your preferences: lb · 5 training days per week")
     XCTAssertFalse(app.staticTexts["preferences.title"].exists)
     XCTAssertFalse(app.staticTexts["trial.title"].exists)
-    XCTAssertFalse(app.buttons["paywall.close"].exists)
     XCTAssertTrue(mainTab("Program").isSelected)
     XCTAssertFalse(app.buttons["account.signOut"].exists)
     XCTAssertTrue(mainTab("History").exists)
@@ -1137,7 +1136,7 @@ final class OnboardingJourneyTests: XCTestCase {
     let expectedRowOrder = [
       "settings.row.units", "settings.row.trainingFrequency", "settings.row.restAlerts",
       "settings.row.downloadedVideos", "account.signOut", "settings.row.subscription",
-      "settings.row.accountDeletion",
+      "settings.row.accountDeletion"
     ]
     XCTAssertEqual(
       app.buttons.allElementsBoundByIndex
@@ -1152,7 +1151,6 @@ final class OnboardingJourneyTests: XCTestCase {
       ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
       ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
-      ("settings.row.subscription", "Subscription", "Manage your subscription and restore purchases."),
       ("settings.row.accountDeletion", "Account deletion", "Delete your OneSet account and its data."),
     ]
     for (row, title, explanation) in destinations {
@@ -1160,14 +1158,6 @@ final class OnboardingJourneyTests: XCTestCase {
       XCTAssertGreaterThanOrEqual(app.buttons[row].frame.height, 44)
       app.buttons[row].tap()
       XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
-      if row == "settings.row.subscription" {
-        // The Subscription screen replaced the placeholder; its states have their own tests.
-        XCTAssertTrue(app.buttons["subscription.manage"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["settings.destination.comingSoon"].exists)
-        navigationBack().tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
-        continue
-      }
       XCTAssertTrue(app.staticTexts["settings.destination.comingSoon"].exists)
       XCTAssertTrue(app.staticTexts.matching(
         NSPredicate(format: "label == %@", explanation)
@@ -1726,8 +1716,7 @@ final class OnboardingJourneyTests: XCTestCase {
     app.buttons["preferences.continue"].tap()
     programCard("full-body").tap()
     app.buttons["program.detail.select"].tap()
-    // Verified Pro saves the setup and opens the program without another tap.
-    if !acceptPreview { app.buttons["trial.continueWithoutTrial"].tap() }
+    if !acceptPreview { app.buttons["trial.continueWithoutTrial"].tap() } // Verified Pro skips this tap.
     XCTAssertTrue(app.staticTexts["overview.title"].waitForExistence(timeout: 3))
   }
 

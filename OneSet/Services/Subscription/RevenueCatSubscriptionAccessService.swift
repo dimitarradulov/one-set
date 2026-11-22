@@ -13,6 +13,9 @@ protocol SubscriptionAccountSelecting: AnyObject {
   /// Suspends until no interactive purchase or restore is running. Explicit sign-out waits
   /// here before it changes identity.
   func waitUntilNoInteractiveOperation() async
+  /// Removes the account's saved access after a confirmed sign-out. Identity loss alone, and
+  /// `selectAccount(nil)`, never remove it.
+  func removeSavedAccessAfterSignOut(accountID: String)
 }
 
 /// What RevenueCatUI's paywall, and Settings, need from the owner to run a purchase or
@@ -99,6 +102,10 @@ final class RevenueCatSubscriptionAccessService: SubscriptionAccessService, Subs
     return next
   }
 
+  func removeSavedAccessAfterSignOut(accountID: String) {
+    saved.values.forEach { try? $0.removeAfterConfirmedSignOut(accountID: accountID) }
+  }
+
   func appDidReturnToForeground() {
     guard let selection else { return }
     Task { _ = await refresh(for: selection) }
@@ -183,6 +190,9 @@ final class RevenueCatSubscriptionAccessService: SubscriptionAccessService, Subs
   private func recordVerified(
     _ snapshot: CustomerAccessSnapshot, checkedAt: Date, for selection: AccountSelection
   ) -> Outcome {
+    // A public build needs a production entitlement: sandbox or Test Store access is neither
+    // live Pro nor saved, even when the server verified it.
+    guard savedEnvironments.contains(snapshot.environment) else { return Outcome(access: .verifiedInactive, isConclusive: true) }
     let saver = saved[snapshot.environment]
     if snapshot.isActive {
       let expiresAt = snapshot.expiresAt ?? .distantFuture
