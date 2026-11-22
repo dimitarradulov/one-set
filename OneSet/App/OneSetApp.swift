@@ -46,6 +46,7 @@ struct OneSetApp: App {
     let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
     subscriptionAccounts = accounts
     model.onResolvedAccountChange = { accounts?.selectAccount($0) }
+    model.beforeSignOut = { await accounts?.waitUntilNoInteractiveOperation() }
     _onboarding = State(initialValue: model)
     _authentication = State(initialValue: AuthenticationModel(
       service: dependencies.authentication

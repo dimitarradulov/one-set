@@ -329,6 +329,9 @@ struct AppDependencies {
       store: FileSavedSubscriptionAccessStore(
         fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
       ),
+      pendingStore: FilePendingSubscriptionOperationStore(
+        fileURL: storage.directory.appending(path: "Subscription/pending-operations.json")
+      ),
       acceptsSandboxSavedAccess: isDebug
     )
   }

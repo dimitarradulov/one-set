@@ -43,4 +43,40 @@ final class FakePurchasesClient: PurchasesClient {
     heldFetches = []
     held.forEach { $0.resume(returning: result) }
   }
+
+  // MARK: Purchases and restores
+
+  private(set) var purchaseCalls: [String] = []
+  private(set) var restoreCount = 0
+  var holdsOperations = false
+  var nextPurchase: Result<PurchaseOutcome, any Error> = .success(.purchased)
+  var nextRestore: Result<Void, any Error> = .success(())
+  private var heldPurchases: [CheckedContinuation<Result<PurchaseOutcome, any Error>, Never>] = []
+  private var heldRestores: [CheckedContinuation<Result<Void, any Error>, Never>] = []
+
+  func purchase(packageID: String) async throws -> PurchaseOutcome {
+    purchaseCalls.append(packageID)
+    if holdsOperations {
+      return try await withCheckedContinuation { heldPurchases.append($0) }.get()
+    }
+    return try nextPurchase.get()
+  }
+
+  func restorePurchases() async throws {
+    restoreCount += 1
+    if holdsOperations {
+      return try await withCheckedContinuation { heldRestores.append($0) }.get()
+    }
+    return try nextRestore.get()
+  }
+
+  func waitForHeldPurchase() async {
+    while heldPurchases.isEmpty { await Task.yield() }
+  }
+
+  func releasePurchases(with result: Result<PurchaseOutcome, any Error>) {
+    let held = heldPurchases
+    heldPurchases = []
+    held.forEach { $0.resume(returning: result) }
+  }
 }

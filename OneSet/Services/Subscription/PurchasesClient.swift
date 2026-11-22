@@ -18,6 +18,14 @@ struct CustomerAccessSnapshot: Equatable, Sendable {
   let environment: BillingEnvironment
 }
 
+/// How a purchase the SDK started ended, short of an error.
+enum PurchaseOutcome: Equatable, Sendable {
+  /// Apple confirmed the charge. Access still needs verification.
+  case purchased
+  /// The payment is waiting for approval.
+  case pendingApproval
+}
+
 /// Seam around the RevenueCat SDK so the owner can be tested without it.
 @MainActor
 protocol PurchasesClient {
@@ -29,4 +37,9 @@ protocol PurchasesClient {
   func logIn(appUserID: String) async throws
   /// Fetches current customer info from the server and maps `oneset_pro`.
   func fetchAccessSnapshot() async throws -> CustomerAccessSnapshot
+  /// Buys a package. Throws `SubscriptionOperationError`: `.cancelled`,
+  /// `.linkedToAnotherAccount`, or `.failed`.
+  func purchase(packageID: String) async throws -> PurchaseOutcome
+  /// Restores purchases to the current App User ID. Throws `SubscriptionOperationError`.
+  func restorePurchases() async throws
 }
