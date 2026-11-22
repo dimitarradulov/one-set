@@ -71,7 +71,13 @@ final class OnboardingModel {
   let progressService: (any AccountProgressService)?
   var lookupGeneration = 0
   private var backgroundRestoration: Task<Void, Never>?
-  private(set) var resolvedAccountID: String?
+  private(set) var resolvedAccountID: String? {
+    didSet {
+      if resolvedAccountID != oldValue { onResolvedAccountChange?(resolvedAccountID) }
+    }
+  }
+  /// Reports the account once setup resolves, and nil when the account is reset.
+  @ObservationIgnored var onResolvedAccountChange: ((String?) -> Void)?
   let catalog: ProgramCatalog
   var workoutRepository: WorkoutRepository?
   var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -105,7 +111,13 @@ final class OnboardingModel {
   var accountSelectionGeneration = 0
   var workoutStartGate: WorkoutStartGate?
   var workoutStartAttempt: UUID?
-  var plansRequest: PlansRequest?
+  /// The open checkout sheet and the preview it was opened from.
+  var paywall: PaywallModel?
+  var paywallRoute: OnboardingRoute?
+  let paywallHost: (any PaywallHost)?
+  let paywallApproval: any PaywallApproving
+  /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
+  @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
 
   init(
     catalog: ProgramCatalog,
@@ -117,6 +129,8 @@ final class OnboardingModel {
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     sessionHistoryService: (any SessionHistoryService)? = nil,
     subscriptionAccess: (any SubscriptionAccessService)? = nil,
+    paywallHost: (any PaywallHost)? = nil,
+    paywallApproval: any PaywallApproving = UnconfiguredPaywallApproval(),
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
@@ -146,6 +160,8 @@ final class OnboardingModel {
     self.completedSessionUploadService = completedSessionUploadService
     self.sessionHistoryService = sessionHistoryService
     self.subscriptionAccess = subscriptionAccess
+    self.paywallHost = paywallHost
+    self.paywallApproval = paywallApproval
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
@@ -658,7 +674,8 @@ extension OnboardingModel {
     accountSelectionGeneration += 1
     workoutStartGate = nil
     workoutStartAttempt = nil
-    plansRequest = nil
+    paywall = nil
+    paywallRoute = nil
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle

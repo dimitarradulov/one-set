@@ -21,14 +21,6 @@ struct WorkoutStartGate: Equatable {
   var status: WorkoutStartStatus
 }
 
-/// A request to show the paywall entry point over one preview. Ticket #99 replaces the
-/// sheet content and reports the outcome through `OnboardingModel.finishCheckout`.
-struct PlansRequest: Identifiable, Equatable {
-  let id = UUID()
-  let route: OnboardingRoute
-  let selection: AccountSelection
-}
-
 /// Everything a new session start depends on, captured before the access check.
 struct WorkoutStartRequest {
   let selection: AccountSelection

@@ -6,6 +6,8 @@ struct OneSetApp: App {
   private let restAlerts: WorkoutRestAlerts?
   @State private var onboarding: OnboardingModel
   @State private var authentication: AuthenticationModel
+  @Environment(\.scenePhase) private var scenePhase
+  private let subscriptionAccounts: (any SubscriptionAccountSelecting)?
 
   #if DEBUG
   @State private var isDevelopmentSession = false
@@ -32,6 +34,8 @@ struct OneSetApp: App {
       completedSessionUploadService: dependencies.completedSessionUpload,
       sessionHistoryService: dependencies.sessionHistory,
       subscriptionAccess: dependencies.subscriptionAccess,
+      paywallHost: dependencies.paywallHost,
+      paywallApproval: dependencies.paywallApproval,
       progressStore: dependencies.onboardingProgress,
       workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
       restAlerts: restAlerts,
@@ -42,6 +46,10 @@ struct OneSetApp: App {
       initialMainTab: launch.selectedMainTab
     )
     model.trainingDays = launch.trainingDays
+    let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
+    subscriptionAccounts = accounts
+    model.onResolvedAccountChange = { accounts?.selectAccount($0) }
+    if let accounts { model.accountSelectionProvider = { accounts.selection } }
     _onboarding = State(initialValue: model)
     _authentication = State(initialValue: AuthenticationModel(
       service: dependencies.authentication
@@ -62,6 +70,8 @@ struct OneSetApp: App {
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
         subscriptionAccess: dependencies.subscriptionAccess,
+        paywallHost: dependencies.paywallHost,
+        paywallApproval: dependencies.paywallApproval,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
@@ -81,6 +91,8 @@ struct OneSetApp: App {
         completedSessionUploadService: dependencies.completedSessionUpload,
         sessionHistoryService: dependencies.sessionHistory,
         subscriptionAccess: dependencies.subscriptionAccess,
+        paywallHost: dependencies.paywallHost,
+        paywallApproval: dependencies.paywallApproval,
         progressStore: dependencies.onboardingProgress,
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
@@ -94,19 +106,38 @@ struct OneSetApp: App {
 
   var body: some Scene {
     WindowGroup {
-      onboardingFlow
-        .id(ObjectIdentifier(authentication))
-        .tint(OneSetColors.accent)
-        .environment(Clerk.shared)
-        #if DEBUG
-        .task {
-          if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
-            await authentication.signInWithApple()
-          } else if ProcessInfo.processInfo.arguments.contains("--ui-google-auth-error") {
-            await authentication.signInWithGoogle()
-          }
-        }
-        #endif
+      #if DEBUG
+      if let paywallPreview = AppLaunchConfiguration(arguments: ProcessInfo.processInfo.arguments).paywallPreview {
+        PaywallPreviewRoute(state: paywallPreview).tint(OneSetColors.accent)
+      } else {
+        mainContent
+      }
+      #else
+      mainContent
+      #endif
     }
+  }
+
+  @ViewBuilder private var mainContent: some View {
+    onboardingFlow
+      .id(ObjectIdentifier(authentication))
+      .tint(OneSetColors.accent)
+      .environment(Clerk.shared)
+      .onChange(of: authentication.signedInUser?.id) { _, accountID in
+        // Clerk lost or changed identity: drop the old account's access right away.
+        if accountID != subscriptionAccounts?.selection?.accountID { subscriptionAccounts?.selectAccount(nil) }
+      }
+      .onChange(of: scenePhase) { _, phase in
+        if phase == .active { subscriptionAccounts?.appDidReturnToForeground() }
+      }
+      #if DEBUG
+      .task {
+        if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
+          await authentication.signInWithApple()
+        } else if ProcessInfo.processInfo.arguments.contains("--ui-google-auth-error") {
+          await authentication.signInWithGoogle()
+        }
+      }
+      #endif
   }
 }

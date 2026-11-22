@@ -4,7 +4,11 @@ import Foundation
 
 extension OnboardingModel {
   var currentAccountSelection: AccountSelection? {
-    resolvedAccountID.map { AccountSelection(accountID: $0, generation: accountSelectionGeneration) }
+    guard let accountID = resolvedAccountID else { return nil }
+    if let accountSelectionProvider {
+      return accountSelectionProvider().flatMap { $0.accountID == accountID ? $0 : nil }
+    }
+    return AccountSelection(accountID: accountID, generation: accountSelectionGeneration)
   }
 
   private var visiblePath: [OnboardingRoute] { hasCompletedSetup ? programPath : path }
@@ -162,31 +166,44 @@ extension OnboardingModel {
 // MARK: - Checkout entry point
 
 extension OnboardingModel {
-  /// Shows the paywall entry point over a preview whose fresh check verified no active Pro.
+  /// Opens checkout over a preview whose fresh check verified no active Pro.
   func presentPlans(for route: OnboardingRoute) {
     guard let gate = workoutStartGate, gate.route == route, gate.status == .proRequired,
-          gate.selection == currentAccountSelection, plansRequest == nil else { return }
-    plansRequest = PlansRequest(route: route, selection: gate.selection)
+          gate.selection == currentAccountSelection, paywall == nil,
+          let subscriptionAccess, let paywallHost else { return }
+    let selection = gate.selection
+    var opened: PaywallModel?
+    let model = PaywallModel(
+      selection: selection,
+      currentSelection: { [weak self] in self?.currentAccountSelection },
+      access: subscriptionAccess, host: paywallHost, approval: paywallApproval,
+      onResult: { [weak self] result in
+        guard let self, let opened else { return }
+        finishCheckout(opened, route: route, selection: selection, result: result)
+      })
+    opened = model
+    paywallRoute = route
+    paywall = model
   }
 
-  func dismissPlans() {
-    plansRequest = nil
-  }
-
-  /// Reports the outcome of checkout. Returns to the preview if it is still the one the user left,
-  /// without starting the workout.
-  func finishCheckout(_ request: PlansRequest, result: SubscriptionAccessResult) {
-    guard plansRequest?.id == request.id, result.applies(to: currentAccountSelection),
-          request.selection == result.selection else { return }
-    if result.access != .verifiedInactive { plansRequest = nil }
-    guard workoutStartGate?.route == request.route, visiblePath.last == request.route else { return }
-    settleGate(for: request.route, selection: request.selection, access: result.access, keepsGate: true)
-  }
-
-  /// Purchases a package through the access service on behalf of an open plans sheet.
-  func purchasePlan(_ package: SubscriptionPackage, request: PlansRequest) async throws {
-    guard let subscriptionAccess, plansRequest?.id == request.id else { throw SubscriptionOperationError.failed }
-    let result = try await subscriptionAccess.purchase(package, for: request.selection)
-    finishCheckout(request, result: result)
+  /// Returns to the preview after checkout without starting the workout. A verified purchase
+  /// shows Start again, and an unresolved one rechecks access in place.
+  private func finishCheckout(_ model: PaywallModel, route: OnboardingRoute, selection: AccountSelection,
+                              result: PaywallResult) {
+    if paywall?.id == model.id {
+      paywall = nil
+      paywallRoute = nil
+    }
+    guard selection == currentAccountSelection, workoutStartGate?.route == route,
+          visiblePath.last == route else { return }
+    switch result {
+    case .verifiedPro:
+      settleGate(for: route, selection: selection, access: .proVerified(expiresAt: .distantFuture),
+                 keepsGate: true)
+    case .closed:
+      break
+    case .unresolved:
+      Task { await recheckWorkoutAccess(route: route) }
+    }
   }
 }

@@ -14,6 +14,22 @@ struct AppDependencies {
   let subscriptionAccess: any SubscriptionAccessService
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
+  /// RevenueCat's paywall for the live service. Previews and UI tests use the fake host.
+  var paywallHost: any PaywallHost {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return FakePaywallHost() }
+    #endif
+    return RevenueCatPaywallHost()
+  }
+
+  /// Previews approve everything. The live approval arrives with the account owner (#97).
+  var paywallApproval: any PaywallApproving {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return PreviewPaywallApproval() }
+    #endif
+    return UnconfiguredPaywallApproval()
+  }
+
   #if DEBUG
   static func development(environment: [String: String] = ProcessInfo.processInfo.environment) -> AppDependencies {
     let storage = AppStorage(environment: environment)
@@ -277,12 +293,7 @@ struct AppDependencies {
     #endif
 
     let authentication = ClerkAuthenticationService()
-    #if DEBUG
-    let subscriptionAccess: any SubscriptionAccessService = launch.subscriptionPreset
-      .map { PreviewSubscriptionAccessService(preset: $0) } ?? UnconfiguredSubscriptionAccessService()
-    #else
-    let subscriptionAccess: any SubscriptionAccessService = UnconfiguredSubscriptionAccessService()
-    #endif
+    let subscriptionAccess = Self.subscriptionAccess(arguments: arguments, environment: environment, storage: storage)
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -306,6 +317,35 @@ struct AppDependencies {
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
+    )
+  }
+
+  /// RevenueCat for the live app. Previews and UI tests keep the fakes and never touch it.
+  private static func subscriptionAccess(
+    arguments: [String], environment: [String: String], storage: AppStorage
+  ) -> any SubscriptionAccessService {
+    #if DEBUG
+    if let preset = AppLaunchConfiguration(arguments: arguments).subscriptionPreset {
+      return PreviewSubscriptionAccessService(preset: preset)
+    }
+    if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
+    #endif
+    return liveSubscriptionAccess(storage: storage)
+  }
+
+  private static func liveSubscriptionAccess(storage: AppStorage) -> RevenueCatSubscriptionAccessService {
+    #if DEBUG
+    let isDebug = true
+    #else
+    let isDebug = false
+    #endif
+    return RevenueCatSubscriptionAccessService(
+      client: LivePurchasesClient(fallbackEnvironment: isDebug ? .sandbox : .production),
+      apiKey: AppLaunchConfiguration.revenueCatAPIKey(),
+      store: FileSavedSubscriptionAccessStore(
+        fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
+      ),
+      acceptsSandboxSavedAccess: isDebug
     )
   }
 

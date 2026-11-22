@@ -40,12 +40,10 @@ struct WorkoutStartPreviewScreen: View {
     }
     #endif
     .onDisappear { model.clearWorkoutStartGate(for: route) }
-    .sheet(item: Binding(
-      get: { model.plansRequest?.route == route ? model.plansRequest : nil },
-      set: { if $0 == nil { model.dismissPlans() } }
-    )) { request in
-      SubscriptionPlansSheet(model: model, request: request)
-    }
+    .paywallSheet(model: Binding(
+      get: { model.paywallRoute == route ? model.paywall : nil },
+      set: { if $0 == nil { model.paywall = nil } }
+    ))
   }
 
   private var isActiveWorkout: Bool {

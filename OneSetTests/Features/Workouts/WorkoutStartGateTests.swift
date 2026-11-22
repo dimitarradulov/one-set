@@ -23,7 +23,8 @@ struct WorkoutStartGateTests {
     let setup = AccountSetup(preferredUnit: .kilograms, trainingDays: 3, programID: "machine-full-body",
       cycleID: UUID())
     let model = OnboardingModel(catalog: .bundled, setupService: GateSetupStub(setup: setup),
-      completedSessionUploadService: uploads, subscriptionAccess: service, workoutRepository: repository)
+      completedSessionUploadService: uploads, subscriptionAccess: service,
+      paywallHost: FakePaywallHost(), paywallApproval: PreviewPaywallApproval(), workoutRepository: repository)
     let authentication = AuthenticationModel(service: PreviewAuthenticationService(startsSignedIn: true))
     await model.resolveAccountSetup(using: authentication)
     model.previewWorkout(programID: setup.programID, workoutID: workoutID)
@@ -80,16 +81,17 @@ struct WorkoutStartGateTests {
     ctx.service.fail()
     await tap.value
     ctx.model.presentPlans(for: ctx.route)
-    #expect(ctx.model.plansRequest == nil)
+    #expect(ctx.model.paywall == nil)
     ctx.service.set(.pendingApproval, for: selection)
     await tapStart(ctx)
     #expect(ctx.model.workoutStartGate?.status == .pendingApproval)
     ctx.model.presentPlans(for: ctx.route)
-    #expect(ctx.model.plansRequest == nil)
+    #expect(ctx.model.paywall == nil)
     ctx.service.set(.verifiedInactive, for: selection)
     await tapStart(ctx)
     ctx.model.presentPlans(for: ctx.route)
-    #expect(ctx.model.plansRequest?.route == ctx.route)
+    #expect(ctx.model.paywall != nil)
+    #expect(ctx.model.paywallRoute == ctx.route)
   }
 
   @Test func startTapDuringACheckWaitsAndOnlyStartsOnce() async throws {
@@ -175,18 +177,29 @@ struct WorkoutStartGateTests {
     #expect(ctx.model.activeWorkoutSession != nil)
   }
 
-  @Test func purchaseReturnsToTheStillValidPreviewWithoutStarting() async throws {
-    let service = ControllableSubscriptionAccessService()
-    service.purchaseResult = .success(.proVerified(expiresAt: future))
-    let ctx = try await harness(service: service)
-    defer { try? FileManager.default.removeItem(at: ctx.directory) }
+  /// Opens checkout from a verified-inactive start and completes a purchase that verifies as `access`.
+  private func checkout(_ ctx: Harness, verifying access: SubscriptionAccess) async throws {
     let tap = await tapStartPending(ctx)
-    service.resolve(.verifiedInactive)
+    ctx.service.resolve(.verifiedInactive)
     await tap.value
     ctx.model.presentPlans(for: ctx.route)
-    let request = try #require(ctx.model.plansRequest)
-    try await ctx.model.purchasePlan(SubscriptionPackage(id: "$rc_monthly"), request: request)
-    #expect(ctx.model.plansRequest == nil)
+    let paywall = try #require(ctx.model.paywall)
+    await paywall.start()
+    #expect(await paywall.events.purchaseInitiated(SubscriptionPackage(id: "$rc_monthly")))
+    paywall.events.purchaseCompleted()
+    await ctx.service.waitForPendingCheck()
+    ctx.service.resolve(access)
+    while paywall.phase != .active { await Task.yield() }
+    await Task.yield()
+  }
+
+  @Test func purchaseReturnsToTheStillValidPreviewWithoutStarting() async throws {
+    let ctx = try await harness()
+    defer { try? FileManager.default.removeItem(at: ctx.directory) }
+    try await checkout(ctx, verifying: .proVerified(expiresAt: future))
+    ctx.model.paywall?.done()
+    for _ in 0..<50 where ctx.model.workoutStartGate?.status != .proActive { await Task.yield() }
+    #expect(ctx.model.paywall == nil)
     #expect(ctx.model.programPath.last == ctx.route)
     #expect(ctx.model.workoutStartGate?.status == .proActive)
     #expect(ctx.model.activeWorkoutSession == nil)
@@ -201,10 +214,27 @@ struct WorkoutStartGateTests {
     ctx.service.resolve(.verifiedInactive)
     await tap.value
     ctx.model.presentPlans(for: ctx.route)
-    let request = try #require(ctx.model.plansRequest)
-    try await ctx.model.purchasePlan(SubscriptionPackage(id: "$rc_monthly"), request: request)
+    let paywall = try #require(ctx.model.paywall)
+    await paywall.start()
+    paywall.events.purchasePending()
+    paywall.close()
+    await ctx.service.waitForPendingCheck()
+    ctx.service.resolve(.pendingApproval)
+    for _ in 0..<50 where ctx.model.workoutStartGate?.status != .pendingApproval { await Task.yield() }
     #expect(ctx.model.workoutStartGate?.status == .pendingApproval)
-    #expect(ctx.model.plansRequest == nil)
+    #expect(ctx.model.paywall == nil)
+  }
+
+  @Test func closingCheckoutKeepsTheProRequiredFooter() async throws {
+    let ctx = try await harness()
+    defer { try? FileManager.default.removeItem(at: ctx.directory) }
+    let tap = await tapStartPending(ctx)
+    ctx.service.resolve(.verifiedInactive)
+    await tap.value
+    ctx.model.presentPlans(for: ctx.route)
+    ctx.model.paywall?.close()
+    #expect(ctx.model.paywall == nil)
+    #expect(ctx.model.workoutStartGate?.status == .proRequired)
   }
 
   @Test func accountChangeClearsSubscriptionPresentation() async throws {
@@ -216,7 +246,7 @@ struct WorkoutStartGateTests {
     ctx.model.presentPlans(for: ctx.route)
     ctx.model.resetAccount()
     #expect(ctx.model.workoutStartGate == nil)
-    #expect(ctx.model.plansRequest == nil)
+    #expect(ctx.model.paywall == nil)
   }
 
   @Test func checkoutResultForAnEarlierAccountSelectionIsIgnored() async throws {
@@ -226,9 +256,9 @@ struct WorkoutStartGateTests {
     ctx.service.resolve(.verifiedInactive)
     await tap.value
     ctx.model.presentPlans(for: ctx.route)
-    let request = try #require(ctx.model.plansRequest)
+    let paywall = try #require(ctx.model.paywall)
     ctx.model.resetAccount()
-    ctx.model.finishCheckout(request, result: .init(selection: request.selection, access: .proVerified(expiresAt: future)))
+    paywall.close()
     #expect(ctx.model.workoutStartGate == nil)
   }
 
