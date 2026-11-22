@@ -30,7 +30,7 @@ final class OnboardingModel {
   private(set) var pendingSessionSignOutMessage = ""
   private var pendingSessionSignOutDiscardsSetup = false
   private var pendingSessionSignOutAccountID: String?
-  private(set) var uploadMessage: String?
+  var uploadMessage: String?
   private(set) var programSelectionMessage: String?
   var requiresProgramUpdate: Bool { savedProgress?.pendingRemoteSelection != nil }
   var programUpdateDefaultMessage: String {
@@ -45,7 +45,7 @@ final class OnboardingModel {
   var signOutErrorPresented = false
   private(set) var signOutErrorMessage = ""
   var progressErrorPresented = false
-  private(set) var progressErrorMessage = ""
+  var progressErrorMessage = ""
   let progressStore: (any OnboardingProgressStore)?
   var savedProgress: OnboardingProgress?
   private(set) var isSigningOut = false
@@ -80,6 +80,8 @@ final class OnboardingModel {
   @ObservationIgnored var onResolvedAccountChange: ((String?) -> Void)?
   /// Lets an interactive purchase or restore finish before an explicit sign-out changes identity.
   @ObservationIgnored var beforeSignOut: (@MainActor () async -> Void)?
+  /// Reports the account whose sign-out was confirmed, so its saved access can be removed.
+  @ObservationIgnored var onConfirmedSignOut: ((String) -> Void)?
   let catalog: ProgramCatalog
   var workoutRepository: WorkoutRepository?
   var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -509,7 +511,6 @@ extension OnboardingModel {
     retainingPendingSessions: Bool = false,
     confirmed: Bool = false
   ) async {
-    if let beforeSignOut { await beforeSignOut() }
     guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     if activeWorkoutSession != nil {
       signOutErrorMessage = "Finish or discard your current workout first."
@@ -583,7 +584,7 @@ extension OnboardingModel {
     do {
       let shouldRemoveProgress = progress != nil && !hasPendingCycles && (!hasPendingSetupForAccount || discardPending)
       if shouldRemoveProgress { try progressStore?.remove(accountID: accountID) }
-      await authentication.signOut()
+      await signOutIdentity(accountID: accountID, using: authentication)
       if authentication.signedInUser == nil {
         resetAccount()
       } else if authentication.signedInUser?.id == accountID {
@@ -609,6 +610,14 @@ extension OnboardingModel {
       signOutErrorPresented = true
       resumeUploadsAfterFailure = true
     }
+  }
+
+  /// Lets an interactive purchase finish, then signs out. Only a confirmed sign-out, with no
+  /// signed-in user left, reports the account so its saved access is removed.
+  private func signOutIdentity(accountID: String, using authentication: AuthenticationModel) async {
+    await beforeSignOut?()
+    await authentication.signOut()
+    if authentication.signedInUser == nil { onConfirmedSignOut?(accountID) }
   }
 
   func confirmSignOut(using authentication: AuthenticationModel) async {
@@ -867,41 +876,7 @@ extension OnboardingModel {
     }
   }
 
-  func continueWithoutTrial() {
-    completeSetupFromTrial(alertOnFailure: true)
-  }
-
-  /// Saves the setup locally and opens the program from the trial screen. Returns false when the
-  /// trial route no longer matches or the save failed. Upload is left to the caller.
-  @discardableResult
-  func completeSetupFromTrial(alertOnFailure: Bool) -> Bool {
-    guard !isSigningOut, let selectedProgramID,
-          catalog.offeredPrograms.contains(where: { $0.id == selectedProgramID }),
-          path.last == .trialPreview(selectedProgramID)
-    else { return false }
-
-    if let accountID = resolvedAccountID {
-      let setup = AccountSetup(preferredUnit: weightUnit, trainingDays: trainingDays,
-                               programID: selectedProgramID, cycleID: UUID())
-      do {
-        try storeCompleted(setup, needsUpload: true, accountID: accountID)
-        apply(setup)
-        uploadMessage = "Setup saved on this device. Waiting to upload."
-        return true
-      } catch {
-        if alertOnFailure {
-          progressErrorMessage = "Your setup couldn’t be saved on this device. Please try again. "
-            + error.localizedDescription
-          progressErrorPresented = true
-        }
-        return false
-      }
-    }
-    path.append(.programOverview(selectedProgramID))
-    return true
-  }
-
-  private func apply(_ setup: AccountSetup, replacePath: Bool = true) {
+  func apply(_ setup: AccountSetup, replacePath: Bool = true) {
     weightUnit = setup.preferredUnit
     trainingDays = setup.trainingDays
     selectedProgramID = setup.programID
@@ -909,7 +884,7 @@ extension OnboardingModel {
     if replacePath { path = [.programOverview(setup.programID)] }
   }
 
-  private func storeCompleted(_ setup: AccountSetup, needsUpload: Bool, accountID: String) throws {
+  func storeCompleted(_ setup: AccountSetup, needsUpload: Bool, accountID: String) throws {
     guard (2...5).contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
       throw AccountSetupError.invalidSetup
     }

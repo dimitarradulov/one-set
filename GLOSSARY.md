@@ -60,3 +60,14 @@ _Avoid_: Workout template
 **Technical failure**: The stopping point at which another repetition would require unacceptable technique breakdown.
 
 **Momentary muscular failure**: The point at which another full repetition cannot be completed with the prescribed movement standard.
+
+## Subscription
+
+**Pro access**: The right to start new workouts, granted only by an active, server-verified production entitlement for the selected account. Existing sessions, history, and previews never require it.
+_Avoid_: Premium, subscribed
+
+**Account selection**: The signed-in account that owns subscription state, numbered by a generation. Any change of account, including signing out and back in as the same account, starts a new generation; results and purchases tied to an earlier generation are discarded.
+
+**Saved verified expiry**: The latest server-verified Pro expiry kept on the device for one account and billing environment, so Pro access can be granted offline until that time. Sandbox and production records are kept apart, and a confirmed sign-out removes them.
+
+**Pending approval**: A purchase awaiting outside approval, such as Ask to Buy, or a charge not yet confirmed by a verified check. It keeps the account out of checkout and grants no Pro access until verified.

@@ -166,11 +166,15 @@ final class PaywallModel: Identifiable {
       guard isCurrent else { return }
       endOperation()
       phase = previous
-      switch error as? SubscriptionOperationError {
-      case .cancelled: banner = nil
-      case .linkedToAnotherAccount: banner = .linkedToAnotherAccount
-      default: banner = .restoreFailed
-      }
+      banner = Self.restoreFailureBanner(error)
+    }
+  }
+
+  private static func restoreFailureBanner(_ error: any Error) -> Banner? {
+    switch error as? SubscriptionOperationError {
+    case .cancelled: nil
+    case .linkedToAnotherAccount: .linkedToAnotherAccount
+    default: .restoreFailed
     }
   }
 

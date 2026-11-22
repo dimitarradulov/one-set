@@ -118,10 +118,17 @@ extension OnboardingModel {
   }
 
   private func nextOccurrence(repository: WorkoutRepository, accountID: String, cycleID: UUID,
-                              program: TrainingProgram) throws -> (week: Int, day: Int, workoutID: String) {
-    try repository.nextOccurrence(accountID: accountID, cycleID: cycleID,
+                              program: TrainingProgram) throws -> NextOccurrence {
+    let next = try repository.nextOccurrence(accountID: accountID, cycleID: cycleID,
       programID: program.id, workoutIDs: program.workouts(inWeek: 1).map(\.id),
       evenWeekWorkoutIDs: program.evenWeekWorkoutIDs)
+    return NextOccurrence(week: next.week, day: next.day, workoutID: next.workoutID)
+  }
+
+  private struct NextOccurrence {
+    let week: Int
+    let day: Int
+    let workoutID: String
   }
 
   private func saveNewWorkout(_ request: WorkoutStartRequest) {

@@ -147,6 +147,17 @@ struct WorkoutStartGateTests {
     #expect(ctx.model.programPath.last == ctx.route)
   }
 
+  @Test func replyIsDroppedWhenTheCycleChangedMeanwhile() async throws {
+    let ctx = try await harness()
+    defer { try? FileManager.default.removeItem(at: ctx.directory) }
+    let tap = await tapStartPending(ctx)
+    ctx.model.restoredCycleID = UUID()
+    ctx.service.resolve(.proVerified(expiresAt: future))
+    await tap.value
+    #expect(ctx.model.activeWorkoutSession == nil)
+    #expect(try ctx.repository.activeSession(accountID: "preview-user") == nil)
+  }
+
   @Test func replyIsDroppedWhenThePreviewWasLeft() async throws {
     let ctx = try await harness()
     defer { try? FileManager.default.removeItem(at: ctx.directory) }

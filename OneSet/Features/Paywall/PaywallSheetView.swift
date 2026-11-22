@@ -164,7 +164,7 @@ struct PaywallSheetView: View {
 
   private var manageButton: some View {
     Button("Manage Subscription") {
-      if let url = PaywallModel.manageSubscriptionURL { openURL(url) }
+      Task { await ManageSubscriptions.open(fallback: openURL) }
     }
     .font(OneSetTypography.label)
     .foregroundStyle(OneSetColors.accent)

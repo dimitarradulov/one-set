@@ -49,14 +49,21 @@ struct OneSetApp: App {
     model.trainingDays = launch.trainingDays
     let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
     subscriptionAccounts = accounts
-    model.onResolvedAccountChange = { accounts?.selectAccount($0) }
-    model.beforeSignOut = { await accounts?.waitUntilNoInteractiveOperation() }
+    Self.connect(model, to: accounts)
     if let accounts { model.accountSelectionProvider = { accounts.selection } }
     _onboarding = State(initialValue: model)
     _subscriptionSettings = State(initialValue: Self.subscriptionSettings(for: dependencies))
     _authentication = State(initialValue: AuthenticationModel(
       service: dependencies.authentication
     ))
+  }
+
+  /// Tells the account owner about account changes and confirmed sign-outs, and lets it finish a
+  /// purchase before an explicit sign-out changes identity.
+  private static func connect(_ model: OnboardingModel, to accounts: (any SubscriptionAccountSelecting)?) {
+    model.onResolvedAccountChange = { accounts?.selectAccount($0) }
+    model.beforeSignOut = { await accounts?.waitUntilNoInteractiveOperation() }
+    model.onConfirmedSignOut = { accounts?.removeSavedAccessAfterSignOut(accountID: $0) }
   }
 
   private static func subscriptionSettings(for dependencies: AppDependencies) -> SubscriptionSettingsModel {
@@ -88,7 +95,7 @@ struct OneSetApp: App {
       authentication = AuthenticationModel(service: dependencies.authentication)
       subscriptionSettings = Self.subscriptionSettings(for: dependencies)
       let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
-      onboarding.onResolvedAccountChange = { accounts?.selectAccount($0) }
+      Self.connect(onboarding, to: accounts)
       isDevelopmentSession = true
     }
     flow.onDevelopmentSignOut = {
@@ -112,7 +119,7 @@ struct OneSetApp: App {
       authentication = AuthenticationModel(service: dependencies.authentication)
       subscriptionSettings = Self.subscriptionSettings(for: dependencies)
       let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
-      onboarding.onResolvedAccountChange = { accounts?.selectAccount($0) }
+      Self.connect(onboarding, to: accounts)
       isDevelopmentSession = false
     }
     #endif

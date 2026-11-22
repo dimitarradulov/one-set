@@ -63,38 +63,56 @@ struct AppLaunchConfiguration {
       ?? (arguments.contains("--ui-main-workout-gated") ? .inactive : nil)
     subscriptionRestore = SubscriptionRestorePreset(arguments: arguments) ?? settingsRoute?.restore
     paywallPreview = Self.paywallPreview(arguments: arguments)
-    #endif
-    #if DEBUG
-    if arguments.contains("--ui-main-history") || arguments.contains("--ui-history-populated")
-      || arguments.contains("--ui-history-partial-detail") || arguments.contains("--ui-history-empty")
-      || arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error")
-      || arguments.contains("--ui-history-pagination")
-      || arguments.contains("--ui-history-offline-boundary") {
-      selectedMainTab = .history
-    } else if arguments.contains("--ui-signout-confirmation")
-      || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units")
-      || settingsRoute != nil
-      || arguments.contains("--ui-session-signout-confirmation")
-      || arguments.contains("--ui-session-signout-error") {
-      selectedMainTab = .settings
-    } else {
-      selectedMainTab = .program
-    }
+    selectedMainTab = Self.mainTab(arguments: arguments, hasSettingsRoute: settingsRoute != nil)
     if arguments.contains("--ui-main-settings-units") {
       settingsPath = [.units]
     } else {
       settingsPath = settingsRoute == nil ? [] : [.subscription]
     }
-    if arguments.contains("--ui-switch-detail") || arguments.contains("--ui-switch-resume-detail") {
-      programPath = [.programs, .programDetail("push-pull-legs")]
+    programPath = Self.mainProgramPath(arguments: arguments)
+    trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
+    let onboarding = Self.onboardingPreview(arguments: arguments)
+    onboardingPath = onboarding.path
+    selectedProgramID = onboarding.programID
+    #else
+    selectedMainTab = .program
+    settingsPath = []
+    programPath = []
+    trainingDays = 3
+    onboardingPath = []
+    selectedProgramID = nil
+    #endif
+  }
+
+  #if DEBUG
+  private static func mainTab(arguments: [String], hasSettingsRoute: Bool) -> MainTab {
+    if arguments.containsAny(
+      "--ui-main-history", "--ui-history-populated", "--ui-history-partial-detail", "--ui-history-empty",
+      "--ui-history-error", "--ui-history-refresh-error", "--ui-history-pagination",
+      "--ui-history-offline-boundary"
+    ) {
+      return .history
+    }
+    if hasSettingsRoute || arguments.containsAny(
+      "--ui-signout-confirmation", "--ui-main-settings", "--ui-main-settings-units",
+      "--ui-session-signout-confirmation", "--ui-session-signout-error"
+    ) {
+      return .settings
+    }
+    return .program
+  }
+
+  private static func mainProgramPath(arguments: [String]) -> [OnboardingRoute] {
+    if arguments.containsAny("--ui-switch-detail", "--ui-switch-resume-detail") {
+      return [.programs, .programDetail("push-pull-legs")]
     } else if arguments.contains("--ui-switch-programs") {
-      programPath = [.programs]
+      return [.programs]
     } else if arguments.contains("--ui-program-change-preview") {
-      programPath = [.workoutPreview(programID: "bro-split", workoutID: "bro-split-day-1-chest")]
-    } else if arguments.contains("--ui-main-workout-preview") || arguments.contains("--ui-main-workout-gated") {
-      programPath = [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
+      return [.workoutPreview(programID: "bro-split", workoutID: "bro-split-day-1-chest")]
+    } else if arguments.containsAny("--ui-main-workout-preview", "--ui-main-workout-gated") {
+      return [.workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")]
     } else if arguments.contains("--ui-main-exercise-detail") {
-      programPath = [
+      return [
         .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a"),
         .exerciseDetail(
           programID: "machine-full-body",
@@ -102,125 +120,87 @@ struct AppLaunchConfiguration {
           exerciseID: "machine-full-body-workout-a-hack-squat-machine"
         )
       ]
-    } else {
-      programPath = []
     }
-    #else
-    selectedMainTab = .program
-    settingsPath = []
-    programPath = []
-    #endif
-    #if DEBUG
-    trainingDays = arguments.contains("--ui-programs-minimalist") ? 2 : 3
-    if Self.usesMainTabsPreview(arguments: arguments) {
-      onboardingPath = []
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-setup-upload-pending") || arguments.contains("--ui-setup-upload-discard")
-      || arguments.contains("--ui-setup-upload-removed")
-      || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-timeout") || arguments.contains("--ui-progress-save-error")
-      || arguments.contains("--ui-progress-restore-error") {
-      onboardingPath = []
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-email-auth") {
-      onboardingPath = [.emailAuthentication]
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-welcome") || arguments.contains("--ui-apple-auth-error")
-      || arguments.contains("--ui-google-auth-error") {
-      onboardingPath = []
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-preferences") {
-      onboardingPath = [.preferences]
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-programs-removed") {
-      onboardingPath = [.preferences, .programs]
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-programs-minimalist") {
-      onboardingPath = [.preferences, .programs]
-      selectedProgramID = "minimalist-full-body"
-    } else if arguments.contains("--ui-programs-selected") {
-      onboardingPath = [.preferences, .programs]
-      selectedProgramID = "push-pull-legs"
-    } else if arguments.contains("--ui-programs") {
-      onboardingPath = [.preferences, .programs]
-      selectedProgramID = nil
-    } else if let programID = Self.programPreviewID(arguments: arguments, detail: true) {
-      onboardingPath = [.preferences, .programs, .programDetail(programID)]
-      selectedProgramID = nil
-    } else if arguments.contains("--ui-trial-preview") {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail("machine-full-body"),
-        .trialPreview("machine-full-body")
-      ]
-      selectedProgramID = "machine-full-body"
-    } else if let programID = Self.programPreviewID(arguments: arguments, detail: false) {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail(programID),
-        .trialPreview(programID),
-        .programOverview(programID)
-      ]
-      selectedProgramID = programID
-    } else if arguments.contains("--ui-exercise-detail") || arguments.contains("--ui-exercise-detail-expanded")
-      || arguments.contains("--ui-exercise-history") {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail("machine-full-body"),
-        .trialPreview("machine-full-body"),
-        .programOverview("machine-full-body"),
-        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a"),
+    return []
+  }
+
+  private struct OnboardingPreview {
+    let path: [OnboardingRoute]
+    let programID: String?
+  }
+
+  private static func onboardingPreview(arguments: [String]) -> OnboardingPreview {
+    let empty = OnboardingPreview(path: [], programID: nil)
+    if usesMainTabsPreview(arguments: arguments)
+      || arguments.containsAny(
+        "--ui-setup-upload-pending", "--ui-setup-upload-discard", "--ui-setup-upload-removed",
+        "--ui-account-setup-error", "--ui-setup-timeout", "--ui-progress-save-error",
+        "--ui-progress-restore-error", "--ui-welcome", "--ui-apple-auth-error", "--ui-google-auth-error"
+      ) {
+      return empty
+    }
+    if arguments.contains("--ui-email-auth") { return OnboardingPreview(path: [.emailAuthentication], programID: nil) }
+    if arguments.contains("--ui-preferences") { return OnboardingPreview(path: [.preferences], programID: nil) }
+    return programSetupPreview(arguments: arguments) ?? workoutRoutePreview(arguments: arguments) ?? empty
+  }
+
+  private static func programSetupPreview(arguments: [String]) -> OnboardingPreview? {
+    let programs: [OnboardingRoute] = [.preferences, .programs]
+    if arguments.contains("--ui-programs-removed") { return OnboardingPreview(path: programs, programID: nil) }
+    if arguments.contains("--ui-programs-minimalist") {
+      return OnboardingPreview(path: programs, programID: "minimalist-full-body")
+    }
+    if arguments.contains("--ui-programs-selected") { return OnboardingPreview(path: programs, programID: "push-pull-legs") }
+    if arguments.contains("--ui-programs") { return OnboardingPreview(path: programs, programID: nil) }
+    if let programID = programPreviewID(arguments: arguments, detail: true) {
+      return OnboardingPreview(path: programs + [.programDetail(programID)], programID: nil)
+    }
+    if arguments.contains("--ui-trial-preview") {
+      let path: [OnboardingRoute] = programs + [.programDetail("machine-full-body"), .trialPreview("machine-full-body")]
+      return OnboardingPreview(path: path, programID: "machine-full-body")
+    }
+    if let programID = programPreviewID(arguments: arguments, detail: false) {
+      return OnboardingPreview(path: overviewPath(programID: programID), programID: programID)
+    }
+    return nil
+  }
+
+  private static func workoutRoutePreview(arguments: [String]) -> OnboardingPreview? {
+    let machine = "machine-full-body"
+    let machineWorkout = "machine-full-body-workout-a"
+    if arguments.containsAny("--ui-exercise-detail", "--ui-exercise-detail-expanded", "--ui-exercise-history") {
+      let path = overviewPath(programID: machine) + [
+        .workoutPreview(programID: machine, workoutID: machineWorkout),
         .exerciseDetail(
-          programID: "machine-full-body",
-          workoutID: "machine-full-body-workout-a",
+          programID: machine,
+          workoutID: machineWorkout,
           exerciseID: "machine-full-body-workout-a-hack-squat-machine",
           guidanceExpanded: arguments.contains("--ui-exercise-detail-expanded"),
           initiallyShowingHistory: arguments.contains("--ui-exercise-history")
         )
       ]
-      selectedProgramID = "machine-full-body"
-    } else if let (programID, workoutID) = Self.workoutBannerPreview(arguments: arguments) {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail(programID),
-        .trialPreview(programID),
-        .programOverview(programID),
-        .workoutPreview(programID: programID, workoutID: workoutID)
-      ]
-      selectedProgramID = programID
-    } else if arguments.contains("--ui-workout-preview-minimalist") {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail("minimalist-full-body"),
-        .trialPreview("minimalist-full-body"),
-        .programOverview("minimalist-full-body"),
-        .workoutPreview(programID: "minimalist-full-body", workoutID: "minimalist-full-body-workout-a")
-      ]
-      selectedProgramID = "minimalist-full-body"
-    } else if arguments.contains("--ui-workout-preview") || arguments.contains("--ui-workout-preview-superset") {
-      onboardingPath = [
-        .preferences,
-        .programs,
-        .programDetail("machine-full-body"),
-        .trialPreview("machine-full-body"),
-        .programOverview("machine-full-body"),
-        .workoutPreview(programID: "machine-full-body", workoutID: "machine-full-body-workout-a")
-      ]
-      selectedProgramID = "machine-full-body"
-    } else {
-      onboardingPath = []
-      selectedProgramID = nil
+      return OnboardingPreview(path: path, programID: machine)
     }
-    #else
-    trainingDays = 3
-    onboardingPath = []
-    selectedProgramID = nil
-    #endif
+    if let (programID, workoutID) = workoutBannerPreview(arguments: arguments) {
+      let path = overviewPath(programID: programID) + [.workoutPreview(programID: programID, workoutID: workoutID)]
+      return OnboardingPreview(path: path, programID: programID)
+    }
+    if arguments.contains("--ui-workout-preview-minimalist") {
+      let id = "minimalist-full-body"
+      let path = overviewPath(programID: id) + [.workoutPreview(programID: id, workoutID: "minimalist-full-body-workout-a")]
+      return OnboardingPreview(path: path, programID: id)
+    }
+    if arguments.containsAny("--ui-workout-preview", "--ui-workout-preview-superset") {
+      let path = overviewPath(programID: machine) + [.workoutPreview(programID: machine, workoutID: machineWorkout)]
+      return OnboardingPreview(path: path, programID: machine)
+    }
+    return nil
   }
+
+  private static func overviewPath(programID: String) -> [OnboardingRoute] {
+    [.preferences, .programs, .programDetail(programID), .trialPreview(programID), .programOverview(programID)]
+  }
+  #endif
 
   private static func programPreviewID(arguments: [String], detail: Bool) -> String? {
     let routes = detail
@@ -245,5 +225,11 @@ struct AppLaunchConfiguration {
       "--ui-workout-banner-arms": ("bro-split", "bro-split-day-5-arms")
     ]
     return routes.first(where: { arguments.contains($0.key) })?.value
+  }
+}
+
+private extension [String] {
+  func containsAny(_ names: String...) -> Bool {
+    names.contains { contains($0) }
   }
 }
