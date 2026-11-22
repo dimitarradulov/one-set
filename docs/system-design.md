@@ -60,7 +60,7 @@ Clerk authenticates the OneSet account. The Worker resolves account setup, and R
 
 The Worker independently verifies access for protected media requests and for any future endpoint that authorizes a protected workout start. A completed session can sync after the subscription expires. Apply the existing account and data checks to that upload under FR-23. A client-supplied session timestamp cannot establish current Pro access.
 
-History, profile, subscription management, and previews remain available without payment. Trials begin with successful enrollment in the store offer. Show Apple's actual localized price and eligibility for the seven-day trial. Target U.S. prices are $4.89/month and $49.99/year.
+History, profile, subscription management, and previews remain available without payment. Trials begin with successful enrollment in the store offer. Show Apple's actual localized price and eligibility for the seven-day trial. Target U.S. prices are $4.99/month and $49.99/year.
 
 ## Protected video delivery
 

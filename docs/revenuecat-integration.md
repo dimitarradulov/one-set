@@ -10,7 +10,7 @@ This milestone replaces the mocked onboarding trial with Apple subscriptions thr
 
    | Plan | Product ID | Renewal period | Target U.S. price | Introductory free trial | RevenueCat package |
    | --- | --- | --- | --- | --- | --- |
-   | Monthly | `monthly` | 1 month | $4.89 USD | 7 days for eligible customers | `$rc_monthly` |
+   | Monthly | `monthly` | 1 month | $4.99 USD | 7 days for eligible customers | `$rc_monthly` |
    | Yearly | `yearly` | 1 year | $49.99 USD | 7 days for eligible customers | `$rc_annual` |
 
 2. Create the entitlement `oneset_pro` and attach both products from each store. Create the `default` Offering and map the Monthly and Annual packages to their corresponding products. Have the app request this named offering and check that both packages are present.
