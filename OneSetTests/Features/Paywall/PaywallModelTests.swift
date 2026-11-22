@@ -7,6 +7,7 @@ final class FakePaywallApproval: PaywallApproving {
   var purchaseDecision: PaywallApprovalDecision = .approved
   var restoreDecision: PaywallApprovalDecision = .approved
   private(set) var releaseCount = 0
+  private(set) var releases: [PaywallOperationResult] = []
   private(set) var approvedPurchases: [SubscriptionPackage] = []
   private(set) var restoreApprovals = 0
 
@@ -21,7 +22,15 @@ final class FakePaywallApproval: PaywallApproving {
     return restoreDecision
   }
 
-  func release(for selection: AccountSelection) { releaseCount += 1 }
+  func preflightRestore(for selection: AccountSelection) async -> PaywallApprovalDecision {
+    restoreApprovals += 1
+    return restoreDecision
+  }
+
+  func release(_ result: PaywallOperationResult, for selection: AccountSelection) {
+    releaseCount += 1
+    releases.append(result)
+  }
 }
 
 @MainActor
@@ -121,7 +130,7 @@ struct PaywallModelTests {
     let proceed = await harness.model.events.purchaseInitiated(SubscriptionPackage(id: "$rc_monthly"))
     #expect(!proceed)
     #expect(harness.model.phase == .pending)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)
     harness.model.close()
     #expect(harness.results.values == [.unresolved])
   }
@@ -196,7 +205,7 @@ struct PaywallModelTests {
     await harness.model.restorePurchases()
     #expect(harness.model.banner == .linkedToAnotherAccount)
     #expect(harness.model.phase == .unavailable)
-    #expect(harness.approval.releaseCount == 1)
+    #expect(harness.approval.releaseCount == 0)
   }
 
   @Test func restoreSucceedingActivatesPro() async {

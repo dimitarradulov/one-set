@@ -3,6 +3,12 @@ import SwiftUI
 /// The trial step of setup. It shows the shared access decision and offers checkout only after a
 /// fresh check verified there is no active Pro. Continue Without Trial is always available until
 /// Pro is verified and setup is saving.
+private struct TrialAction {
+  let title: String
+  let identifier: String
+  let run: () -> Void
+}
+
 struct TrialPreviewScreen: View {
   let program: TrainingProgram
   let status: TrialAccessStatus
@@ -128,12 +134,12 @@ struct TrialPreviewScreen: View {
     }
   }
 
-  private var primaryAction: (title: String, identifier: String, run: () -> Void)? {
+  private var primaryAction: TrialAction? {
     switch status {
-    case .offer: ("See plans", "trial.seePlans", onSeePlans)
-    case .unconfirmed: ("Try Again", "trial.tryAgain", onRetryAccess)
-    case .pendingApproval: ("Check status", "trial.checkStatus", onRetryAccess)
-    case .saveFailed: ("Retry saving setup", "trial.retrySave", onRetrySave)
+    case .offer: TrialAction(title: "See plans", identifier: "trial.seePlans", run: onSeePlans)
+    case .unconfirmed: TrialAction(title: "Try Again", identifier: "trial.tryAgain", run: onRetryAccess)
+    case .pendingApproval: TrialAction(title: "Check status", identifier: "trial.checkStatus", run: onRetryAccess)
+    case .saveFailed: TrialAction(title: "Retry saving setup", identifier: "trial.retrySave", run: onRetrySave)
     case .checking, .saving: nil
     }
   }

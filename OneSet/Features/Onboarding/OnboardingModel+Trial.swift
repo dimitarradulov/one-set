@@ -66,11 +66,11 @@ extension OnboardingModel {
           let subscriptionAccess, let paywallHost else { return }
     let selection = gate.selection
     let route = OnboardingRoute.trialPreview(programID)
-    openCheckout(route: route, selection: selection, access: subscriptionAccess, host: paywallHost) {
-      [weak self] opened, result in
+    openCheckout(route: route, selection: selection, access: subscriptionAccess, host: paywallHost,
+                 onResult: { [weak self] opened, result in
       self?.finishTrialCheckout(opened, programID: programID, selection: selection, result: result,
                                 using: authentication)
-    }
+    })
   }
 
   // MARK: Private

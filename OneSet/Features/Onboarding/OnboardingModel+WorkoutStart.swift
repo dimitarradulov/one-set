@@ -172,10 +172,10 @@ extension OnboardingModel {
           gate.selection == currentAccountSelection, paywall == nil,
           let subscriptionAccess, let paywallHost else { return }
     let selection = gate.selection
-    openCheckout(route: route, selection: selection, access: subscriptionAccess, host: paywallHost) {
-      [weak self] opened, result in
+    openCheckout(route: route, selection: selection, access: subscriptionAccess, host: paywallHost,
+                 onResult: { [weak self] opened, result in
       self?.finishCheckout(opened, route: route, selection: selection, result: result)
-    }
+    })
   }
 
   /// Presents the checkout sheet for `route`. `onResult` receives the sheet's model with its single outcome.

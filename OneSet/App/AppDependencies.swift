@@ -22,12 +22,17 @@ struct AppDependencies {
     return RevenueCatPaywallHost()
   }
 
-  /// Previews approve everything. The live approval arrives with the account owner (#97).
+  /// The account owner's approval for the live service. Previews and UI tests that inject a
+  /// fake service approve everything; release builds without the owner refuse.
   var paywallApproval: any PaywallApproving {
+    if let owner = subscriptionAccess as? any SubscriptionOperationOwner {
+      return OwnerPaywallApproval(owner: owner)
+    }
     #if DEBUG
-    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return PreviewPaywallApproval() }
-    #endif
+    return PreviewPaywallApproval()
+    #else
     return UnconfiguredPaywallApproval()
+    #endif
   }
 
   #if DEBUG
@@ -54,7 +59,8 @@ struct AppDependencies {
       completedSessionUpload: nil,
       sessionHistory: nil,
       subscriptionAccess: PreviewSubscriptionAccessService(
-        preset: SubscriptionAccessPreset(arguments: arguments) ?? .inactive
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .inactive,
+        restore: SubscriptionRestorePreset(arguments: arguments)
       ),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
@@ -258,7 +264,8 @@ struct AppDependencies {
           // Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
           // accounts with completed setup start with Pro.
           preset: launch.subscriptionPreset
-            ?? (mainTabsPreview || arguments.contains("--ui-setup-completed") ? .active : .inactive)),
+            ?? (mainTabsPreview || arguments.contains("--ui-setup-completed") ? .active : .inactive),
+          restore: launch.subscriptionRestore),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -329,8 +336,9 @@ struct AppDependencies {
     arguments: [String], environment: [String: String], storage: AppStorage
   ) -> any SubscriptionAccessService {
     #if DEBUG
-    if let preset = AppLaunchConfiguration(arguments: arguments).subscriptionPreset {
-      return PreviewSubscriptionAccessService(preset: preset)
+    let launch = AppLaunchConfiguration(arguments: arguments)
+    if let preset = launch.subscriptionPreset {
+      return PreviewSubscriptionAccessService(preset: preset, restore: launch.subscriptionRestore)
     }
     if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
     #endif
