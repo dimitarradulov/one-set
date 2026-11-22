@@ -164,16 +164,8 @@ test('program metadata, workout order, slot order, rep ranges, and unilateral sc
         });
       }
     }
-    // Published Powerhouse updates from the November 11 and 13 catalog publications.
+    // The library already reflects the published Powerhouse updates; removed slots are catalog-only.
     if (key === 'powerhouse') {
-      const [torso, thighs, shoulders] = sourceWorkouts.values();
-      torso!.splice(6, 1, { name: 'Dumbbell Shrug', minimum: 8, maximum: 12, scope: 'reps', failure: 'TF' });
-      thighs!.splice(4, 1, { name: 'Dumbbell Wrist Curl', minimum: 12, maximum: 20, scope: 'reps', failure: 'TF' });
-      thighs!.splice(2, 1);
-      sourceWorkouts.clear();
-      sourceWorkouts.set('Torso Density + Arms', torso!);
-      sourceWorkouts.set('Thighs + Posterior Chain + Forearms', thighs!);
-      sourceWorkouts.set('Upper Back + Shoulder Girdle + Traps', shoulders!);
       assert.equal(program.workouts.flatMap(workout => workout.exercises).filter(slot => slot.removed).length, 5);
     }
     assert.deepEqual(program.workouts.map(workout => workout.name), [...sourceWorkouts.keys()]);
