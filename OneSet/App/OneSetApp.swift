@@ -91,19 +91,31 @@ struct OneSetApp: App {
 
   var body: some Scene {
     WindowGroup {
-      onboardingFlow
-        .id(ObjectIdentifier(authentication))
-        .tint(OneSetColors.accent)
-        .environment(Clerk.shared)
-        #if DEBUG
-        .task {
-          if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
-            await authentication.signInWithApple()
-          } else if ProcessInfo.processInfo.arguments.contains("--ui-google-auth-error") {
-            await authentication.signInWithGoogle()
-          }
-        }
-        #endif
+      #if DEBUG
+      if let paywallPreview = AppLaunchConfiguration(arguments: ProcessInfo.processInfo.arguments).paywallPreview {
+        PaywallPreviewRoute(state: paywallPreview).tint(OneSetColors.accent)
+      } else {
+        mainContent
+      }
+      #else
+      mainContent
+      #endif
     }
+  }
+
+  @ViewBuilder private var mainContent: some View {
+    onboardingFlow
+      .id(ObjectIdentifier(authentication))
+      .tint(OneSetColors.accent)
+      .environment(Clerk.shared)
+      #if DEBUG
+      .task {
+        if ProcessInfo.processInfo.arguments.contains("--ui-apple-auth-error") {
+          await authentication.signInWithApple()
+        } else if ProcessInfo.processInfo.arguments.contains("--ui-google-auth-error") {
+          await authentication.signInWithGoogle()
+        }
+      }
+      #endif
   }
 }

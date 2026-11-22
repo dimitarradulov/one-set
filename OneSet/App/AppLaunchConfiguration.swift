@@ -9,6 +9,21 @@ struct AppLaunchConfiguration {
   #if DEBUG
   /// Preset subscription state from `--ui-subscription-<active|inactive|checking|failed|pending>`.
   let subscriptionPreset: SubscriptionAccessPreset?
+  /// Checkout sheet state from `--ui-paywall[-unavailable|-verifying|-verify-failed|-pending]`.
+  let paywallPreview: PaywallPreviewState?
+  #endif
+
+  #if DEBUG
+  private static func paywallPreview(arguments: [String]) -> PaywallPreviewState? {
+    let routes: [String: PaywallPreviewState] = [
+      "--ui-paywall": .ready,
+      "--ui-paywall-unavailable": .unavailable,
+      "--ui-paywall-verifying": .verifying,
+      "--ui-paywall-verify-failed": .verifyFailed,
+      "--ui-paywall-pending": .pending
+    ]
+    return arguments.lazy.compactMap { routes[$0] }.first
+  }
   #endif
 
   static func usesMainTabsPreview(arguments: [String]) -> Bool {
@@ -36,6 +51,7 @@ struct AppLaunchConfiguration {
     includesMainTabsPreview = Self.usesMainTabsPreview(arguments: arguments)
     #if DEBUG
     subscriptionPreset = SubscriptionAccessPreset(arguments: arguments)
+    paywallPreview = Self.paywallPreview(arguments: arguments)
     #endif
     #if DEBUG
     if arguments.contains("--ui-main-history") || arguments.contains("--ui-history-populated")
