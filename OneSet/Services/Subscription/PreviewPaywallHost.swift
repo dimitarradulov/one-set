@@ -102,7 +102,8 @@ struct PreviewPaywallApproval: PaywallApproving {
   func approvePurchase(_ package: SubscriptionPackage, for selection: AccountSelection) async
     -> PaywallApprovalDecision { .approved }
   func approveRestore(for selection: AccountSelection) async -> PaywallApprovalDecision { .approved }
-  func release(for selection: AccountSelection) {}
+  func preflightRestore(for selection: AccountSelection) async -> PaywallApprovalDecision { .approved }
+  func release(_ result: PaywallOperationResult, for selection: AccountSelection) {}
 }
 
 enum PaywallPreviewState: String, CaseIterable {
