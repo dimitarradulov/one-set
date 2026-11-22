@@ -22,12 +22,17 @@ struct AppDependencies {
     return RevenueCatPaywallHost()
   }
 
-  /// Previews approve everything. The live approval arrives with the account owner (#97).
+  /// The account owner's approval for the live service. Previews and UI tests that inject a
+  /// fake service approve everything; release builds without the owner refuse.
   var paywallApproval: any PaywallApproving {
+    if let owner = subscriptionAccess as? any SubscriptionOperationOwner {
+      return OwnerPaywallApproval(owner: owner)
+    }
     #if DEBUG
-    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return PreviewPaywallApproval() }
-    #endif
+    return PreviewPaywallApproval()
+    #else
     return UnconfiguredPaywallApproval()
+    #endif
   }
 
   #if DEBUG
