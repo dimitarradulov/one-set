@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B447421930926D7F00EA6D5D /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = D00000000000000000000002 /* GRDB */; };
+		B4613AF330B1C3F000716E1F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = B4613AF230B1C3F000716E1F /* AppIcon.icon */; };
 		B488DEC2306FCC5700D6A32F /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = B488DEC1306FCC5700D6A32F /* ClerkKit */; };
 /* End PBXBuildFile section */
 
@@ -31,11 +32,12 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000005 /* OneSet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneSet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* OneSetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneSetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4613AF230B1C3F000716E1F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		C30000000000000000000001 /* OneSetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneSetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A100000000000000000000FE /* Exceptions for OneSet browser prototypes */ = {
+		A100000000000000000000FE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Features/Programs/ExerciseScreenPrototype/index.html,
@@ -46,7 +48,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A10000000000000000000001 /* OneSet */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A100000000000000000000FE /* Exceptions for OneSet browser prototypes */, ); explicitFileTypes = {}; explicitFolders = (); path = OneSet; sourceTree = "<group>"; };
+		A10000000000000000000001 /* OneSet */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A100000000000000000000FE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = OneSet; sourceTree = "<group>"; };
 		B20000000000000000000002 /* OneSetUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSetUITests; sourceTree = "<group>"; };
 		C30000000000000000000002 /* OneSetTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OneSetTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -84,6 +86,7 @@
 				A10000000000000000000001 /* OneSet */,
 				B20000000000000000000002 /* OneSetUITests */,
 				C30000000000000000000002 /* OneSetTests */,
+				B4613AF230B1C3F000716E1F /* AppIcon.icon */,
 				A10000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -213,6 +216,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B4613AF330B1C3F000716E1F /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
