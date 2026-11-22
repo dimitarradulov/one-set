@@ -107,6 +107,9 @@ struct OnboardingFlowView: View {
       }
     }
     #endif
+    .onChange(of: model.resolvedAccountID) { oldAccount, _ in
+      if oldAccount != nil { model.clearSubscriptionPresentation() }
+    }
     .onChange(of: scenePhase) { _, phase in
       if phase == .background, let sessionID = model.activeWorkoutSession?.id {
         Task { await model.flushWorkoutEdits(sessionID: sessionID) }
@@ -216,10 +219,24 @@ extension OnboardingFlowView {
             }
           case .trialPreview(let programID):
             if let program = model.program(id: programID) {
-              TrialPreviewScreen(program: program, onContinueWithoutTrial: {
-                model.continueWithoutTrial()
-                Task { await model.uploadCompletedSetup(using: authentication) }
-              })
+              TrialPreviewScreen(
+                program: program,
+                status: model.trialStatus(for: programID),
+                onSeePlans: { model.presentTrialPlans(programID: programID, using: authentication) },
+                onRetryAccess: { Task { await model.retryTrialAccess(programID: programID, using: authentication) } },
+                onRetrySave: { model.retryTrialSetupSave(programID: programID, using: authentication) },
+                onContinueWithoutTrial: {
+                  model.continueWithoutTrial()
+                  Task { await model.uploadCompletedSetup(using: authentication) }
+                }
+              )
+                .task(id: model.resolvedAccountID) {
+                  await model.watchTrialAccess(programID: programID, using: authentication)
+                }
+                .paywallSheet(model: Binding(
+                  get: { model.paywallRoute == .trialPreview(programID) ? model.paywall : nil },
+                  set: { if $0 == nil { model.paywall = nil } }
+                ))
                 .navigationTitle("Trial preview")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

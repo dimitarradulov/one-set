@@ -9,7 +9,7 @@ struct PaywallNotice: View {
 
   let icon: Icon
   let title: String
-  let message: String
+  let message: String?
   var identifier = "paywall.notice"
 
   var body: some View {
@@ -30,9 +30,11 @@ struct PaywallNotice: View {
         Text(title)
           .font(OneSetTypography.bodyStrong)
           .foregroundStyle(OneSetColors.textPrimary)
-        Text(message)
-          .font(OneSetTypography.label)
-          .foregroundStyle(OneSetColors.textSecondary)
+        if let message {
+          Text(message)
+            .font(OneSetTypography.label)
+            .foregroundStyle(OneSetColors.textSecondary)
+        }
       }
       .fixedSize(horizontal: false, vertical: true)
       Spacer(minLength: 0)
