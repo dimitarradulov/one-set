@@ -116,6 +116,12 @@ final class OnboardingModel {
   /// The open checkout sheet and the preview it was opened from.
   var paywall: PaywallModel?
   var paywallRoute: OnboardingRoute?
+  /// The trial screen's access state for the selected program, tied to the account selection.
+  var trialGate: TrialGate?
+  /// Identifies the latest explicit trial access check, so older replies are dropped.
+  var trialCheckID: UUID?
+  /// Identifies the trial screen's running watch, so only it clears the gate on exit.
+  var trialWatchID: UUID?
   let paywallHost: (any PaywallHost)?
   let paywallApproval: any PaywallApproving
   /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
@@ -677,8 +683,9 @@ extension OnboardingModel {
     accountSelectionGeneration += 1
     workoutStartGate = nil
     workoutStartAttempt = nil
-    paywall = nil
-    paywallRoute = nil
+    clearSubscriptionPresentation()
+    trialCheckID = nil
+    trialWatchID = nil
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle
@@ -861,10 +868,17 @@ extension OnboardingModel {
   }
 
   func continueWithoutTrial() {
+    completeSetupFromTrial(alertOnFailure: true)
+  }
+
+  /// Saves the setup locally and opens the program from the trial screen. Returns false when the
+  /// trial route no longer matches or the save failed. Upload is left to the caller.
+  @discardableResult
+  func completeSetupFromTrial(alertOnFailure: Bool) -> Bool {
     guard !isSigningOut, let selectedProgramID,
           catalog.offeredPrograms.contains(where: { $0.id == selectedProgramID }),
           path.last == .trialPreview(selectedProgramID)
-    else { return }
+    else { return false }
 
     if let accountID = resolvedAccountID {
       let setup = AccountSetup(preferredUnit: weightUnit, trainingDays: trainingDays,
@@ -873,13 +887,18 @@ extension OnboardingModel {
         try storeCompleted(setup, needsUpload: true, accountID: accountID)
         apply(setup)
         uploadMessage = "Setup saved on this device. Waiting to upload."
+        return true
       } catch {
-        progressErrorMessage = "Your setup couldn’t be saved on this device. Please try again. " + error.localizedDescription
-        progressErrorPresented = true
+        if alertOnFailure {
+          progressErrorMessage = "Your setup couldn’t be saved on this device. Please try again. "
+            + error.localizedDescription
+          progressErrorPresented = true
+        }
+        return false
       }
-    } else {
-      path.append(.programOverview(selectedProgramID))
     }
+    path.append(.programOverview(selectedProgramID))
+    return true
   }
 
   private func apply(_ setup: AccountSetup, replacePath: Bool = true) {

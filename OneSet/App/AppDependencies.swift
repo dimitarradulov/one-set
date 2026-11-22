@@ -59,7 +59,7 @@ struct AppDependencies {
       completedSessionUpload: nil,
       sessionHistory: nil,
       subscriptionAccess: PreviewSubscriptionAccessService(
-        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active,
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .inactive,
         restore: SubscriptionRestorePreset(arguments: arguments)
       ),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
@@ -261,7 +261,11 @@ struct AppDependencies {
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
         subscriptionAccess: PreviewSubscriptionAccessService(
-          preset: launch.subscriptionPreset ?? .active, restore: launch.subscriptionRestore),
+          // Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
+          // accounts with completed setup start with Pro.
+          preset: launch.subscriptionPreset
+            ?? (mainTabsPreview || arguments.contains("--ui-setup-completed") ? .active : .inactive),
+          restore: launch.subscriptionRestore),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)

@@ -172,18 +172,37 @@ extension OnboardingModel {
           gate.selection == currentAccountSelection, paywall == nil,
           let subscriptionAccess, let paywallHost else { return }
     let selection = gate.selection
+    openCheckout(route: route, selection: selection, access: subscriptionAccess, host: paywallHost,
+                 onResult: { [weak self] opened, result in
+      self?.finishCheckout(opened, route: route, selection: selection, result: result)
+    })
+  }
+
+  /// Presents the checkout sheet for `route`. `onResult` receives the sheet's model with its single outcome.
+  func openCheckout(route: OnboardingRoute, selection: AccountSelection, access: any SubscriptionAccessService,
+                    host: any PaywallHost,
+                    onResult: @escaping @MainActor (PaywallModel, PaywallResult) -> Void) {
     var opened: PaywallModel?
     let model = PaywallModel(
       selection: selection,
       currentSelection: { [weak self] in self?.currentAccountSelection },
-      access: subscriptionAccess, host: paywallHost, approval: paywallApproval,
-      onResult: { [weak self] result in
-        guard let self, let opened else { return }
-        finishCheckout(opened, route: route, selection: selection, result: result)
+      access: access, host: host, approval: paywallApproval,
+      onResult: { result in
+        guard let opened else { return }
+        onResult(opened, result)
       })
     opened = model
     paywallRoute = route
     paywall = model
+  }
+
+  /// Drops every checkout and gate presentation of the previous account or path.
+  func clearSubscriptionPresentation() {
+    workoutStartGate = nil
+    workoutStartAttempt = nil
+    trialGate = nil
+    paywall = nil
+    paywallRoute = nil
   }
 
   /// Returns to the preview after checkout without starting the workout. A verified purchase

@@ -58,6 +58,9 @@ struct CompletedSetupTabsView: View {
       }
     }
     #endif
+    .onChange(of: model.resolvedAccountID) { oldAccount, _ in
+      if oldAccount != nil { model.clearSubscriptionPresentation() }
+    }
     .tint(OneSetColors.accent)
     .preferredColorScheme(.dark)
   }
