@@ -14,6 +14,22 @@ struct AppDependencies {
   let subscriptionAccess: any SubscriptionAccessService
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
+  /// RevenueCat's paywall for the live service. Previews and UI tests use the fake host.
+  var paywallHost: any PaywallHost {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return FakePaywallHost() }
+    #endif
+    return RevenueCatPaywallHost()
+  }
+
+  /// Previews approve everything. The live approval arrives with the account owner (#97).
+  var paywallApproval: any PaywallApproving {
+    #if DEBUG
+    if !(subscriptionAccess is RevenueCatSubscriptionAccessService) { return PreviewPaywallApproval() }
+    #endif
+    return UnconfiguredPaywallApproval()
+  }
+
   #if DEBUG
   static func development(environment: [String: String] = ProcessInfo.processInfo.environment) -> AppDependencies {
     let storage = AppStorage(environment: environment)
@@ -94,7 +110,7 @@ struct AppDependencies {
       : (sessionSignOutPreview ? "session-signout-workouts.sqlite"
         : (historyPreview ? "history-preview-workouts.sqlite" : "workouts.sqlite"))
     let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review")
+    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
       || sessionSignOutPreview || progressRestoreError || programChangePreview {
