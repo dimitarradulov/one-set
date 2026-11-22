@@ -109,6 +109,17 @@ final class OnboardingModel {
   private(set) var sessionUploadErrorMessage = ""
   var workoutStorageOpenFailed = false
   var previousPerformanceUnavailable = false
+  let subscriptionAccess: (any SubscriptionAccessService)?
+  var accountSelectionGeneration = 0
+  var workoutStartGate: WorkoutStartGate?
+  var workoutStartAttempt: UUID?
+  /// The open checkout sheet and the preview it was opened from.
+  var paywall: PaywallModel?
+  var paywallRoute: OnboardingRoute?
+  let paywallHost: (any PaywallHost)?
+  let paywallApproval: any PaywallApproving
+  /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
+  @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
 
   init(
     catalog: ProgramCatalog,
@@ -119,6 +130,9 @@ final class OnboardingModel {
     progressService: (any AccountProgressService)? = nil,
     completedSessionUploadService: (any CompletedSessionUploadService)? = nil,
     sessionHistoryService: (any SessionHistoryService)? = nil,
+    subscriptionAccess: (any SubscriptionAccessService)? = nil,
+    paywallHost: (any PaywallHost)? = nil,
+    paywallApproval: any PaywallApproving = UnconfiguredPaywallApproval(),
     waitForSessionUploadRetry: @escaping @MainActor (TimeInterval) async throws -> Void = { delay in
       try await Task.sleep(for: .seconds(delay))
     },
@@ -147,6 +161,9 @@ final class OnboardingModel {
     self.restAlerts = restAlerts
     self.completedSessionUploadService = completedSessionUploadService
     self.sessionHistoryService = sessionHistoryService
+    self.subscriptionAccess = subscriptionAccess
+    self.paywallHost = paywallHost
+    self.paywallApproval = paywallApproval
     self.waitForSessionUploadRetry = waitForSessionUploadRetry
     do {
       self.workoutRepository = try workoutRepository ?? workoutRepositoryFactory?()
@@ -657,6 +674,11 @@ extension OnboardingModel {
     backgroundRestoration = nil
     lookupGeneration += 1
     cycleKnowledgeGeneration += 1
+    accountSelectionGeneration += 1
+    workoutStartGate = nil
+    workoutStartAttempt = nil
+    paywall = nil
+    paywallRoute = nil
     resolvedAccountID = nil
     previousPerformanceUnavailable = false
     setupResolution = .idle

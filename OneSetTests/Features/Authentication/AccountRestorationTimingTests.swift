@@ -30,7 +30,7 @@ struct AccountRestorationTimingTests {
     #expect(model.selectedProgramID == setup.programID)
     #expect(model.currentWorkoutWeek(programID: setup.programID) == 3)
     if case .idle = model.setupResolution {} else { Issue.record("Saved content should be available") }
-    model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await model.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     #expect(model.activeWorkoutSession != nil)
     let remote = AccountSetup(preferredUnit: .kilograms, trainingDays: 3,
       programID: "bro-split", cycleID: UUID())
@@ -159,7 +159,7 @@ struct AccountRestorationTimingTests {
     let retry = Task { await reopened.resolveAccountSetup(using: auth) }
     while !offline.isWaiting { await Task.yield() }
     #expect(!reopened.requiresProgramUpdate)
-    reopened.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
+    await reopened.startWorkout(programID: setup.programID, workoutID: "machine-full-body-workout-a", accountID: "preview-user")
     #expect(reopened.activeWorkoutSession != nil)
     service.complete(setup)
     offline.complete(setup)
