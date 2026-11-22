@@ -3,6 +3,7 @@ import SwiftUI
 struct CompletedSetupTabsView: View {
   @Bindable var model: OnboardingModel
   @Bindable var authentication: AuthenticationModel
+  @Bindable var subscription: SubscriptionSettingsModel
 
   var body: some View {
     TabView(selection: $model.selectedMainTab) {
@@ -43,7 +44,7 @@ struct CompletedSetupTabsView: View {
       .tag(MainTab.history)
       .accessibilityIdentifier("tab.history")
 
-      SettingsNavigationView(model: model, authentication: authentication)
+      SettingsNavigationView(model: model, authentication: authentication, subscription: subscription)
       .tabItem { Label("Settings", systemImage: "gearshape") }
       .tag(MainTab.settings)
       .accessibilityIdentifier("tab.settings")

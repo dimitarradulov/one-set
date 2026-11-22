@@ -11,6 +11,10 @@ struct AppLaunchConfiguration {
   let subscriptionPreset: SubscriptionAccessPreset?
   /// Checkout sheet state from `--ui-paywall[-unavailable|-verifying|-verify-failed|-pending]`.
   let paywallPreview: PaywallPreviewState?
+  /// Restore outcome from `--ui-subscription-restore-<name>` or a Settings subscription route.
+  let subscriptionRestore: SubscriptionRestorePreset?
+  /// Settings Subscription state from `--ui-settings-subscription[-<state>]`.
+  let subscriptionSettingsRoute: SubscriptionSettingsRoute?
   #endif
 
   #if DEBUG
@@ -37,6 +41,7 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-history-pagination") || arguments.contains("--ui-history-offline-boundary")
       || arguments.contains("--ui-signout-confirmation")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || Self.subscriptionSettingsRoute(arguments: arguments) != nil
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
       || arguments.contains("--ui-setup-cycle-conflict")
       || arguments.contains("--ui-session-signout-confirmation")
@@ -50,7 +55,10 @@ struct AppLaunchConfiguration {
   init(arguments: [String]) {
     includesMainTabsPreview = Self.usesMainTabsPreview(arguments: arguments)
     #if DEBUG
-    subscriptionPreset = SubscriptionAccessPreset(arguments: arguments)
+    let settingsRoute = Self.subscriptionSettingsRoute(arguments: arguments)
+    subscriptionSettingsRoute = settingsRoute
+    subscriptionPreset = SubscriptionAccessPreset(arguments: arguments) ?? settingsRoute?.preset
+    subscriptionRestore = SubscriptionRestorePreset(arguments: arguments) ?? settingsRoute?.restore
     paywallPreview = Self.paywallPreview(arguments: arguments)
     #endif
     #if DEBUG
@@ -62,13 +70,18 @@ struct AppLaunchConfiguration {
       selectedMainTab = .history
     } else if arguments.contains("--ui-signout-confirmation")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-settings-units")
+      || settingsRoute != nil
       || arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error") {
       selectedMainTab = .settings
     } else {
       selectedMainTab = .program
     }
-    settingsPath = arguments.contains("--ui-main-settings-units") ? [.units] : []
+    if arguments.contains("--ui-main-settings-units") {
+      settingsPath = [.units]
+    } else {
+      settingsPath = settingsRoute == nil ? [] : [.subscription]
+    }
     if arguments.contains("--ui-switch-detail") || arguments.contains("--ui-switch-resume-detail") {
       programPath = [.programs, .programDetail("push-pull-legs")]
     } else if arguments.contains("--ui-switch-programs") {

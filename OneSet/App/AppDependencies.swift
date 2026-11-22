@@ -12,6 +12,8 @@ struct AppDependencies {
   let completedSessionUpload: (any CompletedSessionUploadService)?
   let sessionHistory: (any SessionHistoryService)?
   let subscriptionAccess: any SubscriptionAccessService
+  let paywallHost: any PaywallHost
+  let paywallApproval: any PaywallApproving
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
 
   #if DEBUG
@@ -38,8 +40,11 @@ struct AppDependencies {
       completedSessionUpload: nil,
       sessionHistory: nil,
       subscriptionAccess: PreviewSubscriptionAccessService(
-        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active
+        preset: SubscriptionAccessPreset(arguments: arguments) ?? .active,
+        restore: SubscriptionRestorePreset(arguments: arguments)
       ),
+      paywallHost: FakePaywallHost(),
+      paywallApproval: PreviewPaywallApproval(),
       workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
     )
   }
@@ -238,7 +243,10 @@ struct AppDependencies {
           failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
           failsOlder: arguments.contains("--ui-history-offline-boundary")
         ),
-        subscriptionAccess: PreviewSubscriptionAccessService(preset: launch.subscriptionPreset ?? .active),
+        subscriptionAccess: PreviewSubscriptionAccessService(
+          preset: launch.subscriptionPreset ?? .active, restore: launch.subscriptionRestore),
+        paywallHost: FakePaywallHost(),
+        paywallApproval: PreviewPaywallApproval(),
         workoutRepositoryFactory: {
           if arguments.contains("--ui-workout-storage-error") {
             throw CocoaError(.fileReadNoPermission)
@@ -278,6 +286,7 @@ struct AppDependencies {
 
     let authentication = ClerkAuthenticationService()
     let subscriptionAccess = Self.subscriptionAccess(arguments: arguments, environment: environment, storage: storage)
+    let paywall = Self.paywall(arguments: arguments, environment: environment)
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -298,6 +307,8 @@ struct AppDependencies {
       completedSessionUpload: HTTPCompletedSessionUploadService(authentication: authentication),
       sessionHistory: HTTPSessionHistoryService(authentication: authentication),
       subscriptionAccess: subscriptionAccess,
+      paywallHost: paywall.host,
+      paywallApproval: paywall.approval,
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
       }
@@ -309,12 +320,27 @@ struct AppDependencies {
     arguments: [String], environment: [String: String], storage: AppStorage
   ) -> any SubscriptionAccessService {
     #if DEBUG
-    if let preset = AppLaunchConfiguration(arguments: arguments).subscriptionPreset {
-      return PreviewSubscriptionAccessService(preset: preset)
+    let launch = AppLaunchConfiguration(arguments: arguments)
+    if let preset = launch.subscriptionPreset {
+      return PreviewSubscriptionAccessService(preset: preset, restore: launch.subscriptionRestore)
     }
     if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
     #endif
     return liveSubscriptionAccess(storage: storage)
+  }
+
+  /// The checkout host and approval. Previews and UI tests use fakes. Until the account owner
+  /// approves purchases and restores, the live app approves nothing.
+  private static func paywall(
+    arguments: [String], environment: [String: String]
+  ) -> (host: any PaywallHost, approval: any PaywallApproving) {
+    #if DEBUG
+    if AppLaunchConfiguration(arguments: arguments).subscriptionPreset != nil
+      || environment["ONESET_UI_TEST_ID"] != nil {
+      return (FakePaywallHost(), PreviewPaywallApproval())
+    }
+    #endif
+    return (RevenueCatPaywallHost(), UnconfiguredPaywallApproval())
   }
 
   private static func liveSubscriptionAccess(storage: AppStorage) -> RevenueCatSubscriptionAccessService {
