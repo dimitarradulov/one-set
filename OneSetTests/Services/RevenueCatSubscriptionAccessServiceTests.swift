@@ -4,18 +4,19 @@ import Testing
 
 @MainActor
 struct RevenueCatSubscriptionAccessServiceTests {
-  private let now = Date(timeIntervalSince1970: 1_800_000_000)
-  private let expiry = Date(timeIntervalSince1970: 1_800_086_400)
+  let now = Date(timeIntervalSince1970: 1_800_000_000)
+  let expiry = Date(timeIntervalSince1970: 1_800_086_400)
 
-  private func makeStoreURL() -> URL {
+  func makeStoreURL() -> URL {
     FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString).appendingPathComponent("saved.json")
   }
 
-  private func makeService(
+  func makeService(
     client: FakePurchasesClient,
     apiKey: RevenueCatAPIKeyConfiguration = .configured(apiKey: "public-key"),
     storeURL: URL? = nil,
+    pendingURL: URL? = nil,
     acceptsSandbox: Bool = true
   ) -> RevenueCatSubscriptionAccessService {
     let url = storeURL ?? makeStoreURL()
@@ -24,15 +25,16 @@ struct RevenueCatSubscriptionAccessServiceTests {
     // Each read moves the clock forward so a later check is newer than an earlier one.
     return RevenueCatSubscriptionAccessService(
       client: client, apiKey: apiKey, store: FileSavedSubscriptionAccessStore(fileURL: url),
+      pendingStore: FilePendingSubscriptionOperationStore(fileURL: pendingURL ?? makeStoreURL()),
       acceptsSandboxSavedAccess: acceptsSandbox, now: { ticks += 1; return start.addingTimeInterval(ticks) }
     )
   }
 
-  private func select(_ service: RevenueCatSubscriptionAccessService, _ accountID: String) -> AccountSelection {
+  func select(_ service: RevenueCatSubscriptionAccessService, _ accountID: String) -> AccountSelection {
     service.selectAccount(accountID) ?? AccountSelection(accountID: accountID, generation: -1)
   }
 
-  private func snapshot(
+  func snapshot(
     active: Bool, verification: CustomerAccessSnapshot.Verification = .serverVerified,
     environment: BillingEnvironment = .production
   ) -> CustomerAccessSnapshot {

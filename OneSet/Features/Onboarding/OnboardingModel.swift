@@ -78,6 +78,8 @@ final class OnboardingModel {
   }
   /// Reports the account once setup resolves, and nil when the account is reset.
   @ObservationIgnored var onResolvedAccountChange: ((String?) -> Void)?
+  /// Lets an interactive purchase or restore finish before an explicit sign-out changes identity.
+  @ObservationIgnored var beforeSignOut: (@MainActor () async -> Void)?
   let catalog: ProgramCatalog
   var workoutRepository: WorkoutRepository?
   var completedSessionUploadCoordinator: CompletedSessionUploadCoordinator?
@@ -484,6 +486,7 @@ extension OnboardingModel {
     retainingPendingSessions: Bool = false,
     confirmed: Bool = false
   ) async {
+    if let beforeSignOut { await beforeSignOut() }
     guard !isSigningOut, let accountID = authentication.signedInUser?.id else { return }
     if activeWorkoutSession != nil {
       signOutErrorMessage = "Finish or discard your current workout first."
