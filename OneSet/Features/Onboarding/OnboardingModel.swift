@@ -130,8 +130,7 @@ final class OnboardingModel {
   @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
   /// What Settings > Delete account needs beyond this model. Nil leaves the screen unavailable.
   @ObservationIgnored var accountDeletion: AccountDeletionServices?
-  /// Set when the signed-in account was just deleted, so Welcome can confirm it once. Held in memory
-  /// only: it clears when the user continues from Welcome and never survives a relaunch.
+  /// Set when the account was just deleted so Welcome confirms it once. In memory only; never survives a relaunch.
   private(set) var accountDeletedNoticePending = false
 
   func noteAccountDeleted() { accountDeletedNoticePending = true }
