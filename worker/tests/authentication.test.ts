@@ -29,19 +29,7 @@ function request(bearer?: string) {
 }
 
 test('shared Clerk authentication returns a verified account subject', async () => {
-  assert.deepEqual(await authenticateClerkRequest(request(await token()), env), { subject: 'user_123', firstFactorAgeMinutes: null });
-});
-
-test('shared Clerk authentication exposes the first-factor age from fva', async () => {
-  const result = await authenticateClerkRequest(request(await token({ fva: [7, -1] })), env);
-  assert.deepEqual(result, { subject: 'user_123', firstFactorAgeMinutes: 7 });
-});
-
-test('shared Clerk authentication treats malformed or unverified fva as absent', async () => {
-  for (const fva of [[-1, -1], [], 'x', [null], [1.5]]) {
-    const result = await authenticateClerkRequest(request(await token({ fva })), env);
-    assert.deepEqual(result, { subject: 'user_123', firstFactorAgeMinutes: null });
-  }
+  assert.deepEqual(await authenticateClerkRequest(request(await token()), env), { subject: 'user_123' });
 });
 
 test('shared Clerk authentication preserves private errors for missing or invalid credentials', async () => {

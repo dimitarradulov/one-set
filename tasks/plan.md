@@ -6,11 +6,10 @@ Source spec: [SPEC.md](../SPEC.md) · Issue: [#102](https://github.com/dimitarra
 
 This plan implements the deletion flow described in the spec. The Worker gets a new endpoint, `DELETE /v1/me`, which works in this order:
 
-1. Check that the user verified their identity recently (the reverification gate).
-2. Erase the user's data in one transaction.
-3. Run the hook that #103 will fill in for subscription cleanup.
-4. Delete the user in Clerk.
-5. Run the erasure again (the sweep), to catch rows a stale request created meanwhile.
+1. Erase the user's data in one transaction.
+2. Run the hook that #103 will fill in for subscription cleanup.
+3. Delete the user in Clerk.
+4. Run the erasure again (the sweep), to catch rows a stale request created meanwhile.
 
 Separately, a guard on setup stops an old token from bringing a deleted account back. On iOS, a new Settings screen asks the user to confirm, pauses uploads, deletes the account on the server, erases that account's data on the device, and signs the user out. Docs and the privacy text come last.
 
@@ -23,17 +22,17 @@ Tasks are tracked as GitHub sub-issues of [#102](https://github.com/dimitarradul
 - **A thin Clerk Backend client.** It lives in `worker/src/clerk-users.ts` and exposes `deleteUser` and `getUser`. Tests inject it, as they do the database today.
 - **Local erasure is one place.** On iOS, `LocalAccountErasure` runs a list of `AccountDeletionCleanup` steps. #103 adds its billing step to that list.
 - **Upload pausing is per account and owned by the coordinators.** The deletion model calls `suspend(accountID:)` and `resume(accountID:)` on `CompletedSessionUploadCoordinator` and `ProgramCycleSyncCoordinator`.
-- **The model orders the steps, the service makes the calls.** `AccountDeletionModel` decides the sequence. `AccountDeletionService` does the HTTP request and handles the reverification retry.
+- **The model orders the steps, the service makes the calls.** `AccountDeletionModel` decides the sequence. `AccountDeletionService` does the HTTP request and makes the request and maps the result to deleted or failed.
 
 ## Dependency Graph
 
 ```text
-T1 fva + Clerk client ──┬── T2 DELETE /v1/me ──┐
+T1 Clerk client     ──┬── T2 DELETE /v1/me ──┐
                         └── T3 setup guard ─────┤
                                                 │ (API contract fixed by spec; iOS can start in parallel)
 T4 local erasure ──┐                            │
 T5 upload suspend ─┼── T7 deletion model ── T8 screen + route ── T9 end-to-end journey
-T6 service + reverification ─┘                                          │
+T6 service ─┘                                                        │
                                                        T10 docs + #103 ─┴── T11 privacy text
 ```
 
@@ -57,25 +56,23 @@ T6 service + reverification ─┘                                          │
 
 ### Phase 1: Worker
 
-#### Task 1: Expose `fva` and add the Clerk users client
+#### Task 1: Add the Clerk users client
 
-**Description:** First, confirm against Clerk's docs that session tokens carry `fva` once reverification is enabled. This is the riskiest assumption, so it goes first. Then extend `authenticateClerkRequest` to return `fva` along with `subject`, and add a small Clerk Backend client that uses the `CLERK_SECRET_KEY` secret.
+**Description:** Add a small Clerk Backend client that uses the `CLERK_SECRET_KEY` secret.
 
 **Acceptance criteria:**
-- [ ] Authentication returns `{ subject, firstFactorAgeMinutes }`, with `null` when `fva` is absent. Existing routes behave the same.
 - [ ] `deleteUser(id)` and `getUser(id)` return a typed result: success, not found, or temporary failure.
 - [ ] `CLERK_SECRET_KEY` is declared in the Worker env types. No secret value appears in the repository.
 
-**Verification:** `npm --prefix worker run typecheck`, `npm --prefix worker test` (the auth tests cover tokens with and without `fva`, and the client maps 200/404/5xx).
+**Verification:** `npm --prefix worker run typecheck`, `npm --prefix worker test` (the client maps 200/404/5xx).
 
 **Dependencies:** None · **Files:** `worker/src/authentication.ts`, `worker/src/clerk-users.ts` (new), `worker/src/env.d.ts`, `worker/tests/authentication.test.ts`, `worker/tests/clerk-users.test.ts` (new) · **Scope:** M
 
 #### Task 2: `DELETE /v1/me`
 
-**Description:** Add the deletion route. It checks the reverification gate (`fva` must be 10 minutes or less), runs the batched erasure transaction, calls the no-op `cleanupSubscription` hook, deletes the Clerk user (a 404 counts as success), then runs the sweep. Errors use the existing response shapes.
+**Description:** Add the deletion route. It relies on the authenticated Clerk session only, runs the batched erasure transaction, calls the no-op `cleanupSubscription` hook, deletes the Clerk user (a 404 counts as success), then runs the sweep. Errors use the existing response shapes.
 
 **Acceptance criteria:**
-- [ ] A missing or stale `fva` returns 403 REVERIFICATION_REQUIRED and changes no rows.
 - [ ] Success returns 200 and leaves no rows for the user. Other users are untouched. A failing statement rolls back the whole erasure.
 - [ ] If Clerk fails, the route returns 503, and a repeat call completes the deletion. A repeat call with no rows left still deletes the identity. The steps run in the order erase, hook, Clerk, sweep. A sweep failure is logged with the Clerk ID only.
 
@@ -99,8 +96,8 @@ T6 service + reverification ─┘                                          │
 ### Checkpoint: Worker
 
 - [ ] `npm --prefix worker run typecheck` and `npm --prefix worker test` pass.
-- [ ] **Ask first:** set `CLERK_SECRET_KEY` with `wrangler secret put --env development`, enable reverification on the dev Clerk instance, and deploy to `development`.
-- [ ] Manual check on dev Clerk: reverify, then delete. The deleted user can't sign in again. The same email signs up as a new, empty account.
+- [ ] **Ask first:** set `CLERK_SECRET_KEY` with `wrangler secret put --env development`, and deploy to `development`.
+- [ ] Manual check on dev Clerk: delete from a signed-in session. The deleted user can't sign in again. The same email signs up as a new, empty account.
 - [ ] Review with the user before starting the iOS work, if it was done in order.
 
 ### Phase 2: iOS
@@ -130,17 +127,17 @@ T6 service + reverification ─┘                                          │
 
 **Dependencies:** None · **Files:** `OneSet/Sync/CompletedSessionUploadCoordinator.swift`, `OneSet/Sync/ProgramCycleSyncCoordinator.swift`, matching tests · **Scope:** M
 
-#### Task 6: Deletion service and reverification
+#### Task 6: Deletion service
 
-**Description:** Add the `AccountDeletionService` protocol with HTTP and preview implementations. It calls `DELETE /v1/me`. On 403 REVERIFICATION_REQUIRED it asks `AuthenticationService` to reverify, then retries once. Add `reverify()` to `AuthenticationService` and implement it in `ClerkAuthenticationService` with ClerkKit's reverification. Check ClerkKit's API first; this is a risk.
+**Description:** Add the `AccountDeletionService` protocol with HTTP and preview implementations. It calls `DELETE /v1/me` with the signed-in session and returns deleted or failed.
 
 **Acceptance criteria:**
-- [ ] The service returns one of: deleted, reverification cancelled, or failed. There is at most one retry.
-- [ ] The preview/mock service can be scripted for UI tests (success, reverification needed, failure).
+- [ ] The service returns one of: deleted or failed. It never retries.
+- [ ] The preview/mock service can be scripted for UI tests (success and failure).
 
 **Verification:** `./scripts/validate.sh --focused OneSetTests/HTTPAccountDeletionServiceTests`
 
-**Dependencies:** API contract from the spec (it can start before Phase 1 lands) · **Files:** `OneSet/Services/Account/AccountDeletionService.swift`, `HTTPAccountDeletionService.swift`, `PreviewAccountDeletionService.swift` (new), `OneSet/Services/Identity/AuthenticationService.swift`, `ClerkAuthenticationService.swift` · **Scope:** M
+**Dependencies:** API contract from the spec (it can start before Phase 1 lands) · **Files:** `OneSet/Services/Account/AccountDeletionService.swift`, `HTTPAccountDeletionService.swift`, `PreviewAccountDeletionService.swift` (new) · **Scope:** M
 
 #### Task 7: Account deletion model
 
@@ -148,7 +145,7 @@ T6 service + reverification ─┘                                          │
 
 **Acceptance criteria:**
 - [ ] Each phase works as the spec describes, including offline and active-workout blocking and the unsynced warning.
-- [ ] Uploads are paused before the request and resumed after a failure or a cancelled reverification. A failure erases nothing locally.
+- [ ] Uploads are paused before the request and resumed after a failure. A failure erases nothing locally.
 - [ ] Only a 200 leads to local erasure and sign-out.
 
 **Verification:** `./scripts/validate.sh --focused OneSetTests/AccountDeletionModelTests`
@@ -183,7 +180,7 @@ T6 service + reverification ─┘                                          │
 
 - [ ] All focused tests from T4-T9 pass.
 - [ ] Screenshots of the deletion screen (normal, blocked, and with the warning) and of Welcome have been inspected.
-- [ ] Against the dev Worker: a real reverification followed by deletion on the simulator.
+- [ ] Against the dev Worker: a real deletion from a signed-in session on the simulator.
 
 ### Phase 3: Docs and wording
 
@@ -233,8 +230,6 @@ T6 service + reverification ─┘                                          │
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Clerk tokens don't carry `fva`, or the claim is shaped differently | High | Checked first in T1. If it's missing, fall back to Clerk's session reverification API and update the spec. |
-| ClerkKit's reverification API differs from what's assumed, or is missing | High | Checked at the start of T6. The fallback is a full sign-in step before deletion, which needs a spec update and user approval. |
 | A drain already running sends a request after `suspend` returns | Med | T5's acceptance criteria require `suspend` to wait for or cancel running drains, and a test covers it. |
 | The sweep fails after Clerk deletion and leaves an orphan row | Low | Accepted in the spec. The failure is logged with the Clerk ID for manual cleanup. |
 | A later migration lets `complete_onboarding` create a user row without the guard | Low | T3 has a test that POST setup goes through the guarded insert. Add a comment in `setup.ts`. |

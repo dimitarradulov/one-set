@@ -17,7 +17,7 @@ Account deletion is required for release (App Store Review Guideline 5.1.1(v)). 
 | --- | --- |
 | Spec shape | One spec, delivered in three phases (below). |
 | Clerk identity | The Worker deletes the Clerk user through the Clerk Backend API. |
-| Reauthentication | Clerk reverification. The Worker requires a first-factor verification in the last 10 minutes. A first factor is enough. |
+| Reauthentication | None. `DELETE /v1/me` relies on the authenticated Clerk session only. The in-app confirmation dialog is the guard against accidental deletion. |
 | Deletion records | None are kept. No erasure table, ledger, or tombstone of any kind. The Postgres transaction is the consistency guarantee. |
 | Retries | No background retry. Every step of `DELETE /v1/me` is idempotent, so the user's own repeat attempt is the retry. |
 | Active workout | Deletion is blocked until the workout is finished or discarded. |
@@ -28,8 +28,7 @@ Account deletion is required for release (App Store Review Guideline 5.1.1(v)). 
 
 1. **The same email can register again.** That creates a new Clerk user and therefore a new, empty OneSet account.
 2. **Unsynced completed sessions trigger a warning but don't block deletion.** They would be deleted anyway.
-3. **Clerk session tokens carry `fva`** (factor verification age, in minutes) once reverification is enabled on the instance, and ClerkKit exposes a reverification flow. Check both against Clerk's docs before starting Phase 1.
-4. **Leftover risk from stale tokens is accepted.** The race with stale tokens is closed in [Stale-token guard](#server-stale-token-guard). The only remaining case is when the sweep step fails right after a stale request inserted a row. That row can't be reached by any login and is removed by hand.
+3. **Leftover risk from stale tokens is accepted.** The race with stale tokens is closed in [Stale-token guard](#server-stale-token-guard). The only remaining case is when the sweep step fails right after a stale request inserted a row. That row can't be reached by any login and is removed by hand.
 
 ## Tech Stack
 
@@ -66,15 +65,14 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 ### Server: `DELETE /v1/me`
 
 1. Verify the Clerk session with the existing `authenticateClerkRequest`.
-2. **Reverification gate:** require `fva[0]` (minutes since first-factor verification) to be present and `<= 10`. Otherwise respond `403 { error: { code: "REVERIFICATION_REQUIRED" } }` and change nothing.
-3. **Erase data.** In one Postgres transaction, delete every row the user owns: `completed_workouts`, `workout_session_sets`, `workout_sessions`, `user_workout_exercises`, `user_program_workout_periods`, `user_programs`, and `users`. Run this as one batched `sql.transaction`, so either all rows go or none do. If the user has no rows (a repeat attempt), it succeeds without doing anything.
-4. **Subscription cleanup hook.** `cleanupSubscription(clerkUserId)` is a no-op in V1. #103 fills it in with RevenueCat customer deletion, which must also be idempotent (treat 404 as done).
-5. **Delete the identity.** Call Clerk Backend API `DELETE /users/{id}`. A 404 counts as success. This comes after erasure because once the Clerk user is gone the client can't authenticate to retry anything.
-6. **Sweep.** Run the step 3 erasure transaction again. It removes any row that a stale token's setup request inserted while deletion was running (see [Stale-token guard](#server-stale-token-guard)). Normally it deletes nothing.
-7. Respond `200 { status: "deleted" }` with `Cache-Control: private, no-store`.
-8. **On failure,** respond with the existing error shape: `503 TEMPORARY_FAILURE` for a database or upstream failure. Steps that already finished stay finished.
-   - **Failure before step 5:** every step is idempotent, so the user's next `DELETE /v1/me` picks up where the last one stopped.
-   - **Failure in step 6:** the identity is already gone, so the client can't retry. A row can be left only if a stale request inserted one during the race. It can't be reached by any login. The error is logged with the Clerk user ID only, so an operator can remove the row by hand.
+2. **Erase data.** In one Postgres transaction, delete every row the user owns: `completed_workouts`, `workout_session_sets`, `workout_sessions`, `user_workout_exercises`, `user_program_workout_periods`, `user_programs`, and `users`. Run this as one batched `sql.transaction`, so either all rows go or none do. If the user has no rows (a repeat attempt), it succeeds without doing anything.
+3. **Subscription cleanup hook.** `cleanupSubscription(clerkUserId)` is a no-op in V1. #103 fills it in with RevenueCat customer deletion, which must also be idempotent (treat 404 as done).
+4. **Delete the identity.** Call Clerk Backend API `DELETE /users/{id}`. A 404 counts as success. This comes after erasure because once the Clerk user is gone the client can't authenticate to retry anything.
+5. **Sweep.** Run the step 2 erasure transaction again. It removes any row that a stale token's setup request inserted while deletion was running (see [Stale-token guard](#server-stale-token-guard)). Normally it deletes nothing.
+6. Respond `200 { status: "deleted" }` with `Cache-Control: private, no-store`.
+7. **On failure,** respond with the existing error shape: `503 TEMPORARY_FAILURE` for a database or upstream failure. Steps that already finished stay finished.
+   - **Failure before step 4:** every step is idempotent, so the user's next `DELETE /v1/me` picks up where the last one stopped.
+   - **Failure in step 5:** the identity is already gone, so the client can't retry. A row can be left only if a stale request inserted one during the race. It can't be reached by any login. The error is logged with the Clerk user ID only, so an operator can remove the row by hand. The response is still `200`, because the deletion itself is complete.
 
 ### Server: stale-token guard
 
@@ -105,7 +103,7 @@ The screen replaces the placeholder and has these parts:
 After confirmation:
 
 1. Suspend the upload coordinator for this account, so no setup, cycle, or session upload can run during or after erasure.
-2. Call `DELETE /v1/me`. On `403 REVERIFICATION_REQUIRED`, present Clerk reverification, then retry once. If the user cancels reverification, resume uploads and change nothing.
+2. Call `DELETE /v1/me`. If it fails, resume uploads and change nothing.
 3. On `200`, erase this account's local state:
    - Workout repository rows and the upload queue for the account
    - The onboarding progress file
@@ -151,20 +149,19 @@ For the privacy policy in `legal/`, add a short section with this content:
 
 | Phase | Scope | Done when |
 | --- | --- | --- |
-| 1. Worker | `DELETE /v1/me`, the reverification gate, transactional erasure, the subscription hook, Clerk user deletion, the sweep, the stale-token guard on setup, and the `CLERK_SECRET_KEY` secret | Worker tests below pass. Deployed to `development` and exercised with a real dev Clerk user. |
-| 2. iOS | Account deletion screen and model, blocking states, upload suspension, reverification, local erasure, Welcome message, UI route, and tests | Focused iOS tests pass, and the screenshot has been reviewed (`impeccable` skill). |
+| 1. Worker | `DELETE /v1/me`, transactional erasure, the subscription hook, Clerk user deletion, the sweep, the stale-token guard on setup, and the `CLERK_SECRET_KEY` secret | Worker tests below pass. Deployed to `development` and exercised with a real dev Clerk user. |
+| 2. iOS | Account deletion screen and model, blocking states, upload suspension, local erasure, Welcome message, UI route, and tests | Focused iOS tests pass, and the screenshot has been reviewed (`impeccable` skill). |
 | 3. Docs | Update [requirements](docs/requirements.md), [api-contracts](docs/api-contracts.md), and [system-design](docs/system-design.md#security-and-operational-boundaries), removing the "minimal erasure instruction". Update [revenuecat-integration](docs/revenuecat-integration.md) and the #103 acceptance criteria: there is no retry record, and RevenueCat deletion runs inline and idempotently. Update [sync-and-recovery](docs/sync-and-recovery.md) and the `legal/` privacy text. | The docs agree with this spec, and #103 is updated. |
 
 ## Project Structure
 
 ```text
-worker/src/account-deletion.ts        → DELETE /v1/me: gate, erasure, hook, Clerk deletion
-worker/src/authentication.ts          → expose fva from verified claims
+worker/src/account-deletion.ts        → DELETE /v1/me: erasure, hook, Clerk deletion
 worker/src/index.ts                   → route
 worker/src/setup.ts                   → guarded provisioning insert (confirm with Clerk only for new rows)
 worker/tests/account-deletion.test.ts → Worker tests
 OneSet/Features/Onboarding/           → AccountDeletionScreen, AccountDeletionModel (next to SettingsNavigationView)
-OneSet/Services/Account/              → AccountDeletionService (HTTP), reverification via ClerkAuthenticationService
+OneSet/Services/Account/              → AccountDeletionService (HTTP)
 OneSet/Persistence/                   → account-scoped local erase on each store
 OneSet/Sync/                          → suspend/resume uploads for an account
 OneSetTests/AccountDeletionModelTests.swift, OneSetUITests/AccountDeletionJourneyTests.swift
@@ -184,7 +181,7 @@ final class AccountDeletionModel {
     phase = .deleting
     await uploads.suspend(for: account)
     do {
-      try await deletion.deleteAccount()        // handles REVERIFICATION_REQUIRED + one retry
+      try await deletion.deleteAccount()        // deleted or failed
       try await localErasure.eraseAccount(account)
       await authentication.signOutAfterDeletion()
     } catch {
@@ -200,7 +197,6 @@ Worker errors use the existing `{ error: { code } }` shape and `Cache-Control: p
 ## Testing Strategy
 
 - **Worker (`node:test` via `tsx`):**
-  - Missing or stale `fva` returns 403 REVERIFICATION_REQUIRED, and no rows change.
   - Erasure deletes every owned table and leaves other users untouched.
   - A failing statement rolls back the whole erasure.
   - Clerk success returns 200, and a Clerk 404 is also 200.
@@ -213,7 +209,6 @@ Worker errors use the existing `{ error: { code } }` shape and `Cache-Control: p
   - POST setup for a new user goes through the guarded insert before `complete_onboarding`.
 - **iOS unit (Swift Testing):**
   - The model's phases, including the blocking states for offline and an active workout.
-  - The reverification retry path, and cancelling reverification.
   - A failure erases nothing locally and resumes uploads.
   - Uploads are suspended before the request.
   - Local erasure removes only the deleted account's repository rows, queue, onboarding file, and saved access.
@@ -223,7 +218,7 @@ Worker errors use the existing `{ error: { code } }` shape and `Cache-Control: p
   - Offline and an active workout both disable Delete.
   - Update `OnboardingJourneyTests` settings-row expectations if the row changes.
 - **Manual (dev Clerk instance):**
-  - A real reverification followed by deletion.
+  - A deletion request from a signed-in session.
   - The deleted user can't sign in again.
   - The same email can sign up as a new empty account.
 
@@ -238,7 +233,6 @@ Worker errors use the existing `{ error: { code } }` shape and `Cache-Control: p
   - Run the validation scope from `docs/agents/validation.md`.
 - **Ask first:**
   - Any `wrangler.jsonc` change beyond adding the secret.
-  - Enabling reverification settings on the production Clerk instance.
   - Publishing the privacy policy change.
 - **Never:**
   - Keep a deletion record, tombstone, or ledger.
@@ -250,7 +244,6 @@ Worker errors use the existing `{ error: { code } }` shape and `Cache-Control: p
 
 ## Success Criteria
 
-- [ ] `DELETE /v1/me` without a first-factor verification in the last 10 minutes returns 403 REVERIFICATION_REQUIRED and changes nothing.
 - [ ] A successful call leaves no rows for that user in any table and deletes the Clerk user. No other record of the account exists afterwards.
 - [ ] A failure partway through leaves the database either fully erased or untouched, never partly erased. A repeat call completes the deletion.
 - [ ] The deleted account can't sign in again (manual check on dev Clerk).
