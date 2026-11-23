@@ -51,7 +51,8 @@ struct CompletedSetupTabsView: View {
     }
     #if DEBUG
     .task {
-      let recordingRoutes = ["--ui-main-workout-recording", "--ui-main-workout-superset", "--ui-warmup-sheet", "--ui-finish-review"]
+      let recordingRoutes = ["--ui-main-workout-recording", "--ui-main-workout-superset", "--ui-warmup-sheet", "--ui-finish-review",
+                             "--ui-account-deletion-active-workout"]
       if ProcessInfo.processInfo.arguments.contains(where: recordingRoutes.contains),
          model.activeWorkoutSession == nil, let accountID = authentication.signedInUser?.id {
         await model.startWorkout(programID: "machine-full-body", workoutID: "machine-full-body-workout-a", accountID: accountID)

@@ -13,6 +13,7 @@ struct AppDependencies {
   let sessionHistory: (any SessionHistoryService)?
   let subscriptionAccess: any SubscriptionAccessService
   let workoutRepositoryFactory: @MainActor () throws -> WorkoutRepository
+  let accountDeletion: AccountDeletionServices
 
   /// RevenueCat's paywall for the live service. Previews and UI tests use the fake host.
   var paywallHost: any PaywallHost {
@@ -62,7 +63,15 @@ struct AppDependencies {
         preset: SubscriptionAccessPreset(arguments: arguments) ?? .inactive,
         restore: SubscriptionRestorePreset(arguments: arguments)
       ),
-      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) }
+      workoutRepositoryFactory: { try WorkoutRepository(databaseURL: workoutURL) },
+      accountDeletion: AccountDeletionServices(
+        service: PreviewAccountDeletionService(arguments: arguments),
+        onboardingProgress: FileOnboardingProgressStore(fileURL: progressURL),
+        savedSubscriptionAccess: FileSavedSubscriptionAccessStore(
+          fileURL: storage.directory.appending(path: "Development/saved-access.json")),
+        pendingSubscriptionOperations: FilePendingSubscriptionOperationStore(
+          fileURL: storage.directory.appending(path: "Development/pending-operations.json"))
+      )
     )
   }
   #endif
@@ -90,6 +99,7 @@ struct AppDependencies {
       || arguments.contains("--ui-history-offline-boundary")
     let removedProgramPreview = arguments.contains("--ui-programs-removed")
       || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
+    let accountDeletionUnsyncedPreview = arguments.contains("--ui-account-deletion-unsynced")
     let completionSaveError = arguments.contains("--ui-completion-save-error")
     let progressRestoreError = arguments.contains("--ui-progress-restore-error")
     let mainTabsPreview = launch.includesMainTabsPreview
@@ -116,7 +126,7 @@ struct AppDependencies {
     if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-switch-programs")
       || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
-      || sessionSignOutPreview || progressRestoreError || programChangePreview {
+      || sessionSignOutPreview || progressRestoreError || programChangePreview || accountDeletionUnsyncedPreview {
       for suffix in ["", "-wal", "-shm"] {
         try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
       }
@@ -277,6 +287,13 @@ struct AppDependencies {
               startedAt: Date(timeIntervalSince1970: 1_800_000_000)
             )
           }
+          if accountDeletionUnsyncedPreview {
+            try Self.seedCompletedPreviewSession(
+              in: repository,
+              cycleID: PreviewCycleID.pendingSignOut,
+              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
+            )
+          }
           if setupCycleConflictPreview {
             try Self.seedCompletedPreviewSession(
               in: repository,
@@ -290,13 +307,30 @@ struct AppDependencies {
             try Self.seedHistoryPreviewSessions(in: repository)
           }
           return repository
-        }
+        },
+        accountDeletion: AccountDeletionServices(
+          service: PreviewAccountDeletionService(arguments: arguments),
+          onboardingProgress: progress,
+          savedSubscriptionAccess: FileSavedSubscriptionAccessStore(
+            fileURL: storage.directory.appending(path: "Preview/saved-access.json")),
+          pendingSubscriptionOperations: FilePendingSubscriptionOperationStore(
+            fileURL: storage.directory.appending(path: "Preview/pending-operations.json"))
+        )
       )
     }
     #endif
 
     let authentication = ClerkAuthenticationService()
-    let subscriptionAccess = Self.subscriptionAccess(arguments: arguments, environment: environment, storage: storage)
+    let savedSubscriptionAccess = FileSavedSubscriptionAccessStore(
+      fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
+    )
+    let pendingSubscriptionOperations = FilePendingSubscriptionOperationStore(
+      fileURL: storage.directory.appending(path: "Subscription/pending-operations.json")
+    )
+    let subscriptionAccess = Self.subscriptionAccess(
+      arguments: arguments, environment: environment,
+      savedAccess: savedSubscriptionAccess, pending: pendingSubscriptionOperations
+    )
     let catalogDirectory = storage.directory.appending(path: "Catalog")
     let catalog = ProgramCatalog(
       programs: ProgramCatalog.bundled.programs,
@@ -319,7 +353,13 @@ struct AppDependencies {
       subscriptionAccess: subscriptionAccess,
       workoutRepositoryFactory: {
         try WorkoutRepository(databaseURL: storage.directory.appending(path: "Workouts/workouts.sqlite"))
-      }
+      },
+      accountDeletion: AccountDeletionServices(
+        service: HTTPAccountDeletionService(authentication: authentication),
+        onboardingProgress: progress,
+        savedSubscriptionAccess: savedSubscriptionAccess,
+        pendingSubscriptionOperations: pendingSubscriptionOperations
+      )
     )
   }
 
@@ -348,7 +388,8 @@ struct AppDependencies {
 
   /// RevenueCat for the live app. Previews and UI tests keep the fakes and never touch it.
   private static func subscriptionAccess(
-    arguments: [String], environment: [String: String], storage: AppStorage
+    arguments: [String], environment: [String: String],
+    savedAccess: any SavedSubscriptionAccessStore, pending: any PendingSubscriptionOperationStore
   ) -> any SubscriptionAccessService {
     #if DEBUG
     let launch = AppLaunchConfiguration(arguments: arguments)
@@ -357,10 +398,12 @@ struct AppDependencies {
     }
     if environment["ONESET_UI_TEST_ID"] != nil { return UnconfiguredSubscriptionAccessService() }
     #endif
-    return liveSubscriptionAccess(storage: storage)
+    return liveSubscriptionAccess(savedAccess: savedAccess, pending: pending)
   }
 
-  private static func liveSubscriptionAccess(storage: AppStorage) -> RevenueCatSubscriptionAccessService {
+  private static func liveSubscriptionAccess(
+    savedAccess: any SavedSubscriptionAccessStore, pending: any PendingSubscriptionOperationStore
+  ) -> RevenueCatSubscriptionAccessService {
     #if DEBUG
     let isDebug = true
     #else
@@ -369,12 +412,8 @@ struct AppDependencies {
     return RevenueCatSubscriptionAccessService(
       client: LivePurchasesClient(fallbackEnvironment: isDebug ? .sandbox : .production),
       apiKey: AppLaunchConfiguration.revenueCatAPIKey(),
-      store: FileSavedSubscriptionAccessStore(
-        fileURL: storage.directory.appending(path: "Subscription/saved-access.json")
-      ),
-      pendingStore: FilePendingSubscriptionOperationStore(
-        fileURL: storage.directory.appending(path: "Subscription/pending-operations.json")
-      ),
+      store: savedAccess,
+      pendingStore: pending,
       acceptsSandboxSavedAccess: isDebug
     )
   }

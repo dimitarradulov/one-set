@@ -47,6 +47,7 @@ struct OneSetApp: App {
       initialMainTab: launch.selectedMainTab
     )
     model.trainingDays = launch.trainingDays
+    model.accountDeletion = dependencies.accountDeletion
     let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
     subscriptionAccounts = accounts
     Self.connect(model, to: accounts)
@@ -92,6 +93,7 @@ struct OneSetApp: App {
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
       )
+      onboarding.accountDeletion = dependencies.accountDeletion
       authentication = AuthenticationModel(service: dependencies.authentication)
       subscriptionSettings = Self.subscriptionSettings(for: dependencies)
       let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
@@ -116,6 +118,7 @@ struct OneSetApp: App {
         workoutRepositoryFactory: dependencies.workoutRepositoryFactory,
         restAlerts: restAlerts
       )
+      onboarding.accountDeletion = dependencies.accountDeletion
       authentication = AuthenticationModel(service: dependencies.authentication)
       subscriptionSettings = Self.subscriptionSettings(for: dependencies)
       let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
