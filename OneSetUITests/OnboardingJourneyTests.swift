@@ -1151,7 +1151,6 @@ final class OnboardingJourneyTests: XCTestCase {
       ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
       ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
-      ("settings.row.accountDeletion", "Account deletion", "Delete your OneSet account and its data."),
     ]
     for (row, title, explanation) in destinations {
       XCTAssertTrue(app.buttons[row].label.contains(title))
@@ -1165,6 +1164,13 @@ final class OnboardingJourneyTests: XCTestCase {
       navigationBack().tap()
       XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     }
+
+    XCTAssertTrue(app.buttons["settings.row.accountDeletion"].label.contains("Account deletion"))
+    app.buttons["settings.row.accountDeletion"].tap()
+    XCTAssertTrue(app.navigationBars["Delete account"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.whatGetsDeleted"].exists)
+    navigationBack().tap()
+    XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
 
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
@@ -1192,6 +1198,40 @@ final class OnboardingJourneyTests: XCTestCase {
     relaunch(with: ["--ui-main-workout-preview"])
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(mainTab("Program").isSelected)
+  }
+
+  func testAccountDeletionConfirmationCanBeCancelled() {
+    relaunch(with: ["--ui-account-deletion"])
+    XCTAssertTrue(app.navigationBars["Delete account"].waitForExistence(timeout: 5))
+    let delete = app.buttons["accountDeletion.delete"]
+    XCTAssertTrue(delete.waitForExistence(timeout: 3))
+    XCTAssertTrue(delete.isEnabled)
+    XCTAssertTrue(app.buttons["accountDeletion.manageSubscription"].exists)
+    delete.tap()
+    let dialog = app.alerts["Delete your account?"]
+    XCTAssertTrue(dialog.waitForExistence(timeout: 3))
+    dialog.buttons["Cancel"].tap()
+    XCTAssertTrue(delete.waitForExistence(timeout: 3))
+  }
+
+  func testAccountDeletionShowsBlockingReasonsAndDisablesDelete() {
+    relaunch(with: ["--ui-account-deletion-offline"])
+    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.offline"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
+
+    relaunch(with: ["--ui-account-deletion-active-workout"])
+    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.activeWorkout"].waitForExistence(timeout: 8))
+    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
+    XCTAssertTrue(app.buttons["accountDeletion.goToWorkout"].exists)
+  }
+
+  func testAccountDeletionFailureShowsErrorAndRetry() {
+    relaunch(with: ["--ui-account-deletion-failure"])
+    XCTAssertTrue(app.buttons["accountDeletion.delete"].waitForExistence(timeout: 5))
+    app.buttons["accountDeletion.delete"].tap()
+    app.alerts["Delete your account?"].buttons["Delete account"].tap()
+    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.failure"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["accountDeletion.retry"].exists)
   }
 
   func testHistoryPreviewRoutesShowPopulatedPartialEmptyAndRetryStates() {

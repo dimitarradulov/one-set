@@ -75,6 +75,7 @@ struct OnboardingFlowView: View {
         }
       }
     }
+    .environment(networkMonitor)
     .task {
       networkMonitor.start()
       await model.refreshCatalog()

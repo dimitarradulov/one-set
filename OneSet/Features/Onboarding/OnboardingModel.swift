@@ -128,6 +128,8 @@ final class OnboardingModel {
   let paywallApproval: any PaywallApproving
   /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
   @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
+  /// What Settings > Delete account needs beyond this model. Nil leaves the screen unavailable.
+  @ObservationIgnored var accountDeletion: AccountDeletionServices?
 
   init(
     catalog: ProgramCatalog,
