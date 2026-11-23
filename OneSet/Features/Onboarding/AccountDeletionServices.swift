@@ -21,7 +21,7 @@ extension OnboardingModel {
       uploads: OnboardingAccountDeletionUploads(model: self, authentication: authentication),
       service: services.service,
       erasure: OnboardingAccountDeletionErasure(model: self, services: services),
-      signOut: AuthenticationAccountDeletionSignOut(authentication: authentication),
+      signOut: AuthenticationAccountDeletionSignOut(authentication: authentication, onboarding: self),
       connectivity: NetworkAccountDeletionConnectivity(monitor: network),
       workouts: OnboardingAccountDeletionWorkoutState(model: self)
     )
@@ -83,9 +83,12 @@ private struct OnboardingAccountDeletionErasure: AccountDeletionLocalErasure {
 @MainActor
 private struct AuthenticationAccountDeletionSignOut: AccountDeletionSignOut {
   let authentication: AuthenticationModel
+  let onboarding: OnboardingModel
 
   func signOut() async throws {
     try await authentication.signOutThrowing()
+    // The deletion screen leaves with the session, so the confirmation is carried to Welcome here.
+    onboarding.noteAccountDeleted()
   }
 }
 
