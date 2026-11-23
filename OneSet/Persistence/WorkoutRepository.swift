@@ -820,6 +820,36 @@ extension WorkoutRepository {
   }
 }
 
+// MARK: - Account erasure
+
+extension WorkoutRepository {
+  /// Every table keyed by `account_id`. Sessions come first; their upload queue rows cascade,
+  /// and are also deleted explicitly so erasure does not depend on foreign key enforcement.
+  private static let accountScopedTables = [
+    "completed_session_uploads",
+    "workout_sessions",
+    "workout_week_membership",
+    "workout_cycle_upload_blocks",
+    "restored_cycle_progress",
+    "restored_completed_occurrences",
+    "restored_required_workouts",
+    "restored_workout_periods",
+    "restored_previous_performance",
+    "account_history_coverage",
+    "remembered_workout_exercises",
+  ]
+
+  /// Deletes all of this account's sessions, upload queue, restored progress, cached History,
+  /// and previous performance in one transaction. Other accounts are untouched.
+  func eraseAccount(accountID: String) throws {
+    try database.write { db in
+      for table in Self.accountScopedTables {
+        try db.execute(sql: "DELETE FROM \(table) WHERE account_id = ?", arguments: [accountID])
+      }
+    }
+  }
+}
+
 // MARK: - Active session edits
 
 extension WorkoutRepository {
