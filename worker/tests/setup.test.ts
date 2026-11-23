@@ -124,6 +124,27 @@ test('a failed Clerk check erases the new row and returns 503', async () => {
   assert.equal(await userRows('user_clerk_down'), 0);
 });
 
+test('a failed erase of an unconfirmed row is retried once and the rollback still happens', async () => {
+  const { services } = clerk({ status: 'notFound' });
+  let attempts = 0;
+  const flaky: SetupDatabase = { ...database, transaction: async statements => {
+    if (++attempts === 1) throw new Error('transient');
+    return database.transaction(statements);
+  } };
+  const response = await handleSetupRequest(request(await token('user_erase_retry')), env, flaky, services);
+  assert.equal(response.status, 401);
+  assert.equal(attempts, 2);
+  assert.equal(await userRows('user_erase_retry'), 0);
+});
+
+test('when the erase keeps failing the response is 503 and the row stays for the operator', async () => {
+  const { services } = clerk({ status: 'notFound' });
+  const broken: SetupDatabase = { ...database, transaction: async () => { throw new Error('down'); } };
+  const response = await handleSetupRequest(request(await token('user_erase_fail')), env, broken, services);
+  assert.equal(response.status, 503);
+  assert.equal(await userRows('user_erase_fail'), 1);
+});
+
 test('a new row confirmed by Clerk is kept and the check runs once', async () => {
   const { calls, services } = clerk({ status: 'success' });
   const bearer = await token('user_real');

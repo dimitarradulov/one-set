@@ -203,7 +203,7 @@ struct AccountDeletionScreen: View {
     static let requestFailure = "Your account couldn’t be deleted. Check your connection and try again."
     static let cleanupFailure =
       "Your account was deleted, but this device couldn’t finish signing you out. Try again."
-    static let retry = "Try again"
+    static let retry = "Retry"
   }
 }
 

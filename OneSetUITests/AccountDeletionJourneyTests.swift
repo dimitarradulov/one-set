@@ -68,6 +68,7 @@ final class AccountDeletionJourneyTests: XCTestCase {
     app.alerts["Delete your account?"].buttons["Delete account"].tap()
     XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.failure"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["accountDeletion.retry"].exists)
+    XCTAssertEqual(app.buttons["accountDeletion.retry"].label, "Retry")
     XCTAssertFalse(app.buttons["continue.email"].exists)
   }
 

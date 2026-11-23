@@ -42,3 +42,21 @@ test('a missing secret is a temporary failure without calling Clerk', async () =
   assert.deepEqual(await deleteUser('user_1', '', s.fetcher), { status: 'temporaryFailure' });
   assert.equal(s.calls.length, 0);
 });
+
+test('requests carry a timeout signal and a hung Clerk call is a temporary failure', async () => {
+  const s = stub(200);
+  await getUser('user_1', 'sk_test', s.fetcher);
+  assert.ok(s.calls[0].init.signal instanceof AbortSignal);
+  const hung = ((_url: unknown, init?: RequestInit) => new Promise((_resolve, reject) => {
+    const signal = init?.signal;
+    if (signal?.aborted) reject(signal.reason);
+    else signal?.addEventListener('abort', () => reject(signal.reason));
+  })) as typeof fetch;
+  const realTimeout = AbortSignal.timeout;
+  AbortSignal.timeout = () => AbortSignal.abort(new DOMException('timed out', 'TimeoutError'));
+  try {
+    assert.deepEqual(await getUser('user_1', 'sk_test', hung), { status: 'temporaryFailure' });
+  } finally {
+    AbortSignal.timeout = realTimeout;
+  }
+});

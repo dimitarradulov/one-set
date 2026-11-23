@@ -1,4 +1,5 @@
 const CLERK_API = 'https://api.clerk.com/v1/users';
+const REQUEST_TIMEOUT_MS = 5000;
 
 export type ClerkUserResult =
   | { status: 'success' }
@@ -16,6 +17,7 @@ async function request(
     const response = await fetcher(`${CLERK_API}/${encodeURIComponent(userId)}`, {
       method,
       headers: { Authorization: `Bearer ${secretKey}` },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     // Release the connection; the body is not needed.
     await response.body?.cancel();
