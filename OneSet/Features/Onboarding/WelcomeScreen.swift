@@ -3,6 +3,7 @@ import SwiftUI
 struct WelcomeScreen: View {
   let isAuthenticating: Bool
   let authenticationError: String?
+  var notice: String?
   let onContinueWithApple: () -> Void
   let onContinueWithGoogle: () -> Void
   let onContinueWithEmail: () -> Void
@@ -55,6 +56,11 @@ struct WelcomeScreen: View {
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
+
+              if let notice {
+                WelcomeNotice(text: notice)
+                  .padding(.horizontal, 8)
+              }
 
               VStack(spacing: 10) {
                 AccountButton(
@@ -127,5 +133,27 @@ struct WelcomeScreen: View {
       .background(OneSetColors.background)
     }
     .background(OneSetColors.background)
+  }
+}
+
+/// A one-time confirmation above the sign-in options: check icon and primary text on a surface.
+private struct WelcomeNotice: View {
+  let text: String
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: "checkmark.circle.fill")
+        .foregroundStyle(OneSetColors.accent)
+        .accessibilityHidden(true)
+      Text(text)
+        .font(OneSetTypography.bodyStrong)
+        .foregroundStyle(OneSetColors.textPrimary)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+    .frame(maxWidth: .infinity)
+    .background(OneSetColors.surface, in: RoundedRectangle(cornerRadius: 12))
+    .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("welcome.accountDeletedNotice")
   }
 }

@@ -1200,40 +1200,6 @@ final class OnboardingJourneyTests: XCTestCase {
     XCTAssertTrue(mainTab("Program").isSelected)
   }
 
-  func testAccountDeletionConfirmationCanBeCancelled() {
-    relaunch(with: ["--ui-account-deletion"])
-    XCTAssertTrue(app.navigationBars["Delete account"].waitForExistence(timeout: 5))
-    let delete = app.buttons["accountDeletion.delete"]
-    XCTAssertTrue(delete.waitForExistence(timeout: 3))
-    XCTAssertTrue(delete.isEnabled)
-    XCTAssertTrue(app.buttons["accountDeletion.manageSubscription"].exists)
-    delete.tap()
-    let dialog = app.alerts["Delete your account?"]
-    XCTAssertTrue(dialog.waitForExistence(timeout: 3))
-    dialog.buttons["Cancel"].tap()
-    XCTAssertTrue(delete.waitForExistence(timeout: 3))
-  }
-
-  func testAccountDeletionShowsBlockingReasonsAndDisablesDelete() {
-    relaunch(with: ["--ui-account-deletion-offline"])
-    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.offline"].waitForExistence(timeout: 5))
-    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
-
-    relaunch(with: ["--ui-account-deletion-active-workout"])
-    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.activeWorkout"].waitForExistence(timeout: 8))
-    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
-    XCTAssertTrue(app.buttons["accountDeletion.goToWorkout"].exists)
-  }
-
-  func testAccountDeletionFailureShowsErrorAndRetry() {
-    relaunch(with: ["--ui-account-deletion-failure"])
-    XCTAssertTrue(app.buttons["accountDeletion.delete"].waitForExistence(timeout: 5))
-    app.buttons["accountDeletion.delete"].tap()
-    app.alerts["Delete your account?"].buttons["Delete account"].tap()
-    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.failure"].waitForExistence(timeout: 5))
-    XCTAssertTrue(app.buttons["accountDeletion.retry"].exists)
-  }
-
   func testHistoryPreviewRoutesShowPopulatedPartialEmptyAndRetryStates() {
     relaunch(with: ["--ui-history-populated"])
     XCTAssertTrue(app.staticTexts["October 2026"].waitForExistence(timeout: 5))

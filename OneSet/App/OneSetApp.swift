@@ -48,6 +48,9 @@ struct OneSetApp: App {
     )
     model.trainingDays = launch.trainingDays
     model.accountDeletion = dependencies.accountDeletion
+    #if DEBUG
+    if arguments.contains("--ui-welcome-account-deleted") { model.noteAccountDeleted() }
+    #endif
     let accounts = dependencies.subscriptionAccess as? any SubscriptionAccountSelecting
     subscriptionAccounts = accounts
     Self.connect(model, to: accounts)

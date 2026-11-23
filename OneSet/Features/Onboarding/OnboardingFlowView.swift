@@ -145,11 +145,17 @@ struct OnboardingFlowView: View {
     var screen = WelcomeScreen(
       isAuthenticating: authentication.isWorking,
       authenticationError: authentication.errorMessage,
-      onContinueWithApple: { Task { await authentication.signInWithApple() } },
+      notice: model.accountDeletedNoticePending ? "Your account was deleted." : nil,
+      onContinueWithApple: {
+        model.dismissAccountDeletedNotice()
+        Task { await authentication.signInWithApple() }
+      },
       onContinueWithGoogle: {
+        model.dismissAccountDeletedNotice()
         Task { await model.continueWithGoogle(using: authentication) }
       },
       onContinueWithEmail: {
+        model.dismissAccountDeletedNotice()
         authentication.begin()
         model.showEmailAuthentication()
       }

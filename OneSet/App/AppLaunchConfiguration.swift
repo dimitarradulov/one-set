@@ -145,7 +145,7 @@ struct AppLaunchConfiguration {
       || arguments.containsAny(
         "--ui-setup-upload-pending", "--ui-setup-upload-discard", "--ui-setup-upload-removed",
         "--ui-account-setup-error", "--ui-setup-timeout", "--ui-progress-save-error",
-        "--ui-progress-restore-error", "--ui-welcome", "--ui-apple-auth-error", "--ui-google-auth-error"
+        "--ui-progress-restore-error", "--ui-welcome", "--ui-welcome-account-deleted", "--ui-apple-auth-error", "--ui-google-auth-error"
       ) {
       return empty
     }
