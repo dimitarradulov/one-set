@@ -5,6 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
 import { handleAccountDeletionRequest, type AccountDeletionServices } from '../src/account-deletion.ts';
 import type { ClerkUserResult } from '../src/clerk-users.ts';
+import { handleSetupRequest } from '../src/setup.ts';
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -74,6 +75,7 @@ beforeEach(async () => {
       ('22222222-2222-4222-8222-222222222222', 2, 10, now());
     UPDATE users SET active_user_program_id = '11111111-1111-4111-8111-111111111111' WHERE id = 1;
     UPDATE users SET active_user_program_id = '22222222-2222-4222-8222-222222222222' WHERE id = 2;
+    SELECT setval(pg_get_serial_sequence('users', 'id'), 100);
     INSERT INTO completed_workouts (user_program_id, week_number, workout_id) VALUES
       ('11111111-1111-4111-8111-111111111111', 1, 100), ('22222222-2222-4222-8222-222222222222', 1, 100);
     INSERT INTO workout_sessions (id, user_program_id, workout_id, week_number, workout_name, started_at) VALUES
@@ -162,4 +164,29 @@ test('a missing Clerk secret returns 503 without erasing', async () => {
   const response = await handleAccountDeletionRequest(await request(), { ...env, CLERK_SECRET_KEY: '' }, database, services);
   assert.equal(response.status, 503);
   assert.equal(await count('users'), 2);
+});
+
+test('race: a row a stale setup request inserts between the erase and the Clerk delete is gone after the sweep', async () => {
+  const racing: AccountDeletionServices = { ...services, deleteClerkUser: async () => {
+    events.push('clerk');
+    await db.exec(`INSERT INTO users (clerk_user_id, preferred_unit, training_days) VALUES ('user_a', 'kg', 3)`);
+    assert.equal(await count('users', "WHERE clerk_user_id = 'user_a'"), 1);
+    return { status: 'success' };
+  } };
+  const response = await handleAccountDeletionRequest(await request(), env, database, racing);
+  assert.equal(response.status, 200);
+  assert.equal(await count('users', "WHERE clerk_user_id = 'user_a'"), 0);
+  assert.equal(await count('users', "WHERE clerk_user_id = 'user_b'"), 1);
+});
+
+test('race: a stale setup request after the Clerk delete removes its own row and returns 401', async () => {
+  await handle(await request());
+  const response = await handleSetupRequest(
+    new Request('https://api.oneset.test/v1/me/setup', { headers: { Authorization: `Bearer ${await token()}` } }),
+    env,
+    { ...database, query: async (sql, params) => (await db.query<Record<string, unknown>>(sql, params)).rows },
+    { getClerkUser: async () => ({ status: 'notFound' }) },
+  );
+  assert.equal(response.status, 401);
+  assert.equal(await count('users', "WHERE clerk_user_id = 'user_a'"), 0);
 });

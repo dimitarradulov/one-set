@@ -1,9 +1,18 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPair, exportSPKI, SignJWT } from 'jose';
+import type { ClerkUserResult } from '../src/clerk-users.ts';
 import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
-import { handleSetupRequest, type SetupDatabase } from '../src/setup.ts';
+import { handleSetupRequest as handleSetup, type SetupConfiguration, type SetupDatabase, type SetupServices } from '../src/setup.ts';
+
+// Existing users and confirmed Clerk identities: the stale-token guard passes without erasing.
+const handleSetupRequest = (request: Request, env: object, database: Pick<SetupDatabase, 'query'> & Partial<SetupDatabase>,
+  services: SetupServices = { getClerkUser: async () => ({ status: 'success' }) }) =>
+  handleSetup(request, { CLERK_SECRET_KEY: 'sk_test', ...env } as SetupConfiguration, {
+    transaction: async () => { throw new Error('unexpected erasure'); }, ...database,
+  }, services);
+
 
 const issuer = 'https://clerk.test';
 const keys = await generateKeyPair('RS256', { extractable: true });
@@ -30,6 +39,9 @@ await db.exec('BEGIN;\n' + migration.slice(migration.indexOf('CREATE TYPE')));
 await db.exec(await readFile('../docs/database/migrations/002_completed_setup.sql', 'utf8'));
 const database: SetupDatabase = {
   query: async (sql, params) => (await db.query<Record<string, unknown>>(sql, params)).rows,
+  transaction: async statements => {
+    await db.transaction(async tx => { for (const s of statements) await tx.query(s.query, s.params); });
+  },
 };
 await db.exec(`
   INSERT INTO workout_programs (id, name) VALUES
@@ -49,6 +61,9 @@ await db.exec(`
 await db.exec(await readFile('../docs/database/migrations/003_catalog_publication.sql', 'utf8'));
 await db.exec(await readFile('../docs/database/migrations/011_catalog_repository_sync.sql', 'utf8'));
 await db.exec(await readFile('../docs/database/migrations/004_offered_program_onboarding.sql', 'utf8'));
+// The erasure statements delete from this table; migration 005 itself is not needed here.
+await db.exec(`CREATE TABLE public.user_program_workout_periods (
+  user_program_id uuid NOT NULL REFERENCES public.user_programs(id) ON DELETE CASCADE)`);
 
 test('lookup returns only verified owner setup even with a client ownership claim', async () => {
   const response = await handleSetupRequest(request(await token(), '?user_id=user_b'), env, database);
@@ -73,6 +88,68 @@ test('confirmed absence returns null for a new account', async () => {
   const cycles = await db.query(`SELECT id FROM user_programs
     WHERE user_id = (SELECT id FROM users WHERE clerk_user_id = 'user_new')`);
   assert.equal(cycles.rows.length, 0);
+});
+
+const clerk = (...results: ClerkUserResult[]) => {
+  const calls: string[] = [];
+  const services: SetupServices = { getClerkUser: async id => { calls.push(id); return results.shift() ?? { status: 'success' }; } };
+  return { calls, services };
+};
+const userRows = async (id: string) => (await db.query(`SELECT id FROM users WHERE clerk_user_id = $1`, [id])).rows.length;
+
+test('setup for an existing row makes no Clerk call', async () => {
+  const { calls, services } = clerk({ status: 'notFound' });
+  for (const method of ['GET', 'PUT']) {
+    const bearer = await token('user_b');
+    const req = method === 'GET' ? request(bearer) : saveRequest(bearer, completedSetup);
+    assert.equal((await handleSetupRequest(req, env, database, services)).status, 200);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('a new row for a deleted Clerk user is erased and returns 401', async () => {
+  const { calls, services } = clerk({ status: 'notFound' });
+  const response = await handleSetupRequest(request(await token('user_gone')), env, database, services);
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: { code: 'AUTH_REQUIRED' } });
+  assert.deepEqual(calls, ['user_gone']);
+  assert.equal(await userRows('user_gone'), 0);
+});
+
+test('a failed Clerk check erases the new row and returns 503', async () => {
+  const { services } = clerk({ status: 'temporaryFailure' });
+  const response = await handleSetupRequest(request(await token('user_clerk_down')), env, database, services);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: { code: 'TEMPORARY_FAILURE' } });
+  assert.equal(await userRows('user_clerk_down'), 0);
+});
+
+test('a new row confirmed by Clerk is kept and the check runs once', async () => {
+  const { calls, services } = clerk({ status: 'success' });
+  const bearer = await token('user_real');
+  assert.equal((await handleSetupRequest(request(bearer), env, database, services)).status, 200);
+  assert.equal((await handleSetupRequest(request(bearer), env, database, services)).status, 200);
+  assert.deepEqual(calls, ['user_real']);
+  assert.equal(await userRows('user_real'), 1);
+});
+
+test('POST setup for a new user goes through the guarded insert before complete_onboarding', async () => {
+  const order: string[] = [];
+  const { services } = clerk({ status: 'notFound' });
+  const spy: SetupDatabase = { ...database, query: async (sql, params) => {
+    if (sql.includes('INSERT INTO users')) order.push('insert');
+    if (sql.includes('complete_onboarding')) order.push('onboarding');
+    return database.query(sql, params);
+  } };
+  const response = await handleSetupRequest(saveRequest(await token('user_new_post'), { ...completedSetup, cycle_id: '55555555-5555-4555-8555-555555555555' }), env, spy, services);
+  assert.equal(response.status, 401);
+  assert.deepEqual(order, ['insert']);
+  assert.equal(await userRows('user_new_post'), 0);
+  const ok = clerk({ status: 'success' });
+  order.length = 0;
+  const saved = await handleSetupRequest(saveRequest(await token('user_new_post'), { ...completedSetup, cycle_id: '55555555-5555-4555-8555-555555555555' }), env, spy, ok.services);
+  assert.equal(saved.status, 200);
+  assert.deepEqual(order.slice(0, 2), ['insert', 'onboarding']);
 });
 
 test('invalid credentials never return private setup', async () => {

@@ -1,9 +1,18 @@
 import { verifyToken } from '@clerk/backend';
+import { eraseAccountData, type AccountErasureDatabase } from './account-deletion';
+import { getUser, type ClerkUserResult } from './clerk-users';
 
-export interface SetupDatabase {
+export interface SetupDatabase extends AccountErasureDatabase {
   query(sql: string, params: string[]): Promise<Record<string, unknown>[]>;
 }
+export interface SetupServices {
+  getClerkUser(clerkUserId: string, secretKey: string): Promise<ClerkUserResult>;
+}
+const defaultServices: SetupServices = {
+  getClerkUser: (clerkUserId, secretKey) => getUser(clerkUserId, secretKey),
+};
 export interface SetupConfiguration {
+  CLERK_SECRET_KEY: string;
   CLERK_ISSUER: string;
   CLERK_JWT_KEY: string;
   CLERK_AUTHORIZED_PARTIES: string;
@@ -15,6 +24,7 @@ function json(body: unknown, status = 200): Response {
 
 export async function handleSetupRequest(
   request: Request, env: SetupConfiguration, database: SetupDatabase,
+  services: SetupServices = defaultServices,
 ): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname !== '/v1/me/setup') return json({ error: { code: 'NOT_FOUND' } }, 404);
@@ -41,6 +51,30 @@ export async function handleSetupRequest(
     subject = claims.sub;
   } catch {
     return json({ error: { code: 'AUTH_REQUIRED' } }, 401);
+  }
+
+  // Provision the identity link before lookup, including for restored sessions.
+  // Initial preferences match onboarding; only completed setup will select a cycle.
+  // The unique Clerk ID makes retries/concurrent requests safe without changing saved data.
+  // Stale-token guard: Clerk session tokens outlive account deletion by about a minute, so a
+  // row this insert actually creates is confirmed against Clerk and erased if the user is gone.
+  // This is the only place a users row may be created: PUT runs it before complete_onboarding, so
+  // that function must never insert a user itself (a future migration must keep it that way).
+  // Returns a rejection response, or null when the identity is confirmed or already existed.
+  async function provisionUser(): Promise<Response | null> {
+    const created = await database.query(`
+      INSERT INTO users (clerk_user_id, preferred_unit, training_days)
+      VALUES ($1, 'kg', 3)
+      ON CONFLICT (clerk_user_id) DO NOTHING
+      RETURNING id
+    `, [subject]);
+    if (created.length === 0) return null;
+    const identity = await services.getClerkUser(subject, env.CLERK_SECRET_KEY);
+    if (identity.status === 'success') return null;
+    await eraseAccountData(database, subject);
+    return identity.status === 'notFound'
+      ? json({ error: { code: 'AUTH_REQUIRED' } }, 401)
+      : json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
   }
 
   try {
@@ -78,20 +112,18 @@ export async function handleSetupRequest(
       const [program] = await database.query(`SELECT id FROM workout_programs
         WHERE authoring_key = $1`, [body.program_id]);
       if (!program || !Number.isInteger(program.id)) return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
+      const rejected = await provisionUser();
+      if (rejected) return rejected;
       const [completion] = await database.query(`SELECT public.complete_onboarding($1, $2::weight_unit,
         $3::integer, $4::integer, $5::uuid) AS accepted`,
       [subject, body.preferred_unit, String(body.training_days), String(program.id), body.cycle_id]);
       if (completion?.accepted === false) return json({ error: { code: 'PROGRAM_UNAVAILABLE' } }, 409);
       if (completion?.accepted !== true) return json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
     }
-    // Provision the identity link before lookup, including for restored sessions.
-    // Initial preferences match onboarding; only completed setup will select a cycle.
-    // The unique Clerk ID makes retries/concurrent requests safe without changing saved data.
-    await database.query(`
-      INSERT INTO users (clerk_user_id, preferred_unit, training_days)
-      VALUES ($1, 'kg', 3)
-      ON CONFLICT (clerk_user_id) DO NOTHING
-    `, [subject]);
+    if (request.method === 'GET') {
+      const rejected = await provisionUser();
+      if (rejected) return rejected;
+    }
     // A single statement gives a consistent snapshot and checks ownership of the active cycle.
     const [row] = await database.query(`
       SELECT u.preferred_unit, u.training_days, u.active_user_program_id,

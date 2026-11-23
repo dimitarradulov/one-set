@@ -10,8 +10,16 @@ import { promisify } from 'node:util';
 import { PGlite } from '@electric-sql/pglite';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { handleCatalogRequest, type CatalogDatabase } from '../src/catalog.ts';
-import { handleSetupRequest, type SetupDatabase } from '../src/setup.ts';
+import { handleSetupRequest as handleSetup, type SetupConfiguration, type SetupDatabase, type SetupServices } from '../src/setup.ts';
 import { parse } from 'yaml';
+
+// Existing users and confirmed Clerk identities: the stale-token guard passes without erasing.
+const handleSetupRequest = (request: Request, env: object, database: Pick<SetupDatabase, 'query'> & Partial<SetupDatabase>,
+  services: SetupServices = { getClerkUser: async () => ({ status: 'success' }) }) =>
+  handleSetup(request, { CLERK_SECRET_KEY: 'sk_test', ...env } as SetupConfiguration, {
+    transaction: async () => { throw new Error('unexpected erasure'); }, ...database,
+  }, services);
+
 
 const execute = promisify(execFile);
 const issuer = 'https://clerk.test';
@@ -191,7 +199,7 @@ workouts:
       preferred_unit: 'kg', training_days: 3, program_id: 'founder-authored-plan',
       cycle_id: '22222222-2222-4222-8222-222222222222',
     };
-    const setupDatabase: SetupDatabase = { query: database.query };
+    const setupDatabase = { query: database.query };
     const saved = await handleSetupRequest(new Request('https://api.oneset.test/v1/me/setup', {
       method: 'PUT',
       headers: { Authorization: `Bearer ${newUserToken}`, 'Content-Type': 'application/json' },
