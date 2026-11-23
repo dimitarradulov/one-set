@@ -1151,7 +1151,6 @@ final class OnboardingJourneyTests: XCTestCase {
       ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
       ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
-      ("settings.row.accountDeletion", "Account deletion", "Delete your OneSet account and its data."),
     ]
     for (row, title, explanation) in destinations {
       XCTAssertTrue(app.buttons[row].label.contains(title))
@@ -1165,6 +1164,13 @@ final class OnboardingJourneyTests: XCTestCase {
       navigationBack().tap()
       XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     }
+
+    XCTAssertTrue(app.buttons["settings.row.accountDeletion"].label.contains("Account deletion"))
+    app.buttons["settings.row.accountDeletion"].tap()
+    XCTAssertTrue(app.navigationBars["Delete account"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.whatGetsDeleted"].exists)
+    navigationBack().tap()
+    XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
 
     app.buttons["settings.row.units"].tap()
     XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))

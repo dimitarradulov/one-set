@@ -161,6 +161,16 @@ final class AuthenticationModel {
     didCompleteAuthentication = false
   }
 
+  /// Signs out locally and reports failure to the caller instead of showing it as an auth error.
+  func signOutThrowing() async throws {
+    try await service.signOut()
+    emailAddress = ""
+    verificationCode = ""
+    step = .email
+    hasPendingCode = false
+    didCompleteAuthentication = false
+  }
+
   func signOut() async {
     errorMessage = nil
     isWorking = true

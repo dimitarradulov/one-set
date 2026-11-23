@@ -4,6 +4,23 @@ import Foundation
 @MainActor
 final class ProgramCycleSyncCoordinator {
   private var uploadingGeneration: Int?
+  /// Requests in flight per account. Counted, so a newer generation's upload cannot hide an older one.
+  private var inFlightCounts: [String: Int] = [:]
+  private var suspendedAccountIDs: Set<String> = []
+  private var uploadWaiters: [CheckedContinuation<Void, Never>] = []
+
+  /// Stops cycle requests for the account. A request already on the wire finishes first, and
+  /// no further request goes out for the account until `resume(accountID:)`. Pending records are kept.
+  func suspend(accountID: String) async {
+    suspendedAccountIDs.insert(accountID)
+    while inFlightCounts[accountID, default: 0] > 0 {
+      await withCheckedContinuation { uploadWaiters.append($0) }
+    }
+  }
+
+  func resume(accountID: String) {
+    suspendedAccountIDs.remove(accountID)
+  }
 
   func upload(
     user: AuthenticatedUser, generation: Int, at date: Date, publicationID: String?,
@@ -13,16 +30,24 @@ final class ProgramCycleSyncCoordinator {
     authenticationRequired: @MainActor () -> Void,
     creationAcknowledged: @MainActor () async -> Void
   ) async {
-    guard uploadingGeneration != generation else { return }
+    guard uploadingGeneration != generation, !suspendedAccountIDs.contains(user.id) else { return }
     uploadingGeneration = generation
-    defer { if uploadingGeneration == generation { uploadingGeneration = nil } }
+    inFlightCounts[user.id, default: 0] += 1
+    defer {
+      if uploadingGeneration == generation { uploadingGeneration = nil }
+      let remaining = inFlightCounts[user.id, default: 1] - 1
+      inFlightCounts[user.id] = remaining > 0 ? remaining : nil
+      let waiters = uploadWaiters
+      uploadWaiters = []
+      waiters.forEach { $0.resume() }
+    }
 
     func save(_ progress: OnboardingProgress) throws {
       try store.save(progress, accountID: user.id)
       didSave(progress)
     }
 
-    while let state = current()?.cycles {
+    while !suspendedAccountIDs.contains(user.id), let state = current()?.cycles {
       let rejectedCreations = Set(state.rejectedCycleIDs ?? [])
       let rejectedActivations = Set(state.rejectedActivationIDs ?? []).union(rejectedCreations)
       let pendingCycleIDs = Set(state.pendingCreations.map(\.cycleID))

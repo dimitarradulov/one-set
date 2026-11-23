@@ -6,6 +6,7 @@ import { handleCycleRequest } from './cycles';
 import { handlePreviousPerformanceRequest } from './previous-performance';
 import { handleProgressRequest } from './progress';
 import { handleHistoryRequest } from './history';
+import { handleAccountDeletionRequest } from './account-deletion';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -21,6 +22,11 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
+    if (path === '/v1/me') {
+      return handleAccountDeletionRequest(request, env, {
+        transaction: async statements => sql.transaction(statements.map(s => sql.query(s.query, s.params))),
+      });
+    }
     if (path === '/v1/cycles' || path === '/v1/me/cycles' || /^\/v1\/cycles\/[^/]+\/activate$/.test(path)) {
       return handleCycleRequest(request, env, { query: async (query, params) => sql.query(query, params) });
     }
@@ -46,6 +52,7 @@ export default {
     }
     return handleSetupRequest(request, env, {
       query: async (query, params) => sql.query(query, params),
+      transaction: async statements => sql.transaction(statements.map(s => sql.query(s.query, s.params))),
     });
   },
 } satisfies ExportedHandler<Env>;

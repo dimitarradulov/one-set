@@ -128,6 +128,13 @@ final class OnboardingModel {
   let paywallApproval: any PaywallApproving
   /// The account owner's selection, when a real owner exists. Without one the model numbers its own.
   @ObservationIgnored var accountSelectionProvider: (@MainActor () -> AccountSelection?)?
+  /// What Settings > Delete account needs beyond this model. Nil leaves the screen unavailable.
+  @ObservationIgnored var accountDeletion: AccountDeletionServices?
+  /// Set when the account was just deleted so Welcome confirms it once. In memory only; never survives a relaunch.
+  private(set) var accountDeletedNoticePending = false
+
+  func noteAccountDeleted() { accountDeletedNoticePending = true }
+  func dismissAccountDeletedNotice() { accountDeletedNoticePending = false }
 
   init(
     catalog: ProgramCatalog,

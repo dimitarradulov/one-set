@@ -19,6 +19,13 @@ struct AppLaunchConfiguration {
   #endif
 
   #if DEBUG
+  /// Opens Settings > Delete account. The base route shows the ready screen; the others preset
+  /// a blocking or warning state (`-failure` is also read by the preview deletion service).
+  static let accountDeletionRoutes: Set<String> = [
+    "--ui-account-deletion", "--ui-account-deletion-offline", "--ui-account-deletion-active-workout",
+    "--ui-account-deletion-unsynced", "--ui-account-deletion-failure"
+  ]
+
   private static func paywallPreview(arguments: [String]) -> PaywallPreviewState? {
     let routes: [String: PaywallPreviewState] = [
       "--ui-paywall": .ready,
@@ -42,6 +49,7 @@ struct AppLaunchConfiguration {
       || arguments.contains("--ui-history-pagination") || arguments.contains("--ui-history-offline-boundary")
       || arguments.contains("--ui-signout-confirmation")
       || arguments.contains("--ui-main-settings") || arguments.contains("--ui-main-workout-preview")
+      || arguments.containsAny(Self.accountDeletionRoutes)
       || Self.subscriptionSettingsRoute(arguments: arguments) != nil
       || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
@@ -66,6 +74,8 @@ struct AppLaunchConfiguration {
     selectedMainTab = Self.mainTab(arguments: arguments, hasSettingsRoute: settingsRoute != nil)
     if arguments.contains("--ui-main-settings-units") {
       settingsPath = [.units]
+    } else if arguments.containsAny(Self.accountDeletionRoutes) {
+      settingsPath = [.accountDeletion]
     } else {
       settingsPath = settingsRoute == nil ? [] : [.subscription]
     }
@@ -93,7 +103,7 @@ struct AppLaunchConfiguration {
     ) {
       return .history
     }
-    if hasSettingsRoute || arguments.containsAny(
+    if hasSettingsRoute || arguments.containsAny(Self.accountDeletionRoutes) || arguments.containsAny(
       "--ui-signout-confirmation", "--ui-main-settings", "--ui-main-settings-units",
       "--ui-session-signout-confirmation", "--ui-session-signout-error"
     ) {
@@ -135,7 +145,7 @@ struct AppLaunchConfiguration {
       || arguments.containsAny(
         "--ui-setup-upload-pending", "--ui-setup-upload-discard", "--ui-setup-upload-removed",
         "--ui-account-setup-error", "--ui-setup-timeout", "--ui-progress-save-error",
-        "--ui-progress-restore-error", "--ui-welcome", "--ui-apple-auth-error", "--ui-google-auth-error"
+        "--ui-progress-restore-error", "--ui-welcome", "--ui-welcome-account-deleted", "--ui-apple-auth-error", "--ui-google-auth-error"
       ) {
       return empty
     }
@@ -231,5 +241,9 @@ struct AppLaunchConfiguration {
 private extension [String] {
   func containsAny(_ names: String...) -> Bool {
     names.contains { contains($0) }
+  }
+
+  func containsAny(_ names: Set<String>) -> Bool {
+    contains { names.contains($0) }
   }
 }

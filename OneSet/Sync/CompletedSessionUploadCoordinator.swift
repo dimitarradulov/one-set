@@ -13,6 +13,9 @@ final class CompletedSessionUploadCoordinator {
   private let service: any CompletedSessionUploadService
   private let waitForRetry: @MainActor (TimeInterval) async throws -> Void
   private var isDraining = false
+  private var drainingAccountID: String?
+  private var suspendedAccountIDs: Set<String> = []
+  private var drainWaiters: [CheckedContinuation<Void, Never>] = []
   private var queuedDrain: DrainRequest?
   private var retryTask: Task<Void, Never>?
   private var scheduledRetryAccountID: String?
@@ -41,15 +44,21 @@ final class CompletedSessionUploadCoordinator {
       cancelRetry()
       return
     }
+    guard !suspendedAccountIDs.contains(user.id) else { return }
     if isDraining {
       queuedDrain = request
       return
     }
 
     isDraining = true
+    drainingAccountID = user.id
     defer {
       isDraining = false
-      if scheduleRetries {
+      drainingAccountID = nil
+      let waiters = drainWaiters
+      drainWaiters = []
+      waiters.forEach { $0.resume() }
+      if scheduleRetries, !suspendedAccountIDs.contains(user.id) {
         scheduleRetry(for: request)
       }
       if let queuedDrain {
@@ -68,7 +77,7 @@ final class CompletedSessionUploadCoordinator {
 
     guard let entries = try? repository.sessionUploadQueue(accountID: user.id) else { return }
     for entry in entries {
-      guard !Task.isCancelled, isCurrent() else { return }
+      guard !Task.isCancelled, isCurrent(), !suspendedAccountIDs.contains(user.id) else { return }
       struct CycleReference: Decodable { let cycle_id: UUID }
       let cycleID = try? JSONDecoder().decode(CycleReference.self, from: entry.upload.body).cycle_id
       guard blockedCycleIDs.isEmpty || (cycleID != nil && !blockedCycleIDs.contains(cycleID!)),
@@ -119,6 +128,22 @@ final class CompletedSessionUploadCoordinator {
     }
   }
 
+  /// Stops all upload requests for the account. A request already on the wire finishes first, and
+  /// no further request goes out for the account until `resume(accountID:)`. Queued records are kept.
+  func suspend(accountID: String) async {
+    suspendedAccountIDs.insert(accountID)
+    if queuedDrain?.user.id == accountID { queuedDrain = nil }
+    if scheduledRetryAccountID == accountID { cancelRetry() }
+    while isDraining, drainingAccountID == accountID {
+      await withCheckedContinuation { drainWaiters.append($0) }
+    }
+  }
+
+  /// Lets the account upload again. Callers trigger the next drain; queued records are untouched.
+  func resume(accountID: String) {
+    suspendedAccountIDs.remove(accountID)
+  }
+
   // Clears queued drains and future retries. The caller invalidates any in-flight request through `isCurrent`.
   func cancelPendingWork() {
     queuedDrain = nil
@@ -140,7 +165,7 @@ final class CompletedSessionUploadCoordinator {
   }
 
   private func scheduleRetry(for request: DrainRequest) {
-    guard request.isCurrent(),
+    guard request.isCurrent(), !suspendedAccountIDs.contains(request.user.id),
           let entries = try? repository.sessionUploadQueue(accountID: request.user.id) else {
       cancelRetry()
       return
@@ -166,7 +191,7 @@ final class CompletedSessionUploadCoordinator {
       guard !Task.isCancelled, let self,
             self.scheduledRetryAccountID == request.user.id,
             self.scheduledRetryAt == nextRetry,
-            request.isCurrent() else { return }
+            request.isCurrent(), !self.suspendedAccountIDs.contains(request.user.id) else { return }
       self.retryTask = nil
       self.scheduledRetryAccountID = nil
       self.scheduledRetryAt = nil

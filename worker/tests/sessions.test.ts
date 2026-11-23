@@ -4,8 +4,16 @@ import { PGlite } from '@electric-sql/pglite';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { handleCompletedSessionRequest, type SessionDatabase } from '../src/sessions.ts';
-import { handleSetupRequest } from '../src/setup.ts';
+import { handleSetupRequest as handleSetup, type SetupConfiguration, type SetupDatabase, type SetupServices } from '../src/setup.ts';
 import { handleHistoryRequest } from '../src/history.ts';
+
+// Existing users and confirmed Clerk identities: the stale-token guard passes without erasing.
+const handleSetupRequest = (request: Request, env: object, database: Pick<SetupDatabase, 'query'> & Partial<SetupDatabase>,
+  services: SetupServices = { getClerkUser: async () => ({ status: 'success' }) }) =>
+  handleSetup(request, { CLERK_SECRET_KEY: 'sk_test', ...env } as SetupConfiguration, {
+    transaction: async () => { throw new Error('unexpected erasure'); }, ...database,
+  }, services);
+
 
 
 const issuer = 'https://clerk.test';
