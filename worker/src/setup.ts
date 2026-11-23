@@ -71,10 +71,21 @@ export async function handleSetupRequest(
     if (created.length === 0) return null;
     const identity = await services.getClerkUser(subject, env.CLERK_SECRET_KEY);
     if (identity.status === 'success') return null;
-    await eraseAccountData(database, subject);
+    await eraseUnconfirmedRow();
     return identity.status === 'notFound'
       ? json({ error: { code: 'AUTH_REQUIRED' } }, 401)
       : json({ error: { code: 'TEMPORARY_FAILURE' } }, 503);
+  }
+
+  // The new row must not outlive a failed confirmation: later setups skip the Clerk check for
+  // existing rows, so a stale token could revive a deleted account. Retry the erase once; if it
+  // still fails, the error reaches the outer handler and the response is 503.
+  async function eraseUnconfirmedRow(): Promise<void> {
+    try {
+      await eraseAccountData(database, subject);
+    } catch {
+      await eraseAccountData(database, subject);
+    }
   }
 
   try {

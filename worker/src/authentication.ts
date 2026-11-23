@@ -6,9 +6,7 @@ export interface ClerkConfiguration {
   CLERK_AUTHORIZED_PARTIES: string;
 }
 
-type AuthenticationResult =
-  | { subject: string }
-  | { response: Response };
+type AuthenticationResult = { subject: string } | { response: Response };
 
 function errorResponse(code: string, status: number): Response {
   return Response.json({ error: { code } }, {

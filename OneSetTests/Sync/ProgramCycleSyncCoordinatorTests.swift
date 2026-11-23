@@ -65,6 +65,32 @@ struct ProgramCycleSyncCoordinatorTests {
   }
 
   @Test
+  func suspendStillWaitsWhenANewerGenerationForAnotherAccountFinishesFirst() async throws {
+    let holder = ProgressHolder(progress(creating: [cycle()]))
+    let service = CycleServiceSpy(suspendFirstCreate: true)
+    let coordinator = ProgramCycleSyncCoordinator()
+
+    let uploading = Task { await upload(coordinator, user: alice, generation: 1, holder: holder, service: service) }
+    await settle { service.isCreateSuspended }
+
+    let bobHolder = ProgressHolder(progress(creating: [cycle()]))
+    await upload(coordinator, user: bob, generation: 2, holder: bobHolder, service: service)
+
+    var suspendReturned = false
+    let suspending = Task {
+      await coordinator.suspend(accountID: alice.id)
+      suspendReturned = true
+    }
+    await settle { false }
+    #expect(suspendReturned == false)
+
+    service.releaseSuspendedCreate()
+    await suspending.value
+    await uploading.value
+    #expect(suspendReturned)
+  }
+
+  @Test
   func resumeContinuesAndOtherAccountsAreUnaffected() async throws {
     let cycles = [cycle(), cycle()]
     let holder = ProgressHolder(progress(creating: cycles))

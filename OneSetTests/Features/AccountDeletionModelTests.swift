@@ -21,12 +21,19 @@ struct AccountDeletionModelTests {
     var results: [AccountDeletionResult] = [.deleted]
     var eraseFailures = 0
     var signOutFailures = 0
+    var drainBlocks = false
+    private var drainContinuation: CheckedContinuation<Void, Never>?
+
+    func releaseDrain() { drainContinuation?.resume(); drainContinuation = nil }
 
     init(log: Log) { self.log = log }
 
     func suspend(accountID: String) async { log.events.append("suspend \(accountID)") }
     func resume(accountID: String) { log.events.append("resume \(accountID)") }
-    func drain(for user: AuthenticatedUser) async { log.events.append("drain \(user.id)") }
+    func drain(for user: AuthenticatedUser) async {
+      log.events.append("drain \(user.id)")
+      if drainBlocks { await withCheckedContinuation { drainContinuation = $0 } }
+    }
     func unsyncedCompletedSessionCount(accountID: String) throws -> Int {
       if unsyncedCountFails { throw StepFailure() }
       return unsyncedCount
@@ -52,6 +59,11 @@ struct AccountDeletionModelTests {
   }
 
   private let user = AuthenticatedUser(id: "alice", emailAddress: nil)
+
+  /// The post-failure drain runs in the background; wait until it has started.
+  private func waitForDrain(_ log: Log) async {
+    for _ in 0..<100 where !log.events.contains("drain alice") { await Task.yield() }
+  }
 
   private func makeModel(_ fakes: Fakes) -> AccountDeletionModel {
     AccountDeletionModel(
@@ -156,10 +168,26 @@ struct AccountDeletionModelTests {
     model.refresh()
 
     await model.confirmDeletion()
+    await waitForDrain(log)
 
     #expect(log.events == ["suspend alice", "request", "resume alice", "drain alice"])
     #expect(model.phase == .failed(.request))
     #expect(model.canDelete)
+  }
+
+  @Test func failureIsShownWithoutWaitingForTheUploadDrain() async {
+    let log = Log()
+    let fakes = Fakes(log: log)
+    fakes.results = [.failed]
+    fakes.drainBlocks = true
+    let model = makeModel(fakes)
+    model.refresh()
+
+    await model.confirmDeletion()
+
+    #expect(model.phase == .failed(.request))
+    await waitForDrain(log)
+    fakes.releaseDrain()
   }
 
   @Test func retryAfterFailedRequestRunsTheWholeFlowAgain() async {
@@ -169,6 +197,7 @@ struct AccountDeletionModelTests {
     let model = makeModel(fakes)
     model.refresh()
     await model.confirmDeletion()
+    await waitForDrain(log)
     log.events.removeAll()
 
     await model.retry()

@@ -35,7 +35,7 @@ struct HTTPAccountDeletionService: AccountDeletionService {
     request.timeoutInterval = 30
     guard let (_, response) = try? await send(request),
           let http = response as? HTTPURLResponse,
-          (200..<300).contains(http.statusCode) else { return .failed }
+          http.statusCode == 200 else { return .failed }
     return .deleted
   }
 }

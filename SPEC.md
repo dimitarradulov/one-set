@@ -81,6 +81,7 @@ Clerk session tokens are verified without a network call and stay valid for up t
 1. **Insert, then confirm.** The setup route's insert uses `RETURNING id` to learn whether it created the row.
    - Row already existed: continue as today, with no extra call.
    - Row created: call Clerk Backend API `GET /users/{id}`. If that returns 404, delete everything owned by that subject (the same erasure transaction) and respond `401 AUTH_REQUIRED`. Any other Clerk failure also deletes the new row and responds `503 TEMPORARY_FAILURE`, so the client retries later.
+   - **Erase retry:** if that erase transaction fails, it is retried once. If it fails twice, the response is `503 TEMPORARY_FAILURE` and the new row stays. Later setups skip the Clerk check for an existing row, so that unconfirmed row could revive a deleted account for a stale token. The failure is rare (two consecutive database errors right after a Clerk response), is accepted, and is removed by hand like the sweep leftover.
 2. **POST setup** runs the guarded insert before `complete_onboarding`, so the function only ever finds an existing row and never creates a new one itself.
 3. **Why this closes the race:** deletion runs erase, then the Clerk delete, then the sweep. A stale insert that lands after the Clerk delete fails its own check and removes itself. One that lands before the Clerk delete also lands before the sweep, and the sweep removes it.
 
@@ -111,7 +112,8 @@ After confirmation:
    - Cached History, progress, and previous performance
 
    Then sign out of Clerk locally and return to Welcome with a one-time deleted message.
-4. On any other failure, erase nothing locally, resume uploads, and show the error with Retry. The account stays signed in.
+4. Only HTTP `200` counts as deleted; any other response, including other `2xx` codes, leaves local data intact. On failure, erase nothing locally, resume uploads in the background, and show the error with Retry. The account stays signed in.
+5. **Cleanup failure.** If the server returned `200` but erasing local data or signing out fails, the account is already deleted on the server and the request must not be sent again. The screen shows the cleanup failure copy with Retry, and Retry repeats only local cleanup. Uploads stay paused.
 
 Local erasure only touches data scoped to the deleted account. Other accounts' data on the device is left alone.
 
@@ -135,6 +137,8 @@ This is the in-app copy. Keep it plain and short.
 | Confirmation message | Your programs, history, and progress will be permanently deleted. |
 | Confirmation actions | Delete account (destructive), Cancel |
 | Failure | Your account couldn't be deleted. Check your connection and try again. |
+| Retry button | Retry |
+| Cleanup failure | Your account was deleted, but this device couldn't finish signing you out. Try again. |
 | Welcome message | Your account was deleted. |
 
 For the privacy policy in `legal/`, add a short section with this content:

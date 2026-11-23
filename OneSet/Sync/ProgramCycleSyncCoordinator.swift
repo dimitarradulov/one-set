@@ -4,7 +4,8 @@ import Foundation
 @MainActor
 final class ProgramCycleSyncCoordinator {
   private var uploadingGeneration: Int?
-  private var uploadingAccountID: String?
+  /// Requests in flight per account. Counted, so a newer generation's upload cannot hide an older one.
+  private var inFlightCounts: [String: Int] = [:]
   private var suspendedAccountIDs: Set<String> = []
   private var uploadWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -12,7 +13,7 @@ final class ProgramCycleSyncCoordinator {
   /// no further request goes out for the account until `resume(accountID:)`. Pending records are kept.
   func suspend(accountID: String) async {
     suspendedAccountIDs.insert(accountID)
-    while uploadingAccountID == accountID {
+    while inFlightCounts[accountID, default: 0] > 0 {
       await withCheckedContinuation { uploadWaiters.append($0) }
     }
   }
@@ -31,12 +32,11 @@ final class ProgramCycleSyncCoordinator {
   ) async {
     guard uploadingGeneration != generation, !suspendedAccountIDs.contains(user.id) else { return }
     uploadingGeneration = generation
-    uploadingAccountID = user.id
+    inFlightCounts[user.id, default: 0] += 1
     defer {
-      if uploadingGeneration == generation {
-        uploadingGeneration = nil
-        uploadingAccountID = nil
-      }
+      if uploadingGeneration == generation { uploadingGeneration = nil }
+      let remaining = inFlightCounts[user.id, default: 1] - 1
+      inFlightCounts[user.id] = remaining > 0 ? remaining : nil
       let waiters = uploadWaiters
       uploadWaiters = []
       waiters.forEach { $0.resume() }

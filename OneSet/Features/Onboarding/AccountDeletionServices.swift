@@ -44,6 +44,8 @@ private struct OnboardingAccountDeletionUploads: AccountDeletionUploads {
   }
 
   func drain(for user: AuthenticatedUser) async {
+    // The model's upload entry points act on the signed-in account, so only drain for that account.
+    guard authentication.signedInUser?.id == user.id else { return }
     await model.uploadPendingCycles(using: authentication)
     await model.retryPendingSessionUploads(using: authentication)
   }
@@ -61,6 +63,11 @@ private struct OnboardingAccountDeletionWorkoutState: AccountDeletionWorkoutStat
   }
 }
 
+/// Local erasure cannot run because the workout store could not be opened.
+enum AccountDeletionLocalStorageError: Error, Equatable {
+  case workoutRepositoryUnavailable
+}
+
 @MainActor
 private struct OnboardingAccountDeletionErasure: AccountDeletionLocalErasure {
   let model: OnboardingModel
@@ -69,7 +76,7 @@ private struct OnboardingAccountDeletionErasure: AccountDeletionLocalErasure {
   func erase(accountID: String) throws {
     // Reopens storage if needed, so a closed repository can never skip the workout data.
     guard let repository = model.ensureWorkoutRepository() else {
-      throw LocalAccountErasureError(failures: [CocoaError(.fileReadNoPermission)])
+      throw AccountDeletionLocalStorageError.workoutRepositoryUnavailable
     }
     try LocalAccountErasure.standard(
       repository: repository,

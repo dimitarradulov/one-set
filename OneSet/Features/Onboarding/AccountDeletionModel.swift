@@ -117,8 +117,9 @@ final class AccountDeletionModel {
 
     guard await service.deleteAccount(for: user) == .deleted else {
       uploads.resume(accountID: user.id)
-      await uploads.drain(for: user)
+      // Show the failure now; restarting uploads is background work and must not hold the spinner.
       phase = .failed(.request)
+      Task { [uploads, user] in await uploads.drain(for: user) }
       return
     }
     await finishLocalCleanup()

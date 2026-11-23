@@ -12,7 +12,7 @@ struct HTTPAccountDeletionServiceTests {
   }
 
   private func makeService(
-    recorder: Recorder, status: Int? = 204, token: String = "tok",
+    recorder: Recorder, status: Int? = 200, token: String = "tok",
     tokenFails: Bool = false, baseURL: URL? = URL(string: "https://api.example.com")
   ) -> HTTPAccountDeletionService {
     HTTPAccountDeletionService(
@@ -40,8 +40,8 @@ struct HTTPAccountDeletionServiceTests {
     #expect(recorder.requests.first?.value(forHTTPHeaderField: "Authorization") == "Bearer tok")
   }
 
-  @Test(arguments: [401, 403, 404, 500])
-  func non2xxStatusesFailWithoutRetry(status: Int) async {
+  @Test(arguments: [201, 202, 204, 301, 401, 403, 404, 500])
+  func anyStatusOtherThan200FailsWithoutRetry(status: Int) async {
     let recorder = Recorder()
     let result = await makeService(recorder: recorder, status: status).deleteAccount(for: user)
     #expect(result == .failed)
