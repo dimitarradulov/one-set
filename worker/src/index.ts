@@ -52,6 +52,7 @@ export default {
     }
     return handleSetupRequest(request, env, {
       query: async (query, params) => sql.query(query, params),
+      transaction: async statements => sql.transaction(statements.map(s => sql.query(s.query, s.params))),
     });
   },
 } satisfies ExportedHandler<Env>;
