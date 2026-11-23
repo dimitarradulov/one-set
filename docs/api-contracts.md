@@ -34,7 +34,7 @@ HTTPS/JSON interface, aligned with [oneset.dbml](database/oneset.dbml) and [sync
 | GET /exercises/{id}/history | Proposed: owned completed results; optional `workout_program_id` / `workout_id` context |
 | POST /media/access | Proposed: accept `video_key`, verify access and return a short-lived grant or authorized stream location |
 | GET /media/content?video_key=... | Proposed protected range-capable response; authorize before serving cached bytes |
-| DELETE /me | Proposed account-erasure flow; reauthentication and retention implementation required |
+| DELETE /me | Account erasure for the authenticated user; see [Account deletion](#account-deletion). No reauthentication and no deletion record |
 
 Catalog reads and account setup require Clerk authentication. Catalog preview, publication, and repository-sync updates require the separate `CATALOG_PUBLISH_TOKEN`; a Clerk session cannot publish. The dashboard's source and history reads require a verified Cloudflare Access assertion for the approved email. Program preview is available after account creation without subscription. No export, public sharing, custom exercise creation, or soft-delete recovery endpoint.
 
@@ -180,6 +180,26 @@ Validate full prescription structure, finite decimal weight, positive reps when 
 The former full bootstrap proposal is deferred. Completed-history deletion below is proposed and has no handler yet. Compact training progress is restored separately through `/me/progress`; full sessions are retrieved only through bounded history pages. Neither the visible History cache nor a partial page is a complete account snapshot. Preserve local pending work and ignore responses overtaken by newer local saves.
 
 Completed-history DELETE requires online confirmation and resolved pending uploads. Delete the owned session and its sets, retain completion marks, then acknowledge so the device can clear its copy. Repeated deletion of an absent session succeeds. Discarded drafts remain hidden locally during refresh until server deletion is confirmed. See [sync and recovery](sync-and-recovery.md) for retry ordering.
+
+## Account deletion
+
+`DELETE /v1/me` relies on the verified Clerk session only. The in-app confirmation is the guard against accidental deletion. Steps run in this order:
+
+1. Erase every row the user owns (`completed_workouts`, `workout_session_sets`, `workout_sessions`, `user_workout_exercises`, `user_program_workout_periods`, `user_programs`, `users`) in one batched `sql.transaction`. A user with no rows succeeds without doing anything.
+2. Call `cleanupSubscription(clerkUserId)`. This hook is a no-op until [RevenueCat customer deletion](revenuecat-integration.md#restore-after-account-deletion) is attached. It must be idempotent.
+3. Delete the Clerk user through the Clerk Backend API. A 404 counts as success. This comes after erasure because the client cannot authenticate to retry once the identity is gone.
+4. Repeat the erasure as a sweep to remove any row a stale-token setup request inserted meanwhile. It normally deletes nothing.
+5. Respond `200 { "status": "deleted" }` with `Cache-Control: private, no-store`.
+
+A database or upstream failure responds `503 TEMPORARY_FAILURE`, and finished steps stay finished. Every step is idempotent, so the user's next `DELETE /v1/me` resumes. The Worker keeps no deletion record, tombstone or background retry. If the sweep fails after the identity is deleted, the response is still `200` and the error is logged with the Clerk user ID only, so an operator can remove the unreachable row by hand. The client erases local data only after `200`. The Worker needs the `CLERK_SECRET_KEY` secret.
+
+### Setup stale-token guard
+
+Clerk session tokens verify without a network call and stay valid for up to about 60 seconds after the Clerk user is deleted. The provisioning insert in setup (`INSERT ... ON CONFLICT DO NOTHING`, run on GET and POST setup) is the only code that creates a `users` row, so it carries the guard:
+
+- The insert uses `RETURNING id`. If the row already existed, setup continues with no Clerk call.
+- If the insert created the row, the Worker calls Clerk `GET /users/{id}`. A 404 deletes everything owned by that subject and responds `401 AUTH_REQUIRED`. Any other Clerk failure also deletes the new row and responds `503 TEMPORARY_FAILURE`.
+- POST setup runs the guarded insert before `complete_onboarding`, so the function never creates a row itself.
 
 ## Errors
 

@@ -123,8 +123,8 @@ Runner minutes, Neon compute/egress and R2 storage/operations are all shared all
 | Lost device after acknowledged sync | Restore owned history from server | Unsynced edits may be lost |
 | Bad migration/data corruption within restore window | Provider restore into separate target; compare before cutover | Free restore window is short and quota-limited |
 | Primary provider/account unavailable | Independent encrypted R2 dump | Daily backup can omit roughly a day of changes; longer if missed |
-| Intentional user deletion | Keep deleted data absent | No user-facing recovery; restoration must replay deletion/erasure instructions |
+| Intentional user deletion | Keep deleted data absent | No user-facing recovery. Account deletion keeps no records, so restoring an older backup would bring deleted accounts' rows back (see below) |
 
-An independent deletion/erasure ledger is needed to avoid resurrecting deliberate deletions from older backups. Its protected storage, retention and update protocol must be designed before enabling operational restore; recording it only in the database being lost is insufficient. It should contain identifiers, not deleted workout contents. This is a launch gate, not permission to introduce a soft-delete feature.
+Account deletion keeps no deletion record, ledger or tombstone anywhere. The Postgres transaction is the consistency guarantee. Restoring an older Postgres backup would therefore bring deleted accounts' data back. Those accounts have no Clerk identity, so nobody can sign in to reach it, but the data would exist again. This is a known gap, deferred from the account deletion spec. Decide how to handle it before enabling operational restore. It is not permission to introduce a soft-delete feature.
 
 No zero-loss guarantee or recovery-time SLA has been established. Proposed operational goal: restore within one working day after incident acknowledgment, subject to a successful rehearsal and operator availability. The founder must explicitly accept any remaining disaster gap at launch; approval of a backup location alone does not validate recovery performance.
