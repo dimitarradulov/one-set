@@ -6,7 +6,15 @@ export interface ClerkConfiguration {
   CLERK_AUTHORIZED_PARTIES: string;
 }
 
-type AuthenticationResult = { subject: string } | { response: Response };
+type AuthenticationResult =
+  | { subject: string; firstFactorAgeMinutes: number | null }
+  | { response: Response };
+
+// fva is [firstFactorMinutes, secondFactorMinutes]; -1 means the factor was never verified.
+function firstFactorAge(fva: unknown): number | null {
+  const age = Array.isArray(fva) ? fva[0] : undefined;
+  return typeof age === 'number' && Number.isInteger(age) && age >= 0 ? age : null;
+}
 
 function errorResponse(code: string, status: number): Response {
   return Response.json({ error: { code } }, {
@@ -34,7 +42,7 @@ export async function authenticateClerkRequest(
       || !claims.sub || !claims.sid || claims.sts === 'pending') {
       return { response: errorResponse('AUTH_REQUIRED', 401) };
     }
-    return { subject: claims.sub };
+    return { subject: claims.sub, firstFactorAgeMinutes: firstFactorAge(claims.fva) };
   } catch {
     return { response: errorResponse('AUTH_REQUIRED', 401) };
   }
