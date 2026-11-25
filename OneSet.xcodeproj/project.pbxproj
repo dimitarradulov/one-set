@@ -314,7 +314,7 @@
 				ONESET_API_BASE_URL = "https://oneset-api-development.dimitarradulovv.workers.dev";
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REVENUECAT_API_KEY = REVENUECAT_DEBUG_PUBLIC_KEY_PLACEHOLDER;
+				REVENUECAT_API_KEY = test_fNgkBgKSRaLqdbgcogaIUYIJJik;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -341,7 +341,7 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REVENUECAT_API_KEY = REVENUECAT_RELEASE_PUBLIC_KEY_PLACEHOLDER;
+				REVENUECAT_API_KEY = appl_KgaCusuuIBgzHxCbhVdFHpQLzwn;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
