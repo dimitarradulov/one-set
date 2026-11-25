@@ -9,6 +9,8 @@ xcuserdata/
 /.codex/
 /.impeccable/
 /references/
+/.scratch/
+/.claude/worktrees/
 
 /worker/node_modules/
 /admin/node_modules/
