@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "oneset-api",
+  // Top-level config is for local use only; deploy with --env development or --env production.
+  "name": "oneset-api-local",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-05",
   "compatibility_flags": [
@@ -28,6 +29,19 @@
         "CLERK_AUTHORIZED_PARTIES": "https://oneset-api-development.dimitarradulovv.workers.dev",
         "ACCESS_TEAM_DOMAIN": "https://misty-flower-edfe.cloudflareaccess.com",
         "ACCESS_AUDIENCE": "cea4eb9b4f3e93c40ca65d1cb6ed6a697ba62115630b202af82c57cca15e5026",
+        "ACCESS_APPROVED_EMAIL": "dimitarradulovv@gmail.com"
+      }
+    },
+    // The Release build calls https://oneset-api.dimitarradulovv.workers.dev. Replace the Clerk
+    // placeholders with the production instance before the first deployment; see worker/README.md.
+    "production": {
+      "name": "oneset-api",
+      "workers_dev": true,
+      "vars": {
+        "CLERK_ISSUER": "https://clerk.YOUR_PRODUCTION_DOMAIN",
+        "CLERK_AUTHORIZED_PARTIES": "https://oneset-api.dimitarradulovv.workers.dev",
+        "ACCESS_TEAM_DOMAIN": "https://misty-flower-edfe.cloudflareaccess.com",
+        "ACCESS_AUDIENCE": "CONFIGURE_PRODUCTION_ACCESS_AUDIENCE",
         "ACCESS_APPROVED_EMAIL": "dimitarradulovv@gmail.com"
       }
     }

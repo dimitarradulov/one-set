@@ -42,13 +42,32 @@ npm run catalog -- publish --environment development --source catalog
 
 This republishes catalog text only. It does not rewind cycles, preferences, completion marks, completed records, or prescriptions already captured by sessions. Existing app installs receive the corrected snapshot on their normal catalog refresh and retain their cached copy while offline.
 
-Run `npm run dev` to use the development environment locally. Regenerate binding types with `npm run types`. For deployment, use `npx wrangler deploy --env development`; the deployed environment requires secrets named `DATABASE_URL` and `CLERK_JWT_KEY`. Production deployment remains outside this ticket's scope.
+Run `npm run dev` to use the development environment locally. Regenerate binding types with `npm run types`. For deployment, use `npx wrangler deploy --env development`; the deployed environment requires secrets named `DATABASE_URL` and `CLERK_JWT_KEY`. For production, see [production environment](#production-environment).
 
-Debug builds already set the Xcode user-defined build setting `ONESET_API_BASE_URL` to the deployed development API. For another environment, set it to `https://YOUR_API_HOST` in the intended configuration, or pass it to `xcodebuild`. Release builds still require a production endpoint. `Config/Info.plist` exposes that public base URL to the HTTP adapter. Missing configuration shows Retry rather than treating an account as new. The app requires HTTPS; local Wrangler testing uses the API tests or an HTTPS development endpoint.
+Debug builds set the Xcode user-defined build setting `ONESET_API_BASE_URL` to the deployed development API, and Release builds set it to the production API, `https://oneset-api.dimitarradulovv.workers.dev`. For another environment, set it to `https://YOUR_API_HOST` in the intended configuration, or pass it to `xcodebuild`. `Config/Info.plist` exposes that public base URL to the HTTP adapter. Missing configuration shows Retry rather than treating an account as new. The app requires HTTPS; local Wrangler testing uses the API tests or an HTTPS development endpoint.
 
 A returning-account fixture may be inserted on an isolated branch: create a `users` row with a development Clerk user ID and preferences, create an owned `user_programs` cycle referencing a mapped program, then set `users.active_user_program_id` to that cycle UUID. Do not seed or modify production training records. A user with no row or no cycles/active selection returns `setup: null`; broken existing cycle links return an error.
 
 The JWT adapter follows [Clerk verification](https://clerk.com/docs/reference/backend/verify-token); the query uses [Neon's HTTP serverless driver](https://neon.com/docs/serverless/serverless-driver). Before deploying a migration-aware version, verify the development issuer/key and stable authoring keys with an actual app session. Automated tests establish the API contract, not the configuration of a live environment.
+
+## Production environment
+
+The `production` environment in `wrangler.jsonc` deploys the Worker as `oneset-api` at `https://oneset-api.dimitarradulovv.workers.dev`, the URL the Release build calls. It is configured but not deployed. It needs a production Clerk instance and a production database, which do not exist yet. Set it up in this order:
+
+1. **Clerk production instance.** Create the production instance in the Clerk dashboard. It requires a domain you own, and Apple and Google sign-in need their own production credentials there. Then:
+  - In `wrangler.jsonc`, replace the production `CLERK_ISSUER` placeholder with the instance's Frontend API URL, for example `https://clerk.YOUR_DOMAIN`.
+  - In Xcode, set the Release value of the `CLERK_PUBLISHABLE_KEY` build setting to the instance's `pk_live_` key.
+2. **Production database.** Create a separate Neon production branch or project. Apply migrations `001` through the latest in [docs/database/migrations](../docs/database/migrations/) in order, following [database changes](../docs/agents/database.md). Publish the catalog to it with the catalog publisher once the Worker is deployed.
+3. **Secrets.** Set each production secret with `npx --no-install wrangler secret put NAME --env production`:
+  - `DATABASE_URL`: the pooled URL of the production database.
+  - `CLERK_JWT_KEY`: the production instance's PEM public key.
+  - `CLERK_SECRET_KEY`: the production instance's `sk_live_` secret key.
+  - `REVENUECAT_SECRET_KEY` and `REVENUECAT_PROJECT_ID`: a RevenueCat API v2 secret key with `customer_information:customers:read_write` permission, and the project ID.
+  - `CATALOG_PUBLISH_TOKEN`: a new random maintenance secret, separate from development.
+4. **Dashboard access.** If the catalog dashboard will maintain production, replace `ACCESS_AUDIENCE` with the audience of its Cloudflare Access application. Otherwise leave the placeholder; maintenance reads then stay refused.
+5. **Deploy** with `npx --no-install wrangler deploy --env production`, then confirm an unauthenticated `GET /v1/me/setup` returns `401`.
+
+Release archives are guarded: the app target's **Check Release Configuration** build phase fails an archive unless `CLERK_PUBLISHABLE_KEY` is a `pk_live_` key, `ONESET_API_BASE_URL` is a non-development HTTPS URL, and `REVENUECAT_API_KEY` is an `appl_` key. Ordinary Release builds are not checked; while the Clerk key is the placeholder they build, but sign-in is unavailable.
 
 ## Deployed development environment
 

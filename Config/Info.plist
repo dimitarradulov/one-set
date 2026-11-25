@@ -27,6 +27,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ClerkPublishableKey</key>
+	<string>$(CLERK_PUBLISHABLE_KEY)</string>
 	<key>OneSetAPIBaseURL</key>
 	<string>$(ONESET_API_BASE_URL)</string>
 	<key>RevenueCatAPIKey</key>
