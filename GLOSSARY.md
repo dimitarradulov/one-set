@@ -57,6 +57,13 @@ _Avoid_: Workout template
 
 **Double progression**: Increasing clean repetitions within a prescribed range, then suggesting an increase in load upon reaching the upper target.
 
+**Preferred unit**: The weight unit, kilograms or pounds, in which a lifter enters new loads and views recorded ones. A session keeps the unit it started with, and recorded results keep their original unit.
+
+**Training frequency**: The number of days per week a lifter plans to train. It decides which programs are presented as matching their schedule and never changes their current program.
+_Avoid_: Schedule, training days (when meaning the program's own frequency)
+
+**Rest alert**: A notification on the training device that a rest has ended, sent only when the lifter has turned rest alerts on for that device.
+
 **Technical failure**: The stopping point at which another repetition would require unacceptable technique breakdown.
 
 **Momentary muscular failure**: The point at which another full repetition cannot be completed with the prescribed movement standard.
