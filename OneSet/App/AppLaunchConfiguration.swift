@@ -53,6 +53,7 @@ struct AppLaunchConfiguration {
       || Self.subscriptionSettingsRoute(arguments: arguments) != nil
       || arguments.contains("--ui-main-workout-gated")
       || arguments.contains("--ui-main-settings-units") || arguments.contains("--ui-main-exercise-detail")
+      || arguments.contains("--ui-main-settings-rest-alerts")
       || arguments.contains("--ui-setup-cycle-conflict")
       || arguments.contains("--ui-session-signout-confirmation")
       || arguments.contains("--ui-session-signout-error")
@@ -74,6 +75,8 @@ struct AppLaunchConfiguration {
     selectedMainTab = Self.mainTab(arguments: arguments, hasSettingsRoute: settingsRoute != nil)
     if arguments.contains("--ui-main-settings-units") {
       settingsPath = [.units]
+    } else if arguments.contains("--ui-main-settings-rest-alerts") {
+      settingsPath = [.restAlerts]
     } else if arguments.containsAny(Self.accountDeletionRoutes) {
       settingsPath = [.accountDeletion]
     } else {
@@ -104,7 +107,7 @@ struct AppLaunchConfiguration {
       return .history
     }
     if hasSettingsRoute || arguments.containsAny(Self.accountDeletionRoutes) || arguments.containsAny(
-      "--ui-signout-confirmation", "--ui-main-settings", "--ui-main-settings-units",
+      "--ui-signout-confirmation", "--ui-main-settings", "--ui-main-settings-units", "--ui-main-settings-rest-alerts",
       "--ui-session-signout-confirmation", "--ui-session-signout-error"
     ) {
       return .settings

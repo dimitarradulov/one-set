@@ -67,6 +67,8 @@ struct SettingsNavigationView: View {
           SubscriptionSettingsScreen(model: subscription, accountID: model.resolvedAccountID)
         } else if destination == .accountDeletion {
           AccountDeletionRoute(onboarding: model, authentication: authentication)
+        } else if destination == .restAlerts, let restAlerts = model.restAlerts {
+          RestAlertsScreen(model: restAlerts)
         } else {
           SettingsDestinationScreen(destination: destination)
         }
