@@ -22,13 +22,16 @@ struct OnboardingFlowView: View {
     } message: {
       Text("You’ll need to sign in again to access your account.")
     }
-    .alert("Discard setup awaiting upload?", isPresented: $model.discardSetupPresented) {
+    .alert(model.discardsOnlyPreferenceChanges ? "Discard unsent changes?" : "Discard setup awaiting upload?",
+           isPresented: $model.discardSetupPresented) {
       Button("Cancel", role: .cancel) { }
       Button("Sign out and discard", role: .destructive) {
         Task { await model.signOut(using: authentication, discardPending: true) }
       }
     } message: {
-      Text("Your setup has not been saved to your account. If you sign out, this device’s setup and pending upload will be deleted.")
+      Text(model.discardsOnlyPreferenceChanges
+        ? "Your latest unit or training frequency change has not been saved to your account. If you sign out, it will be discarded."
+        : "Your setup has not been saved to your account. If you sign out, this device’s setup and pending upload will be deleted.")
     }
     .alert("Keep workouts on this device?", isPresented: $model.pendingSessionSignOutPresented) {
       Button("Cancel", role: .cancel) { }
