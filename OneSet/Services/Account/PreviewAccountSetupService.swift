@@ -109,5 +109,16 @@ final class PreviewAccountSetupService: AccountSetupService {
     return setup
   }
 
+  func updatePreferences(_ preferences: AccountPreferences, for user: AuthenticatedUser) async throws -> AccountPreferences {
+    guard !uploadOffline, !alwaysFails else { throw AccountSetupError.unavailable }
+    guard let backendURL, var accounts = (try? Data(contentsOf: backendURL)).flatMap({
+      try? JSONDecoder().decode([String: AccountSetup].self, from: $0)
+    }), let existing = accounts[user.id] else { return preferences }
+    accounts[user.id] = AccountSetup(preferredUnit: preferences.preferredUnit,
+      trainingDays: preferences.trainingDays, programID: existing.programID, cycleID: existing.cycleID)
+    try JSONEncoder().encode(accounts).write(to: backendURL, options: .atomic)
+    return preferences
+  }
+
 }
 #endif

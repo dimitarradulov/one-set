@@ -17,4 +17,7 @@ struct OnboardingProgress: Codable, Sendable {
   var pendingRemoteSelection: AccountSetup?
   // A persisted lookup reservation is uncertain, rather than a confirmed change.
   var remoteSelectionDiscoveryPending: Bool?
+  // The latest unit/frequency change not yet acknowledged by the account (after setup was acknowledged).
+  // Stored per account with the rest of this document.
+  var pendingPreferenceUpdate: PendingPreferenceUpdate?
 }

@@ -31,6 +31,12 @@ extension OnboardingModel {
         let setup = AccountSetup(preferredUnit: unit, trainingDays: days,
           programID: completed.setup.programID, cycleID: completed.setup.cycleID)
         progress.completed = CompletedOnboarding(setup: setup, needsUpload: completed.needsUpload)
+        if completed.needsUpload {
+          // Setup has not reached the account yet: the pending setup carries the latest values.
+          progress.pendingPreferenceUpdate = nil
+        } else {
+          progress.pendingPreferenceUpdate = nextPendingPreferenceUpdate(unit: unit, days: days, current: progress)
+        }
       }
       do {
         try progressStore.save(progress, accountID: accountID)
@@ -52,7 +58,21 @@ extension OnboardingModel {
     return true
   }
 
-  /// Single hook for uploading preference changes (ticket #124): fold the values into a pending
-  /// setup upload, or record a pending preference update. Nothing is uploaded yet.
-  private func preferencesSavedLocally(unit: WeightUnit, days: Int, accountID: String) {}
+  private func nextPendingPreferenceUpdate(
+    unit: WeightUnit, days: Int, current progress: OnboardingProgress
+  ) -> PendingPreferenceUpdate {
+    preferenceChangeCounter = max(preferenceChangeCounter, progress.pendingPreferenceUpdate?.sequence ?? 0) + 1
+    return PendingPreferenceUpdate(
+      preferences: AccountPreferences(preferredUnit: unit, trainingDays: days),
+      sequence: preferenceChangeCounter
+    )
+  }
+
+  /// Called after a successful local save. The values are already folded into the pending setup
+  /// or recorded as a pending preference update, so this only starts the background upload.
+  private func preferencesSavedLocally(unit: WeightUnit, days: Int, accountID: String) {
+    guard let authentication = preferenceUploadAuthentication,
+          authentication.signedInUser?.id == accountID else { return }
+    Task { await uploadCompletedSetup(using: authentication) }
+  }
 }
