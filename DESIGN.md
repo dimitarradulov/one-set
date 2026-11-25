@@ -288,7 +288,7 @@ These headings group rows; they are not additional navigation destinations. Vari
 | Settings | Its own primary tab containing the grouped settings list |
 | Settings → Units | Titled “Coming soon” placeholder |
 | Settings → Training frequency | Titled “Coming soon” placeholder |
-| Settings → Rest alerts | Titled “Coming soon” placeholder |
+| Settings → Rest alerts | Plain grouped list with a switch and a short explanation. Off by default and stored on this device only. Turning it on is when notification permission is requested; starting a rest never asks. A denial returns the switch to off and explains how to allow notifications in iOS Settings. When the switch is on but iOS notifications are off, the screen shows “Notifications are off for OneSet” with an Open Settings button |
 | Settings → Downloaded videos | Titled “Coming soon” placeholder |
 | Settings → Subscription | Titled “Coming soon” placeholder |
 | Settings → Account deletion | Titled “Coming soon” placeholder |

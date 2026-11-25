@@ -39,7 +39,6 @@ extension OnboardingJourneyTests {
     let destinations: [(String, String, String)] = [
       ("settings.row.units", "Units", "Change between kilograms and pounds here."),
       ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
-      ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
     ]
     for (row, title, explanation) in destinations {

@@ -3,7 +3,7 @@ import ClerkKit
 
 @main
 struct OneSetApp: App {
-  private let restAlerts: WorkoutRestAlerts?
+  private let restAlerts: RestAlertsModel
   @State private var onboarding: OnboardingModel
   @State private var authentication: AuthenticationModel
   @State private var subscriptionSettings: SubscriptionSettingsModel
@@ -23,11 +23,7 @@ struct OneSetApp: App {
     let arguments = ProcessInfo.processInfo.arguments
     let dependencies = AppDependencies.live(arguments: arguments)
     let launch = AppLaunchConfiguration(arguments: arguments)
-    #if DEBUG
-    let restAlerts = ProcessInfo.processInfo.environment["ONESET_UI_TEST_ID"] == nil ? WorkoutRestAlerts() : nil
-    #else
-    let restAlerts = WorkoutRestAlerts()
-    #endif
+    let restAlerts = Self.makeRestAlerts()
     self.restAlerts = restAlerts
     let model = OnboardingModel(
       catalog: dependencies.catalog,
@@ -63,6 +59,15 @@ struct OneSetApp: App {
     _authentication = State(initialValue: AuthenticationModel(
       service: dependencies.authentication
     ))
+  }
+
+  private static func makeRestAlerts() -> RestAlertsModel {
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["ONESET_UI_TEST_ID"] != nil {
+      return RestAlertsModel(center: InertNotificationCenter(), store: InMemoryRestAlertsPreferenceStore())
+    }
+    #endif
+    return RestAlertsModel(center: SystemNotificationCenter(), store: UserDefaultsRestAlertsPreferenceStore())
   }
 
   /// Tells the account owner about account changes and confirmed sign-outs, and lets it finish a
@@ -153,6 +158,7 @@ struct OneSetApp: App {
     onboardingFlow
       .id(ObjectIdentifier(authentication))
       .tint(OneSetColors.accent)
+      .task { await restAlerts.load() }
       .environment(Clerk.shared)
       .onChange(of: authentication.signedInUser?.id) { _, accountID in
         // Clerk lost or changed identity: drop the old account's access right away.

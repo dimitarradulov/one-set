@@ -89,7 +89,7 @@ final class OnboardingModel {
   let sessionHistoryService: (any SessionHistoryService)?
   private let waitForSessionUploadRetry: @MainActor (TimeInterval) async throws -> Void
   let workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)?
-  private let restAlerts: WorkoutRestAlerts?
+  let restAlerts: RestAlertsModel?
   var activeWorkoutSession: WorkoutSession? {
     didSet {
       if oldValue?.id != activeWorkoutSession?.id {
@@ -99,7 +99,7 @@ final class OnboardingModel {
       let previousDeadline = oldValue?.restSlotID == nil ? nil : oldValue?.restDeadline
       let deadline = activeWorkoutSession?.restSlotID == nil ? nil : activeWorkoutSession?.restDeadline
       if previousDeadline != deadline || oldValue?.id != activeWorkoutSession?.id {
-        restAlerts?.update(deadline: deadline, canRequestPermission: oldValue?.id == activeWorkoutSession?.id)
+        restAlerts?.restDeadlineChanged(deadline)
       }
     }
   }
@@ -157,7 +157,7 @@ final class OnboardingModel {
     progressStore: (any OnboardingProgressStore)? = nil,
     workoutRepository: WorkoutRepository? = nil,
     workoutRepositoryFactory: (@MainActor () throws -> WorkoutRepository)? = nil,
-    restAlerts: WorkoutRestAlerts? = nil,
+    restAlerts: RestAlertsModel? = nil,
     initialPath: [OnboardingRoute] = [],
     initialSelectedProgramID: TrainingProgram.ID? = nil,
     initialProgramPath: [OnboardingRoute] = [],
