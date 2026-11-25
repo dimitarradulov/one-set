@@ -15,7 +15,10 @@ struct OneSetApp: App {
   #endif
 
   init() {
-    Clerk.configure(publishableKey: "pk_test_ZXhhY3QtbGlnZXItMzM1Ni5jbGVyay5hY2NvdW50cy5kZXYk")
+    // Without a key Clerk stays unconfigured, so sign-in is unavailable instead of using the wrong instance.
+    if let publishableKey = AppLaunchConfiguration.clerkPublishableKey() {
+      Clerk.configure(publishableKey: publishableKey)
+    }
 
     let arguments = ProcessInfo.processInfo.arguments
     let dependencies = AppDependencies.live(arguments: arguments)
