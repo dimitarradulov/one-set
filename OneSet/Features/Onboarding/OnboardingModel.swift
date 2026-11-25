@@ -31,7 +31,7 @@ final class OnboardingModel {
   private var pendingSessionSignOutDiscardsSetup = false
   private var pendingSessionSignOutAccountID: String?
   var uploadMessage: String?
-  private(set) var programSelectionMessage: String?
+  var programSelectionMessage: String?
   var requiresProgramUpdate: Bool { savedProgress?.pendingRemoteSelection != nil }
   var programUpdateDefaultMessage: String {
     savedProgress?.remoteSelectionDiscoveryPending == true
@@ -115,7 +115,7 @@ final class OnboardingModel {
   var workoutErrorPresented = false
   var workoutErrorMessage = ""
   var sessionUploadErrorPresented = false
-  private(set) var sessionUploadErrorMessage = ""
+  var sessionUploadErrorMessage = ""
   var workoutStorageOpenFailed = false
   var previousPerformanceUnavailable = false
   let subscriptionAccess: (any SubscriptionAccessService)?
