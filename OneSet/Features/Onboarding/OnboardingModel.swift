@@ -47,6 +47,8 @@ final class OnboardingModel {
   @ObservationIgnored weak var preferenceUploadAuthentication: AuthenticationModel?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
   var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
+  /// True when the discard confirmation covers only unsent preference changes, not pending setup.
+  private(set) var discardsOnlyPreferenceChanges = false
   var signOutErrorPresented = false
   private(set) var signOutErrorMessage = ""
   var progressErrorPresented = false
@@ -348,6 +350,8 @@ extension OnboardingModel {
       try progressStore?.save(local, accountID: user.id)
       discoveryStorageFailure = false
     }
+    // Server preferences replace local ones unless this device holds an unsent change.
+    try adoptServerPreferences(setup, accountID: user.id)
     if let local = savedProgress, local.pendingRemoteSelection != nil {
       if !hasSafeLocalProgress(local, accountID: user.id), let completed = local.completed,
          let progressService, let workoutRepository {
@@ -397,8 +401,13 @@ extension OnboardingModel {
         accountID: user.id, cycleID: pending.setup.cycleID, establishedCycleID: setup.cycleID
       )
     }
+    let unsentLocalPreferences = savedProgress?.pendingPreferenceUpdate.flatMap { $0.isUnsent ? $0.preferences : nil }
     try storeCompleted(setup, needsUpload: false, accountID: user.id)
     apply(setup)
+    if let unsentLocalPreferences {
+      // This device's unsent change is newer than the account's values: keep it and upload it.
+      keepLocalPreferencesAfterSetupAcknowledgment(unsentLocalPreferences, accountID: user.id)
+    }
     if let cycles = pendingCycles, hasPendingCycles {
       selectedProgramID = cycles.selectedProgramID
       restoredCycleID = cycles.selectedCycleID
@@ -468,6 +477,11 @@ extension OnboardingModel {
       let selectedCycle = latest.cycles?.selectedCycleID ?? current.setup.cycleID
       let hasLocalChanges = current.needsUpload || latest.cycles?.pendingCreations.isEmpty == false
         || !(latest.cycles?.pendingActivations ?? []).isEmpty
+      var adoptedPreferences: AccountPreferences?
+      if let remote, let adopted = progressAdoptingServerPreferences(remote, in: latest) {
+        latest = adopted
+        adoptedPreferences = AccountPreferences(preferredUnit: remote.preferredUnit, trainingDays: remote.trainingDays)
+      }
       if let remote, !hasLocalChanges,
          remote.programID != selectedProgram || remote.cycleID != selectedCycle {
         latest.pendingRemoteSelection = remote
@@ -476,6 +490,10 @@ extension OnboardingModel {
       do {
         try progressStore.save(latest, accountID: user.id)
         savedProgress = latest
+        if let adoptedPreferences {
+          weightUnit = adoptedPreferences.preferredUnit
+          trainingDays = adoptedPreferences.trainingDays
+        }
       } catch {
         // Keep a confirmed change blocked in this process when the save fails.
         savedProgress = latest
@@ -550,7 +568,9 @@ extension OnboardingModel {
       signOutErrorPresented = true
       return
     }
-    let hasPendingSetupForAccount = progress?.completed?.needsUpload == true
+    let hasUnsentPreferences = progress?.pendingPreferenceUpdate?.isUnsent == true
+    // An unsent preference change is lost on sign-out like pending setup, so it needs the same warning.
+    let hasPendingSetupForAccount = progress?.completed?.needsUpload == true || hasUnsentPreferences
     let hasPendingCycles = progress?.cycles?.pendingCreations.isEmpty == false
       || progress?.cycles?.pendingActivations?.isEmpty == false
     if hasPendingCycles && !retainingPendingSessions {
@@ -565,6 +585,7 @@ extension OnboardingModel {
       return
     }
     if hasPendingSetupForAccount && !discardPending && !retainingPendingSessions {
+      discardsOnlyPreferenceChanges = progress?.completed?.needsUpload != true
       discardSetupPresented = true
       return
     }
@@ -724,6 +745,7 @@ extension OnboardingModel {
     signOutConfirmationPresented = false
     signOutConfirmationAccountID = nil
     discardSetupPresented = false
+    discardsOnlyPreferenceChanges = false
     pendingSessionSignOutPresented = false
     pendingSessionSignOutMessage = ""
     pendingSessionSignOutDiscardsSetup = false
