@@ -81,7 +81,7 @@ extension OnboardingModel {
     var adopted = progress
     let changes = completed.setup.preferredUnit != server.preferredUnit
       || completed.setup.trainingDays != server.trainingDays || progress.pendingPreferenceUpdate != nil
-    guard changes, (2...5).contains(server.trainingDays) else { return nil }
+    guard changes, AccountPreferences.trainingDaysRange.contains(server.trainingDays) else { return nil }
     adopted.weightUnit = server.preferredUnit
     adopted.trainingDays = server.trainingDays
     adopted.completed = CompletedOnboarding(

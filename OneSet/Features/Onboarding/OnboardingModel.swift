@@ -869,7 +869,7 @@ extension OnboardingModel {
         throw AccountSetupError.invalidSetup
       }
     }
-    guard (2...5).contains(progress.trainingDays),
+    guard AccountPreferences.trainingDaysRange.contains(progress.trainingDays),
           progress.selectedProgramID.map({ catalog.program(id: $0) != nil }) ?? true,
           progress.nextStep != .trial || progress.selectedProgramID != nil,
           progress.nextStep != .overview || progress.completed != nil else {
@@ -920,7 +920,7 @@ extension OnboardingModel {
   }
 
   func storeCompleted(_ setup: AccountSetup, needsUpload: Bool, accountID: String) throws {
-    guard (2...5).contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
+    guard AccountPreferences.trainingDaysRange.contains(setup.trainingDays), catalog.program(id: setup.programID) != nil else {
       throw AccountSetupError.invalidSetup
     }
     var progress = OnboardingProgress(weightUnit: setup.preferredUnit, trainingDays: setup.trainingDays,

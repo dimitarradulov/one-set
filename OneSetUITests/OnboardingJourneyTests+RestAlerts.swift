@@ -13,8 +13,8 @@ extension OnboardingJourneyTests {
     XCTAssertEqual(toggle.value as? String, "0")
     XCTAssertTrue(app.staticTexts["restAlerts.explanation"].exists)
 
-    // The row spans the full width; tap the switch at its trailing edge.
-    toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+    // The row element wraps the switch control; tap the inner switch.
+    toggle.switches.firstMatch.tap()
     let isOn = NSPredicate(format: "value == '1'")
     XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: isOn, evaluatedWith: toggle)], timeout: 3), .completed)
     XCTAssertFalse(app.staticTexts["restAlerts.notificationsOff"].exists)

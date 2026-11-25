@@ -24,9 +24,7 @@ struct UnitsSettingsScreen: View {
       .disabled(!model.canChangeUnits)
     }
     .settingsChoiceStyle(title: "Units")
-    .alert("Couldn’t save", isPresented: $model.progressErrorPresented) {
-      Button("OK", role: .cancel) { }
-    } message: { Text(model.progressErrorMessage) }
+    .saveFailureAlert(isPresented: $model.progressErrorPresented, message: model.progressErrorMessage)
   }
 }
 
@@ -36,7 +34,7 @@ struct TrainingFrequencySettingsScreen: View {
   var body: some View {
     Form {
       Section {
-        ForEach(2...5, id: \.self) { days in
+        ForEach(Array(AccountPreferences.trainingDaysRange), id: \.self) { days in
           SettingsChoiceRow(
             title: "\(days) days per week",
             isSelected: model.trainingDays == days,
@@ -49,9 +47,7 @@ struct TrainingFrequencySettingsScreen: View {
       .listRowBackground(OneSetColors.surface)
     }
     .settingsChoiceStyle(title: "Training frequency")
-    .alert("Couldn’t save", isPresented: $model.progressErrorPresented) {
-      Button("OK", role: .cancel) { }
-    } message: { Text(model.progressErrorMessage) }
+    .saveFailureAlert(isPresented: $model.progressErrorPresented, message: model.progressErrorMessage)
   }
 }
 
@@ -65,6 +61,7 @@ private struct SettingsChoiceRow: View {
     Button(action: action) {
       HStack {
         Text(title)
+          .font(OneSetTypography.body)
           .foregroundStyle(OneSetColors.textPrimary)
         Spacer()
         if isSelected {
@@ -76,12 +73,20 @@ private struct SettingsChoiceRow: View {
       }
       .contentShape(Rectangle())
     }
+    .accessibilityElement(children: .combine)
     .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(identifier)
   }
 }
 
 private extension View {
+  /// Reports a failed local save of a preference change.
+  func saveFailureAlert(isPresented: Binding<Bool>, message: String) -> some View {
+    alert("Couldn’t save", isPresented: isPresented) {
+      Button("OK", role: .cancel) { }
+    } message: { Text(message) }
+  }
+
   func settingsChoiceStyle(title: String) -> some View {
     scrollContentBackground(.hidden)
       .background(OneSetColors.background)

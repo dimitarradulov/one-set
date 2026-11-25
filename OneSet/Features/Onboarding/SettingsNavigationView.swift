@@ -11,6 +11,7 @@ struct SettingsNavigationView: View {
         Section {
           destinationLink(.units)
             .disabled(!model.canChangeUnits)
+            .accessibilityHint(model.canChangeUnits ? "" : OnboardingModel.unitsLockedNote)
           destinationLink(.trainingFrequency)
           destinationLink(.restAlerts)
         } header: {

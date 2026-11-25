@@ -11,18 +11,19 @@ extension OnboardingModel {
   @discardableResult
   func setPreferredUnit(_ unit: WeightUnit) -> Bool {
     guard canChangeUnits else { return false }
-    return savePreferences(unit: unit, days: trainingDays)
+    return savePreferences(AccountPreferences(preferredUnit: unit, trainingDays: trainingDays))
   }
 
   @discardableResult
   func setTrainingDays(_ days: Int) -> Bool {
-    savePreferences(unit: weightUnit, days: days)
+    savePreferences(AccountPreferences(preferredUnit: weightUnit, trainingDays: days))
   }
 
   /// Saves to the account's local onboarding document first, then updates in-memory values.
   /// A failed save leaves both unchanged and reports the failure.
-  private func savePreferences(unit: WeightUnit, days: Int) -> Bool {
-    guard !isSigningOut, (2...5).contains(days) else { return false }
+  private func savePreferences(_ preferences: AccountPreferences) -> Bool {
+    let unit = preferences.preferredUnit, days = preferences.trainingDays
+    guard !isSigningOut, AccountPreferences.trainingDaysRange.contains(days) else { return false }
     guard unit != weightUnit || days != trainingDays else { return true }
     if let accountID = resolvedAccountID, let progressStore, var progress = savedProgress {
       progress.weightUnit = unit
@@ -35,7 +36,7 @@ extension OnboardingModel {
           // Setup has not reached the account yet: the pending setup carries the latest values.
           progress.pendingPreferenceUpdate = nil
         } else {
-          progress.pendingPreferenceUpdate = nextPendingPreferenceUpdate(unit: unit, days: days, current: progress)
+          progress.pendingPreferenceUpdate = nextPendingPreferenceUpdate(preferences, current: progress)
         }
       }
       do {
@@ -49,7 +50,7 @@ extension OnboardingModel {
       savedProgress = progress
       weightUnit = unit
       trainingDays = days
-      preferencesSavedLocally(unit: unit, days: days, accountID: accountID)
+      startUploadAfterLocalSave(accountID: accountID)
     } else {
       // Development preview routes have no account or store and do not persist.
       weightUnit = unit
@@ -59,18 +60,18 @@ extension OnboardingModel {
   }
 
   private func nextPendingPreferenceUpdate(
-    unit: WeightUnit, days: Int, current progress: OnboardingProgress
+    _ preferences: AccountPreferences, current progress: OnboardingProgress
   ) -> PendingPreferenceUpdate {
     preferenceChangeCounter = max(preferenceChangeCounter, progress.pendingPreferenceUpdate?.sequence ?? 0) + 1
     return PendingPreferenceUpdate(
-      preferences: AccountPreferences(preferredUnit: unit, trainingDays: days),
+      preferences: preferences,
       sequence: preferenceChangeCounter
     )
   }
 
   /// Called after a successful local save. The values are already folded into the pending setup
   /// or recorded as a pending preference update, so this only starts the background upload.
-  private func preferencesSavedLocally(unit: WeightUnit, days: Int, accountID: String) {
+  private func startUploadAfterLocalSave(accountID: String) {
     guard let authentication = preferenceUploadAuthentication,
           authentication.signedInUser?.id == accountID else { return }
     Task { await uploadCompletedSetup(using: authentication) }

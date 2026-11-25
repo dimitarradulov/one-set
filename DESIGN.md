@@ -294,6 +294,8 @@ These headings group rows; they are not additional navigation destinations. Vari
 | Settings → Account deletion | Titled “Coming soon” placeholder |
 | Settings → Sign out | Always confirm sign-out, using the pending-setup or pending-workout warning when applicable, and preserve error handling |
 
+Rest alerts permission copy and accessibility: after a denial the switch returns to off and the section reads “Rest alerts need notification permission. Allow notifications for OneSet in iOS Settings, then turn this on again.” with an Open Settings button. When the switch is on but iOS notifications are off, the section reads “Notifications are off for OneSet” and “Rest alerts stay on. Allow notifications for OneSet in iOS Settings to receive them.” with the same button. Each state is also announced to VoiceOver when it appears, the switch carries a hint that points to the explanation below it, and the disabled Units row reads the lock note as its hint.
+
 Downloaded videos will eventually let users inspect exercise-video storage and remove downloaded copies to free space. This pass adds its destination only, without implementing video management.
 
 Sync status and retry belong beside the affected content, with no separate Settings route. Preserve the current setup-upload message and retry action. For workouts, the [completed-session save decisions](https://github.com/dimitarradulov/one-set/issues/40) supersede routine sync-status proposals elsewhere in this document: uploads and retries run automatically with no pending/synced status or Retry button. Actionable storage, authentication and conflicting-cycle failures still surface.

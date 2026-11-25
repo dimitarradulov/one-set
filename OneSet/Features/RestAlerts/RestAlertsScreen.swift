@@ -10,6 +10,7 @@ struct RestAlertsScreen: View {
     Form {
       Section {
         Toggle("Rest alerts", isOn: toggleBinding)
+          .accessibilityHint("Notifies you on this device when your rest ends. The explanation below has details.")
           .accessibilityIdentifier("restAlerts.toggle")
       } footer: {
         Text("Get a notification on this device when your rest ends. This setting applies to this device only.")
@@ -48,9 +49,22 @@ struct RestAlertsScreen: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.visible, for: .tabBar)
     .accessibilityIdentifier("restAlerts.screen")
-    .task { await model.refreshAuthorization() }
-    .onChange(of: scenePhase) { _, phase in
-      if phase == .active { Task { await model.refreshAuthorization() } }
+    .task(id: scenePhase) {
+      if scenePhase == .active { await model.refreshAuthorization() }
+    }
+    .onChange(of: model.permissionWasDenied) { _, denied in
+      if denied {
+        AccessibilityNotification.Announcement(
+          "Rest alerts stay off. Allow notifications for OneSet in iOS Settings, then turn this on again."
+        ).post()
+      }
+    }
+    .onChange(of: model.notificationsAreOff) { _, areOff in
+      if areOff {
+        AccessibilityNotification.Announcement(
+          "Notifications are off for OneSet. Rest alerts stay on. Allow notifications in iOS Settings to receive them."
+        ).post()
+      }
     }
   }
 

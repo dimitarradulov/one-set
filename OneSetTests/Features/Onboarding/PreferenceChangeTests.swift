@@ -105,4 +105,17 @@ struct PreferenceChangeTests {
     #expect(model.canChangeUnits)
     #expect(model.setPreferredUnit(.pounds))
   }
+
+  @Test func activeSessionKeepsTheUnitCapturedAtStartWhenPreferencesAreAdopted() async throws {
+    let (ctx, model) = try await harness(activeSession: true)
+    defer { try? FileManager.default.removeItem(at: ctx.directory) }
+    let session = try #require(model.activeWorkoutSession)
+    #expect(session.weightUnit == .kilograms)
+    let server = AccountSetup(preferredUnit: .pounds, trainingDays: 4,
+      programID: ctx.setup.programID, cycleID: ctx.setup.cycleID)
+    try model.adoptServerPreferences(server, accountID: "preview-user")
+    #expect(model.weightUnit == .pounds)
+    #expect(model.activeWorkoutSession?.weightUnit == .kilograms)
+    #expect(try model.workoutRepository?.activeSession(accountID: "preview-user")?.weightUnit == .kilograms)
+  }
 }
