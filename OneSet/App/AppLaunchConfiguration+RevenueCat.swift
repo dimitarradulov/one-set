@@ -15,12 +15,19 @@ extension AppLaunchConfiguration {
   static func revenueCatAPIKey(
     infoDictionary: [String: Any]? = Bundle.main.infoDictionary
   ) -> RevenueCatAPIKeyConfiguration {
-    guard let value = infoDictionary?[revenueCatAPIKeyInfoKey] as? String else { return .unconfigured }
-    let key = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !key.isEmpty, !key.contains("$("), !key.uppercased().contains("PLACEHOLDER") else {
-      return .unconfigured
+    configuredValue(for: revenueCatAPIKeyInfoKey, in: infoDictionary).map { .configured(apiKey: $0) }
+      ?? .unconfigured
+  }
+
+  /// A trimmed build-configuration value, or nil when it is missing, empty, unexpanded, or still a
+  /// build placeholder.
+  static func configuredValue(for key: String, in infoDictionary: [String: Any]?) -> String? {
+    guard let value = infoDictionary?[key] as? String else { return nil }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, !trimmed.contains("$("), !trimmed.uppercased().contains("PLACEHOLDER") else {
+      return nil
     }
-    return .configured(apiKey: key)
+    return trimmed
   }
 }
 

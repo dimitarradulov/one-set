@@ -112,6 +112,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A10000000000000000000007 /* Build configuration list for PBXNativeTarget "OneSet" */;
 			buildPhases = (
+				D40000000000000000000001 /* Check Release Configuration */,
 				A10000000000000000000002 /* Frameworks */,
 				A10000000000000000000008 /* Resources */,
 				A10000000000000000000009 /* Sources */,
@@ -229,6 +230,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		D40000000000000000000001 /* Check Release Configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Check Release Configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Archives (ACTION=install) of Release must not ship development or placeholder values.\nif [ \"$ACTION\" != \"install\" ] || [ \"$CONFIGURATION\" != \"Release\" ]; then\n  exit 0\nfi\nfail=0\ncase \"$CLERK_PUBLISHABLE_KEY\" in\n  pk_live_*) ;;\n  *) echo \"error: CLERK_PUBLISHABLE_KEY must be the production Clerk pk_live_ key for a Release archive.\"; fail=1 ;;\nesac\ncase \"$ONESET_API_BASE_URL\" in\n  *development*|*YOUR_*) echo \"error: ONESET_API_BASE_URL must be the production API for a Release archive.\"; fail=1 ;;\n  https://*) ;;\n  *) echo \"error: ONESET_API_BASE_URL must be an HTTPS URL for a Release archive.\"; fail=1 ;;\nesac\ncase \"$REVENUECAT_API_KEY\" in\n  appl_*) ;;\n  *) echo \"error: REVENUECAT_API_KEY must be the RevenueCat App Store public key (appl_) for a Release archive.\"; fail=1 ;;\nesac\nexit $fail\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		A10000000000000000000009 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -302,6 +326,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLERK_PUBLISHABLE_KEY = pk_test_ZXhhY3QtbGlnZXItMzM1Ni5jbGVyay5hY2NvdW50cy5kZXYk;
 				CODE_SIGN_ENTITLEMENTS = OneSet/OneSet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -330,6 +355,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLERK_PUBLISHABLE_KEY = CLERK_PRODUCTION_PUBLISHABLE_KEY_PLACEHOLDER;
 				CODE_SIGN_ENTITLEMENTS = OneSet/OneSet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -339,6 +365,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = OneSet;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				MARKETING_VERSION = 0.1.0;
+				ONESET_API_BASE_URL = "https://oneset-api.dimitarradulovv.workers.dev";
 				PRODUCT_BUNDLE_IDENTIFIER = com.oneset.OneSet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REVENUECAT_API_KEY = appl_KgaCusuuIBgzHxCbhVdFHpQLzwn;
