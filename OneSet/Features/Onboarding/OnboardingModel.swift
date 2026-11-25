@@ -40,6 +40,11 @@ final class OnboardingModel {
   }
   var programUpdateMessage: String?
   private var uploadingGeneration: Int?
+  var preferenceUploadingGeneration: Int?
+  var preferenceChangeCounter = 0
+  /// Set while uploads are being retried for the signed-in account, so a local preference change
+  /// can start its upload without every caller passing authentication.
+  @ObservationIgnored weak var preferenceUploadAuthentication: AuthenticationModel?
   var hasCompletedSetup: Bool { savedProgress?.completed != nil || restoredCycleID != nil }
   var hasPendingSetup: Bool { savedProgress?.completed?.needsUpload == true }
   var signOutErrorPresented = false
@@ -50,7 +55,7 @@ final class OnboardingModel {
   var savedProgress: OnboardingProgress?
   private(set) var isSigningOut = false
   private var didResolveInitialAccount = false
-  private let setupService: (any AccountSetupService)?
+  let setupService: (any AccountSetupService)?
   let cycleService: (any AccountCycleService)?
   let cycleSyncCoordinator: ProgramCycleSyncCoordinator
   var cycleKnowledgeGeneration = 0
@@ -710,6 +715,7 @@ extension OnboardingModel {
     activeWorkoutSession = nil
     savedProgress = nil
     uploadingGeneration = nil
+    preferenceUploadingGeneration = nil
     completedSessionUploadCoordinator?.cancelPendingWork()
     uploadMessage = nil
     cycleMessage = nil
@@ -899,6 +905,8 @@ extension OnboardingModel {
                                        selectedProgramID: setup.programID, nextStep: .overview)
     progress.completed = CompletedOnboarding(setup: setup, needsUpload: needsUpload)
     progress.cycles = savedProgress?.cycles
+    // An unsent preference change belongs to this account and survives setup and cycle updates.
+    progress.pendingPreferenceUpdate = savedProgress?.pendingPreferenceUpdate
     let isLocallyCreatedCycle = needsUpload || (savedProgress?.completed?.needsUpload == true
       && savedProgress?.completed?.setup.cycleID == setup.cycleID)
     if isLocallyCreatedCycle {
@@ -920,6 +928,7 @@ extension OnboardingModel {
   }
 
   func retryCompletedUploads(using authentication: AuthenticationModel) async {
+    preferenceUploadAuthentication = authentication
     while !Task.isCancelled, authentication.signedInUser != nil {
       await uploadCompletedSetup(using: authentication)
       await uploadPendingCycles(using: authentication)
@@ -927,7 +936,14 @@ extension OnboardingModel {
     }
   }
 
+  /// Uploads pending setup, then any pending preference update. Every setup upload trigger
+  /// (restoration, foreground entry, connectivity, periodic retry) therefore also retries preferences.
   func uploadCompletedSetup(using authentication: AuthenticationModel) async {
+    await uploadPendingSetup(using: authentication)
+    await uploadPendingPreferenceUpdate(using: authentication)
+  }
+
+  private func uploadPendingSetup(using authentication: AuthenticationModel) async {
     guard !isSigningOut, let user = authentication.signedInUser,
           resolvedAccountID == user.id, let completed = savedProgress?.completed,
           completed.needsUpload, let setupService,
@@ -945,12 +961,18 @@ extension OnboardingModel {
           accountID: user.id, cycleID: completed.setup.cycleID, establishedCycleID: setup.cycleID
         )
       }
+      // A preference change made while this upload was in flight is newer than the acknowledged values.
+      let sent = AccountPreferences(preferredUnit: completed.setup.preferredUnit, trainingDays: completed.setup.trainingDays)
+      let latest = savedProgress?.completed.map {
+        AccountPreferences(preferredUnit: $0.setup.preferredUnit, trainingDays: $0.setup.trainingDays)
+      } ?? sent
       try storeCompleted(setup, needsUpload: false, accountID: user.id)
       // A different device may have established setup first. Respect its cycle.
       if savedProgress?.cycles?.pendingCreations.isEmpty != false
         && savedProgress?.cycles?.pendingActivations?.isEmpty != false {
         apply(setup, replacePath: setup.cycleID != completed.setup.cycleID)
       }
+      if latest != sent { keepLocalPreferencesAfterSetupAcknowledgment(latest, accountID: user.id) }
       uploadMessage = nil
       presentSessionUploadErrorIfNeeded(accountID: user.id)
       await uploadPendingCycles(using: authentication)

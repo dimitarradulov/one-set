@@ -7,6 +7,7 @@ import { handlePreviousPerformanceRequest } from './previous-performance';
 import { handleProgressRequest } from './progress';
 import { handleHistoryRequest } from './history';
 import { handleAccountDeletionRequest } from './account-deletion';
+import { handlePreferencesRequest } from './preferences';
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -22,6 +23,11 @@ export default {
       });
     }
     const sql = neon(env.DATABASE_URL);
+    if (path === '/v1/me' && request.method === 'PATCH') {
+      return handlePreferencesRequest(request, env, {
+        query: async (query, params) => sql.query(query, params),
+      });
+    }
     if (path === '/v1/me') {
       return handleAccountDeletionRequest(request, env, {
         transaction: async statements => sql.transaction(statements.map(s => sql.query(s.query, s.params))),
