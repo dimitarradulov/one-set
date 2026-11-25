@@ -3,6 +3,8 @@ interface Env {
   DATABASE_URL: string;
   CLERK_JWT_KEY: string;
   CLERK_SECRET_KEY: string;
+  REVENUECAT_SECRET_KEY: string;
+  REVENUECAT_PROJECT_ID: string;
   CATALOG_PUBLISH_TOKEN: string;
   ACCESS_TEAM_DOMAIN: string;
   ACCESS_AUDIENCE: string;

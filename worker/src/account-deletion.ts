@@ -1,5 +1,6 @@
 import { authenticateClerkRequest, type ClerkConfiguration } from './authentication';
 import { deleteUser, type ClerkUserResult } from './clerk-users';
+import { deleteCustomer, type RevenueCatConfiguration } from './revenuecat-customers';
 
 export interface AccountErasureStatement {
   query: string;
@@ -11,7 +12,7 @@ export interface AccountErasureDatabase {
   transaction(statements: AccountErasureStatement[]): Promise<unknown>;
 }
 
-export interface AccountDeletionConfiguration extends ClerkConfiguration {
+export interface AccountDeletionConfiguration extends ClerkConfiguration, RevenueCatConfiguration {
   CLERK_SECRET_KEY: string;
 }
 
@@ -44,14 +45,34 @@ export async function eraseAccountData(database: AccountErasureDatabase, clerkUs
   await database.transaction(ERASURE_QUERIES.map(query => ({ query, params: [clerkUserId] })));
 }
 
-// Placeholder until subscription cleanup (RevenueCat) is added. Must stay idempotent.
-export async function cleanupSubscription(_clerkUserId: string): Promise<void> {}
+const log = (entry: Record<string, string>) => console.error(JSON.stringify(entry));
 
-const defaultServices: AccountDeletionServices = {
-  cleanupSubscription,
-  deleteClerkUser: (clerkUserId, secretKey) => deleteUser(clerkUserId, secretKey),
-  log: entry => console.error(JSON.stringify(entry)),
-};
+// Deletes the RevenueCat customer, whose App User ID is the Clerk user ID. Idempotent: a missing
+// customer counts as deleted. Throws on any other failure so the request returns 503 and the
+// user's repeat attempt retries this step.
+export async function cleanupSubscription(
+  clerkUserId: string,
+  config: RevenueCatConfiguration,
+  fetcher: typeof fetch = fetch,
+  logger: (entry: Record<string, string>) => void = log,
+): Promise<void> {
+  const result = await deleteCustomer(clerkUserId, config, fetcher);
+  if (result.status !== 'temporaryFailure') return;
+  logger({
+    event: 'account_deletion_subscription_cleanup_failed',
+    clerk_user_id: clerkUserId,
+    http_status: result.httpStatus === undefined ? 'none' : String(result.httpStatus),
+  });
+  throw new Error('RevenueCat customer deletion failed');
+}
+
+function defaultServices(env: AccountDeletionConfiguration): AccountDeletionServices {
+  return {
+    cleanupSubscription: clerkUserId => cleanupSubscription(clerkUserId, env),
+    deleteClerkUser: (clerkUserId, secretKey) => deleteUser(clerkUserId, secretKey),
+    log,
+  };
+}
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -63,7 +84,7 @@ export async function handleAccountDeletionRequest(
   request: Request,
   env: AccountDeletionConfiguration,
   database: AccountErasureDatabase,
-  services: AccountDeletionServices = defaultServices,
+  services: AccountDeletionServices = defaultServices(env),
 ): Promise<Response> {
   if (new URL(request.url).pathname !== '/v1/me') return json({ error: { code: 'NOT_FOUND' } }, 404);
   if (request.method !== 'DELETE') return json({ error: { code: 'METHOD_NOT_ALLOWED' } }, 405);
