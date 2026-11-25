@@ -286,8 +286,8 @@ These headings group rows; they are not additional navigation destinations. Vari
 | Program | Existing program overview, workout previews, and exercise details |
 | History | Titled “Coming soon” placeholder for chronological session history |
 | Settings | Its own primary tab containing the grouped settings list |
-| Settings → Units | Titled “Coming soon” placeholder |
-| Settings → Training frequency | Titled “Coming soon” placeholder |
+| Settings → Units | Grouped kg/lb list with a checkmark on the current choice; saves on tap. While a session is active the row is disabled and the Training section reads “Finish or discard your workout to change units.” |
+| Settings → Training frequency | Grouped 2-5 days per week list with a checkmark; saves on tap and only changes which programs are listed first |
 | Settings → Rest alerts | Titled “Coming soon” placeholder |
 | Settings → Downloaded videos | Titled “Coming soon” placeholder |
 | Settings → Subscription | Titled “Coming soon” placeholder |
