@@ -28,12 +28,7 @@ extension OnboardingJourneyTests {
       "settings.row.downloadedVideos", "account.signOut", "settings.row.subscription",
       "settings.row.accountDeletion"
     ]
-    XCTAssertEqual(
-      app.buttons.allElementsBoundByIndex
-        .filter { $0.identifier.hasPrefix("settings.row.") || $0.identifier == "account.signOut" }
-        .map(\.identifier),
-      expectedRowOrder
-    )
+    XCTAssertEqual(settingsRowIdentifiersScrollingToLastRow(), expectedRowOrder)
     XCTAssertGreaterThanOrEqual(app.buttons["account.signOut"].frame.height, 44)
 
     let destinations: [(String, String, String)] = [
@@ -52,6 +47,7 @@ extension OnboardingJourneyTests {
       XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     }
 
+    for _ in 0..<6 where !app.buttons["settings.row.accountDeletion"].exists { app.swipeUp() }
     XCTAssertTrue(app.buttons["settings.row.accountDeletion"].label.contains("Account deletion"))
     app.buttons["settings.row.accountDeletion"].tap()
     XCTAssertTrue(app.navigationBars["Delete account"].waitForExistence(timeout: 3))
@@ -606,5 +602,23 @@ extension OnboardingJourneyTests {
     XCTAssertFalse(app.staticTexts["overview.title"].exists)
     relaunch(with: ["--ui-auth-restored", "--ui-progress-keep", "--ui-setup-offline"])
     XCTAssertTrue(app.staticTexts["trial.title"].waitForExistence(timeout: 3))
+  }
+
+  /// The Settings form is lazy, so on a short screen the last rows are not in the hierarchy until
+  /// scrolled to. Collect identifiers in order while scrolling down, then scroll back to the top.
+  private func settingsRowIdentifiersScrollingToLastRow() -> [String] {
+    func visibleRows() -> [String] {
+      app.buttons.allElementsBoundByIndex
+        .filter { $0.identifier.hasPrefix("settings.row.") || $0.identifier == "account.signOut" }
+        .map(\.identifier)
+    }
+    var identifiers: [String] = []
+    for _ in 0..<6 {
+      for identifier in visibleRows() where !identifiers.contains(identifier) { identifiers.append(identifier) }
+      if identifiers.contains("settings.row.accountDeletion") { break }
+      app.swipeUp()
+    }
+    for _ in 0..<6 { app.swipeDown() }
+    return identifiers
   }
 }

@@ -46,7 +46,7 @@ struct TrainingPreferencesScreen: View {
                 .foregroundStyle(OneSetColors.textPrimary)
 
               HStack(spacing: 10) {
-                ForEach([2, 3, 4, 5], id: \.self) { days in
+                ForEach(Array(AccountPreferences.trainingDaysRange), id: \.self) { days in
                   TrainingDayButton(
                     days: days,
                     isSelected: trainingDays == days,

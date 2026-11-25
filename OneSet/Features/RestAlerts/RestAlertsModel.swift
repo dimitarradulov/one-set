@@ -48,8 +48,7 @@ final class RestAlertsModel {
   func setEnabled(_ enabled: Bool) async {
     permissionWasDenied = false
     guard enabled else {
-      isEnabled = false
-      store.isEnabled = false
+      disable()
       reschedule()
       return
     }
@@ -60,17 +59,20 @@ final class RestAlertsModel {
         isEnabled = true
         store.isEnabled = true
       } else {
-        isEnabled = false
-        store.isEnabled = false
+        disable()
         permissionWasDenied = true
       }
     } catch {
       logger.error("Could not request rest alert permission: \(error.localizedDescription)")
-      isEnabled = false
-      store.isEnabled = false
+      disable()
       permissionWasDenied = true
     }
     reschedule()
+  }
+
+  private func disable() {
+    isEnabled = false
+    store.isEnabled = false
   }
 
   /// Called when the active rest changes. Never asks for permission.

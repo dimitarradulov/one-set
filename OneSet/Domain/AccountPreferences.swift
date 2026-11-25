@@ -5,6 +5,9 @@ struct AccountPreferences: Codable, Sendable, Equatable {
   let preferredUnit: WeightUnit
   let trainingDays: Int
 
+  /// The training days per week a lifter can choose.
+  static let trainingDaysRange = 2...5
+
   enum CodingKeys: String, CodingKey {
     case preferredUnit = "preferred_unit"
     case trainingDays = "training_days"
