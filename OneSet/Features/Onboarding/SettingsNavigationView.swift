@@ -77,6 +77,8 @@ struct SettingsNavigationView: View {
           UnitsSettingsScreen(model: model)
         } else if destination == .trainingFrequency {
           TrainingFrequencySettingsScreen(model: model)
+        } else if destination == .restAlerts, let restAlerts = model.restAlerts {
+          RestAlertsScreen(model: restAlerts)
         } else {
           SettingsDestinationScreen(destination: destination)
         }

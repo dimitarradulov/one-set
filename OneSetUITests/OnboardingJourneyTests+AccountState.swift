@@ -37,7 +37,6 @@ extension OnboardingJourneyTests {
     XCTAssertGreaterThanOrEqual(app.buttons["account.signOut"].frame.height, 44)
 
     let destinations: [(String, String, String)] = [
-      ("settings.row.restAlerts", "Rest alerts", "Choose whether to get a notification when rest ends."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
     ]
     for (row, title, explanation) in destinations {
