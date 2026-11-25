@@ -53,12 +53,12 @@ final class AccountDeletionJourneyTests: XCTestCase {
   func testBlockingStatesDisableDelete() {
     relaunch(with: ["--ui-account-deletion-offline"])
     XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.offline"].waitForExistence(timeout: 5))
-    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
+    XCTAssertFalse(scrolledDeleteButton().isEnabled)
 
     relaunch(with: ["--ui-account-deletion-active-workout"])
     XCTAssertTrue(app.descendants(matching: .any)["accountDeletion.blocker.activeWorkout"].waitForExistence(timeout: 8))
-    XCTAssertFalse(app.buttons["accountDeletion.delete"].isEnabled)
     XCTAssertTrue(app.buttons["accountDeletion.goToWorkout"].exists)
+    XCTAssertFalse(scrolledDeleteButton().isEnabled)
   }
 
   func testFailedDeletionShowsErrorAndRetry() {
@@ -70,6 +70,18 @@ final class AccountDeletionJourneyTests: XCTestCase {
     XCTAssertTrue(app.buttons["accountDeletion.retry"].exists)
     XCTAssertEqual(app.buttons["accountDeletion.retry"].label, "Retry")
     XCTAssertFalse(app.buttons["continue.email"].exists)
+  }
+
+  /// The delete button, scrolled into view. The screen is a lazy list, so on short screens the
+  /// button has no element until its row scrolls on screen.
+  private func scrolledDeleteButton() -> XCUIElement {
+    let delete = app.buttons["accountDeletion.delete"]
+    let list = app.collectionViews["accountDeletion.screen"]
+    for _ in 0..<5 where !delete.exists {
+      list.swipeUp()
+    }
+    XCTAssertTrue(delete.exists, "The delete button should appear after scrolling")
+    return delete
   }
 
   private func relaunch(with additionalArguments: [String]) {
