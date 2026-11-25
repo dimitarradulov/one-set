@@ -6,8 +6,8 @@ struct OnboardingProgress: Codable, Sendable {
     case overview
   }
 
-  let weightUnit: WeightUnit
-  let trainingDays: Int
+  var weightUnit: WeightUnit
+  var trainingDays: Int
   let selectedProgramID: TrainingProgram.ID?
   let nextStep: Step
   var completed: CompletedOnboarding? = nil

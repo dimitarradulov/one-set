@@ -37,8 +37,6 @@ extension OnboardingJourneyTests {
     XCTAssertGreaterThanOrEqual(app.buttons["account.signOut"].frame.height, 44)
 
     let destinations: [(String, String, String)] = [
-      ("settings.row.units", "Units", "Change between kilograms and pounds here."),
-      ("settings.row.trainingFrequency", "Training frequency", "Change how many days you plan to train each week."),
       ("settings.row.downloadedVideos", "Downloaded videos", "Manage exercise videos saved on this device."),
     ]
     for (row, title, explanation) in destinations {
@@ -80,13 +78,47 @@ extension OnboardingJourneyTests {
     XCTAssertTrue(mainTab("History").isSelected)
 
     relaunch(with: ["--ui-main-settings-units"])
-    XCTAssertTrue(app.staticTexts["settings.destination.comingSoon"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["settings.units.kg"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.navigationBars["Units"].exists)
     XCTAssertTrue(mainTab("Settings").isSelected)
 
     relaunch(with: ["--ui-main-workout-preview"])
     XCTAssertTrue(app.staticTexts["workoutPreview.title"].waitForExistence(timeout: 3))
     XCTAssertTrue(mainTab("Program").isSelected)
+  }
+
+  func testUnitsAndTrainingFrequencyScreensSaveTheSelection() {
+    relaunch(with: ["--ui-main-tabs", "--ui-workouts-reset"])
+    XCTAssertTrue(mainTab("Settings").waitForExistence(timeout: 5))
+    mainTab("Settings").tap()
+    XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+    app.buttons["settings.row.units"].tap()
+    XCTAssertTrue(app.navigationBars["Units"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["settings.destination.comingSoon"].exists)
+    XCTAssertTrue(app.buttons["settings.units.lb"].isSelected)
+    XCTAssertFalse(app.buttons["settings.units.kg"].isSelected)
+    app.buttons["settings.units.kg"].tap()
+    XCTAssertTrue(app.buttons["settings.units.kg"].isSelected)
+    XCTAssertFalse(app.buttons["settings.units.lb"].isSelected)
+    navigationBack().tap()
+    app.buttons["settings.row.trainingFrequency"].tap()
+    XCTAssertTrue(app.navigationBars["Training frequency"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.staticTexts["settings.destination.comingSoon"].exists)
+    XCTAssertTrue(app.buttons["settings.frequency.5"].isSelected)
+    app.buttons["settings.frequency.2"].tap()
+    XCTAssertTrue(app.buttons["settings.frequency.2"].isSelected)
+    XCTAssertFalse(app.buttons["settings.frequency.5"].isSelected)
+    navigationBack().tap()
+    XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+  }
+
+  func testUnitsRowIsDisabledWithNoteDuringActiveWorkout() {
+    relaunch(with: ["--ui-main-workout-recording", "--ui-workouts-reset", "--ui-main-settings"])
+    mainTab("Settings").tap()
+    XCTAssertTrue(app.buttons["settings.row.units"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.buttons["settings.row.units"].isEnabled)
+    XCTAssertTrue(app.buttons["settings.row.trainingFrequency"].isEnabled)
+    XCTAssertTrue(app.staticTexts["Finish or discard your workout to change units."].exists)
   }
 
   func testHistoryPreviewRoutesShowPopulatedPartialEmptyAndRetryStates() {
@@ -248,7 +280,7 @@ extension OnboardingJourneyTests {
     mainTab("Settings").tap()
     XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
     XCTAssertFalse(app.navigationBars["Units"].exists)
-    XCTAssertFalse(app.staticTexts["Change between kilograms and pounds here."].exists)
+    XCTAssertFalse(app.buttons["settings.units.kg"].exists)
   }
 
   func testFailedLookupRequiresRetryBeforeRestoringTheProgram() {

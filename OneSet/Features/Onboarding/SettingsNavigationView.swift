@@ -10,11 +10,17 @@ struct SettingsNavigationView: View {
       Form {
         Section {
           destinationLink(.units)
+            .disabled(!model.canChangeUnits)
           destinationLink(.trainingFrequency)
           destinationLink(.restAlerts)
         } header: {
           Text("Training")
             .accessibilityIdentifier("settings.section.training")
+        } footer: {
+          if !model.canChangeUnits {
+            Text(OnboardingModel.unitsLockedNote)
+              .accessibilityIdentifier("settings.units.lockedNote")
+          }
         }
         .listRowBackground(OneSetColors.surface)
 
@@ -67,6 +73,10 @@ struct SettingsNavigationView: View {
           SubscriptionSettingsScreen(model: subscription, accountID: model.resolvedAccountID)
         } else if destination == .accountDeletion {
           AccountDeletionRoute(onboarding: model, authentication: authentication)
+        } else if destination == .units {
+          UnitsSettingsScreen(model: model)
+        } else if destination == .trainingFrequency {
+          TrainingFrequencySettingsScreen(model: model)
         } else if destination == .restAlerts, let restAlerts = model.restAlerts {
           RestAlertsScreen(model: restAlerts)
         } else {
