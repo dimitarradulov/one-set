@@ -39,15 +39,17 @@ struct LocalAccountErasure {
     if !failures.isEmpty { throw LocalAccountErasureError(failures: failures) }
   }
 
-  /// The steps every account needs: workout data, onboarding progress, saved subscription
-  /// access, and pending subscription operations.
+  /// The steps every account needs: billing for the account, workout data, onboarding progress,
+  /// saved subscription access, and pending subscription operations.
   static func standard(
     repository: WorkoutRepository,
     onboardingProgress: any OnboardingProgressStore,
     savedSubscriptionAccess: any SavedSubscriptionAccessStore,
-    pendingSubscriptionOperations: any PendingSubscriptionOperationStore
+    pendingSubscriptionOperations: any PendingSubscriptionOperationStore,
+    subscriptionAccounts: (any SubscriptionAccountSelecting)? = nil
   ) -> LocalAccountErasure {
     LocalAccountErasure(steps: [
+      SubscriptionBillingCleanup(accounts: subscriptionAccounts),
       repository,
       OnboardingProgressCleanup(store: onboardingProgress),
       SavedSubscriptionAccessCleanup(store: savedSubscriptionAccess),
@@ -65,6 +67,16 @@ extension WorkoutRepository: AccountDeletionCleanup {
 private struct OnboardingProgressCleanup: AccountDeletionCleanup {
   let store: any OnboardingProgressStore
   func erase(accountID: String) throws { try store.remove(accountID: accountID) }
+}
+
+/// Clears the departing account's subscription selection. Purchases and restores for that
+/// selection are then refused, and its access held in memory is dropped, even if sign-out fails.
+struct SubscriptionBillingCleanup: AccountDeletionCleanup {
+  let accounts: (any SubscriptionAccountSelecting)?
+  func erase(accountID: String) throws {
+    guard let accounts, accounts.selection?.accountID == accountID else { return }
+    accounts.selectAccount(nil)
+  }
 }
 
 private struct SavedSubscriptionAccessCleanup: AccountDeletionCleanup {

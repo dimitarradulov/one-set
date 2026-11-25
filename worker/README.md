@@ -8,6 +8,8 @@ Install dependencies with `npm ci` in this directory (Node 22 or later). Run `np
 
 Copy `.env.example` to the ignored `.dev.vars` for local Wrangler secrets. Set `DATABASE_URL` to a pooled URL for an isolated development Neon branch, `CLERK_JWT_KEY` to the PEM public key for the same Clerk instance used by the iOS app, and `CATALOG_PUBLISH_TOKEN` to a random maintenance secret. The publisher token is separate from Clerk sessions and is never added to the iOS app. For a deployed Worker, set that binding with `npx wrangler secret put CATALOG_PUBLISH_TOKEN --env development`.
 
+Account deletion (`DELETE /v1/me`) also needs `CLERK_SECRET_KEY`, plus `REVENUECAT_SECRET_KEY` (a RevenueCat API v2 secret key with `customer_information:customers:read_write` permission) and `REVENUECAT_PROJECT_ID` (the RevenueCat project ID, for example `projYOUR_ID`). Set each with `npx wrangler secret put NAME --env development`. Without the RevenueCat secrets, deletion responds `503 TEMPORARY_FAILURE` after erasing the account's rows and before deleting the Clerk identity.
+
 The committed `development` environment in `wrangler.jsonc` is configured for the app's Clerk development instance. For a different environment, configure:
 
 - `CLERK_ISSUER`: the exact `https://YOUR_INSTANCE.clerk.accounts.dev` issuer.

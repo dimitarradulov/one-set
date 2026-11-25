@@ -52,80 +52,105 @@ final class CompletedSessionUploadCoordinator {
 
     isDraining = true
     drainingAccountID = user.id
-    defer {
-      isDraining = false
-      drainingAccountID = nil
-      let waiters = drainWaiters
-      drainWaiters = []
-      waiters.forEach { $0.resume() }
-      if scheduleRetries, !suspendedAccountIDs.contains(user.id) {
-        scheduleRetry(for: request)
-      }
-      if let queuedDrain {
-        self.queuedDrain = nil
-        Task { [weak self] in
-          await self?.drain(
-            for: queuedDrain.user,
-            whileCurrent: queuedDrain.isCurrent,
-            at: queuedDrain.date,
-            scheduleRetries: true,
-            blockedCycleIDs: queuedDrain.blockedCycleIDs
-          )
-        }
-      }
-    }
+    defer { finishDrain(request, scheduleRetries: scheduleRetries) }
 
     guard let entries = try? repository.sessionUploadQueue(accountID: user.id) else { return }
     for entry in entries {
       guard !Task.isCancelled, isCurrent(), !suspendedAccountIDs.contains(user.id) else { return }
-      struct CycleReference: Decodable { let cycle_id: UUID }
-      let cycleID = try? JSONDecoder().decode(CycleReference.self, from: entry.upload.body).cycle_id
-      guard blockedCycleIDs.isEmpty || (cycleID != nil && !blockedCycleIDs.contains(cycleID!)),
-            entry.permanentFailure == nil, !entry.isAuthenticationDeferred,
-            entry.retryAfter.map({ $0 <= date }) ?? true else { continue }
+      guard Self.isEligible(entry, at: date, blockedCycleIDs: blockedCycleIDs) else { continue }
+      guard await upload(entry, request: request) == .next else { return }
+    }
+  }
 
-      do {
-        try await service.upload(entry.upload, for: user)
-      } catch let error as CompletedSessionUploadError {
-        guard isCurrent() else { return }
-        switch error {
-        case .authenticationRequired:
-          try? repository.deferUploadUntilAuthenticationRestored(
-            sessionID: entry.upload.sessionID, accountID: user.id
-          )
-          return
-        case .forbidden:
-          guard (try? repository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .forbidden
-          )) != nil else { return }
-          continue
-        case .conflict:
-          guard (try? repository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .conflict
-          )) != nil else { return }
-          continue
-        case .invalidSession:
-          guard (try? repository.rejectSessionUpload(
-            sessionID: entry.upload.sessionID, accountID: user.id, reason: .invalidSession
-          )) != nil else { return }
-          continue
-        case .temporary(let serverRetryAt):
-          recordTransientFailure(for: entry, accountID: user.id, at: date, serverRetryAt: serverRetryAt)
-          continue
-        }
-      } catch {
-        guard isCurrent() else { return }
-        recordTransientFailure(for: entry, accountID: user.id, at: date)
-        continue
-      }
+  private enum EntryOutcome {
+    /// Move on to the next queued entry.
+    case next
+    /// Stop draining: the account changed or uploads must wait for authentication.
+    case stop
+  }
 
-      guard isCurrent() else { return }
-      do {
-        try repository.acknowledgeSessionUpload(sessionID: entry.upload.sessionID, accountID: user.id)
-      } catch {
-        recordTransientFailure(for: entry, accountID: user.id, at: date)
+  /// Ends a drain: wakes suspended callers, schedules a retry, and starts any drain queued meanwhile.
+  private func finishDrain(_ request: DrainRequest, scheduleRetries: Bool) {
+    isDraining = false
+    drainingAccountID = nil
+    let waiters = drainWaiters
+    drainWaiters = []
+    waiters.forEach { $0.resume() }
+    if scheduleRetries, !suspendedAccountIDs.contains(request.user.id) {
+      scheduleRetry(for: request)
+    }
+    if let queuedDrain {
+      self.queuedDrain = nil
+      Task { [weak self] in
+        await self?.drain(
+          for: queuedDrain.user,
+          whileCurrent: queuedDrain.isCurrent,
+          at: queuedDrain.date,
+          scheduleRetries: true,
+          blockedCycleIDs: queuedDrain.blockedCycleIDs
+        )
       }
     }
+  }
+
+  /// An entry uploads now unless its cycle is blocked, it failed permanently, it waits for
+  /// authentication, or its retry time has not come.
+  private static func isEligible(_ entry: CompletedSessionUploadQueueEntry, at date: Date, blockedCycleIDs: Set<UUID>) -> Bool {
+    if !blockedCycleIDs.isEmpty {
+      guard let cycleID = try? JSONDecoder().decode(UploadCycleReference.self, from: entry.upload.body).cycleID,
+            !blockedCycleIDs.contains(cycleID) else { return false }
+    }
+    return entry.permanentFailure == nil && !entry.isAuthenticationDeferred
+      && (entry.retryAfter.map { $0 <= date } ?? true)
+  }
+
+  private func upload(_ entry: CompletedSessionUploadQueueEntry, request: DrainRequest) async -> EntryOutcome {
+    let user = request.user
+    do {
+      try await service.upload(entry.upload, for: user)
+    } catch let error as CompletedSessionUploadError {
+      guard request.isCurrent() else { return .stop }
+      return handle(error, for: entry, request: request)
+    } catch {
+      guard request.isCurrent() else { return .stop }
+      recordTransientFailure(for: entry, accountID: user.id, at: request.date)
+      return .next
+    }
+
+    guard request.isCurrent() else { return .stop }
+    do {
+      try repository.acknowledgeSessionUpload(sessionID: entry.upload.sessionID, accountID: user.id)
+    } catch {
+      recordTransientFailure(for: entry, accountID: user.id, at: request.date)
+    }
+    return .next
+  }
+
+  private func handle(
+    _ error: CompletedSessionUploadError, for entry: CompletedSessionUploadQueueEntry, request: DrainRequest
+  ) -> EntryOutcome {
+    let accountID = request.user.id
+    let sessionID = entry.upload.sessionID
+    switch error {
+    case .authenticationRequired:
+      try? repository.deferUploadUntilAuthenticationRestored(sessionID: sessionID, accountID: accountID)
+      return .stop
+    case .forbidden:
+      return reject(sessionID, accountID: accountID, reason: .forbidden)
+    case .conflict:
+      return reject(sessionID, accountID: accountID, reason: .conflict)
+    case .invalidSession:
+      return reject(sessionID, accountID: accountID, reason: .invalidSession)
+    case .temporary(let serverRetryAt):
+      recordTransientFailure(for: entry, accountID: accountID, at: request.date, serverRetryAt: serverRetryAt)
+      return .next
+    }
+  }
+
+  /// Marks the upload as permanently rejected. A storage failure stops the drain.
+  private func reject(_ sessionID: UUID, accountID: String, reason: CompletedSessionUploadRejection) -> EntryOutcome {
+    (try? repository.rejectSessionUpload(sessionID: sessionID, accountID: accountID, reason: reason)) != nil
+      ? .next : .stop
   }
 
   /// Stops all upload requests for the account. A request already on the wire finishes first, and
@@ -211,4 +236,10 @@ final class CompletedSessionUploadCoordinator {
     scheduledRetryAccountID = nil
     scheduledRetryAt = nil
   }
+}
+
+/// The cycle a queued upload belongs to, read from its request body.
+private struct UploadCycleReference: Decodable {
+  let cycleID: UUID
+  enum CodingKeys: String, CodingKey { case cycleID = "cycle_id" }
 }

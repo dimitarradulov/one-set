@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
-import { handleAccountDeletionRequest, type AccountDeletionServices } from '../src/account-deletion.ts';
+import { cleanupSubscription, handleAccountDeletionRequest, type AccountDeletionServices } from '../src/account-deletion.ts';
 import type { ClerkUserResult } from '../src/clerk-users.ts';
 import { handleSetupRequest } from '../src/setup.ts';
 
@@ -14,6 +14,8 @@ const env = {
   CLERK_JWT_KEY: await exportSPKI(keys.publicKey),
   CLERK_AUTHORIZED_PARTIES: 'https://oneset.test',
   CLERK_SECRET_KEY: 'sk_test',
+  REVENUECAT_PROJECT_ID: 'proj_test',
+  REVENUECAT_SECRET_KEY: 'sk_rc_test',
 };
 async function token(subject = 'user_a') {
   return new SignJWT({ sid: 'sess_test' })
@@ -189,4 +191,63 @@ test('race: a stale setup request after the Clerk delete removes its own row and
   );
   assert.equal(response.status, 401);
   assert.equal(await count('users', "WHERE clerk_user_id = 'user_a'"), 0);
+});
+
+// RevenueCat answers each DELETE with the next queued status; Clerk calls are recorded by `services`.
+function revenueCat(statuses: number[]) {
+  const calls: string[] = [];
+  const fetcher = (async (url: string | URL | Request) => {
+    calls.push(String(url));
+    events.push('revenuecat');
+    return new Response('{}', { status: statuses.shift() ?? 200 });
+  }) as typeof fetch;
+  const withRevenueCat: AccountDeletionServices = {
+    ...services,
+    cleanupSubscription: clerkUserId => cleanupSubscription(clerkUserId, env, fetcher, services.log),
+  };
+  return { calls, services: withRevenueCat };
+}
+
+test('RevenueCat deletion runs after the erasure and before Clerk, for the caller only', async () => {
+  const rc = revenueCat([200]);
+  const response = await handleAccountDeletionRequest(await request(), env, database, rc.services);
+  assert.equal(response.status, 200);
+  assert.deepEqual(events, ['erase', 'revenuecat', 'clerk', 'erase']);
+  assert.deepEqual(rc.calls, ['https://api.revenuecat.com/v2/projects/proj_test/customers/user_a']);
+});
+
+test('a RevenueCat failure returns 503 before Clerk, and a repeat attempt completes the deletion', async () => {
+  const rc = revenueCat([503, 200]);
+  const first = await handleAccountDeletionRequest(await request(), env, database, rc.services);
+  assert.equal(first.status, 503);
+  assert.deepEqual(await first.json(), { error: { code: 'TEMPORARY_FAILURE' } });
+  assert.deepEqual(events, ['erase', 'revenuecat']);
+  assert.equal(await count('users', "WHERE clerk_user_id = 'user_a'"), 0);
+  assert.equal(await count('users', "WHERE clerk_user_id = 'user_b'"), 1);
+  assert.deepEqual(logs, [{
+    event: 'account_deletion_subscription_cleanup_failed', clerk_user_id: 'user_a', http_status: '503',
+  }]);
+
+  events.length = 0;
+  const second = await handleAccountDeletionRequest(await request(), env, database, rc.services);
+  assert.equal(second.status, 200);
+  assert.deepEqual(events, ['erase', 'revenuecat', 'clerk', 'erase']);
+});
+
+test('a customer RevenueCat no longer has counts as deleted, so a repeat after success still finishes', async () => {
+  const rc = revenueCat([404]);
+  const response = await handleAccountDeletionRequest(await request(), env, database, rc.services);
+  assert.equal(response.status, 200);
+  assert.deepEqual(events, ['erase', 'revenuecat', 'clerk', 'erase']);
+});
+
+test('missing RevenueCat configuration returns 503 and never deletes the Clerk identity', async () => {
+  const rc = revenueCat([200]);
+  const unconfigured = { ...env, REVENUECAT_SECRET_KEY: '' };
+  const response = await handleAccountDeletionRequest(await request(), unconfigured, database, {
+    ...rc.services,
+    cleanupSubscription: clerkUserId => cleanupSubscription(clerkUserId, unconfigured, undefined, services.log),
+  });
+  assert.equal(response.status, 503);
+  assert.ok(!events.includes('clerk'));
 });

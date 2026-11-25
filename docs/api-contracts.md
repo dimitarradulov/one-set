@@ -186,12 +186,12 @@ Completed-history DELETE requires online confirmation and resolved pending uploa
 `DELETE /v1/me` relies on the verified Clerk session only. The in-app confirmation is the guard against accidental deletion. Steps run in this order:
 
 1. Erase every row the user owns (`completed_workouts`, `workout_session_sets`, `workout_sessions`, `user_workout_exercises`, `user_program_workout_periods`, `user_programs`, `users`) in one batched `sql.transaction`. A user with no rows succeeds without doing anything.
-2. Call `cleanupSubscription(clerkUserId)`. This hook is a no-op until [RevenueCat customer deletion](revenuecat-integration.md#restore-after-account-deletion) is attached. It must be idempotent.
+2. Call `cleanupSubscription(clerkUserId)`, which deletes the RevenueCat customer whose App User ID is the Clerk user ID through RevenueCat API v2 (`DELETE /v2/projects/{project_id}/customers/{customer_id}`). A 404 counts as already deleted, so the step is idempotent. Any other failure, including missing RevenueCat configuration, responds `503` before the Clerk identity is touched. See [restore after account deletion](revenuecat-integration.md#restore-after-account-deletion).
 3. Delete the Clerk user through the Clerk Backend API. A 404 counts as success. This comes after erasure because the client cannot authenticate to retry once the identity is gone.
 4. Repeat the erasure as a sweep to remove any row a stale-token setup request inserted meanwhile. It normally deletes nothing.
 5. Respond `200 { "status": "deleted" }` with `Cache-Control: private, no-store`.
 
-A database or upstream failure responds `503 TEMPORARY_FAILURE`, and finished steps stay finished. Every step is idempotent, so the user's next `DELETE /v1/me` resumes. The Worker keeps no deletion record, tombstone or background retry. If the sweep fails after the identity is deleted, the response is still `200` and the error is logged with the Clerk user ID only, so an operator can remove the unreachable row by hand. The client erases local data only after `200`. The Worker needs the `CLERK_SECRET_KEY` secret.
+A database or upstream failure responds `503 TEMPORARY_FAILURE`, and finished steps stay finished. Every step is idempotent, so the user's next `DELETE /v1/me` resumes. The Worker keeps no deletion record, tombstone or background retry. If the sweep fails after the identity is deleted, the response is still `200` and the error is logged with the Clerk user ID only, so an operator can remove the unreachable row by hand. The client erases local data only after `200`. The Worker needs the `CLERK_SECRET_KEY`, `REVENUECAT_SECRET_KEY` and `REVENUECAT_PROJECT_ID` secrets.
 
 ### Setup stale-token guard
 

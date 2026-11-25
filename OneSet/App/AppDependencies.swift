@@ -82,243 +82,13 @@ struct AppDependencies {
     let storage = AppStorage(environment: environment)
     let directory = storage.directory.appending(path: "Onboarding")
     #if DEBUG
-    let launch = AppLaunchConfiguration(arguments: arguments)
-    let uploadPreview = arguments.contains("--ui-setup-upload-pending")
-      || arguments.contains("--ui-setup-upload-discard") || arguments.contains("--ui-setup-upload-removed")
-      || arguments.contains("--ui-setup-cycle-conflict")
-    let setupCycleConflictPreview = arguments.contains("--ui-setup-cycle-conflict")
-    let programChangePreview = arguments.contains("--ui-program-change")
-      || arguments.contains("--ui-program-change-preview") || arguments.contains("--ui-program-change-active")
-    let sessionSignOutPreview = arguments.contains("--ui-session-signout-confirmation")
-      || arguments.contains("--ui-session-signout-error")
-    let historyPreview = arguments.contains("--ui-history-populated")
-      || arguments.contains("--ui-history-partial-detail")
-      || arguments.contains("--ui-history-empty") || arguments.contains("--ui-history-error")
-      || arguments.contains("--ui-history-refresh-error")
-      || arguments.contains("--ui-history-pagination")
-      || arguments.contains("--ui-history-offline-boundary")
-    let removedProgramPreview = arguments.contains("--ui-programs-removed")
-      || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-setup-upload-removed")
-    let accountDeletionUnsyncedPreview = arguments.contains("--ui-account-deletion-unsynced")
-    let completionSaveError = arguments.contains("--ui-completion-save-error")
-    let progressRestoreError = arguments.contains("--ui-progress-restore-error")
-    let mainTabsPreview = launch.includesMainTabsPreview
-    let preview = completionSaveError || uploadPreview || removedProgramPreview || mainTabsPreview || arguments.contains("--ui-workout-storage-error") || arguments.contains("--ui-auth-test") || arguments.contains("--ui-account-setup-error") || arguments.contains("--ui-setup-timeout")
-      || arguments.contains("--ui-email-auth") || arguments.contains("--ui-auth-persist-session-test")
-      || arguments.contains("--ui-progress-save-error") || arguments.contains("--ui-apple-auth-error")
-      || progressRestoreError
-      || arguments.contains("--ui-google-auth-error")
-      || arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
-      || arguments.contains("--ui-catalog-offline") || arguments.contains("--ui-workout-banner-fallback")
-      || arguments.contains("--ui-workout-banner-legacy") || arguments.contains("--ui-workout-preview-superset")
-      || sessionSignOutPreview
-    let progressURL = directory.appending(path: preview ? "preview-progress.json" : "progress.json")
-    if preview && (!arguments.contains("--ui-progress-keep") || arguments.contains("--ui-progress-reset")) {
-      try? FileManager.default.removeItem(at: progressURL)
-    }
-    if arguments.contains("--ui-development-progress-reset") {
-      try? FileManager.default.removeItem(
-        at: storage.directory.appending(path: "Development/onboarding.json")
-      )
-    }
-    let previewWorkoutFile = Self.previewWorkoutFile(arguments, restoreError: progressRestoreError, signOut: sessionSignOutPreview, history: historyPreview)
-    let previewWorkoutURL = storage.directory.appending(path: "Preview/\(previewWorkoutFile)")
-    if arguments.contains("--ui-workouts-reset") || arguments.contains("--ui-finish-review") || arguments.contains("--ui-main-workout-gated")
-      || arguments.contains("--ui-switch-programs")
-      || arguments.contains("--ui-switch-detail") || setupCycleConflictPreview
-      || sessionSignOutPreview || progressRestoreError || programChangePreview || accountDeletionUnsyncedPreview {
-      for suffix in ["", "-wal", "-shm"] {
-        try? FileManager.default.removeItem(atPath: previewWorkoutURL.path + suffix)
-      }
-    }
-    #else
-    let progressURL = directory.appending(path: "progress.json")
-    #endif
-    let fileStore = FileOnboardingProgressStore(fileURL: progressURL)
-    #if DEBUG
-    if uploadPreview {
-      var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
-                                         selectedProgramID: "machine-full-body", nextStep: .overview)
-      progress.completed = CompletedOnboarding(setup: AccountSetup(
-        preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
-        cycleID: setupCycleConflictPreview
-          ? PreviewCycleID.previous
-          : UUID()
-      ), needsUpload: true)
-      try? fileStore.save(progress, accountID: "preview-user")
-    }
-    if programChangePreview {
-      let old = AccountSetup(preferredUnit: .pounds, trainingDays: 3, programID: "bro-split",
-        cycleID: PreviewCycleID.previous)
-      var saved = OnboardingProgress(weightUnit: .pounds, trainingDays: 3, selectedProgramID: old.programID, nextStep: .overview)
-      saved.completed = CompletedOnboarding(setup: old, needsUpload: false)
-      try? fileStore.save(saved, accountID: "preview-user")
-    }
-    if sessionSignOutPreview {
-      var progress = OnboardingProgress(weightUnit: .pounds, trainingDays: 3,
-                                        selectedProgramID: "machine-full-body", nextStep: .overview)
-      progress.completed = CompletedOnboarding(setup: AccountSetup(
-        preferredUnit: .pounds, trainingDays: 3, programID: "machine-full-body",
-        cycleID: PreviewCycleID.pendingSignOut
-      ), needsUpload: true)
-      try? fileStore.save(progress, accountID: "preview-user")
-    }
-    let progress: any OnboardingProgressStore = (completionSaveError || arguments.contains("--ui-progress-save-error"))
-      ? PreviewOnboardingProgressStore(store: fileStore, completionOnly: completionSaveError) : fileStore
-    #else
-    let progress: any OnboardingProgressStore = fileStore
-    #endif
-    #if DEBUG
-    if preview {
-      let bundledPrograms = ProgramCatalog.bundled.programs.map { program in
-        if program.id == "upper-lower",
-           arguments.contains("--ui-workout-banner-fallback") || arguments.contains("--ui-workout-banner-legacy") {
-          let workouts = program.workouts.map { workout in
-            guard workout.id == "upper-lower-lower-a" else { return workout }
-            let banner = arguments.contains("--ui-workout-banner-legacy") ? nil : "future-theme-v2"
-            return WorkoutTemplate(id: workout.id, name: workout.name, banner: banner, exercises: workout.exercises)
-          }
-          return TrainingProgram(
-            id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,
-            workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
-          )
-        }
-        if program.id == "machine-full-body",
-           arguments.contains("--ui-workout-preview-superset") || arguments.contains("--ui-main-workout-superset") {
-          let workouts = program.workouts.map { workout in
-            guard workout.id == "machine-full-body-workout-a", workout.exercises.count >= 2 else { return workout }
-            return WorkoutTemplate(
-              id: workout.id, name: workout.name, banner: workout.banner, exercises: workout.exercises,
-              supersets: [SupersetPair(firstSlotID: workout.exercises[0].id, secondSlotID: workout.exercises[1].id)]
-            )
-          }
-          return TrainingProgram(
-            id: program.id, name: program.name, format: program.format, emphasis: program.emphasis,
-            workouts: workouts, recommendedWeeks: program.recommendedWeeks, isOffered: program.isOffered
-          )
-        }
-        guard removedProgramPreview, program.id == "machine-full-body" else { return program }
-        return TrainingProgram(
-          id: program.id, name: program.name,
-          format: program.format, emphasis: program.emphasis, workouts: program.workouts,
-          recommendedWeeks: program.recommendedWeeks, isOffered: false
-        )
-      }
-      let catalogURL = storage.directory
-        .appending(path: "Catalog", directoryHint: .isDirectory)
-        .appending(path: "preview-catalog.json")
-      let catalogSeed = arguments.contains("--ui-catalog-seed") || arguments.contains("--ui-catalog-seed-edited")
-      if catalogSeed {
-        try? FileManager.default.removeItem(at: catalogURL)
-      }
-      let catalogService: (any ProgramCatalogService)? =
-        catalogSeed
-        ? PreviewProgramCatalogService(editedProgram: arguments.contains("--ui-catalog-seed-edited")) : nil
-      let switchSync = PreviewSwitchSyncService(online: arguments.contains("--ui-switch-online"))
-      return AppDependencies(
-        catalog: ProgramCatalog(
-          programs: bundledPrograms,
-          bundledExercises: ProgramCatalog.unassignedBundledExercises,
-          service: catalogService,
-          persistence: catalogSeed || arguments.contains("--ui-catalog-offline")
-            ? FileProgramCatalogPersistence(fileURL: catalogURL) : nil
-        ),
-        authentication: PreviewAuthenticationService(
-          defaults: storage.authenticationDefaults,
-          emailIsRegistered: arguments.contains("--ui-auth-existing"),
-          startsSignedIn: uploadPreview || mainTabsPreview || arguments.contains("--ui-setup-timeout") || arguments.contains("--ui-auth-restored")
-            || arguments.contains("--ui-setup-removed-follower") || arguments.contains("--ui-account-setup-error")
-            || arguments.contains("--ui-progress-save-error") || progressRestoreError,
-          persistsSession: arguments.contains("--ui-auth-persist-session-test"),
-          resetPersistedSession: arguments.contains("--ui-auth-reset"),
-          signOutFails: arguments.contains("--ui-auth-signout-error") || arguments.contains("--ui-session-signout-error"),
-          googleIncomplete: arguments.contains("--ui-google-incomplete"),
-          googleFails: arguments.contains("--ui-google-error") || arguments.contains("--ui-google-auth-error"),
-          googleCancels: arguments.contains("--ui-google-cancel"),
-          appleCancels: arguments.contains("--ui-apple-cancel"),
-          appleFails: arguments.contains("--ui-apple-error") || arguments.contains("--ui-apple-auth-error")
-        ),
-        onboardingProgress: progress,
-        accountSetup: PreviewAccountSetupService(
-          arguments: arguments,
-          includesMainTabsPreview: launch.includesMainTabsPreview && !sessionSignOutPreview,
-          storageDirectory: storage.directory
-        ),
-        accountCycles: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredCycles()
-          : (arguments.contains("--ui-switch-test") ? switchSync : nil),
-        previousPerformance: PreviewPreviousPerformanceService(),
-        accountProgress: (arguments.contains("--ui-replacement-device") || programChangePreview) ? PreviewRestoredProgress()
-          : (progressRestoreError ? PreviewAccountProgressService(fails: true) : nil),
-        completedSessionUpload: arguments.contains("--ui-switch-online") ? switchSync : nil,
-        sessionHistory: PreviewSessionHistoryService(
-          pages: arguments.contains("--ui-history-pagination")
-            ? [[Self.previewDownloadedHistorySession(
-                id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", workout: "machine-full-body-workout-b",
-                startedAt: Date(timeIntervalSince1970: 1_801_000_000), day: 2
-              )], [Self.previewDownloadedHistorySession(
-                id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", workout: "machine-full-body-workout-a",
-                startedAt: Date(timeIntervalSince1970: 1_792_000_000), day: 1
-              )]]
-            : (arguments.contains("--ui-history-offline-boundary")
-              ? [[Self.previewDownloadedHistorySession(
-                  id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", workout: "machine-full-body-workout-b",
-                  startedAt: Date(timeIntervalSince1970: 1_801_000_000), day: 2
-                )]] : []),
-          failsInitial: arguments.contains("--ui-history-error") || arguments.contains("--ui-history-refresh-error"),
-          failsOlder: arguments.contains("--ui-history-offline-boundary")
-        ),
-        subscriptionAccess: Self.previewSubscriptionAccess(launch: launch, arguments: arguments),
-        workoutRepositoryFactory: {
-          if arguments.contains("--ui-workout-storage-error") {
-            throw CocoaError(.fileReadNoPermission)
-          }
-          let repository = try WorkoutRepository(databaseURL: previewWorkoutURL)
-          if arguments.contains("--ui-program-change-active"),
-             let program = ProgramCatalog.bundled.program(id: "bro-split"), let workout = program.workouts.first {
-            let session = WorkoutSession(accountID: "preview-user",
-              cycleID: PreviewCycleID.previous,
-              program: program, workout: workout, week: 1, day: 1, weightUnit: .pounds, startedAt: .now)
-            _ = try repository.start(session)
-          }
-          if sessionSignOutPreview {
-            try Self.seedCompletedPreviewSession(
-              in: repository,
-              cycleID: PreviewCycleID.pendingSignOut,
-              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
-            )
-          }
-          if accountDeletionUnsyncedPreview {
-            try Self.seedCompletedPreviewSession(
-              in: repository,
-              cycleID: PreviewCycleID.pendingSignOut,
-              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
-            )
-          }
-          if setupCycleConflictPreview {
-            try Self.seedCompletedPreviewSession(
-              in: repository,
-              cycleID: PreviewCycleID.previous,
-              startedAt: Date(timeIntervalSince1970: 1_800_000_000)
-            )
-          }
-          if historyPreview && (arguments.contains("--ui-history-populated")
-            || arguments.contains("--ui-history-partial-detail")
-            || arguments.contains("--ui-history-refresh-error")) {
-            try Self.seedHistoryPreviewSessions(in: repository)
-          }
-          return repository
-        },
-        accountDeletion: AccountDeletionServices(
-          service: PreviewAccountDeletionService(arguments: arguments),
-          onboardingProgress: progress,
-          savedSubscriptionAccess: FileSavedSubscriptionAccessStore(
-            fileURL: storage.directory.appending(path: "Preview/saved-access.json")),
-          pendingSubscriptionOperations: FilePendingSubscriptionOperationStore(
-            fileURL: storage.directory.appending(path: "Preview/pending-operations.json"))
-        )
-      )
+    if let preview = Self.launchPreview(arguments: arguments, storage: storage, onboardingDirectory: directory) {
+      return preview
     }
     #endif
+    let progress: any OnboardingProgressStore = FileOnboardingProgressStore(
+      fileURL: directory.appending(path: "progress.json")
+    )
 
     let authentication = ClerkAuthenticationService()
     let savedSubscriptionAccess = FileSavedSubscriptionAccessStore(
@@ -364,7 +134,7 @@ struct AppDependencies {
   }
 
   #if DEBUG
-  private static func previewWorkoutFile(
+  static func previewWorkoutFile(
     _ arguments: [String], restoreError: Bool, signOut: Bool, history: Bool
   ) -> String {
     if arguments.contains("--ui-finish-review") { return "finish-review-workouts.sqlite" }
@@ -375,7 +145,7 @@ struct AppDependencies {
 
   /// Setup journeys stay on the trial screen unless a test presets Pro. Tab previews and
   /// accounts with completed setup start with Pro.
-  private static func previewSubscriptionAccess(
+  static func previewSubscriptionAccess(
     launch: AppLaunchConfiguration, arguments: [String]
   ) -> PreviewSubscriptionAccessService {
     let startsWithPro = launch.includesMainTabsPreview || arguments.contains("--ui-setup-completed")
@@ -419,7 +189,7 @@ struct AppDependencies {
   }
 
   #if DEBUG
-  private static func seedCompletedPreviewSession(
+  static func seedCompletedPreviewSession(
     in repository: WorkoutRepository,
     cycleID: UUID,
     startedAt: Date
@@ -447,7 +217,7 @@ struct AppDependencies {
     )
   }
 
-  private static func seedHistoryPreviewSessions(in repository: WorkoutRepository) throws {
+  static func seedHistoryPreviewSessions(in repository: WorkoutRepository) throws {
     guard try repository.completedSessions(accountID: "preview-user").isEmpty,
           let program = ProgramCatalog.bundled.program(id: "machine-full-body"),
           let workout = program.workouts.first, workout.exercises.count >= 2 else { return }
@@ -486,7 +256,7 @@ struct AppDependencies {
     }
   }
 
-  private static func previewDownloadedHistorySession(
+  static func previewDownloadedHistorySession(
     id sessionID: String,
     workout workoutID: String,
     startedAt: Date,
@@ -515,7 +285,7 @@ struct AppDependencies {
 
 #if DEBUG
 @MainActor
-private struct PreviewProgramCatalogService: ProgramCatalogService {
+struct PreviewProgramCatalogService: ProgramCatalogService {
   let editedProgram: Bool
 
   func fetchCatalog(ifNoneMatch: String?) async throws -> ProgramCatalogFetchResult {
@@ -550,7 +320,7 @@ private struct PreviewProgramCatalogService: ProgramCatalogService {
 
 #if DEBUG
 @MainActor
-private final class PreviewSwitchSyncService: AccountCycleService, CompletedSessionUploadService {
+final class PreviewSwitchSyncService: AccountCycleService, CompletedSessionUploadService {
   let online: Bool
   private var created: Set<UUID> = []
 
@@ -578,7 +348,7 @@ private final class PreviewSwitchSyncService: AccountCycleService, CompletedSess
 
 #if DEBUG
 @MainActor
-private struct PreviewRestoredCycles: AccountCycleService {
+struct PreviewRestoredCycles: AccountCycleService {
   private let current = PreviewCycleID.current
   private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountCycles {
@@ -592,7 +362,7 @@ private struct PreviewRestoredCycles: AccountCycleService {
 }
 
 @MainActor
-private struct PreviewRestoredProgress: AccountProgressService {
+struct PreviewRestoredProgress: AccountProgressService {
   private let current = PreviewCycleID.current
   private let previous = PreviewCycleID.previous
   func lookup(for user: AuthenticatedUser) async throws -> AccountProgress? {

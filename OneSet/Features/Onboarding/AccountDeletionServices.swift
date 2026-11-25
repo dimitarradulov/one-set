@@ -82,7 +82,8 @@ private struct OnboardingAccountDeletionErasure: AccountDeletionLocalErasure {
       repository: repository,
       onboardingProgress: services.onboardingProgress,
       savedSubscriptionAccess: services.savedSubscriptionAccess,
-      pendingSubscriptionOperations: services.pendingSubscriptionOperations
+      pendingSubscriptionOperations: services.pendingSubscriptionOperations,
+      subscriptionAccounts: model.subscriptionAccess as? any SubscriptionAccountSelecting
     ).erase(accountID: accountID)
   }
 }
