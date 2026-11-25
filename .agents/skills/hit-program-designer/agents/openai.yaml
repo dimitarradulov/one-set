@@ -1,0 +1,5 @@
+interface:
+  display_name: "HIT Program Designer"
+  short_description: "Design, approve, and publish a new HIT program"
+policy:
+  allow_implicit_invocation: false
