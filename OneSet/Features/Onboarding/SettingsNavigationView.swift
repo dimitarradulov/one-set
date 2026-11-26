@@ -46,10 +46,6 @@ struct SettingsNavigationView: View {
                 .accessibilityIdentifier("settings.account.email")
             }
           }
-          Text("Missing history? Check the address above. Sign out and use the account you used to record those workouts.")
-            .font(OneSetTypography.label)
-            .foregroundStyle(OneSetColors.textSecondary)
-            .accessibilityIdentifier("settings.account.historyHelp")
           Button {
             Task { await model.signOut(using: authentication) }
           } label: {
