@@ -91,8 +91,8 @@ struct ProgramDetailScreen: View {
           }
           .font(OneSetTypography.button)
           .foregroundStyle(Color.black)
-          .frame(maxWidth: 560, minHeight: 52)
-          .padding(.vertical, 8)
+          .frame(maxWidth: 560, minHeight: 44)
+          .padding(.vertical, 4)
           .background(OneSetColors.accent, in: RoundedRectangle(cornerRadius: 12))
           .contentShape(RoundedRectangle(cornerRadius: 12))
         }
@@ -100,8 +100,8 @@ struct ProgramDetailScreen: View {
         .disabled(switching && isSelected)
         .accessibilityIdentifier("program.detail.select")
         .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, max(geometry.safeAreaInsets.bottom, 12))
+        .padding(.top, 8)
+        .padding(.bottom, max(geometry.safeAreaInsets.bottom - 8, 8))
         .frame(maxWidth: .infinity)
         .background(OneSetColors.background)
       }
